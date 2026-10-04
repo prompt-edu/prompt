@@ -22,6 +22,7 @@ import {
   cn,
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -135,7 +136,8 @@ export const StudentForm = forwardRef<StudentComponentRef, StudentFormProps>(
       return unsubscribe
     }, [form, student, onUpdate])
 
-    const { data: listedStudyPrograms } = useStudyPrograms()
+    const { data: listedStudyPrograms, isError: studyProgramsFailed } = useStudyPrograms()
+    const studyProgramListUnavailable = studyProgramsFailed && listedStudyPrograms === undefined
     const studyPrograms = useMemo(
       () => listedStudyPrograms?.map((program) => program.name).concat(OTHER_STUDY_PROGRAM),
       [listedStudyPrograms],
@@ -380,37 +382,53 @@ export const StudentForm = forwardRef<StudentComponentRef, StudentFormProps>(
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Study Program{requiredStar}</FormLabel>
-                  <Select
-                    onValueChange={(value) => {
-                      if (value === OTHER_STUDY_PROGRAM) {
-                        setOtherStudyProgram(true)
-                        field.onChange('')
-                      } else {
-                        setOtherStudyProgram(false)
-                        field.onChange(value)
+                  {studyProgramListUnavailable ? (
+                    <>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          disabled={isInstructorView}
+                          placeholder='Please enter your current study program'
+                          maxLength={100}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        The list of study programs could not be loaded, so please type it in.
+                      </FormDescription>
+                    </>
+                  ) : (
+                    <Select
+                      onValueChange={(value) => {
+                        if (value === OTHER_STUDY_PROGRAM) {
+                          setOtherStudyProgram(true)
+                          field.onChange('')
+                        } else {
+                          setOtherStudyProgram(false)
+                          field.onChange(value)
+                        }
+                      }}
+                      defaultValue={field.value}
+                      disabled={isInstructorView || studyPrograms === undefined}
+                      value={
+                        otherStudyProgram || isUnlistedStudyProgram(field.value)
+                          ? OTHER_STUDY_PROGRAM
+                          : field.value
                       }
-                    }}
-                    defaultValue={field.value}
-                    disabled={isInstructorView || studyPrograms === undefined}
-                    value={
-                      otherStudyProgram || isUnlistedStudyProgram(field.value)
-                        ? OTHER_STUDY_PROGRAM
-                        : field.value
-                    }
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder='Select your current study program' />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {studyPrograms?.map((program) => (
-                        <SelectItem key={program} value={program}>
-                          {program}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder='Select your current study program' />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {studyPrograms?.map((program) => (
+                          <SelectItem key={program} value={program}>
+                            {program}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                   {!otherStudyProgram && <FormMessage />}
                 </FormItem>
               )}

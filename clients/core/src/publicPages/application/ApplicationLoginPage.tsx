@@ -89,14 +89,6 @@ export const ApplicationLoginPage = () => {
     )
   }
 
-  if (studyPrograms.isError) {
-    return (
-      <NonAuthenticatedPageWrapper withLoginButton={false}>
-        <ErrorState error={studyPrograms.error} onBack={() => navigate('/')} />
-      </NonAuthenticatedPageWrapper>
-    )
-  }
-
   const { applicationPhase } = applicationForm
   const externalStudentsAllowed = applicationPhase.externalStudentsAllowed
   const universityLoginAvailable = applicationPhase.universityLoginAvailable

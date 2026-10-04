@@ -117,14 +117,6 @@ export const ApplicationAuthenticated = () => {
     )
   }
 
-  if (studyPrograms.isError) {
-    return (
-      <AuthenticatedPageWrapper withLoginButton={false}>
-        <ErrorState error={studyPrograms.error} onBack={handleBack} />
-      </AuthenticatedPageWrapper>
-    )
-  }
-
   const { applicationPhase } = applicationForm
 
   let student: Student = {

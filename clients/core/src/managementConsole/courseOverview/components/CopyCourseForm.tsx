@@ -1,4 +1,5 @@
 import type { CopyCourseFormValues } from '@core/validations/copyCourse'
+import { CourseType, CourseTypeDetails } from '@tumaet/prompt-shared-state'
 import {
   Button,
   DatePickerWithRange,
@@ -14,6 +15,11 @@ import {
   FormLabel,
   FormMessage,
   Input,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
   Textarea,
 } from '@tumaet/prompt-ui-components'
 import type { UseFormReturn } from 'react-hook-form'
@@ -72,6 +78,30 @@ export const CopyCourseForm = ({
                 <FormDescription>
                   e.g. ios2425 or ws2425 (lowercase letters and numbers only)
                 </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name='courseType'
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Course Type</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder='Select a course type' />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {Object.values(CourseType).map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {CourseTypeDetails[type].name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <FormMessage />
               </FormItem>
             )}

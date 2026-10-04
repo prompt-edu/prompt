@@ -35,6 +35,16 @@ func (s *CourseCopyService) copyCourseInternal(c *gin.Context, sourceCourseID uu
 		longDescription = courseVariables.LongDescription
 	}
 
+	courseType := sourceCourse.CourseType
+	if courseVariables.CourseType != "" {
+		courseType = courseVariables.CourseType
+	}
+
+	ects := sourceCourse.Ects
+	if courseVariables.Ects.Valid {
+		ects = courseVariables.Ects
+	}
+
 	restrictedData, err := meta.GetMetaDataDTOFromDBModel(sourceCourse.RestrictedData)
 	if err != nil {
 		return courseDTO.Course{}, fmt.Errorf("failed to convert restricted data: %w", err)
@@ -55,8 +65,8 @@ func (s *CourseCopyService) copyCourseInternal(c *gin.Context, sourceCourseID uu
 			StudentReadableData: studentReadableData,
 			ShortDescription:    shortDescription,
 			LongDescription:     longDescription,
-			CourseType:          sourceCourse.CourseType,
-			Ects:                sourceCourse.Ects,
+			CourseType:          courseType,
+			Ects:                ects,
 		}
 	} else {
 		newCourse = courseDTO.CreateCourse{
@@ -68,8 +78,8 @@ func (s *CourseCopyService) copyCourseInternal(c *gin.Context, sourceCourseID uu
 			StudentReadableData: studentReadableData,
 			ShortDescription:    shortDescription,
 			LongDescription:     longDescription,
-			CourseType:          sourceCourse.CourseType,
-			Ects:                sourceCourse.Ects,
+			CourseType:          courseType,
+			Ects:                ects,
 		}
 	}
 

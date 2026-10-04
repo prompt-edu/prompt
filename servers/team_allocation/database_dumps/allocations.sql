@@ -83,4 +83,12 @@ INSERT INTO allocations (id, course_participation_id, team_id, course_phase_id, 
 INSERT INTO tutor (course_phase_id, course_participation_id, first_name, last_name, team_id, university_login) VALUES
 ('5179d58a-d00d-4fa7-94a5-397bc69fab03', '99999999-9999-9999-9999-999999999998', 'Dave', 'Delta', 'dddddddd-dddd-dddd-dddd-dddddddddddd', 'ab12cde');
 
+-- A phase without tutors, where editors keep unscoped reads
+INSERT INTO team (id, name, course_phase_id) VALUES
+('f0f0f0f0-f0f0-f0f0-f0f0-f0f0f0f0f0f0', 'Team Zeta', '6179d58a-d00d-4fa7-94a5-397bc69fab04');
+
+INSERT INTO allocations (id, course_participation_id, team_id, course_phase_id, student_first_name, student_last_name) VALUES
+('e8e8e8e8-e8e8-e8e8-e8e8-e8e8e8e8e8e8', '99999999-9999-9999-9999-9999999999b1', 'f0f0f0f0-f0f0-f0f0-f0f0-f0f0f0f0f0f0', '6179d58a-d00d-4fa7-94a5-397bc69fab04', 'Zoe', 'Zeta'),
+('e9e9e9e9-e9e9-e9e9-e9e9-e9e9e9e9e9e9', '99999999-9999-9999-9999-9999999999b2', 'f0f0f0f0-f0f0-f0f0-f0f0-f0f0f0f0f0f0', '6179d58a-d00d-4fa7-94a5-397bc69fab04', 'Zack', 'Zeta');
+
 COMMIT;

@@ -36,6 +36,9 @@ const (
 	epsilonParticip    = "99999999-9999-9999-9999-999999999997"
 	staffFreeParticip  = "99999999-9999-9999-9999-99999999999a"
 	unknownParticipant = "99999999-9999-9999-9999-9999999999ff"
+
+	tutorlessPhase    = "6179d58a-d00d-4fa7-94a5-397bc69fab04"
+	tutorlessParticip = "99999999-9999-9999-9999-9999999999b1"
 )
 
 // tutorAuthMiddleware mocks an authenticated CourseEditor (non-lecturer) so the tutor-scoping
@@ -239,10 +242,24 @@ func (suite *AllocationRouterTestSuite) TestTutorForbiddenOnOtherAllocation() {
 	assert.Equal(suite.T(), http.StatusForbidden, resp.Code)
 }
 
-func (suite *AllocationRouterTestSuite) TestNonTutorEditorSeesAllAllocations() {
+func (suite *AllocationRouterTestSuite) TestEditorWithoutTutorRowForbiddenInPhaseWithTutors() {
 	coursePhaseID := "4179d58a-d00d-4fa7-94a5-397bc69fab02"
+	for _, login := range []string{"zz99zzz", ""} {
+		router := suite.routerAs(login)
+		for _, path := range []string{"/allocation", "/allocation/" + teamAlphaParticip} {
+			req, _ := http.NewRequest("GET", "/api/course_phase/"+coursePhaseID+path, nil)
+			resp := httptest.NewRecorder()
+
+			router.ServeHTTP(resp, req)
+
+			assert.Equal(suite.T(), http.StatusForbidden, resp.Code, "login %q on %s", login, path)
+		}
+	}
+}
+
+func (suite *AllocationRouterTestSuite) TestEditorReadsButCannotWriteInPhaseWithoutTutors() {
 	router := suite.routerAs("zz99zzz")
-	req, _ := http.NewRequest("GET", "/api/course_phase/"+coursePhaseID+"/allocation", nil)
+	req, _ := http.NewRequest("GET", "/api/course_phase/"+tutorlessPhase+"/allocation", nil)
 	resp := httptest.NewRecorder()
 
 	router.ServeHTTP(resp, req)
@@ -251,7 +268,10 @@ func (suite *AllocationRouterTestSuite) TestNonTutorEditorSeesAllAllocations() {
 
 	var allocations []map[string]interface{}
 	assert.NoError(suite.T(), json.Unmarshal(resp.Body.Bytes(), &allocations))
-	assert.Greater(suite.T(), len(allocations), 1, "An editor with no tutor row should see all allocations")
+	assert.Len(suite.T(), allocations, 2, "An editor in a phase without tutors should see every allocation of the phase")
+
+	deleteResp := suite.deleteAllocation(router, tutorlessPhase, tutorlessParticip)
+	assert.Equal(suite.T(), http.StatusForbidden, deleteResp.Code, "an editor without a tutor team must not write")
 }
 
 func (suite *AllocationRouterTestSuite) putAllocation(router *gin.Engine, coursePhaseID, courseParticipationID, body string) *httptest.ResponseRecorder {

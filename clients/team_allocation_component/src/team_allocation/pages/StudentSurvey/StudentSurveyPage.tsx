@@ -31,7 +31,7 @@ export const StudentSurveyPage = () => {
     isError: isSurveyFormError,
     refetch: refetchSurveyForm,
   } = useQuery<SurveyForm | null>({
-    queryKey: teamAllocationKeys.survey.form(phaseId), // TODO also update on skill / teams change
+    queryKey: teamAllocationKeys.survey.form(phaseId),
     queryFn: () => getSurveyForm(phaseId ?? ''),
   })
 

@@ -124,6 +124,22 @@ describe('tutorsImported', () => {
   })
 })
 
+describe('mySurveyResponseSubmitted', () => {
+  it('invalidates my response of this phase only', () => {
+    seed(
+      teamAllocationKeys.survey.myResponse(PHASE),
+      teamAllocationKeys.survey.myResponse(OTHER_PHASE),
+      teamAllocationKeys.survey.form(PHASE),
+    )
+
+    teamAllocationCache.mySurveyResponseSubmitted(queryClient, PHASE)
+
+    expect(isInvalidated(teamAllocationKeys.survey.myResponse(PHASE))).toBe(true)
+    expect(isInvalidated(teamAllocationKeys.survey.myResponse(OTHER_PHASE))).toBe(false)
+    expect(isInvalidated(teamAllocationKeys.survey.form(PHASE))).toBe(false)
+  })
+})
+
 describe('a key whose scoping id is missing', () => {
   it('is truncated at the missing segment rather than matching nothing', () => {
     seed(teamAllocationKeys.teams(PHASE), teamAllocationKeys.teams(OTHER_PHASE))

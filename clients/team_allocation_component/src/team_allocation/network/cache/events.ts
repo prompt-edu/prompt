@@ -55,4 +55,7 @@ export const teamAllocationCache = {
   // Tutors are served as part of each team
   tutorsImported: (queryClient: QueryClient, phaseId: Id): void =>
     invalidate(queryClient, teamKeys(phaseId)),
+
+  mySurveyResponseSubmitted: (queryClient: QueryClient, phaseId: Id): void =>
+    invalidate(queryClient, [teamAllocationKeys.survey.myResponse(phaseId)]),
 }

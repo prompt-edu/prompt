@@ -18,6 +18,7 @@ import { format } from 'date-fns'
 import { AlertCircle, Clock, MapPin, TriangleAlert, Users } from 'lucide-react'
 import { useState } from 'react'
 import { useParams } from 'react-router-dom'
+import { interviewKeys } from '../../network/cache'
 import { interviewAxiosInstance } from '../../network/interviewServerConfig'
 
 interface InterviewSlot {
@@ -49,7 +50,7 @@ export const StudentInterviewPage = () => {
   const { toast } = useToast()
 
   const { data: slots, isLoading: slotsLoading } = useQuery<InterviewSlot[]>({
-    queryKey: ['interviewSlotsWithAssignments', phaseId],
+    queryKey: interviewKeys.slots(phaseId),
     queryFn: async () => {
       const response = await interviewAxiosInstance.get(
         `interview/api/course_phase/${phaseId}/interview-slots`,
@@ -61,7 +62,7 @@ export const StudentInterviewPage = () => {
 
   const { data: myAssignment, isLoading: assignmentLoading } = useQuery<InterviewAssignment | null>(
     {
-      queryKey: ['myInterviewAssignment', phaseId],
+      queryKey: interviewKeys.myAssignment(phaseId),
       queryFn: async () => {
         try {
           const response = await interviewAxiosInstance.get(

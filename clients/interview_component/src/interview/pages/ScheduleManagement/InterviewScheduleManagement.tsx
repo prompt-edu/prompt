@@ -55,6 +55,7 @@ import {
 import { useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import type { InterviewSlotWithAssignments } from '../../interfaces/InterviewSlots'
+import { interviewKeys } from '../../network/cache'
 import { interviewAxiosInstance } from '../../network/interviewServerConfig'
 
 interface SlotFormData {
@@ -190,7 +191,7 @@ export const InterviewScheduleManagement = () => {
 
   // Fetch all participants
   const { data: participations } = useQuery<CoursePhaseParticipationsWithResolution>({
-    queryKey: ['participants', phaseId],
+    queryKey: interviewKeys.participants(phaseId),
     queryFn: () => getCoursePhaseParticipations(phaseId ?? ''),
     enabled: !!phaseId,
   })
@@ -201,7 +202,7 @@ export const InterviewScheduleManagement = () => {
     isLoading,
     isError,
   } = useQuery<InterviewSlotWithAssignments[]>({
-    queryKey: ['interviewSlotsWithAssignments', phaseId],
+    queryKey: interviewKeys.slots(phaseId),
     queryFn: async () => {
       const response = await interviewAxiosInstance.get(
         `interview/api/course_phase/${phaseId}/interview-slots`,

@@ -3482,6 +3482,15 @@
                             }
                         }
                     },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -3533,6 +3542,15 @@
                     },
                     "403": {
                         "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -4710,9 +4728,6 @@
                 },
                 "courseParticipationID": {
                     "type": "string"
-                },
-                "coursePhaseID": {
-                    "type": "string"
                 }
             }
         },
@@ -4726,9 +4741,6 @@
                     "type": "string"
                 },
                 "courseParticipationID": {
-                    "type": "string"
-                },
-                "coursePhaseID": {
                     "type": "string"
                 },
                 "id": {
@@ -5114,9 +5126,6 @@
                     "type": "string"
                 },
                 "courseParticipationID": {
-                    "type": "string"
-                },
-                "coursePhaseID": {
                     "type": "string"
                 }
             }

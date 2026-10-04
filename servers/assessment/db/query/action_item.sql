@@ -1,7 +1,8 @@
 -- name: GetActionItem :one
 SELECT *
 FROM action_item
-WHERE id = $1;
+WHERE id = $1
+  AND course_phase_id = $2;
 
 -- name: ListActionItemsForCoursePhase :many
 SELECT *
@@ -30,18 +31,19 @@ INSERT INTO action_item (id,
                          author)
 VALUES ($1, $2, $3, $4, $5);
 
--- name: UpdateActionItem :exec
+-- name: UpdateActionItem :execrows
 UPDATE action_item
-SET course_phase_id         = $2,
-    course_participation_id = $3,
-    action                  = $4,
-    author                  = $5
-WHERE id = $1;
+SET action = $4,
+    author = $5
+WHERE id = $1
+  AND course_phase_id = $2
+  AND course_participation_id = $3;
 
 -- name: DeleteActionItem :exec
 DELETE
 FROM action_item
-WHERE id = $1;
+WHERE id = $1
+  AND course_phase_id = $2;
 
 -- name: ListActionItemsForStudentInPhase :many
 SELECT *

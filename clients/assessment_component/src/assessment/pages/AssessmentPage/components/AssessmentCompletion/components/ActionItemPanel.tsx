@@ -28,10 +28,7 @@ interface ActionItemPanelProps {
 }
 
 export function ActionItemPanel({ readOnly = false, actionItems }: ActionItemPanelProps) {
-  const { phaseId, courseParticipationID } = useParams<{
-    phaseId: string
-    courseParticipationID: string
-  }>()
+  const { courseParticipationID } = useParams<{ courseParticipationID: string }>()
   const [error, setError] = useState<string | undefined>(undefined)
   const [savingItemId, setSavingItemId] = useState<string | undefined>(undefined)
   const [itemValues, setItemValues] = useState<Record<string, string>>({})
@@ -63,7 +60,6 @@ export function ActionItemPanel({ readOnly = false, actionItems }: ActionItemPan
     if (completed) return
 
     await createActionItem({
-      coursePhaseID: phaseId ?? '',
       courseParticipationID: courseParticipationID ?? '',
       action: '',
       author: userName,
@@ -85,7 +81,6 @@ export function ActionItemPanel({ readOnly = false, actionItems }: ActionItemPan
 
       const updateRequest: UpdateActionItemRequest = {
         id: item.id,
-        coursePhaseID: phaseId ?? '',
         courseParticipationID: courseParticipationID ?? '',
         action: value.trim(),
         author: userName,

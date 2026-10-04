@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	"github.com/prompt-edu/prompt-sdk/audit"
 	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
@@ -41,6 +42,12 @@ func RegisterRoutes(routerGroup *gin.RouterGroup, service *CategoryAssessmentSer
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/category-assessment [post]
 func (s *CategoryAssessmentService) createOrUpdateCategoryAssessment(c *gin.Context) {
+	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
+	if err != nil {
+		handleError(c, http.StatusBadRequest, err)
+		return
+	}
+
 	var req categoryAssessmentDTO.CreateOrUpdateCategoryAssessmentRequest
 	if err := c.BindJSON(&req); err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -56,7 +63,7 @@ func (s *CategoryAssessmentService) createOrUpdateCategoryAssessment(c *gin.Cont
 	req.Author = tokenUser.FirstName + " " + tokenUser.LastName
 	req.AuthorID = tokenUser.ID
 
-	if err := s.CreateOrUpdateCategoryAssessment(c, req); err != nil {
+	if err := s.CreateOrUpdateCategoryAssessment(c, coursePhaseID, req); err != nil {
 		if errors.Is(err, ErrNotEditable) {
 			handleError(c, http.StatusForbidden, err)
 			return

@@ -121,9 +121,8 @@ func (s *ActionItemService) createActionItem(c *gin.Context) {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
-	req.CoursePhaseID = coursePhaseID
 
-	err = s.CreateActionItem(c, req)
+	err = s.CreateActionItem(c, coursePhaseID, req)
 	if err != nil {
 		handleError(c, actionItemErrorStatus(err), err)
 		return

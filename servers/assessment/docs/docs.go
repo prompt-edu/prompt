@@ -4734,9 +4734,6 @@ const docTemplate = `{
                 },
                 "courseParticipationID": {
                     "type": "string"
-                },
-                "coursePhaseID": {
-                    "type": "string"
                 }
             }
         },
@@ -4750,9 +4747,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "courseParticipationID": {
-                    "type": "string"
-                },
-                "coursePhaseID": {
                     "type": "string"
                 },
                 "id": {

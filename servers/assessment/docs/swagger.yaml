@@ -23,8 +23,6 @@ definitions:
         type: string
       courseParticipationID:
         type: string
-      coursePhaseID:
-        type: string
     type: object
   actionItemDTO.UpdateActionItemRequest:
     properties:
@@ -33,8 +31,6 @@ definitions:
       author:
         type: string
       courseParticipationID:
-        type: string
-      coursePhaseID:
         type: string
       id:
         type: string

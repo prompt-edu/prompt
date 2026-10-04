@@ -38,8 +38,11 @@ func NewActionItemService(queries db.Queries, assessmentCompletion assessmentCom
 	}
 }
 
-func (s *ActionItemService) GetActionItem(ctx context.Context, actionItemID uuid.UUID) (*actionItemDTO.ActionItem, error) {
-	actionItem, err := s.queries.GetActionItem(ctx, actionItemID)
+func (s *ActionItemService) GetActionItem(ctx context.Context, coursePhaseID, actionItemID uuid.UUID) (*actionItemDTO.ActionItem, error) {
+	actionItem, err := s.queries.GetActionItem(ctx, db.GetActionItemParams{ID: actionItemID, CoursePhaseID: coursePhaseID})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, ErrActionItemNotFound
+	}
 	if err != nil {
 		log.Error("could not get action item: ", err)
 		return nil, errors.New("could not get action item")
@@ -78,12 +81,12 @@ func (s *ActionItemService) GetStudentActionItemsForCoursePhaseCommunication(ctx
 	return actionItems, nil
 }
 
-func (s *ActionItemService) CreateActionItem(ctx context.Context, req actionItemDTO.CreateActionItemRequest) error {
-	err := s.assessmentCompletion.CheckAssessmentIsEditable(ctx, &s.queries, req.CourseParticipationID, req.CoursePhaseID)
+func (s *ActionItemService) CreateActionItem(ctx context.Context, coursePhaseID uuid.UUID, req actionItemDTO.CreateActionItemRequest) error {
+	err := s.assessmentCompletion.CheckAssessmentIsEditable(ctx, &s.queries, req.CourseParticipationID, coursePhaseID)
 	if err != nil {
 		return err
 	}
-	err = s.queries.CreateActionItem(ctx, req.GetDBModel())
+	err = s.queries.CreateActionItem(ctx, req.GetDBModel(coursePhaseID))
 	if err != nil {
 		log.Error("could not create action item: ", err)
 		return errors.New("could not create action item")
@@ -92,58 +95,38 @@ func (s *ActionItemService) CreateActionItem(ctx context.Context, req actionItem
 }
 
 func (s *ActionItemService) UpdateActionItem(ctx context.Context, coursePhaseID uuid.UUID, req actionItemDTO.UpdateActionItemRequest) error {
-	existing, err := s.getActionItemInPhase(ctx, coursePhaseID, req.ID)
+	err := s.assessmentCompletion.CheckAssessmentIsEditable(ctx, &s.queries, req.CourseParticipationID, coursePhaseID)
 	if err != nil {
 		return err
 	}
-
-	err = s.assessmentCompletion.CheckAssessmentIsEditable(ctx, &s.queries, existing.CourseParticipationID, existing.CoursePhaseID)
-	if err != nil {
-		return err
-	}
-
-	req.CoursePhaseID = existing.CoursePhaseID
-	req.CourseParticipationID = existing.CourseParticipationID
-	err = s.queries.UpdateActionItem(ctx, req.GetDBModel())
+	rows, err := s.queries.UpdateActionItem(ctx, req.GetDBModel(coursePhaseID))
 	if err != nil {
 		log.Error("could not update action item: ", err)
 		return errors.New("could not update action item")
+	}
+	if rows == 0 {
+		return ErrActionItemNotFound
 	}
 	return nil
 }
 
 func (s *ActionItemService) DeleteActionItem(ctx context.Context, coursePhaseID, actionItemID uuid.UUID) error {
-	actionItem, err := s.getActionItemInPhase(ctx, coursePhaseID, actionItemID)
+	actionItem, err := s.GetActionItem(ctx, coursePhaseID, actionItemID)
 	if err != nil {
 		return err
 	}
 
-	err = s.assessmentCompletion.CheckAssessmentIsEditable(ctx, &s.queries, actionItem.CourseParticipationID, actionItem.CoursePhaseID)
+	err = s.assessmentCompletion.CheckAssessmentIsEditable(ctx, &s.queries, actionItem.CourseParticipationID, coursePhaseID)
 	if err != nil {
 		return err
 	}
 
-	err = s.queries.DeleteActionItem(ctx, actionItemID)
+	err = s.queries.DeleteActionItem(ctx, db.DeleteActionItemParams{ID: actionItemID, CoursePhaseID: coursePhaseID})
 	if err != nil {
 		log.Error("could not delete action item: ", err)
 		return errors.New("could not delete action item")
 	}
 	return nil
-}
-
-func (s *ActionItemService) getActionItemInPhase(ctx context.Context, coursePhaseID, actionItemID uuid.UUID) (db.ActionItem, error) {
-	actionItem, err := s.queries.GetActionItem(ctx, actionItemID)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return db.ActionItem{}, ErrActionItemNotFound
-	}
-	if err != nil {
-		log.Error("could not get action item: ", err)
-		return db.ActionItem{}, errors.New("could not get action item")
-	}
-	if actionItem.CoursePhaseID != coursePhaseID {
-		return db.ActionItem{}, ErrActionItemNotFound
-	}
-	return actionItem, nil
 }
 
 func (s *ActionItemService) ListActionItemsForStudentInPhase(ctx context.Context, courseParticipationID, coursePhaseID uuid.UUID) ([]actionItemDTO.ActionItem, error) {

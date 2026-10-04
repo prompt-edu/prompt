@@ -49,6 +49,7 @@ services:
   server-interview: *host-phase-server
   server-certificate: *host-phase-server
   server-presentation: *host-phase-server
+  server-infrastructure-setup: *host-phase-server
   server-team-allocation: *host-phase-server
 
   seaweedfs-s3:

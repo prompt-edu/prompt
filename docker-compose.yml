@@ -59,6 +59,7 @@ services:
       - S3_FORCE_PATH_STYLE
       - MAX_FILE_UPLOAD_SIZE_MB
       - ALLOWED_FILE_TYPES
+      - AI_ENABLED
     restart: unless-stopped
 
   server-team-allocation:
@@ -328,6 +329,42 @@ services:
       - MAX_FILE_UPLOAD_SIZE_MB
       - PRESENTATION_ALLOWED_FILE_TYPES
 
+  # Started only with the `ai` profile, which the Makefile enables when AI_ENABLED=true.
+  server-ai:
+    build:
+      context: ./servers/ai
+      dockerfile: ../Dockerfile
+    container_name: prompt-server-ai
+    profiles: [ai]
+    depends_on:
+      db-ai:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    ports:
+      - "8092:8080"
+    extra_hosts:
+      - "localhost:host-gateway"
+    environment:
+      - CORE_HOST
+      - SERVER_CORE_HOST
+      - SERVER_ADDRESS
+      - SERVER_IMAGE_TAG=local
+      - DB_HOST_AI
+      - DB_PORT_AI
+      - DB_NAME=${DB_AI_NAME}
+      - DB_USER=${DB_AI_USER}
+      - DB_PASSWORD=${DB_AI_PASSWORD}
+      - KEYCLOAK_HOST
+      - KEYCLOAK_REALM_NAME
+      - DEBUG
+      - AI_PROVIDER_BASE_URL
+      - AI_ALLOWED_MODELS
+      - AI_ENCRYPTION_KEY
+      - AI_AUDIT_METADATA_RETENTION_DAYS
+      - SENTRY_DSN_AI
+      - SENTRY_ENABLED
+
   client-core:
     build:
       context: ./clients/core
@@ -348,6 +385,7 @@ services:
       - CERTIFICATE_HOST
       - PRESENTATION_HOST
       - INFRASTRUCTURE_SETUP_HOST
+      - AI_HOST
       - KEYCLOAK_HOST
       - KEYCLOAK_REALM_NAME
       - CHAIR_NAME_SHORT
@@ -665,6 +703,25 @@ services:
       retries: 5
     ports:
       - "5441:5432"
+
+  db-ai:
+    image: "postgres:15.19-alpine"
+    container_name: prompt-db-ai
+    profiles: [ai]
+    environment:
+      - POSTGRES_USER=${DB_AI_USER}
+      - POSTGRES_PASSWORD=${DB_AI_PASSWORD}
+      - POSTGRES_DB=${DB_AI_NAME}
+      - TZ=Europe/Berlin
+    volumes:
+      - ./postgres_ai_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d ${DB_AI_NAME} -U ${DB_AI_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "5442:5432"
 
   keycloak-db:
     image: "postgres:15.19-alpine"

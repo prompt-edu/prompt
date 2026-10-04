@@ -110,6 +110,7 @@ services:
       - S3_FORCE_PATH_STYLE
       - MAX_FILE_UPLOAD_SIZE_MB
       - ALLOWED_FILE_TYPES
+      - AI_ENABLED
     restart: unless-stopped
     networks:
       - prompt-network
@@ -379,6 +380,45 @@ services:
     networks:
       - prompt-network
 
+  # Started only with AI_ENABLED=true, which the deployment turns into COMPOSE_PROFILES=ai.
+  server-ai:
+    image: "ghcr.io/prompt-edu/prompt/prompt-server-ai:${SERVER_AI_IMAGE_TAG}"
+    container_name: prompt-server-ai
+    profiles: [ai]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.server-ai.rule=Host(`${CORE_HOST}`) && PathPrefix(`/ai/api`)"
+      - "traefik.http.services.server-ai.loadbalancer.server.port=8080"
+      - "traefik.http.routers.server-ai.entrypoints=websecure"
+      - "traefik.http.routers.server-ai.tls.certresolver=letsencrypt"
+      # No compress middleware: it would buffer the streamed completions.
+      - "traefik.http.routers.server-ai.middlewares=api-ratelimit"
+    depends_on:
+      db-ai:
+        condition: service_healthy
+    expose:
+      - "8080"
+    environment:
+      - CORE_HOST
+      - SERVER_CORE_HOST
+      - SERVER_ADDRESS
+      - SERVER_IMAGE_TAG=${SERVER_AI_IMAGE_TAG}
+      - DB_HOST_AI=db-ai
+      - DB_PORT_AI=5432
+      - DB_NAME
+      - DB_USER
+      - DB_PASSWORD
+      - KEYCLOAK_HOST
+      - KEYCLOAK_REALM_NAME
+      - AI_PROVIDER_BASE_URL
+      - AI_ALLOWED_MODELS
+      - AI_ENCRYPTION_KEY
+      - AI_AUDIT_METADATA_RETENTION_DAYS
+      - SENTRY_DSN_AI
+      - SENTRY_ENABLED
+    networks:
+      - prompt-network
+
   db:
     image: "postgres:15.19-alpine"
     container_name: prompt-db
@@ -536,6 +576,27 @@ services:
       retries: 5
     ports:
       - "127.0.0.1:5441:5432"
+    networks:
+      - prompt-network
+
+  db-ai:
+    image: "postgres:15.19-alpine"
+    container_name: prompt-db-ai
+    profiles: [ai]
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+      - TZ=Europe/Berlin
+    volumes:
+      - ./postgres_ai_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "127.0.0.1:5442:5432"
     networks:
       - prompt-network
 
@@ -747,6 +808,7 @@ services:
       - CERTIFICATE_HOST
       - PRESENTATION_HOST
       - INFRASTRUCTURE_SETUP_HOST
+      - AI_HOST
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.core.rule=Host(`${CORE_HOST}`)"

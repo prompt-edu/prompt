@@ -2,16 +2,16 @@
 	client-interview client-matching clients db db-down \
 	server-core server-assessment server-interview \
 	server-team-allocation server-self-team-allocation server-example \
-	server-certificate server-presentation server-infrastructure-setup \
+	server-certificate server-presentation server-infrastructure-setup server-ai \
 	lint lint-clients lint-servers \
 	test test-clients test-core test-assessment test-interview \
 	test-team-allocation test-self-team-allocation test-example \
-	test-certificate test-presentation test-infrastructure-setup \
+	test-certificate test-presentation test-infrastructure-setup test-ai \
 	test-e2e test-e2e-shard test-e2e-ui test-e2e-down \
 	verify-up verify-down \
 	sqlc sqlc-core sqlc-assessment sqlc-interview \
 	sqlc-team-allocation sqlc-self-team-allocation sqlc-example \
-	sqlc-certificate sqlc-presentation sqlc-infrastructure-setup \
+	sqlc-certificate sqlc-presentation sqlc-infrastructure-setup sqlc-ai \
 	swagger install-clients install-hooks setup-skills new-phase \
 	seed seed-check
 
@@ -26,6 +26,10 @@ ifneq (,$(wildcard ./.env.dev))
     include .env.dev
     export
 endif
+
+# AI_ENABLED is the one switch for the AI server and its database (compose profile `ai`).
+AI_PROFILE := $(if $(filter true,$(AI_ENABLED)),ai)
+export COMPOSE_PROFILES := $(AI_PROFILE)
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
@@ -45,6 +49,7 @@ servers: ## Start all servers (core + all microservices)
 	@$(MAKE) server-certificate &
 	@$(MAKE) server-presentation &
 	@$(MAKE) server-infrastructure-setup &
+	$(if $(AI_PROFILE),@$(MAKE) server-ai &)
 	@wait
 	@echo "All servers started."
 
@@ -75,6 +80,9 @@ server-presentation: ## Start presentation server (port 8089)
 server-infrastructure-setup: ## Start infrastructure setup server (port 8091)
 	cd servers/infrastructure_setup && go run main.go
 
+server-ai: ## Start AI server (port 8092), needs AI_ENABLED=true for its database
+	cd servers/ai && go run main.go
+
 clients: ## Start all client micro-frontends
 	cd clients && yarn install && yarn run dev
 
@@ -98,7 +106,7 @@ client-matching: ## Start only the matching client
 
 DB_SERVICES = db db-team-allocation db-assessment db-self-team-allocation \
 	db-example-server db-interview db-certificate db-presentation \
-	db-infrastructure-setup
+	db-infrastructure-setup $(if $(AI_PROFILE),db-ai)
 
 db: ## Start every service database and Keycloak
 	docker compose up -d $(DB_SERVICES) keycloak
@@ -132,10 +140,11 @@ lint-servers: ## Run go vet on all servers
 	cd servers/certificate && go vet ./...
 	cd servers/presentation && go vet ./...
 	cd servers/infrastructure_setup && go vet ./...
+	cd servers/ai && go vet ./...
 
 # ─── Testing ───────────────────────────────────────────────────────────────────
 
-test: test-clients test-core test-assessment test-interview test-team-allocation test-self-team-allocation test-example test-certificate test-presentation test-infrastructure-setup ## Run all client and server tests
+test: test-clients test-core test-assessment test-interview test-team-allocation test-self-team-allocation test-example test-certificate test-presentation test-infrastructure-setup test-ai ## Run all client and server tests
 
 test-clients: ## Run all client unit tests
 	cd clients && yarn install && yarn test
@@ -166,6 +175,9 @@ test-presentation: ## Run presentation server tests
 
 test-infrastructure-setup: ## Run infrastructure setup server tests
 	cd servers/infrastructure_setup && go test ./...
+
+test-ai: ## Run AI server tests
+	cd servers/ai && go test ./...
 
 # ─── End-to-End Tests ──────────────────────────────────────────────────────────
 
@@ -244,7 +256,7 @@ verify-down: ## Tear down the host-browser stack and remove volumes
 
 # ─── Code Generation ──────────────────────────────────────────────────────────
 
-sqlc: sqlc-core sqlc-assessment sqlc-interview sqlc-team-allocation sqlc-self-team-allocation sqlc-example sqlc-certificate sqlc-presentation sqlc-infrastructure-setup ## Generate sqlc code for all servers
+sqlc: sqlc-core sqlc-assessment sqlc-interview sqlc-team-allocation sqlc-self-team-allocation sqlc-example sqlc-certificate sqlc-presentation sqlc-infrastructure-setup sqlc-ai ## Generate sqlc code for all servers
 
 sqlc-core: ## Generate sqlc code for core server
 	cd servers/core && sqlc generate
@@ -272,6 +284,9 @@ sqlc-presentation: ## Generate sqlc code for presentation server
 
 sqlc-infrastructure-setup: ## Generate sqlc code for infrastructure setup server
 	cd servers/infrastructure_setup && sqlc generate
+
+sqlc-ai: ## Generate sqlc code for AI server
+	cd servers/ai && sqlc generate
 
 swagger: ## Generate swagger docs for core server
 	cd servers/core && swag init

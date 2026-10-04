@@ -381,7 +381,7 @@ func (suite *ApplicationAdminServiceTestSuite) TestPostApplicationAuthenticatedS
 		},
 	}
 
-	_, err := suite.applicationAdminService.PostApplicationAuthenticatedStudent(suite.ctx, coursePhaseID, application)
+	_, err := suite.applicationAdminService.PostApplicationAuthenticatedStudent(suite.ctx, coursePhaseID, pgtype.Text{}, application)
 	assert.NoError(suite.T(), err)
 }
 
@@ -404,7 +404,7 @@ func (suite *ApplicationAdminServiceTestSuite) TestPostApplicationAuthenticatedS
 	}
 
 	// Apply with existing email but updated details
-	_, err := suite.applicationAdminService.PostApplicationAuthenticatedStudent(suite.ctx, coursePhaseID, application)
+	_, err := suite.applicationAdminService.PostApplicationAuthenticatedStudent(suite.ctx, coursePhaseID, pgtype.Text{}, application)
 	assert.NoError(suite.T(), err)
 }
 

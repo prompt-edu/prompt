@@ -597,6 +597,34 @@ INSERT INTO files (
     '4179d58a-d00d-4fa7-94a5-397bc69fab02',
     'Seed file for application router tests',
     '{application,resume}'
+),
+(
+    'd3d04042-95d1-4765-8592-caf9560c8c40',
+    'resume_applicant.pdf',
+    'resume.pdf',
+    'application/pdf',
+    1024,
+    'course-phase/4179d58a-d00d-4fa7-94a5-397bc69fab02/resume_applicant.pdf',
+    'seaweedfs',
+    'applicant-user-id',
+    'existingstudent@example.com',
+    '4179d58a-d00d-4fa7-94a5-397bc69fab02',
+    'Seed file uploaded by the authenticated test applicant',
+    '{application,resume}'
+),
+(
+    'd3d04042-95d1-4765-8592-caf9560c8c41',
+    'resume_other_phase.pdf',
+    'resume.pdf',
+    'application/pdf',
+    1024,
+    'course-phase/d0000099-0000-0000-0000-000000000099/resume_other_phase.pdf',
+    'seaweedfs',
+    'external',
+    'seed@example.com',
+    'd0000099-0000-0000-0000-000000000099',
+    'Seed file uploaded for another course phase',
+    '{application,resume}'
 );
 
 -- Add application_question_file_upload table for file upload questions

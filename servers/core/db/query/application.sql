@@ -14,10 +14,6 @@ VALUES ($1, $2, $3, $4);
 INSERT INTO application_answer_multi_select (id, application_question_id, course_participation_id, answer)
 VALUES ($1, $2, $3, $4);
 
--- name: CreateApplicationAnswerFileUpload :exec
-INSERT INTO application_answer_file_upload (id, application_question_id, course_participation_id, file_id)
-VALUES ($1, $2, $3, $4);
-
 -- name: GetApplicationExists :one
 SELECT EXISTS (
     SELECT 1
@@ -363,9 +359,16 @@ WHERE aqfu.course_phase_id = $1 AND aafu.course_participation_id = $2;
 SELECT * FROM application_answer_file_upload
 WHERE application_question_id = $1 AND course_participation_id = $2;
 
--- name: CreateOrOverwriteApplicationAnswerFileUpload :exec
+-- name: CreateOrOverwriteApplicationAnswerFileUpload :execrows
 INSERT INTO application_answer_file_upload (id, application_question_id, course_participation_id, file_id)
-VALUES ($1, $2, $3, $4)
+SELECT sqlc.arg(id), question.id, sqlc.arg(course_participation_id), uploaded_file.id
+FROM files uploaded_file
+JOIN application_question_file_upload question ON question.course_phase_id = uploaded_file.course_phase_id
+WHERE uploaded_file.id = sqlc.arg(file_id)
+  AND question.id = sqlc.arg(application_question_id)
+  AND uploaded_file.course_phase_id = sqlc.arg(course_phase_id)::uuid
+  AND uploaded_file.deleted_at IS NULL
+  AND (sqlc.narg(uploaded_by_user_id)::text IS NULL OR uploaded_file.uploaded_by_user_id = sqlc.narg(uploaded_by_user_id))
 ON CONFLICT (course_participation_id, application_question_id)
 DO UPDATE
 SET file_id = EXCLUDED.file_id;

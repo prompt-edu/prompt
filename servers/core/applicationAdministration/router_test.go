@@ -20,6 +20,7 @@ import (
 	"github.com/prompt-edu/prompt/servers/core/coursePhase/coursePhaseParticipation"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase/resolution"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/core/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt/servers/core/mailing"
 	"github.com/prompt-edu/prompt/servers/core/storage"
 	"github.com/prompt-edu/prompt/servers/core/storage/files"
@@ -40,6 +41,8 @@ type ApplicationAdminRouterTestSuite struct {
 var (
 	requiredFileUploadQuestionID = uuid.MustParse("b1b04042-95d1-4765-8592-caf9560c8c3d")
 	seededUploadFileID           = uuid.MustParse("d3d04042-95d1-4765-8592-caf9560c8c3f")
+	applicantUploadFileID        = uuid.MustParse("d3d04042-95d1-4765-8592-caf9560c8c40")
+	otherPhaseUploadFileID       = uuid.MustParse("d3d04042-95d1-4765-8592-caf9560c8c41")
 )
 
 func (suite *ApplicationAdminRouterTestSuite) SetupSuite() {
@@ -63,7 +66,11 @@ func (suite *ApplicationAdminRouterTestSuite) SetupSuite() {
 	suite.router = gin.Default()
 	api := suite.router.Group("/api")
 	testMiddleware := func() gin.HandlerFunc {
-		return sdkTestUtils.MockAuthMiddlewareWithEmail([]string{"PROMPT_Admin", "ios24245-iPraktikum-Lecturer"}, "existingstudent@example.com", "03711111", "ab12cde")
+		mockAuth := sdkTestUtils.MockAuthMiddlewareWithEmail([]string{"PROMPT_Admin", "ios24245-iPraktikum-Lecturer"}, "existingstudent@example.com", "03711111", "ab12cde")
+		return func(c *gin.Context) {
+			c.Set(keycloakTokenVerifier.CtxUserID, "applicant-user-id")
+			mockAuth(c)
+		}
 	}
 	setupApplicationRouter(api, suite.applicationAdminService, testMiddleware, testMiddleware, sdkTestUtils.MockPermissionMiddleware)
 }
@@ -294,7 +301,7 @@ func authApplicationWithEmail(email string) applicationDTO.PostApplication {
 		AnswersFileUpload: []applicationDTO.CreateAnswerFileUpload{
 			{
 				ApplicationQuestionID: requiredFileUploadQuestionID,
-				FileID:                seededUploadFileID,
+				FileID:                applicantUploadFileID,
 			},
 		},
 	}
@@ -383,6 +390,81 @@ func (suite *ApplicationAdminRouterTestSuite) TestPostApplicationAuthenticatedEn
 
 	assert.Equal(suite.T(), http.StatusCreated, resp.Code)
 	assert.Equal(suite.T(), "existingstudent@example.com", suite.getStudentEmail())
+}
+
+func (suite *ApplicationAdminRouterTestSuite) postApplication(path string, application applicationDTO.PostApplication) int {
+	jsonBody, err := json.Marshal(application)
+	assert.NoError(suite.T(), err)
+	req := httptest.NewRequest(http.MethodPost, path, bytes.NewReader(jsonBody))
+	req.Header.Set("Content-Type", "application/json")
+	resp := httptest.NewRecorder()
+	suite.router.ServeHTTP(resp, req)
+	return resp.Code
+}
+
+func (suite *ApplicationAdminRouterTestSuite) TestPostApplicationAuthenticatedEndpoint_RejectsFileOfOtherUploader() {
+	application := authApplicationWithEmail("existingstudent@example.com")
+	application.AnswersFileUpload[0].FileID = seededUploadFileID
+
+	code := suite.postApplication("/api/apply/authenticated/4179d58a-d00d-4fa7-94a5-397bc69fab02", application)
+	assert.Equal(suite.T(), http.StatusBadRequest, code)
+}
+
+func (suite *ApplicationAdminRouterTestSuite) TestPostApplicationExternEndpoint_RejectsFileOfOtherPhase() {
+	application := applicationDTO.PostApplication{
+		Student: studentDTO.CreateStudent{
+			FirstName:       "Other",
+			LastName:        "Phase",
+			Email:           "otherphasefile@example.com",
+			Gender:          db.GenderDiverse,
+			Nationality:     "DE",
+			CurrentSemester: pgtype.Int4{Valid: true, Int32: 1},
+			StudyProgram:    "Computer Science",
+			StudyDegree:     "bachelor",
+		},
+		AnswersText: []applicationDTO.CreateAnswerText{
+			{ApplicationQuestionID: uuid.MustParse("a6a04042-95d1-4765-8592-caf9560c8c3c"), Answer: "This is a valid answer."},
+		},
+		AnswersMultiSelect: []applicationDTO.CreateAnswerMultiSelect{
+			{ApplicationQuestionID: uuid.MustParse("383a9590-fba2-4e6b-a32b-88895d55fb9b"), Answer: []string{"MacBook"}},
+		},
+		AnswersFileUpload: []applicationDTO.CreateAnswerFileUpload{
+			{ApplicationQuestionID: requiredFileUploadQuestionID, FileID: otherPhaseUploadFileID},
+		},
+	}
+
+	code := suite.postApplication("/api/apply/4179d58a-d00d-4fa7-94a5-397bc69fab02", application)
+	assert.Equal(suite.T(), http.StatusBadRequest, code)
+}
+
+func (suite *ApplicationAdminRouterTestSuite) TestPostApplicationManualEndpoint_RejectsFileOfOtherPhase() {
+	application := applicationDTO.PostApplication{
+		Student: studentDTO.CreateStudent{
+			FirstName:            "Manual",
+			LastName:             "OtherPhase",
+			Email:                "manualotherphase@tum.de",
+			Gender:               db.GenderMale,
+			HasUniversityAccount: true,
+			MatriculationNumber:  "03799998",
+			UniversityLogin:      "zz99zzy",
+			Nationality:          "DE",
+			CurrentSemester:      pgtype.Int4{Valid: true, Int32: 3},
+			StudyProgram:         "Computer Science",
+			StudyDegree:          "bachelor",
+		},
+		AnswersText: []applicationDTO.CreateAnswerText{
+			{ApplicationQuestionID: uuid.MustParse("a6a04042-95d1-4765-8592-caf9560c8c3c"), Answer: "Valid motivation answer."},
+		},
+		AnswersMultiSelect: []applicationDTO.CreateAnswerMultiSelect{
+			{ApplicationQuestionID: uuid.MustParse("383a9590-fba2-4e6b-a32b-88895d55fb9b"), Answer: []string{"MacBook"}},
+		},
+		AnswersFileUpload: []applicationDTO.CreateAnswerFileUpload{
+			{ApplicationQuestionID: requiredFileUploadQuestionID, FileID: otherPhaseUploadFileID},
+		},
+	}
+
+	code := suite.postApplication("/api/applications/4179d58a-d00d-4fa7-94a5-397bc69fab02", application)
+	assert.Equal(suite.T(), http.StatusBadRequest, code)
 }
 
 func (suite *ApplicationAdminRouterTestSuite) TestPostApplicationManualEndpoint_UpdatesStudentEmail() {

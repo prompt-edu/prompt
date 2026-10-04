@@ -119,28 +119,6 @@ func (q *Queries) CheckIfCoursePhaseIsOpenApplicationPhase(ctx context.Context, 
 	return i, err
 }
 
-const createApplicationAnswerFileUpload = `-- name: CreateApplicationAnswerFileUpload :exec
-INSERT INTO application_answer_file_upload (id, application_question_id, course_participation_id, file_id)
-VALUES ($1, $2, $3, $4)
-`
-
-type CreateApplicationAnswerFileUploadParams struct {
-	ID                    uuid.UUID `json:"id"`
-	ApplicationQuestionID uuid.UUID `json:"application_question_id"`
-	CourseParticipationID uuid.UUID `json:"course_participation_id"`
-	FileID                uuid.UUID `json:"file_id"`
-}
-
-func (q *Queries) CreateApplicationAnswerFileUpload(ctx context.Context, arg CreateApplicationAnswerFileUploadParams) error {
-	_, err := q.db.Exec(ctx, createApplicationAnswerFileUpload,
-		arg.ID,
-		arg.ApplicationQuestionID,
-		arg.CourseParticipationID,
-		arg.FileID,
-	)
-	return err
-}
-
 const createApplicationAnswerMultiSelect = `-- name: CreateApplicationAnswerMultiSelect :exec
 INSERT INTO application_answer_multi_select (id, application_question_id, course_participation_id, answer)
 VALUES ($1, $2, $3, $4)
@@ -297,29 +275,43 @@ func (q *Queries) CreateApplicationQuestionText(ctx context.Context, arg CreateA
 	return err
 }
 
-const createOrOverwriteApplicationAnswerFileUpload = `-- name: CreateOrOverwriteApplicationAnswerFileUpload :exec
+const createOrOverwriteApplicationAnswerFileUpload = `-- name: CreateOrOverwriteApplicationAnswerFileUpload :execrows
 INSERT INTO application_answer_file_upload (id, application_question_id, course_participation_id, file_id)
-VALUES ($1, $2, $3, $4)
+SELECT $1, question.id, $2, uploaded_file.id
+FROM files uploaded_file
+JOIN application_question_file_upload question ON question.course_phase_id = uploaded_file.course_phase_id
+WHERE uploaded_file.id = $3
+  AND question.id = $4
+  AND uploaded_file.course_phase_id = $5::uuid
+  AND uploaded_file.deleted_at IS NULL
+  AND ($6::text IS NULL OR uploaded_file.uploaded_by_user_id = $6)
 ON CONFLICT (course_participation_id, application_question_id)
 DO UPDATE
 SET file_id = EXCLUDED.file_id
 `
 
 type CreateOrOverwriteApplicationAnswerFileUploadParams struct {
-	ID                    uuid.UUID `json:"id"`
-	ApplicationQuestionID uuid.UUID `json:"application_question_id"`
-	CourseParticipationID uuid.UUID `json:"course_participation_id"`
-	FileID                uuid.UUID `json:"file_id"`
+	ID                    uuid.UUID   `json:"id"`
+	CourseParticipationID uuid.UUID   `json:"course_participation_id"`
+	FileID                uuid.UUID   `json:"file_id"`
+	ApplicationQuestionID uuid.UUID   `json:"application_question_id"`
+	CoursePhaseID         uuid.UUID   `json:"course_phase_id"`
+	UploadedByUserID      pgtype.Text `json:"uploaded_by_user_id"`
 }
 
-func (q *Queries) CreateOrOverwriteApplicationAnswerFileUpload(ctx context.Context, arg CreateOrOverwriteApplicationAnswerFileUploadParams) error {
-	_, err := q.db.Exec(ctx, createOrOverwriteApplicationAnswerFileUpload,
+func (q *Queries) CreateOrOverwriteApplicationAnswerFileUpload(ctx context.Context, arg CreateOrOverwriteApplicationAnswerFileUploadParams) (int64, error) {
+	result, err := q.db.Exec(ctx, createOrOverwriteApplicationAnswerFileUpload,
 		arg.ID,
-		arg.ApplicationQuestionID,
 		arg.CourseParticipationID,
 		arg.FileID,
+		arg.ApplicationQuestionID,
+		arg.CoursePhaseID,
+		arg.UploadedByUserID,
 	)
-	return err
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const createOrOverwriteApplicationAnswerMultiSelect = `-- name: CreateOrOverwriteApplicationAnswerMultiSelect :exec

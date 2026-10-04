@@ -22,3 +22,9 @@ declare module '*_component/provide' {
 
   export const StudentDetail: React.ComponentType<any>
 }
+
+declare module 'core/provide' {
+  import React from 'react'
+
+  export const StudentNotesAndHistory: React.ComponentType<{ studentId: string }>
+}

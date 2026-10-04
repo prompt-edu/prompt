@@ -86,6 +86,10 @@ const config = (env = {}) => {
     plugins: [
       new ModuleFederationPlugin({
         name: 'core',
+        filename: 'remoteEntry.js',
+        exposes: {
+          './provide': './src/provide',
+        },
         remotes: {
           example_component: `example_component@${exampleURL}/remoteEntry.js?${Date.now()}`,
           interview_component: `interview_component@${interviewURL}/remoteEntry.js?${Date.now()}`,
@@ -120,7 +124,6 @@ const config = (env = {}) => {
     ].filter(Boolean),
     optimization: {
       minimize: !IS_DEV,
-      runtimeChunk: { name: 'runtime' },
       splitChunks: {
         chunks: 'async',
         minSize: 30000,
@@ -130,7 +133,7 @@ const config = (env = {}) => {
         cacheGroups: {
           default: {
             name: 'common',
-            chunks: 'initial',
+            chunks: (chunk) => chunk.canBeInitial() && chunk.name !== 'core',
             minChunks: 2,
             priority: -20,
             reuseExistingChunk: true,
@@ -138,7 +141,7 @@ const config = (env = {}) => {
           vendors: {
             test: /[\\/]node_modules[\\/]/,
             name: 'vendors',
-            chunks: 'all',
+            chunks: (chunk) => chunk.name !== 'core',
             priority: 10,
           },
         },

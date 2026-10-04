@@ -5,7 +5,13 @@ import { federatedDependencies } from './federatedDependencies.mjs'
 
 const { ModuleFederationPlugin } = rspack.container
 
-export const createRspackConfig = ({ name, port, configUrl, resolveAlias }) => {
+export const createRspackConfig = ({
+  name,
+  port,
+  configUrl,
+  resolveAlias,
+  consumesCore = false,
+}) => {
   for (const [option, value] of Object.entries({ name, port, configUrl })) {
     if (!value) {
       throw new Error(`createRspackConfig: missing required option "${option}"`)
@@ -16,6 +22,7 @@ export const createRspackConfig = ({ name, port, configUrl, resolveAlias }) => {
 
   return (env = {}) => {
     const IS_DEV = env.NODE_ENV !== 'production'
+    const coreURL = IS_DEV ? 'http://localhost:3000' : ''
 
     return {
       target: 'web',
@@ -77,6 +84,9 @@ export const createRspackConfig = ({ name, port, configUrl, resolveAlias }) => {
             './sidebar': './sidebar',
             './provide': './src/provide',
           },
+          ...(consumesCore
+            ? { remotes: { core: `core@${coreURL}/remoteEntry.js?${Date.now()}` } }
+            : {}),
           shared: federatedDependencies(),
         }),
         new rspack.CopyRspackPlugin({ patterns: [{ from: 'public' }] }),

@@ -3,6 +3,7 @@ import { useCourseStore } from '@tumaet/prompt-shared-state'
 import { Button, Input, Label, Skeleton, useToast } from '@tumaet/prompt-ui-components'
 import { Save } from 'lucide-react'
 import { useState } from 'react'
+import { infrastructureSetupKeys } from '../../network/cache'
 import { updateSetupConfig } from '../../network/mutations/updateSetupConfig'
 import { getSetupConfig } from '../../network/queries/getSetupConfig'
 import { describeError } from '../../utils/describeError'
@@ -26,7 +27,7 @@ export const SemesterTagSection = ({ courseId, coursePhaseID }: Props) => {
   const [editedTag, setEditedTag] = useState<string | null>(null)
 
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ['setup-config', coursePhaseID],
+    queryKey: infrastructureSetupKeys.setupConfig(coursePhaseID),
     queryFn: () => getSetupConfig(coursePhaseID),
   })
 

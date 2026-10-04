@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react'
 import { useParams } from 'react-router-dom'
 import { InstanceList } from '../components/provisioning/InstanceList'
 import { ReadinessCard } from '../components/provisioning/ReadinessCard'
+import { infrastructureSetupKeys } from '../network/cache'
 import { getInstances } from '../network/queries/getInstances'
 import { isRunning } from '../utils/resourceState'
 
@@ -17,7 +18,7 @@ export const ProvisioningPage = () => {
     isError,
     refetch,
   } = useQuery({
-    queryKey: ['instances', phaseId],
+    queryKey: infrastructureSetupKeys.instances(phaseId),
     queryFn: () => getInstances(phaseId ?? ''),
     enabled: !!phaseId,
     refetchInterval: (query) =>

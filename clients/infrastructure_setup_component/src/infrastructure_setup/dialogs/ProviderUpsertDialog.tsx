@@ -24,6 +24,7 @@ import {
   type ProviderType,
   providerTypes,
 } from '../interfaces/providerConfig'
+import { infrastructureSetupKeys } from '../network/cache'
 import { upsertProviderConfig } from '../network/mutations/upsertProviderConfig'
 import { getProviderAuthFields } from '../network/queries/getProviderAuthFields'
 import { describeError } from '../utils/describeError'
@@ -73,7 +74,7 @@ export const ProviderUpsertDialog = ({
     isLoading: fieldsLoading,
     isError: fieldsError,
   } = useQuery({
-    queryKey: ['provider-auth-fields', coursePhaseID, selectedType],
+    queryKey: infrastructureSetupKeys.providerAuthFields(coursePhaseID, selectedType),
     queryFn: () => getProviderAuthFields(coursePhaseID, selectedType!),
     enabled: open && !!selectedType,
   })

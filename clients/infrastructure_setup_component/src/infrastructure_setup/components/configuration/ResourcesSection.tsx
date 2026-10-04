@@ -4,6 +4,7 @@ import { PlusCircle } from 'lucide-react'
 import { useState } from 'react'
 import { ResourceConfigUpsertDialog } from '../../dialogs/ResourceConfigUpsertDialog'
 import type { ResourceConfig } from '../../interfaces/resourceConfig'
+import { infrastructureSetupKeys } from '../../network/cache'
 import { getInstances } from '../../network/queries/getInstances'
 import { getProviderConfigs } from '../../network/queries/getProviderConfigs'
 import { getResourceConfigs } from '../../network/queries/getResourceConfigs'
@@ -25,7 +26,7 @@ export const ResourcesSection = ({ coursePhaseID }: Props) => {
     isError,
     refetch,
   } = useQuery({
-    queryKey: ['resource-configs', coursePhaseID],
+    queryKey: infrastructureSetupKeys.resourceConfigs(coursePhaseID),
     queryFn: () => getResourceConfigs(coursePhaseID),
   })
 
@@ -35,7 +36,7 @@ export const ResourcesSection = ({ coursePhaseID }: Props) => {
     isError: providersError,
     refetch: refetchProviders,
   } = useQuery({
-    queryKey: ['provider-configs', coursePhaseID],
+    queryKey: infrastructureSetupKeys.providerConfigs(coursePhaseID),
     queryFn: () => getProviderConfigs(coursePhaseID),
   })
 
@@ -45,7 +46,7 @@ export const ResourcesSection = ({ coursePhaseID }: Props) => {
     isError: instancesError,
     refetch: refetchInstances,
   } = useQuery({
-    queryKey: ['instances', coursePhaseID],
+    queryKey: infrastructureSetupKeys.instances(coursePhaseID),
     queryFn: () => getInstances(coursePhaseID),
   })
 

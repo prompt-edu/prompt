@@ -29,6 +29,7 @@ import type {
   Scope,
   UpdateResourceConfigRequest,
 } from '../interfaces/resourceConfig'
+import { infrastructureSetupKeys } from '../network/cache'
 import { createResourceConfig } from '../network/mutations/createResourceConfig'
 import { updateResourceConfig } from '../network/mutations/updateResourceConfig'
 import { getProviderResourceTypes } from '../network/queries/getProviderResourceTypes'
@@ -107,7 +108,7 @@ export const ResourceConfigUpsertDialog = ({
   const [extraConfigError, setExtraConfigError] = useState<string | null>(null)
 
   const { data: resourceTypes = [] } = useQuery({
-    queryKey: ['provider-resource-types', coursePhaseID, providerType],
+    queryKey: infrastructureSetupKeys.providerResourceTypes(coursePhaseID, providerType),
     queryFn: () => getProviderResourceTypes(coursePhaseID, providerType as ProviderType),
     enabled: open && !!providerType,
   })

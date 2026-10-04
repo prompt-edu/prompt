@@ -37,7 +37,7 @@ module/
 func handler(c *gin.Context) {
     id, err := uuid.Parse(c.Param("id"))
     if err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+        sdkUtils.HandleError(c, http.StatusBadRequest, err)
         return
     }
     // ... business logic

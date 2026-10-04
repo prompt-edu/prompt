@@ -4,12 +4,13 @@ import {
   Card,
   CardContent,
   ErrorPage,
+  LoadingPage,
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
 } from '@tumaet/prompt-ui-components'
-import { ArrowRight, Loader2, Users } from 'lucide-react'
+import { ArrowRight, Users } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import type { TeaseStudent } from '../../../interfaces/tease/student'
@@ -77,11 +78,7 @@ export const StudentDataCheck = () => {
   }, [students])
 
   if (isPending) {
-    return (
-      <div className='flex justify-center items-center h-64'>
-        <Loader2 className='h-12 w-12 animate-spin text-primary' />
-      </div>
-    )
+    return <LoadingPage />
   }
 
   if (isError) {

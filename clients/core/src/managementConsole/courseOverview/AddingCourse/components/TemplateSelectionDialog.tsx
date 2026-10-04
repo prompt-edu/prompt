@@ -1,4 +1,5 @@
-import { getTemplateCourses } from '@core/network/queries/getTemplateCourses'
+import { coreApi } from '@core/network/api'
+import { coreKeys } from '@core/network/cache'
 import { CopyCourseDialog } from '@managementConsole/courseOverview/components/CopyCourseDialog'
 import { useQuery } from '@tanstack/react-query'
 import { type Course, CourseTypeDetails } from '@tumaet/prompt-shared-state'
@@ -29,8 +30,8 @@ export const TemplateSelectionDialog = ({ open, onOpenChange }: TemplateSelectio
     error,
     isError,
   } = useQuery({
-    queryKey: ['template-courses'],
-    queryFn: getTemplateCourses,
+    queryKey: coreKeys.courses.templates(),
+    queryFn: coreApi.courses.listTemplates,
     enabled: open,
   })
 

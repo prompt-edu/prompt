@@ -4,8 +4,8 @@ import type { CreateApplicationAnswerText } from '@core/interfaces/application/a
 import type { ApplicationFormWithDetails } from '@core/interfaces/application/applicationFormWithDetails'
 import type { PostApplication } from '@core/interfaces/application/postApplication'
 import { useKeycloak } from '@core/keycloak/useKeycloak'
-import { postNewApplicationExtern } from '@core/network/mutations/postApplicationExtern'
-import { getApplicationFormWithDetails } from '@core/network/queries/applicationFormWithDetails'
+import { coreApi } from '@core/network/api'
+import { coreKeys } from '@core/network/cache'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import type { Student } from '@tumaet/prompt-shared-state'
 import { useState } from 'react'
@@ -33,13 +33,13 @@ export const ApplicationLoginPage = () => {
     isError,
     error,
   } = useQuery<ApplicationFormWithDetails>({
-    queryKey: ['applicationForm', phaseId],
-    queryFn: () => getApplicationFormWithDetails(phaseId ?? ''),
+    queryKey: coreKeys.apply.form(phaseId),
+    queryFn: () => coreApi.apply.form(phaseId ?? ''),
   })
 
   const { mutate: mutateSendApplication, error: mutateError } = useMutation({
     mutationFn: (application: PostApplication) => {
-      return postNewApplicationExtern(phaseId ?? 'undefined', application)
+      return coreApi.apply.submitExternal(phaseId ?? 'undefined', application)
     },
     onSuccess: (data) => {
       // Assume the response contains a boolean "confirmationMailSent"

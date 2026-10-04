@@ -6,6 +6,6 @@ import (
 	"github.com/prompt-edu/prompt-sdk/promptTypes"
 )
 
-func RegisterRoutes(routerGroup *gin.RouterGroup, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
-	promptTypes.RegisterCopyEndpoint(routerGroup, authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), &interviewCopyHandler{})
+func RegisterRoutes(routerGroup *gin.RouterGroup) {
+	promptTypes.RegisterCopyModule(routerGroup, &InterviewCopyHandler{}, promptSDK.PromptAdmin, promptSDK.CourseLecturer)
 }

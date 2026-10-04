@@ -1,7 +1,4 @@
-import {
-  type AdminPrivacyDeletionRequest,
-  DeletionRequestStatus,
-} from '@core/network/queries/privacyStudentDataDeletion'
+import { type AdminPrivacyDeletionRequest, DeletionRequestStatus } from '@core/interfaces/privacy'
 import type { RowAction } from '@tumaet/prompt-ui-components'
 import { ShieldCheck } from 'lucide-react'
 

@@ -1,4 +1,5 @@
-import { updateCoursePhase } from '@core/network/mutations/updateCoursePhase'
+import { coreApi } from '@core/network/api'
+import { coreCache } from '@core/network/cache'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { UpdateCoursePhase } from '@tumaet/prompt-shared-state'
 import {
@@ -57,10 +58,10 @@ export function ApplicationSettingsWelcomeText({
     isPending,
     isError,
   } = useMutation({
-    mutationFn: (coursePhase: UpdateCoursePhase) => updateCoursePhase(coursePhase),
+    mutationFn: (coursePhase: UpdateCoursePhase) => coreApi.coursePhases.update(coursePhase),
     onSuccess: (_, coursePhase) => {
       setSavedWelcomeText((coursePhase.restrictedData?.welcomeText as string | null) ?? '')
-      queryClient.invalidateQueries({ queryKey: ['course_phase', phaseId] })
+      coreCache.coursePhaseChanged(queryClient, phaseId)
     },
   })
 

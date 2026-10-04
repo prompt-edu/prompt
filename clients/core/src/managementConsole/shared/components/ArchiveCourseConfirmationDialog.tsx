@@ -1,4 +1,5 @@
-import { getCoursePhaseByID } from '@core/network/queries/coursePhase'
+import { coreApi } from '@core/network/api'
+import { coreKeys } from '@core/network/cache'
 import { useQuery } from '@tanstack/react-query'
 import { useCourseStore } from '@tumaet/prompt-shared-state'
 import {
@@ -32,8 +33,8 @@ export function ArchiveCourseConfirmationDialog({
   const applicationPhase = course?.coursePhases.find((p) => p.coursePhaseType === 'Application')
 
   const { data: applicationPhaseData } = useQuery({
-    queryKey: ['coursePhase', applicationPhase?.id],
-    queryFn: () => getCoursePhaseByID(applicationPhase!.id),
+    queryKey: coreKeys.coursePhases.byIdInArchiveDialog(applicationPhase?.id),
+    queryFn: () => coreApi.coursePhases.byID(applicationPhase!.id),
     enabled: isOpen && !!applicationPhase,
   })
 

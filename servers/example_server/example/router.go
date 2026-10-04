@@ -9,11 +9,13 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// setupExampleRouter creates a router group for example server endpoints.
-func setupExampleRouter(routerGroup *gin.RouterGroup, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
+// RegisterRoutes mounts the example endpoints on the given router group. Route
+// registration is separate from construction, so a caller can obtain the service
+// without a router and the handlers are methods on the service they use.
+func RegisterRoutes(routerGroup *gin.RouterGroup, service *ExampleService, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
 	exampleRouter := routerGroup.Group("info")
 
-	exampleRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), getExampleInfo)
+	exampleRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.getExampleInfo)
 }
 
 // getExampleInfo godoc
@@ -26,7 +28,7 @@ func setupExampleRouter(routerGroup *gin.RouterGroup, authMiddleware func(allowe
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/info [get]
-func getExampleInfo(c *gin.Context) {
+func (s *ExampleService) getExampleInfo(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.Error("Error parsing coursePhaseID: ", err)
@@ -34,7 +36,7 @@ func getExampleInfo(c *gin.Context) {
 		return
 	}
 
-	exampleInfo, err := GetExampleInfo(c, coursePhaseID)
+	exampleInfo, err := s.GetExampleInfo(c.Request.Context(), coursePhaseID)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return

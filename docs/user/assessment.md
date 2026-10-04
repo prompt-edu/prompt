@@ -25,6 +25,10 @@ Once the assessment phase is set up, students and instructors can begin evaluati
 1. **Review Submissions**: Monitor student progress and submissions in the phase overview.
 2. **Conduct Assessments**: Use the tutor template to assess students.
 3. **Provide Feedback**: Offer constructive comments to support student development.
+4. **Finalize Assessments**: Mark an assessment as final on the student's assessment page, or select
+   several students in the participants table and use **Mark as final** from the actions menu.
+   Students with unassessed competencies or no grade suggestion are skipped. **Unmark final** reopens
+   assessments until the deadline has passed.
 
 > 💡 **Tip**: Regularly check for updates and communicate with your team to ensure timely submissions.
 
@@ -91,6 +95,16 @@ Each evaluation type has its own:
 - **Deadline**: When this evaluation closes
 
 > ⚠️ **Note**: All timestamps use **system time (Europe/Berlin) with deadlines ending at 23:59**.
+
+#### Renaming Tutors
+
+If your course calls its tutors something else, such as coaches or project leads, set the **Display
+name** in the **Tutor-Evaluation** settings card. The phase then uses that name instead of "Tutor" in
+the settings, the tutor overview and results pages, the participants table, the students' evaluation
+page and the reminder emails. The sidebar entry is renamed as well, so with the display name "Coach"
+it reads **Coach Overview**. The name is shown exactly as you enter it, also in the middle of a
+sentence, so an abbreviation such as "PL" stays uppercase. Leave the field empty to go back to
+"Tutor" and **Tutor Overview**.
 
 #### Evaluation-Only Phases
 
@@ -183,6 +197,13 @@ Competencies are individual skills within categories:
 - **Edit Categories**: Click the edit icon next to any category
 - **Edit Competencies**: Click the edit icon next to any competency
 - **Delete Items**: Click the trash icon (⚠️ this cannot be undone)
+
+### Exporting a Template
+
+Open the template from the Settings page and click **Export** above its categories:
+
+- **PDF / Print**: Prints the empty template in the same layout as an exported assessment, with every competency and its score level descriptions. Choose "Save as PDF" in the print dialog.
+- **JSON**: Downloads a machine-readable copy that **Import** accepts, for example to reuse the template in another phase.
 
 📺 **Video Tutorial**: Coming soon
 

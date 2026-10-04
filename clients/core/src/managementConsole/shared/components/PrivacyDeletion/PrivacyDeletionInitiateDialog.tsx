@@ -1,9 +1,6 @@
-import {
-  adminInitiateDataDeletions,
-  DeletionRequestStatus,
-  getDataDeletionsStatus,
-  type PrivacyDeletionRequest,
-} from '@core/network/queries/privacyStudentDataDeletion'
+import { DeletionRequestStatus, type PrivacyDeletionRequest } from '@core/interfaces/privacy'
+import { coreApi } from '@core/network/api'
+import { coreCache } from '@core/network/cache'
 import { useQueryClient } from '@tanstack/react-query'
 import {
   Button,
@@ -91,14 +88,14 @@ export function PrivacyDeletionInitiateDialog({
         setCurrentBatch(i)
         setBatchTerminalCount(0)
 
-        const created = await adminInitiateDataDeletions(batches[i])
+        const created = await coreApi.privacy.initiateDeletions(batches[i])
         const ids = created.map((r) => r.id)
 
         const deadline = Date.now() + POLL_TIMEOUT_MS
         while (true) {
           await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS))
 
-          const statuses = await getDataDeletionsStatus(ids)
+          const statuses = await coreApi.privacy.deletionsStatus(ids)
           const terminal = statuses.filter((r) => isTerminal(r.status))
           setBatchTerminalCount(terminal.length)
           if (terminal.length === ids.length) {
@@ -112,7 +109,7 @@ export function PrivacyDeletionInitiateDialog({
       }
 
       setPhase('done')
-      queryClient.invalidateQueries({ queryKey: ['privacy', 'admin', 'deletions'] })
+      coreCache.privacyDeletionsChanged(queryClient)
     } catch (err) {
       setPhase('error')
       setErrorMsg(err instanceof Error ? err.message : String(err))

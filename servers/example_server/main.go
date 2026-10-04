@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt-sdk/audit"
 	"github.com/prompt-edu/prompt-sdk/promptTypes"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/example_server/config"
@@ -68,17 +69,23 @@ func main() {
 	}
 	router.Use(promptSDK.CORSMiddleware(clientHost))
 
-	api := router.Group("example-service/api/course_phase/:coursePhaseID")
+	api := router.Group("example-service/api")
+	// Gin snapshots the handler chain when a subgroup is created, so this must run before coursePhaseApi.
+	api.Use(audit.Middleware(audit.NewCoreSink(sdkUtils.GetCoreUrl(), "example-service")))
+	coursePhaseApi := api.Group("/course_phase/:coursePhaseID")
 	if err := promptSDK.InitPhaseKeycloak(); err != nil {
 		log.Fatalf("Failed to initialize keycloak: %v", err)
 	}
 
-	api.GET("/hello", helloExampleServer)
+	coursePhaseApi.GET("/hello", helloExampleServer)
 
-	copyApi := router.Group("example-service/api")
-	copy.InitCopyModule(copyApi, *query, conn)
+	configService := config.NewConfigService(*query, conn)
+	copyService := copy.NewCopyService(*query, conn)
+	exampleService := example.NewExampleService(*query, conn)
 
-	promptTypes.RegisterInfoEndpoint(copyApi, promptTypes.ServiceInfo{
+	copy.RegisterRoutes(api, copyService)
+
+	promptTypes.RegisterInfoEndpoint(api, promptTypes.ServiceInfo{
 		ServiceName: "example-service",
 		Version:     promptSDK.GetEnv("SERVER_IMAGE_TAG", ""),
 		Capabilities: map[string]bool{
@@ -86,6 +93,7 @@ func main() {
 			promptTypes.CapabilityPrivacyDeletion: false,
 			promptTypes.CapabilityPhaseCopy:       true,
 			promptTypes.CapabilityPhaseConfig:     true,
+			promptTypes.CapabilityAuditLog:        audit.Enabled(),
 		},
 	}, func() bool {
 		ctt, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
@@ -93,9 +101,9 @@ func main() {
 		return conn.Ping(ctt) == nil
 	})
 
-	config.InitConfigModule(api, *query, conn)
+	config.RegisterRoutes(coursePhaseApi, configService)
 
-	example.InitExampleModule(api, *query, conn)
+	example.RegisterRoutes(coursePhaseApi, exampleService, promptSDK.AuthenticationMiddleware)
 
 	serverAddress := promptSDK.GetEnv("SERVER_ADDRESS", "localhost:8086")
 	log.Info("Example Server started")

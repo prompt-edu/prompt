@@ -1,4 +1,4 @@
-import { ExportStatus } from '@core/network/queries/privacyStudentDataExport'
+import { ExportStatus } from '@core/interfaces/privacy'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Archive, CircleCheck, CircleDashed, CircleX } from 'lucide-react'
 

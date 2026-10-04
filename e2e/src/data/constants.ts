@@ -1,5 +1,7 @@
-// Known values from the seed dump (e2e/seed/e2e_seed.sql). When the seed
-// changes, update these. IDs survive the migrate-up upgrade applied on startup.
+// Known values from the shared seed (seed/core.sql, applied by the stack's
+// `seed` service once the servers have migrated). When the seed changes, update
+// these. Course phase TYPE ids are not listed: the core server creates those at
+// startup with random UUIDs, so they are resolved by name at runtime.
 
 export const SEEDED_COURSES = {
   iPraktikum: {
@@ -27,8 +29,11 @@ export const SEEDED_COURSES = {
   },
 }
 
-// Total non-template courses present in the seed.
-export const SEEDED_COURSE_COUNT = 4
+// Total non-template courses present in the seed: the four fixture courses below,
+// `iPraktikumWelcome` (which owns the welcome-text Application phase), and
+// `iPraktikumDemo`, the populated demo course the seed adds for local
+// development. No spec asserts against the demo course.
+export const SEEDED_COURSE_COUNT = 6
 
 // An open Application phase on iPraktikum (applicationEndDate in the far future),
 // so the application file-upload endpoints accept uploads.
@@ -37,11 +42,11 @@ export const OPEN_APPLICATION_PHASE_ID = 'aaaa1111-0000-0000-0000-0000000000a1'
 // Application phase on its own course (only one initial phase is allowed per
 // course), owned by the welcome-text spec because that spec edits the phase's
 // welcomeText and would otherwise clobber the shared application fixtures.
-export const WELCOME_TEXT_COURSE_ID = 'c0000002-0000-0000-0000-000000000002'
+export const WELCOME_TEXT_COURSE_ID = 'c0000003-0000-0000-0000-000000000003'
 export const WELCOME_TEXT_PHASE_ID = 'd0000030-0000-0000-0000-000000000030'
 
 // The seeded welcomeText, including the markup DOMPurify must strip. `html` is
-// the literal seeded in e2e_seed.sql, so a spec that edits it can restore it.
+// the literal seeded in seed/core.sql, so a spec that edits it can restore it.
 export const SEEDED_WELCOME_TEXT = {
   paragraph: 'Welcome to the PROMPT e2e welcome course.',
   linkName: 'Course handbook',
@@ -188,6 +193,7 @@ export const FULL_COURSE_STUDENT = {
 export const FULL_COURSE_APPLICATION_PARTICIPANTS = {
   stan: { firstName: 'Stan', lastName: 'Stan', email: 'pgdp_enjoyer@example.com' },
   maxMustermann: {
+    id: '23bf3123-4f0d-473c-9ef5-d0333e29fe9a',
     firstName: 'Max',
     lastName: 'Mustermann',
     email: 'max.mustermann@tum.de',
@@ -219,6 +225,10 @@ export const EXAMPLE_PHASE_ID = 'd000000f-0000-0000-0000-00000000000f'
 // iPraktikumFull only, so its info endpoint must reject them (negative auth
 // fixture).
 export const EXAMPLE_FOREIGN_PHASE_ID = 'd0000010-0000-0000-0000-000000000010'
+
+// Standalone Infrastructure Setup phase on fullCourse (no graph edge, navigate by
+// URL). Hosts the module-federation smoke test and the lecturer journey.
+export const INFRASTRUCTURE_SETUP_PHASE_ID = 'd0000017-0000-0000-0000-000000000017'
 
 // CLOSED Application phase on TestCourse (applicationEndDate in the past):
 // the public apply endpoints must reject it (GET 404, POST 400).

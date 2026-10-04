@@ -11,19 +11,25 @@ interface ExampleSidebarProps {
 
 export const AssessmentSidebar = React.lazy(() =>
   import('assessment_component/sidebar')
-    .then((module): { default: React.FC<ExampleSidebarProps> } => ({
-      default: ({ title, rootPath, coursePhaseID }) => {
-        const sidebarElement: SidebarMenuItemProps = module.default || {}
-        return (
-          <ExternalSidebarComponent
-            title={title}
-            rootPath={rootPath}
-            sidebarElement={sidebarElement}
-            coursePhaseID={coursePhaseID}
-          />
-        )
-      },
-    }))
+    .then((module): { default: React.FC<ExampleSidebarProps> } => {
+      // Older remotes only export the static sidebar, so fall back to it.
+      const useSidebarElement =
+        module.useSidebarElement ?? ((): SidebarMenuItemProps => module.default || {})
+
+      return {
+        default: ({ title, rootPath, coursePhaseID }) => {
+          const sidebarElement = useSidebarElement(coursePhaseID)
+          return (
+            <ExternalSidebarComponent
+              title={title}
+              rootPath={rootPath}
+              sidebarElement={sidebarElement}
+              coursePhaseID={coursePhaseID}
+            />
+          )
+        },
+      }
+    })
     .catch((): { default: React.FC } => ({
       default: () => {
         console.warn('Failed to load assessment routes')

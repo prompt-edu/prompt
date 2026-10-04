@@ -1,12 +1,13 @@
 import { useQuery } from '@tanstack/react-query'
-import type { ColumnDef } from '@tanstack/react-table'
 import type { Team } from '@tumaet/prompt-shared-state'
 import {
   Button,
   ErrorPage,
   getStudentName,
+  LoadingPage,
   ManagementPageHeader,
   PromptTable,
+  type PromptTableColumnDef,
 } from '@tumaet/prompt-ui-components'
 import { Loader2, Printer } from 'lucide-react'
 import { type ReactNode, useEffect, useMemo, useState } from 'react'
@@ -186,7 +187,7 @@ export const EvaluationParticipantsOverviewPage = ({
     })
   }, [assessmentType, participations, teams, typedCompletions])
 
-  const columns: ColumnDef<EvaluationParticipantRow>[] = useMemo(
+  const columns: PromptTableColumnDef<EvaluationParticipantRow>[] = useMemo(
     () => [
       {
         accessorKey: 'firstName',
@@ -221,11 +222,7 @@ export const EvaluationParticipantsOverviewPage = ({
   }
 
   if (isPending) {
-    return (
-      <div className='flex justify-center items-center h-64'>
-        <Loader2 className='h-12 w-12 animate-spin text-primary' />
-      </div>
-    )
+    return <LoadingPage />
   }
 
   return (

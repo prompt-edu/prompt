@@ -1,8 +1,8 @@
 import type { ApplicationQuestionFileUpload } from '@core/interfaces/application/applicationQuestion/applicationQuestionFileUpload'
 import type { ApplicationQuestionMultiSelect } from '@core/interfaces/application/applicationQuestion/applicationQuestionMultiSelect'
 import type { ApplicationQuestionText } from '@core/interfaces/application/applicationQuestion/applicationQuestionText'
-import { updateApplicationForm } from '@core/network/mutations/updateApplicationForm'
-import { getApplicationForm } from '@core/network/queries/applicationForm'
+import { coreApi } from '@core/network/api'
+import { coreCache, coreKeys } from '@core/network/cache'
 import { ApplicationPreview } from '@core/publicPages/application/pages/ApplicationPreview/ApplicationPreview'
 import { DragDropContext, Draggable, Droppable, type DropResult } from '@hello-pangea/dnd'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -78,8 +78,8 @@ export const ApplicationQuestionConfig = () => {
     isError: isApplicationFormError,
     error: applicationFormError,
   } = useQuery<ApplicationForm>({
-    queryKey: ['application_form', phaseId],
-    queryFn: () => getApplicationForm(phaseId ?? 'undefined'),
+    queryKey: coreKeys.applications.form(phaseId),
+    queryFn: () => coreApi.applications.form(phaseId ?? 'undefined'),
   })
   const originalQuestions = [
     ...(fetchedForm?.questionsMultiSelect ?? []),
@@ -95,11 +95,11 @@ export const ApplicationQuestionConfig = () => {
     isPending: isMutatePending,
   } = useMutation({
     mutationFn: (updateForm: UpdateApplicationForm) => {
-      return updateApplicationForm(phaseId ?? 'undefined', updateForm)
+      return coreApi.applications.saveForm(phaseId ?? 'undefined', updateForm)
     },
     onSuccess: () => {
       // invalidate query
-      queryClient.invalidateQueries({ queryKey: ['application_form', phaseId] })
+      coreCache.applicationFormChanged(queryClient, phaseId)
       // close this window
     },
   })

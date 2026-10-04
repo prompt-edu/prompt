@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -460,6 +461,53 @@ func (s *GeneratorRouterTestSuite) TestCompileTypst_ValidTemplate() {
 	assert.NoError(s.T(), err)
 	assert.GreaterOrEqual(s.T(), len(pdfData), 4, "PDF output should be at least 4 bytes")
 	assert.Equal(s.T(), "%PDF", string(pdfData[:4]))
+}
+
+// studentRouter authenticates every request as an enrolled student, the only role the release date
+// gates.
+func (s *GeneratorRouterTestSuite) studentRouter() *gin.Engine {
+	router := gin.New()
+	api := router.Group("/api/course_phase/:coursePhaseID")
+	RegisterRoutes(api, s.service, func(allowedRoles ...string) gin.HandlerFunc {
+		return func(c *gin.Context) {
+			keycloakTokenVerifier.SetTokenUser(c, keycloakTokenVerifier.TokenUser{
+				Roles: map[string]bool{keycloakTokenVerifier.CourseStudent: true},
+			})
+			c.Next()
+		}
+	})
+	return router
+}
+
+func (s *GeneratorRouterTestSuite) TestStudentAccess_WithoutReleaseDateIsUnreleased() {
+	configService := config.NewConfigService(s.service.queries)
+	coursePhaseID := uuid.New()
+	_, err := configService.UpdateCoursePhaseConfig(s.suiteCtx, coursePhaseID, "= Certificate", "Lecturer")
+	assert.NoError(s.T(), err)
+	student := s.studentRouter()
+
+	status := s.certificateStatus(student, coursePhaseID)
+	assert.Equal(s.T(), false, status["available"])
+	assert.Equal(s.T(), "Your instructor has not released the certificates yet.", status["message"])
+
+	req, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("/api/course_phase/%s/certificate/download", coursePhaseID), nil)
+	resp := httptest.NewRecorder()
+	student.ServeHTTP(resp, req)
+	assert.Equal(s.T(), http.StatusForbidden, resp.Code)
+}
+
+func (s *GeneratorRouterTestSuite) TestStudentAccess_BeforeReleaseDateNamesTheDate() {
+	configService := config.NewConfigService(s.service.queries)
+	coursePhaseID := uuid.New()
+	_, err := configService.UpdateCoursePhaseConfig(s.suiteCtx, coursePhaseID, "= Certificate", "Lecturer")
+	assert.NoError(s.T(), err)
+	releaseDate := time.Now().Add(48 * time.Hour)
+	_, err = configService.UpdateReleaseDate(s.suiteCtx, coursePhaseID, &releaseDate, "Lecturer")
+	assert.NoError(s.T(), err)
+
+	status := s.certificateStatus(s.studentRouter(), coursePhaseID)
+	assert.Equal(s.T(), false, status["available"])
+	assert.Contains(s.T(), status["message"], "Certificate will be available after")
 }
 
 func TestGeneratorRouterTestSuite(t *testing.T) {

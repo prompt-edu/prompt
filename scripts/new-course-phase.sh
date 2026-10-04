@@ -79,11 +79,8 @@ rename_tokens() {
     s/EXAMPLE_SERVER/${UPPER}_SERVER/g;
     s/EXAMPLE_HOST/${UPPER}_HOST/g;
     s/DB_EXAMPLE_/DB_${UPPER}_/g;
-    s/InitExampleModule/Init${PASCAL}Module/g;
-    s/setupExampleRouter/setup${PASCAL}Router/g;
     s/ExampleService/${PASCAL}Service/g;
-    s/ExampleServerConfigHandler/${PASCAL}ConfigHandler/g;
-    s/ExampleServerCopyHandler/${PASCAL}CopyHandler/g;
+    s/exampleService/${CAMEL}Service/g;
     s/helloExampleServer/hello${PASCAL}Server/g;
     s/GetExampleInfo/Get${PASCAL}Info/g;
     s/getExampleInfo/get${PASCAL}Info/g;
@@ -252,6 +249,7 @@ DB_${UPPER}_USER=prompt-postgres
 DB_${UPPER}_PASSWORD=prompt-postgres
 ${UPPER}_HOST=http://localhost:${SERVER_PORT}
 SENTRY_DSN_${UPPER}_SERVER=
+AUDIT_INGEST_KEY_${UPPER}_SERVER=
 EOF
 cat >> .env.dev.template <<EOF
 
@@ -306,6 +304,8 @@ Remaining manual steps (see docs/contributor/new_course_phase.md):
      servers/core/coursePhaseType/initializeTypes.go (name key: '${NAME}_component').
   2. Deployment: docker-compose.prod.yml service + traefik labels, and the
      build-and-push-clients.yml / deploy-docker.yml / dev.yml / prod.yml wiring.
+     For the audit log, add an AUDIT_INGEST_KEY_${UPPER}_SERVER secret to
+     deploy-docker.yml and list the service in core's AUDIT_INGEST_KEYS.
   3. Optional: add ${UPPER}_HOST to the EnvType in @tumaet/prompt-shared-state.
   4. Implement your schema (db/migration, db/query, 'make sqlc-${KEBAB}') and logic.
 

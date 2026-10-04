@@ -3,11 +3,12 @@ import {
   CoursePhaseParticipationsTable,
   ErrorPage,
   type ExtraParticipantColumn,
+  LoadingPage,
   ManagementPageHeader,
   type ParticipantRow,
   type RowAction,
 } from '@tumaet/prompt-ui-components'
-import { CheckCircle2, Download, Loader2, XCircle } from 'lucide-react'
+import { CheckCircle2, Download, XCircle } from 'lucide-react'
 import { useCallback, useMemo } from 'react'
 import { useParams } from 'react-router-dom'
 
@@ -141,11 +142,7 @@ export const ParticipantsPage = () => {
   }
 
   if (isPending) {
-    return (
-      <div className='flex justify-center items-center h-64'>
-        <Loader2 className='h-12 w-12 animate-spin text-primary' />
-      </div>
-    )
+    return <LoadingPage />
   }
 
   const downloadedCount = participants?.filter((p) => p.hasDownloaded).length ?? 0

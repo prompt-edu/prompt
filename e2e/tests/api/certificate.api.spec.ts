@@ -5,7 +5,7 @@ import { certificateUrl } from '../certificate/helpers'
 
 // The certificate server is reached on the browser origin through the e2e
 // nginx proxy (same path prefix as prod Traefik). prompt-sdk auth answers 401
-// both for missing tokens and for valid tokens lacking the required role.
+// for missing tokens and 403 for valid tokens lacking the required role.
 // Every check runs on the graph-tail certificate phase, which the journeys never
 // touch, and is side-effect-free: the writes below are all expected to be
 // rejected before they reach the database.
@@ -15,7 +15,7 @@ test.describe('certificate API auth', () => {
   test('rejects unauthenticated requests', async () => {
     const anon = await request.newContext()
     try {
-      const res = await anon.get(certificateUrl(PHASE_ID, 'config'))
+      const res = await anon.get(certificateUrl(PHASE_ID, 'settings'))
       expect(res.status()).toBe(401)
     } finally {
       await anon.dispose()
@@ -23,23 +23,23 @@ test.describe('certificate API auth', () => {
   })
 
   test('rejects a student on the template download endpoint', async ({ apiAs }) => {
-    // config/template is staff-only; students hold the Student role only.
+    // settings/template is staff-only; students hold the Student role only.
     const api = await apiAs('student')
-    const res = await api.get(certificateUrl(PHASE_ID, 'config/template'))
-    expect(res.status()).toBe(401)
+    const res = await api.get(certificateUrl(PHASE_ID, 'settings/template'))
+    expect(res.status()).toBe(403)
   })
 
   test('rejects a student on the participants endpoint', async ({ apiAs }) => {
     const api = await apiAs('student')
     const res = await api.get(certificateUrl(PHASE_ID, 'participants'))
-    expect(res.status()).toBe(401)
+    expect(res.status()).toBe(403)
   })
 
   test('rejects a student on the preview endpoint', async ({ apiAs }) => {
     // Preview is limited to admins and lecturers.
     const api = await apiAs('student')
     const res = await api.get(certificateUrl(PHASE_ID, 'certificate/preview'))
-    expect(res.status()).toBe(401)
+    expect(res.status()).toBe(403)
   })
 
   test('accepts a course editor on the participants endpoint', async ({ apiAs }) => {
@@ -54,12 +54,29 @@ test.describe('certificate API auth', () => {
     expect(res.status()).toBe(200)
   })
 
-  test('rejects a student on the config endpoint', async ({ apiAs }) => {
-    // The config payload carries the full Typst template, so students are not
+  test('rejects a student on the settings endpoint', async ({ apiAs }) => {
+    // The settings payload carries the full Typst template, so students are not
     // admitted; their page reads the instructor text from certificate/status.
     const api = await apiAs('student')
+    const res = await api.get(certificateUrl(PHASE_ID, 'settings'))
+    expect(res.status()).toBe(403)
+  })
+
+  test('reports the unconfigured template on the standardized config endpoint', async ({
+    apiAs,
+  }) => {
+    // The prompt-sdk phase config contract: a map of required settings to
+    // whether they are in place. The graph-tail phase has no template.
+    const api = await apiAs('lecturer')
     const res = await api.get(certificateUrl(PHASE_ID, 'config'))
-    expect(res.status()).toBe(401)
+    expect(res.status()).toBe(200)
+    expect(await res.json()).toEqual({ template: false })
+  })
+
+  test('rejects a student on the standardized config endpoint', async ({ apiAs }) => {
+    const api = await apiAs('student')
+    const res = await api.get(certificateUrl(PHASE_ID, 'config'))
+    expect(res.status()).toBe(403)
   })
 
   test('rejects a student and a course editor on the student page text endpoint', async ({
@@ -67,16 +84,16 @@ test.describe('certificate API auth', () => {
   }) => {
     for (const role of ['student', 'course-editor'] as const) {
       const api = await apiAs(role)
-      const res = await api.put(certificateUrl(PHASE_ID, 'config/student-page-text'), {
+      const res = await api.put(certificateUrl(PHASE_ID, 'settings/student-page-text'), {
         data: { studentPageText: 'nope' },
       })
-      expect(res.status(), `role ${role}`).toBe(401)
+      expect(res.status(), `role ${role}`).toBe(403)
     }
   })
 
   test('rejects a student on a phase of a course they are not enrolled in', async ({ apiAs }) => {
     const api = await apiAs('student')
     const res = await api.get(certificateUrl(CERTIFICATE_FOREIGN_PHASE_ID, 'certificate/status'))
-    expect(res.status()).toBe(401)
+    expect(res.status()).toBe(403)
   })
 })

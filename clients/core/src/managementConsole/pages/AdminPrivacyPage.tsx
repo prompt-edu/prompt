@@ -1,12 +1,10 @@
 import {
   type AdminPrivacyDeletionRequest,
-  DeletionRequestStatus,
-  getAllDeletionRequests,
-} from '@core/network/queries/privacyStudentDataDeletion'
-import {
   type AdminPrivacyExport,
-  getAllExports,
-} from '@core/network/queries/privacyStudentDataExport'
+  DeletionRequestStatus,
+} from '@core/interfaces/privacy'
+import { coreApi } from '@core/network/api'
+import { coreKeys } from '@core/network/cache'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   ManagementPageHeader,
@@ -36,12 +34,12 @@ export function AdminPrivacyPage() {
   const [reviewing, setReviewing] = useState<AdminPrivacyDeletionRequest | null>(null)
 
   const allExportsQuery = useQuery({
-    queryKey: ['privacy', 'admin', 'exports'],
-    queryFn: getAllExports,
+    queryKey: coreKeys.privacy.admin.exports(),
+    queryFn: coreApi.privacy.listExports,
   })
   const allDeletionsQuery = useQuery({
-    queryKey: ['privacy', 'admin', 'deletions'],
-    queryFn: getAllDeletionRequests,
+    queryKey: coreKeys.privacy.admin.deletions(),
+    queryFn: coreApi.privacy.listDeletions,
     refetchInterval: (query) =>
       query.state.data?.some((r) => r.status === DeletionRequestStatus.in_progress) ? 3000 : false,
   })

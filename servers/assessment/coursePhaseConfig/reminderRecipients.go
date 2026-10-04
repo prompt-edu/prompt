@@ -43,7 +43,7 @@ func (s *CoursePhaseConfigService) GetEvaluationReminderRecipients(
 
 	result := coursePhaseConfigDTO.EvaluationReminderRecipients{
 		EvaluationType:                         evaluationType,
-		EvaluationTypeLabel:                    getEvaluationTypeLabel(evaluationType),
+		EvaluationTypeLabel:                    getEvaluationTypeLabel(evaluationType, config.TutorDisplayName),
 		EvaluationEnabled:                      evaluationEnabled,
 		Deadline:                               deadlineTime,
 		EvaluationDeadlinePlaceholder:          getEvaluationDeadlinePlaceholder(deadlineTime),
@@ -253,13 +253,16 @@ func deduplicateUUIDs(ids []uuid.UUID) []uuid.UUID {
 	return result
 }
 
-func getEvaluationTypeLabel(evaluationType assessmentType.AssessmentType) string {
+func getEvaluationTypeLabel(evaluationType assessmentType.AssessmentType, tutorDisplayName pgtype.Text) string {
 	switch evaluationType {
 	case assessmentType.Self:
 		return "Self Evaluation"
 	case assessmentType.Peer:
 		return "Peer Evaluation"
 	case assessmentType.Tutor:
+		if tutorDisplayName.Valid {
+			return tutorDisplayName.String + " Evaluation"
+		}
 		return "Tutor Evaluation"
 	default:
 		return string(evaluationType)

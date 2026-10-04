@@ -12,9 +12,12 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt-sdk/audit"
 	"github.com/prompt-edu/prompt-sdk/promptTypes"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/certificate/config"
+	"github.com/prompt-edu/prompt/servers/certificate/copy"
+	"github.com/prompt-edu/prompt/servers/certificate/coursePhaseDeletion"
 	db "github.com/prompt-edu/prompt/servers/certificate/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/certificate/generator"
 	"github.com/prompt-edu/prompt/servers/certificate/participants"
@@ -67,6 +70,8 @@ func main() {
 	router.Use(promptSDK.CORSMiddleware(clientHost))
 
 	api := router.Group("certificate/api")
+	// Gin snapshots the handler chain when a subgroup is created, so this must run before coursePhaseApi.
+	api.Use(audit.Middleware(audit.NewCoreSink(sdkUtils.GetCoreUrl(), "certificate")))
 	coursePhaseApi := api.Group("/course_phase/:coursePhaseID")
 	if err := promptSDK.InitPhaseKeycloak(); err != nil {
 		log.Fatalf("Failed to initialize keycloak: %v", err)
@@ -78,11 +83,15 @@ func main() {
 	participantsService := participants.NewParticipantsService(*query, sdkUtils.GetCoreUrl())
 	generatorService := generator.NewGeneratorService(*query, configService, participantsService, participantsService)
 	privacyService := privacy.NewPrivacyService(*query)
+	copyService := copy.NewCopyService(*query)
+	coursePhaseDeletionService := coursePhaseDeletion.NewCoursePhaseDeletionService(*query, conn)
 
 	config.RegisterRoutes(coursePhaseApi, configService, promptSDK.AuthenticationMiddleware)
 	participants.RegisterRoutes(coursePhaseApi, participantsService, promptSDK.AuthenticationMiddleware)
 	generator.RegisterRoutes(coursePhaseApi, generatorService, promptSDK.AuthenticationMiddleware)
 	privacy.RegisterRoutes(api, privacyService)
+	copy.RegisterRoutes(api, copyService)
+	coursePhaseDeletion.RegisterRoutes(coursePhaseApi, coursePhaseDeletionService)
 
 	promptTypes.RegisterInfoEndpoint(api, promptTypes.ServiceInfo{
 		ServiceName: "certificate",
@@ -90,8 +99,10 @@ func main() {
 		Capabilities: map[string]bool{
 			promptTypes.CapabilityPrivacyExport:   true,
 			promptTypes.CapabilityPrivacyDeletion: true,
-			promptTypes.CapabilityPhaseCopy:       false,
+			promptTypes.CapabilityPhaseCopy:       true,
 			promptTypes.CapabilityPhaseConfig:     true,
+			promptTypes.CapabilityPhaseDeletion:   true,
+			promptTypes.CapabilityAuditLog:        audit.Enabled(),
 		},
 	}, func() bool {
 		ctt, cancel := context.WithTimeout(ctx, 500*time.Millisecond)

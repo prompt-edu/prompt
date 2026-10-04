@@ -1,3 +1,4 @@
+import { coreKeys } from '@core/network/cache'
 import { useQuery } from '@tanstack/react-query'
 import { env } from '@tumaet/prompt-shared-state'
 import { Link } from 'react-router-dom'
@@ -14,7 +15,7 @@ export const PromptLogo = () => {
   const pr = prMatch?.[1]
 
   const { data } = useQuery<GitHubPR>({
-    queryKey: ['github-pr', pr],
+    queryKey: coreKeys.githubPullRequest(pr),
     queryFn: () =>
       fetch(`https://api.github.com/repos/prompt-edu/prompt/pulls/${pr}`).then((r) => r.json()),
     staleTime: Infinity,

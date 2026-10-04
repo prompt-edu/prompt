@@ -8,10 +8,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 	"github.com/prompt-edu/prompt/servers/core/privacy/privacyDTO"
 	"github.com/prompt-edu/prompt/servers/core/privacy/service"
-	coreutils "github.com/prompt-edu/prompt/servers/core/utils"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -37,9 +37,9 @@ func (h *privacyHandler) registerDeletionRoutes(privacyRouter *gin.RouterGroup, 
 // @Tags privacy
 // @Produce json
 // @Success 200 {object} privacyDTO.PrivacyDeletionRequest
-// @Failure 400 {object} coreutils.ErrorResponse
-// @Failure 409 {object} coreutils.ErrorResponse "An open request already exists for this user"
-// @Failure 500 {object} coreutils.ErrorResponse
+// @Failure 400 {object} utils.ErrorResponse
+// @Failure 409 {object} utils.ErrorResponse "An open request already exists for this user"
+// @Failure 500 {object} utils.ErrorResponse
 // @Security BearerAuth
 // @Router /privacy/data-deletion [post]
 func (h *privacyHandler) createNewSubjectDataDeletionRequest(c *gin.Context) {
@@ -64,8 +64,8 @@ func (h *privacyHandler) createNewSubjectDataDeletionRequest(c *gin.Context) {
 // @Produce json
 // @Success 200 {object} map[string]interface{}
 // @Success 204 "No deletion request on file"
-// @Failure 400 {object} coreutils.ErrorResponse
-// @Failure 500 {object} coreutils.ErrorResponse
+// @Failure 400 {object} utils.ErrorResponse
+// @Failure 500 {object} utils.ErrorResponse
 // @Security BearerAuth
 // @Router /privacy/data-deletion [get]
 func (h *privacyHandler) getLatestDeletionRequest(c *gin.Context) {
@@ -89,9 +89,9 @@ func (h *privacyHandler) getLatestDeletionRequest(c *gin.Context) {
 // @Produce json
 // @Param uuid path string true "Deletion Request UUID"
 // @Success 200 {object} privacyDTO.PrivacyDeletionRequest
-// @Failure 400 {object} coreutils.ErrorResponse
-// @Failure 403 {object} coreutils.ErrorResponse
-// @Failure 500 {object} coreutils.ErrorResponse
+// @Failure 400 {object} utils.ErrorResponse
+// @Failure 403 {object} utils.ErrorResponse
+// @Failure 500 {object} utils.ErrorResponse
 // @Security BearerAuth
 // @Router /privacy/data-deletion/{uuid} [get]
 func (h *privacyHandler) getDeletionRequest(c *gin.Context) {
@@ -120,7 +120,7 @@ func (h *privacyHandler) getDeletionRequest(c *gin.Context) {
 // @Tags privacy
 // @Produce json
 // @Success 200 {array} privacyDTO.AdminPrivacyDeletionRequest
-// @Failure 500 {object} coreutils.ErrorResponse
+// @Failure 500 {object} utils.ErrorResponse
 // @Security BearerAuth
 // @Router /privacy/admin/data-deletions [get]
 func (h *privacyHandler) getAllDeletionRequests(c *gin.Context) {
@@ -141,9 +141,9 @@ func (h *privacyHandler) getAllDeletionRequests(c *gin.Context) {
 // @Param uuid path string true "Deletion Request UUID"
 // @Param body body privacyDTO.AuditorDecisionRequest true "Auditor decision and optional note"
 // @Success 200 {object} privacyDTO.PrivacyDeletionRequest
-// @Failure 400 {object} coreutils.ErrorResponse "Invalid payload"
-// @Failure 409 {object} coreutils.ErrorResponse "Request is no longer in pending_approval state"
-// @Failure 500 {object} coreutils.ErrorResponse
+// @Failure 400 {object} utils.ErrorResponse "Invalid payload"
+// @Failure 409 {object} utils.ErrorResponse "Request is no longer in pending_approval state"
+// @Failure 500 {object} utils.ErrorResponse
 // @Security BearerAuth
 // @Router /privacy/admin/data-deletions/{uuid} [post]
 func (h *privacyHandler) decideDeletionRequest(c *gin.Context) {
@@ -222,8 +222,8 @@ func (h *privacyHandler) decideDeletionRequest(c *gin.Context) {
 // @Produce json
 // @Param body body privacyDTO.AdminInitiateDeletionBody true "List of student IDs to delete"
 // @Success 200 {array} privacyDTO.PrivacyDeletionRequest
-// @Failure 400 {object} coreutils.ErrorResponse "Invalid payload or unknown student_id"
-// @Failure 500 {object} coreutils.ErrorResponse
+// @Failure 400 {object} utils.ErrorResponse "Invalid payload or unknown student_id"
+// @Failure 500 {object} utils.ErrorResponse
 // @Security BearerAuth
 // @Router /privacy/admin/data-deletions [post]
 func (h *privacyHandler) adminInitiateDeletionRequests(c *gin.Context) {
@@ -266,8 +266,8 @@ func (h *privacyHandler) adminInitiateDeletionRequests(c *gin.Context) {
 // @Produce json
 // @Param body body privacyDTO.DeletionStatusBody true "List of deletion request IDs"
 // @Success 200 {array} privacyDTO.PrivacyDeletionRequest
-// @Failure 400 {object} coreutils.ErrorResponse
-// @Failure 500 {object} coreutils.ErrorResponse
+// @Failure 400 {object} utils.ErrorResponse
+// @Failure 500 {object} utils.ErrorResponse
 // @Security BearerAuth
 // @Router /privacy/admin/data-deletions/status [post]
 func (h *privacyHandler) adminInitiatedDeletionsStatus(c *gin.Context) {
@@ -288,7 +288,7 @@ func (h *privacyHandler) adminInitiatedDeletionsStatus(c *gin.Context) {
 }
 
 func handleError(c *gin.Context, statusCode int, err error) {
-	c.JSON(statusCode, coreutils.ErrorResponse{
+	c.JSON(statusCode, sdkUtils.ErrorResponse{
 		Error: err.Error(),
 	})
 }

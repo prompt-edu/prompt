@@ -8,7 +8,7 @@ import {
 
 // The assessment server is reached on the browser origin through the e2e
 // nginx proxy (same path prefix as prod Traefik). prompt-sdk auth answers 401
-// both for missing tokens and for valid tokens lacking the required role.
+// for missing tokens and 403 for valid tokens lacking the required role.
 // All checks are side-effect-free (GET only) on the graph-tail assessment
 // phase, so this file cannot interfere with the journey/visibility specs.
 const phaseUrl = (phaseId: string, path: string) =>
@@ -30,21 +30,21 @@ test.describe('assessment API auth', () => {
   test('rejects a student on a lecturer endpoint', async ({ apiAs }) => {
     const api = await apiAs('student')
     const res = await api.get(phaseUrl(PHASE_ID, 'student-assessment'))
-    expect(res.status()).toBe(401)
+    expect(res.status()).toBe(403)
   })
 
   test('rejects a lecturer on a student-only endpoint', async ({ apiAs }) => {
     // my-results requires CourseStudent; lecturers hold the Lecturer role only.
     const api = await apiAs('lecturer')
     const res = await api.get(phaseUrl(PHASE_ID, 'student-assessment/my-results'))
-    expect(res.status()).toBe(401)
+    expect(res.status()).toBe(403)
   })
 
   test('rejects a course editor on a lecturer-only endpoint', async ({ apiAs }) => {
     // Editors may grade but must not manage reminders/releases.
     const api = await apiAs('course-editor')
     const res = await api.get(phaseUrl(PHASE_ID, 'config/reminders/incomplete'))
-    expect(res.status()).toBe(401)
+    expect(res.status()).toBe(403)
   })
 
   test('accepts a course editor on a grading read endpoint', async ({ apiAs }) => {
@@ -64,6 +64,6 @@ test.describe('assessment API auth', () => {
   test('rejects a student on a phase of a course they are not enrolled in', async ({ apiAs }) => {
     const api = await apiAs('student')
     const res = await api.get(phaseUrl(ASSESSMENT_FOREIGN_PHASE_ID, 'student-assessment/my-results'))
-    expect(res.status()).toBe(401)
+    expect(res.status()).toBe(403)
   })
 })

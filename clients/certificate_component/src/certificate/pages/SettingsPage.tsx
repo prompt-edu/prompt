@@ -11,6 +11,7 @@ import {
   CardTitle,
   DatePicker,
   ErrorPage,
+  LoadingPage,
   ManagementPageHeader,
   Popover,
   PopoverContent,
@@ -230,11 +231,7 @@ export const SettingsPage = () => {
   }
 
   if (isPending) {
-    return (
-      <div className='flex justify-center items-center h-64'>
-        <Loader2 className='h-12 w-12 animate-spin text-primary' />
-      </div>
-    )
+    return <LoadingPage />
   }
 
   return (
@@ -407,8 +404,8 @@ export const SettingsPage = () => {
             <div>
               <CardTitle>Release Date</CardTitle>
               <CardDescription>
-                Set a date after which students can download their certificates. Leave empty to
-                allow downloads immediately.
+                Set a date after which students can download their certificates. Until a release
+                date is set, students cannot download them.
               </CardDescription>
             </div>
             {config?.releaseDate && (

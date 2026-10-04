@@ -1,4 +1,5 @@
-import { postAdditionalScore } from '@core/network/mutations/postAdditionalScore'
+import { coreApi } from '@core/network/api'
+import { coreCache } from '@core/network/cache'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Button,
@@ -67,15 +68,10 @@ export default function AssessmentScoreUpload({ applications }: AssessmentScoreU
 
   const { mutate: mutateSendScore } = useMutation({
     mutationFn: (additionalScore: AdditionalScoreUpload) => {
-      return postAdditionalScore(phaseId ?? 'undefined', additionalScore)
+      return coreApi.applications.addAdditionalScore(phaseId ?? 'undefined', additionalScore)
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ['application_participations', phaseId],
-      })
-      queryClient.invalidateQueries({
-        queryKey: ['application_participations', 'students', phaseId],
-      })
+      coreCache.additionalScoresUploaded(queryClient, phaseId)
       toast({
         title: 'Successfully added the scores!',
         variant: 'default',

@@ -104,6 +104,26 @@ export class InterviewPage {
     await expect(dialog).toBeHidden()
   }
 
+  // ── Interview overview and profiles (lecturer) ───────────────────────────
+
+  async gotoOverview(courseId: string, phaseId: string) {
+    await this.goto(courseId, phaseId, '/manage')
+  }
+
+  async expectOverviewLoaded() {
+    await expect(this.page.getByRole('heading', { level: 1, name: 'Interview' })).toBeVisible({
+      timeout: 15_000,
+    })
+  }
+
+  async openProfile(studentName: string) {
+    await this.page.getByText(studentName, { exact: true }).first().click()
+  }
+
+  breadcrumb(): Locator {
+    return this.page.getByRole('navigation', { name: 'breadcrumb' })
+  }
+
   // ── Student booking view (phase root) ────────────────────────────────────
 
   slotCard(slotId: string): Locator {

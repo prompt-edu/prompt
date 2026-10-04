@@ -103,3 +103,46 @@ func TestPresentationPhaseTypeInitializationRestoresMissingInputs(t *testing.T) 
 	assert.Equal(t, "teamAllocation", participationInputs[0].DtoName)
 	assert.True(t, participationInputs[0].Optional)
 }
+
+func TestInfrastructureSetupPhaseTypeExists(t *testing.T) {
+	ctx := context.Background()
+	testDB, cleanup, err := sdkTestUtils.SetupTestDB(ctx, "../database_dumps/copy_course_test.sql", func(conn *pgxpool.Pool) *db.Queries {
+		return db.New(conn)
+	})
+	require.NoError(t, err)
+	defer cleanup()
+
+	service := NewCoursePhaseTypeService(*testDB.Queries, testDB.Conn, false)
+
+	require.NoError(t, service.initInfrastructureSetup())
+	require.NoError(t, service.initInfrastructureSetup(), "initialization must be idempotent")
+
+	exists, err := testDB.Queries.TestInfrastructureSetupTypeExists(ctx)
+	require.NoError(t, err)
+	assert.True(t, exists)
+
+	phaseTypes, err := testDB.Queries.GetAllCoursePhaseTypes(ctx)
+	require.NoError(t, err)
+
+	infrastructureSetupCount := 0
+	for _, phaseType := range phaseTypes {
+		if phaseType.Name != "Infrastructure Setup" {
+			continue
+		}
+		infrastructureSetupCount++
+		assert.Equal(t, "{CORE_HOST}/infrastructure-setup/api", phaseType.BaseUrl)
+
+		phaseInputs, err := testDB.Queries.GetCoursePhaseRequiredPhaseInputs(ctx, phaseType.ID)
+		require.NoError(t, err)
+		require.Len(t, phaseInputs, 1)
+		assert.Equal(t, "teams", phaseInputs[0].DtoName)
+		assert.False(t, phaseInputs[0].Optional)
+
+		participationInputs, err := testDB.Queries.GetCoursePhaseRequiredParticipationInputs(ctx, phaseType.ID)
+		require.NoError(t, err)
+		require.Len(t, participationInputs, 1)
+		assert.Equal(t, "teamAllocation", participationInputs[0].DtoName)
+		assert.False(t, participationInputs[0].Optional)
+	}
+	assert.Equal(t, 1, infrastructureSetupCount)
+}

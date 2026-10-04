@@ -9,6 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/prompt-edu/prompt-sdk/promptTypes"
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	db "github.com/prompt-edu/prompt/servers/self_team_allocation/db/sqlc"
 	"github.com/stretchr/testify/require"
@@ -36,10 +37,10 @@ func (suite *ConfigRouterTestSuite) SetupSuite() {
 
 	suite.router = gin.Default()
 	api := suite.router.Group("/api/course_phase/:coursePhaseID")
-	authMiddleware := func(allowedRoles ...string) gin.HandlerFunc {
-		return sdkTestUtils.DefaultMockAuthMiddleware()
-	}
-	RegisterRoutes(api, configService, authMiddleware)
+	// RegisterRoutes wires the real SDK auth middleware, which no request here
+	// carries a token for, so the handler is reached through the SDK registrar
+	// directly. TestRegisterRoutesRequiresAuthentication covers the wiring.
+	promptTypes.RegisterConfigEndpoint(api, func(c *gin.Context) { c.Next() }, configService)
 }
 
 func (suite *ConfigRouterTestSuite) TearDownSuite() {
@@ -69,6 +70,18 @@ func (suite *ConfigRouterTestSuite) TestGetConfigInvalidCoursePhase() {
 	suite.router.ServeHTTP(resp, req)
 
 	require.Equal(suite.T(), http.StatusInternalServerError, resp.Code)
+}
+
+func TestRegisterRoutesRequiresAuthentication(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	router := gin.Default()
+	RegisterRoutes(router.Group("/api/course_phase/:coursePhaseID"), NewConfigService(db.Queries{}))
+
+	resp := httptest.NewRecorder()
+	router.ServeHTTP(resp, httptest.NewRequest("GET", "/api/course_phase/11111111-1111-1111-1111-111111111111/config", nil))
+
+	require.Equal(t, http.StatusUnauthorized, resp.Code)
 }
 
 func TestConfigRouterTestSuite(t *testing.T) {

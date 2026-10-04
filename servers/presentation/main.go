@@ -13,8 +13,10 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt-sdk/audit"
 	"github.com/prompt-edu/prompt-sdk/promptTypes"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
+	"github.com/prompt-edu/prompt/servers/presentation/coursePhaseDeletion"
 	db "github.com/prompt-edu/prompt/servers/presentation/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/presentation/presentation"
 	"github.com/prompt-edu/prompt/servers/presentation/storage"
@@ -159,24 +161,29 @@ func main() {
 	}
 	router.Use(promptSDK.CORSMiddleware(promptSDK.GetEnv("CORE_HOST", "http://localhost:3000")))
 	api := router.Group("/presentation/api")
+	// Gin snapshots the handler chain when a subgroup is created, so this must run before coursePhaseAPI.
+	api.Use(audit.Middleware(audit.NewCoreSink(sdkUtils.GetCoreUrl(), "presentation")))
 	coursePhaseAPI := api.Group("/course_phase/:coursePhaseID")
 	presentation.RegisterRoutes(coursePhaseAPI, service)
+	coursePhaseDeletion.RegisterRoutes(coursePhaseAPI, coursePhaseDeletion.NewCoursePhaseDeletionService(queries, conn, storageAdapter))
 
-	promptTypes.RegisterCopyEndpoint(
-		api,
-		promptSDK.AuthenticationMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer),
+	promptTypes.RegisterCopyModule(
+		api.Group("", audit.Describe(presentation.AuditCopyAction)),
 		&presentation.CopyHandler{Service: service},
+		promptSDK.PromptAdmin,
+		promptSDK.CourseLecturer,
 	)
-	promptTypes.RegisterPrivacyDataExportEndpoint(api, service.PrivacyExportHandler, []string{})
-	promptTypes.RegisterPrivacyDataDeletionEndpoint(api, service.PrivacyDeletionHandler)
+	promptTypes.RegisterPrivacyModule(api, service.PrivacyExportHandler, service.PrivacyDeletionHandler, []string{})
 	promptTypes.RegisterInfoEndpoint(api, promptTypes.ServiceInfo{
 		ServiceName: "presentation",
 		Version:     promptSDK.GetEnv("SERVER_IMAGE_TAG", ""),
 		Capabilities: map[string]bool{
 			promptTypes.CapabilityPhaseCopy:       true,
 			promptTypes.CapabilityPhaseConfig:     true,
+			promptTypes.CapabilityPhaseDeletion:   true,
 			promptTypes.CapabilityPrivacyExport:   true,
 			promptTypes.CapabilityPrivacyDeletion: true,
+			promptTypes.CapabilityAuditLog:        audit.Enabled(),
 		},
 	}, func() bool {
 		pingContext, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)

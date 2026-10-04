@@ -7,10 +7,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/core/courseMailing/courseMailingDTO"
 	"github.com/prompt-edu/prompt/servers/core/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
-	"github.com/prompt-edu/prompt/servers/core/utils"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -339,7 +339,7 @@ func bindCampaignRequest(c *gin.Context) (courseMailingDTO.MailCampaignRequest, 
 }
 
 func handleError(c *gin.Context, statusCode int, err error) {
-	c.JSON(statusCode, utils.ErrorResponse{Error: err.Error()})
+	c.JSON(statusCode, sdkUtils.ErrorResponse{Error: err.Error()})
 }
 
 func handleServiceError(c *gin.Context, err error) {

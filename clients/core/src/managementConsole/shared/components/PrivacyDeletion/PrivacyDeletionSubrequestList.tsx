@@ -1,7 +1,4 @@
-import {
-  DeletionSubrequestStatus,
-  type PrivacyDeletionSubrequest,
-} from '@core/network/queries/privacyStudentDataDeletion'
+import { DeletionSubrequestStatus, type PrivacyDeletionSubrequest } from '@core/interfaces/privacy'
 import { CircleCheck, CircleDashed, CircleX, Loader2 } from 'lucide-react'
 
 interface PrivacyDeletionSubrequestListProps {

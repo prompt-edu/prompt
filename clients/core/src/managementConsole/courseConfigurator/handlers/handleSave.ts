@@ -11,13 +11,12 @@ interface HandleSaveProps {
   nodes: Node[]
   edges: Edge[]
   coursePhases: CoursePhaseWithPosition[]
-  mutateDeletePhase: UseMutateAsyncFunction<string | undefined, Error, string, unknown>
+  mutateDeletePhase: UseMutateAsyncFunction<void, Error, string, unknown>
   mutateAsyncPhases: (coursePhase: CreateCoursePhase) => Promise<string | undefined>
   mutateRenamePhase: UseMutateAsyncFunction<string | undefined, Error, UpdateCoursePhase, unknown>
   mutateCoursePhaseGraph: UseMutateAsyncFunction<void, Error, CoursePhaseGraphUpdate, unknown>
   mutateParticipationDataGraph: UseMutateAsyncFunction<void, Error, MetaDataGraphItem[], unknown>
   mutatePhaseDataGraph: UseMutateAsyncFunction<void, Error, MetaDataGraphItem[], unknown>
-  queryClient: any
   setIsModified: (val: boolean) => void
 }
 
@@ -32,7 +31,6 @@ export async function handleSave({
   mutateCoursePhaseGraph,
   mutateParticipationDataGraph,
   mutatePhaseDataGraph,
-  queryClient,
   setIsModified,
 }: HandleSaveProps) {
   const idReplacementMap: { [key: string]: string } = {}
@@ -161,15 +159,6 @@ export async function handleSave({
 
   try {
     await mutateParticipationDataGraph(participationDataGraph)
-    queryClient.invalidateQueries({
-      queryKey: [
-        'courses',
-        'participation_data_phase_graph',
-        'phase_data_phase_graph',
-        'course_phase_types',
-        'course_phase_graph',
-      ],
-    })
     setIsModified(false)
     // Optionally reload if needed
     // window.location.reload()

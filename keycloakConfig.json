@@ -355,6 +355,24 @@
             "clientRole": true,
             "containerId": "a584ca61-fa83-4e95-98b6-c5f3157ae4b4",
             "attributes": {}
+          },
+          {
+            "id": "8a1c0f4e-6d55-4a3b-9a1e-1f0b7c2d5e01",
+            "name": "ios2526-iPraktikumDemo-Lecturer",
+            "description": "Course role for the seeded demo course (seed/core.sql).",
+            "composite": false,
+            "clientRole": true,
+            "containerId": "a584ca61-fa83-4e95-98b6-c5f3157ae4b4",
+            "attributes": {}
+          },
+          {
+            "id": "8a1c0f4e-6d55-4a3b-9a1e-1f0b7c2d5e02",
+            "name": "ios2526-iPraktikumDemo-Editor",
+            "description": "Course role for the seeded demo course (seed/core.sql).",
+            "composite": false,
+            "clientRole": true,
+            "containerId": "a584ca61-fa83-4e95-98b6-c5f3157ae4b4",
+            "attributes": {}
           }
         ],
         "account": [
@@ -474,6 +492,52 @@
               ]
             },
             "subGroups": []
+          },
+          {
+            "id": "8a1c0f4e-6d55-4a3b-9a1e-1f0b7c2d5e10",
+            "name": "Prompt",
+            "path": "/Prompt",
+            "attributes": {},
+            "realmRoles": [],
+            "clientRoles": {},
+            "subGroups": [
+              {
+                "id": "8a1c0f4e-6d55-4a3b-9a1e-1f0b7c2d5e11",
+                "name": "ios2526-iPraktikumDemo",
+                "path": "/Prompt/ios2526-iPraktikumDemo",
+                "attributes": {},
+                "realmRoles": [],
+                "clientRoles": {},
+                "subGroups": [
+                  {
+                    "id": "8a1c0f4e-6d55-4a3b-9a1e-1f0b7c2d5e12",
+                    "name": "Lecturer",
+                    "path": "/Prompt/ios2526-iPraktikumDemo/Lecturer",
+                    "attributes": {},
+                    "realmRoles": [],
+                    "clientRoles": {
+                      "prompt-server": [
+                        "ios2526-iPraktikumDemo-Lecturer"
+                      ]
+                    },
+                    "subGroups": []
+                  },
+                  {
+                    "id": "8a1c0f4e-6d55-4a3b-9a1e-1f0b7c2d5e13",
+                    "name": "Editor",
+                    "path": "/Prompt/ios2526-iPraktikumDemo/Editor",
+                    "attributes": {},
+                    "realmRoles": [],
+                    "clientRoles": {
+                      "prompt-server": [
+                        "ios2526-iPraktikumDemo-Editor"
+                      ]
+                    },
+                    "subGroups": []
+                  }
+                ]
+              }
+            ]
           }
     ],
     "defaultRole": {
@@ -578,7 +642,8 @@
         },
         "clientRoles": {
           "prompt-server": ["PROMPT_Lecturer"]
-        }
+        },
+        "groups": ["/Prompt/ios2526-iPraktikumDemo/Lecturer"]
       },
       {
         "username": "course-lecturer",
@@ -595,7 +660,8 @@
         },
         "clientRoles": {
           "prompt-server": ["PROMPT_Course_Lecturer"]
-        }
+        },
+        "groups": ["/Prompt/ios2526-iPraktikumDemo/Lecturer"]
       },
       {
         "username": "course-editor",
@@ -612,7 +678,8 @@
         },
         "clientRoles": {
           "prompt-server": ["PROMPT_Course_Editor"]
-        }
+        },
+        "groups": ["/Prompt/ios2526-iPraktikumDemo/Editor"]
       },
       {
         "username": "student",

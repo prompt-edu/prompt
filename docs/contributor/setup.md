@@ -46,7 +46,7 @@ Before you can build and run **Prompt**, you must install and configure the foll
    - Only needed when you change SQL queries or migrations and regenerate the typed code with `make sqlc`.
 
 5. **Node.js**
-   - Install [Node.js](https://nodejs.org/en) **24.19.0** or newer (the version used by CI and the Docker images).
+   - Install [Node.js](https://nodejs.org/en) **24.21.0** or newer (the version used by CI and the Docker images).
    - Node.js is required to compile and run the React client application.
 
 6. **Yarn**
@@ -141,11 +141,32 @@ SERVER_ADDRESS=0.0.0.0:8080
 AUDIT_ENABLED=
 # Retention window in days. Unset => entries are never pruned (kept forever).
 AUDIT_RETENTION_DAYS=
-# Per-service shared secrets that let phase services report events to core.
+# Read by core: the shared secrets it accepts, one per reporting service.
 # Format: service1:key1,service2:key2 (two values per service allowed for rotation).
+# The service names are the ones the services report on their info endpoint:
+# assessment, certificate, example-service, interview, presentation,
+# self-team-allocation, team-allocation, intro-course.
+# Example: assessment:<key>,interview:<key>,team-allocation:<key>
+# Externally deployed phases (intro-course among them) have no container here.
+# List their keys anyway so they can report to this core.
 AUDIT_INGEST_KEYS=
-# On a phase service: that service's own ingest key (matches an entry above).
+# Read by a phase process: its own ingest key. Under Docker Compose it is set
+# per container from the AUDIT_INGEST_KEY_<SERVICE> variables below. In host
+# mode the Makefile exports this one value to every server it starts, so
+# `make servers` can only report as a single service; use it with
+# `make server-<name>` when reporting from one phase at a time.
 AUDIT_INGEST_KEY=
+# Per-service ingest keys handed to the phase containers by Docker Compose.
+# Each value must also appear in AUDIT_INGEST_KEYS above, under that service's
+# reported name (for example AUDIT_INGEST_KEY_EXAMPLE_SERVER belongs to
+# example-service).
+AUDIT_INGEST_KEY_ASSESSMENT=
+AUDIT_INGEST_KEY_CERTIFICATE=
+AUDIT_INGEST_KEY_EXAMPLE_SERVER=
+AUDIT_INGEST_KEY_INTERVIEW=
+AUDIT_INGEST_KEY_PRESENTATION=
+AUDIT_INGEST_KEY_SELF_TEAM_ALLOCATION=
+AUDIT_INGEST_KEY_TEAM_ALLOCATION=
 
 # ============================================================================
 # CORE DATABASE CONFIGURATION
@@ -201,6 +222,25 @@ DB_PORT_CERTIFICATE=5432
 DB_CERTIFICATE_NAME=prompt
 DB_CERTIFICATE_USER=prompt-postgres
 DB_CERTIFICATE_PASSWORD=prompt-postgres
+
+# ============================================================================
+# INFRASTRUCTURE SETUP DATABASE CONFIGURATION
+# ============================================================================
+# Database for infrastructure setup functionality
+
+DB_INFRASTRUCTURE_SETUP_HOST=db-infrastructure-setup
+DB_INFRASTRUCTURE_SETUP_PORT=5432
+DB_INFRASTRUCTURE_SETUP_NAME=prompt
+DB_INFRASTRUCTURE_SETUP_USER=prompt-postgres
+DB_INFRASTRUCTURE_SETUP_PASSWORD=prompt-postgres
+
+# AES-256-GCM encryption key for provider credentials in the infrastructure setup service.
+# Must be a base64-encoded 32-byte key. Generate with: openssl rand -base64 32
+# Never rotate without re-encrypting existing provider_config rows.
+# The value below is a placeholder so the service starts on a fresh checkout. It is
+# committed, so it is public: the service refuses it unless DEBUG=true, and any
+# deployment holding real provider credentials must set a key of its own.
+ENCRYPTION_KEY=bG9jYWwtZGV2LWtleS1ub3QtYS1yZWFsLXNlY3JldCE=
 
 # ============================================================================
 # EXAMPLE SERVER DATABASE CONFIGURATION
@@ -279,6 +319,9 @@ SMTP_PASSWORD=
 # ============================================================================
 # Version tags for Docker images (used in production)
 
+# Reported by locally started servers as their version on /info.
+SERVER_IMAGE_TAG=local
+
 SERVER_CORE_IMAGE_TAG=main
 SERVER_TEAM_ALLOCATION_IMAGE_TAG=main
 SERVER_SELF_TEAM_ALLOCATION_IMAGE_TAG=main
@@ -286,6 +329,7 @@ SERVER_ASSESSMENT_IMAGE_TAG=main
 SERVER_INTERVIEW_IMAGE_TAG=main
 SERVER_CERTIFICATE_IMAGE_TAG=main
 SERVER_PRESENTATION_IMAGE_TAG=main
+SERVER_INFRASTRUCTURE_SETUP_IMAGE_TAG=main
 
 CORE_IMAGE_TAG=main
 EXAMPLE_IMAGE_TAG=main
@@ -297,6 +341,7 @@ TEAM_ALLOCATION_IMAGE_TAG=main
 SELF_TEAM_ALLOCATION_IMAGE_TAG=main
 CERTIFICATE_IMAGE_TAG=main
 PRESENTATION_IMAGE_TAG=main
+INFRASTRUCTURE_SETUP_IMAGE_TAG=main
 
 # ============================================================================
 # SSL/TLS CONFIGURATION (Production)
@@ -321,6 +366,7 @@ EXAMPLE_HOST=http://localhost:8086
 INTERVIEW_HOST=http://localhost:8087
 CERTIFICATE_HOST=http://localhost:8088
 PRESENTATION_HOST=http://localhost:8089
+INFRASTRUCTURE_SETUP_HOST=http://localhost:8091
 
 CORE_API_HOST=http://localhost:8080
 
@@ -352,6 +398,7 @@ SENTRY_DSN_CERTIFICATE=
 SENTRY_DSN_CLIENT=
 SENTRY_DSN_CORE=
 SENTRY_DSN_EXAMPLE_SERVER=
+SENTRY_DSN_INFRASTRUCTURE_SETUP=
 SENTRY_DSN_INTERVIEW=
 SENTRY_DSN_PRESENTATION=
 SENTRY_DSN_SELF_TEAM_ALLOCATION=
@@ -399,6 +446,9 @@ DB_PORT=${DB_CORE_PORT}
 DB_NAME=${DB_CORE_NAME}
 DB_USER=${DB_CORE_USER}
 DB_PASSWORD=${DB_CORE_PASSWORD}
+
+DB_HOST_INFRASTRUCTURE_SETUP=${DB_INFRASTRUCTURE_SETUP_HOST}
+DB_PORT_INFRASTRUCTURE_SETUP=${DB_INFRASTRUCTURE_SETUP_PORT}
 ```
 
 </details>
@@ -438,6 +488,14 @@ DB_PORT_INTERVIEW=5438
 # Presentation
 DB_HOST_PRESENTATION=localhost
 DB_PORT_PRESENTATION=5440
+# Infrastructure Setup
+DB_HOST_INFRASTRUCTURE_SETUP=localhost
+DB_PORT_INFRASTRUCTURE_SETUP=5441
+
+# AES-256-GCM key for infrastructure setup provider credentials.
+# Base64-encoded 32 bytes. Generate with: openssl rand -base64 32
+# Local development placeholder: public, so the service only accepts it with DEBUG=true.
+ENCRYPTION_KEY=bG9jYWwtZGV2LWtleS1ub3QtYS1yZWFsLXNlY3JldCE=
 
 # Keycloak - use localhost
 KEYCLOAK_HOST=http://localhost:8081
@@ -466,21 +524,15 @@ DEBUG=true
 
 ### 3. Start the Infrastructure Containers
 
-Prompt requires a database and a Keycloak instance to run. Start both with:
+Prompt requires its databases and a Keycloak instance to run. Start them with:
 
 ```bash
 make db
 ```
 
-This runs `docker compose up -d db keycloak`, which starts the core PostgreSQL database on port `5432` and Keycloak on port `8081` (Keycloak brings up its own database container as a dependency). Stop them again with `make db-down`.
+Each service uses a **separate** PostgreSQL database, and `make db` starts all of them together with Keycloak on port `8081` (Keycloak brings up its own database container as a dependency). Stop them again with `make db-down`.
 
-Each phase service uses a **separate** database. Start the ones for the phases you are working on, for example:
-
-```bash
-docker compose up -d db-assessment db-interview
-```
-
-The host ports are `5434` (team allocation), `5435` (assessment), `5436` (self team allocation), `5437` (example), `5438` (interview), `5439` (certificate), and `5440` (presentation) — the same values `.env.dev` already points at.
+The host ports are `5432` (core), `5434` (team allocation), `5435` (assessment), `5436` (self team allocation), `5437` (example), `5438` (interview), `5439` (certificate), `5440` (presentation), and `5441` (infrastructure setup) — the same values `.env.dev` already points at.
 
 File uploads (application documents, certificates, presentation materials) are stored through the SeaweedFS S3 gateway. It is **required** — start it before the servers in step 5:
 
@@ -525,7 +577,7 @@ make server
 
 The target loads `.env` and `.env.dev`, downloads Go dependencies on demand, and applies pending migrations on startup. Watch the log output: failures to reach PostgreSQL or Keycloak show up right there.
 
-Phase services have their own targets — `make server-assessment`, `make server-interview`, `make server-team-allocation`, `make server-self-team-allocation`, `make server-example`, `make server-certificate`, `make server-presentation` — and `make servers` starts the core server together with all of them.
+Phase services have their own targets — `make server-assessment`, `make server-interview`, `make server-team-allocation`, `make server-self-team-allocation`, `make server-example`, `make server-certificate`, `make server-presentation`, `make server-infrastructure-setup` — and `make servers` starts the core server together with all of them.
 
 ### 6. Start the Clients
 
@@ -548,8 +600,9 @@ This installs the workspace dependencies (`yarn install`) and starts every micro
 | `self_team_allocation_component` | 3009 |
 | `certificate_component` | 3010 |
 | `presentation_component` | 3011 |
+| `infrastructure_setup_component` | 3012 |
 
-To run only a subset, use one of the per-client targets — `make client-core`, `make client-assessment`, `make client-certificate`, `make client-interview`, `make client-matching`, `make client-presentation`. The remaining components (example, team allocation, self team allocation) have no target; run `yarn dev` inside the corresponding folder:
+To run only a subset, use one of the per-client targets — `make client-core`, `make client-assessment`, `make client-certificate`, `make client-interview`, `make client-matching`, `make client-presentation`. The remaining components (example, team allocation, self team allocation, infrastructure setup) have no target; run `yarn dev` inside the corresponding folder:
 
 ```bash
 cd clients/core && yarn dev
@@ -557,7 +610,17 @@ cd clients/core && yarn dev
 
 Phases developed in their own repositories (for example the intro course and the GitHub challenge) are loaded as external remotes and served by those projects.
 
-### 7. Verify Your Setup
+### 7. Load the Demo Data (optional)
+
+The databases start empty. Once the servers have run once and created their schemas, load a fully populated demo course into every service database with:
+
+```bash
+make seed
+```
+
+The command can be re-run and resets the rows it owns. See [Database Seeding](./guide/seeding.md) for what it creates.
+
+### 8. Verify Your Setup
 
 ```bash
 make lint

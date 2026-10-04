@@ -108,6 +108,7 @@ const config = (env = {}) => {
       new rspack.HtmlRspackPlugin({
         template: 'public/template.html',
         minify: !IS_DEV,
+        excludeChunks: ['core'],
       }),
       new rspack.CopyRspackPlugin({
         patterns: [{ from: 'public' }],

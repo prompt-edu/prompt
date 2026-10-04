@@ -1,5 +1,6 @@
 import type { OpenApplicationDetails } from '@core/interfaces/application/openApplicationDetails'
-import { getAllOpenApplications } from '@core/network/queries/openApplications'
+import { coreApi } from '@core/network/api'
+import { coreKeys } from '@core/network/cache'
 import { useQuery } from '@tanstack/react-query'
 import { Alert, AlertDescription, AlertTitle } from '@tumaet/prompt-ui-components'
 import { AlertCircle, Loader2 } from 'lucide-react'
@@ -12,8 +13,8 @@ export function LandingPage() {
     isPending,
     isError,
   } = useQuery<OpenApplicationDetails[]>({
-    queryKey: ['open_applications'],
-    queryFn: () => getAllOpenApplications(),
+    queryKey: coreKeys.apply.open(),
+    queryFn: () => coreApi.apply.listOpen(),
   })
 
   return (

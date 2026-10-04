@@ -17,9 +17,9 @@ import (
 	"github.com/prompt-edu/prompt/servers/core/course/courseDTO"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase/coursePhaseDTO"
+	"github.com/prompt-edu/prompt/servers/core/coursePhase/resolution"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/core/meta"
-	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
@@ -29,7 +29,7 @@ type CourseRouterTestSuite struct {
 	router        *gin.Engine
 	ctx           context.Context
 	cleanup       func()
-	courseService CourseService
+	courseService *CourseService
 }
 
 func (suite *CourseRouterTestSuite) SetupSuite() {
@@ -50,25 +50,15 @@ func (suite *CourseRouterTestSuite) SetupSuite() {
 	}
 
 	suite.cleanup = cleanup
-	suite.courseService = CourseService{
-		queries:                    *testDB.Queries,
-		conn:                       testDB.Conn,
-		createCourseGroupsAndRoles: mockCreateGroupsAndRoles,
-		deleteCourseGroupsAndRoles: mockDeleteGroupsAndRoles,
-	}
-
-	CourseServiceSingleton = &suite.courseService
-
-	// Init the permissionValidation service
-	permissionValidation.InitValidationService(*testDB.Queries, testDB.Conn)
+	coursePhaseService := coursePhase.NewCoursePhaseService(*testDB.Queries, testDB.Conn, resolution.NewResolutionService("localhost:8080"))
+	suite.courseService = NewCourseService(*testDB.Queries, testDB.Conn, coursePhaseService, mockCreateGroupsAndRoles, mockDeleteGroupsAndRoles)
 
 	// Initialize router
 	suite.router = gin.Default()
 	api := suite.router.Group("/api")
-	setupCourseRouter(api, func() gin.HandlerFunc {
+	setupCourseRouter(api, suite.courseService, func() gin.HandlerFunc {
 		return sdkTestUtils.MockAuthMiddleware([]string{"PROMPT_Admin", "iPraktikum-ios24245-Lecturer"})
 	}, sdkTestUtils.MockPermissionMiddleware, sdkTestUtils.MockPermissionMiddleware)
-	coursePhase.InitCoursePhaseModule(api, *testDB.Queries, testDB.Conn)
 }
 
 func (suite *CourseRouterTestSuite) TearDownSuite() {
@@ -150,7 +140,7 @@ func (suite *CourseRouterTestSuite) TestArchiveCourse() {
 
 	// Verify DB state
 	courseUUID := uuid.MustParse(courseID)
-	updatedCourse, err := CourseServiceSingleton.queries.GetCourse(suite.ctx, courseUUID)
+	updatedCourse, err := suite.courseService.queries.GetCourse(suite.ctx, courseUUID)
 	assert.NoError(suite.T(), err)
 	assert.True(suite.T(), updatedCourse.Archived, "Course should be archived")
 	assert.True(suite.T(), updatedCourse.ArchivedOn.Valid, "ArchivedOn should be set")
@@ -198,7 +188,7 @@ func (suite *CourseRouterTestSuite) TestUnarchiveCourse() {
 
 	// Verify DB state
 	courseUUID := uuid.MustParse(courseID)
-	updatedCourse, err := CourseServiceSingleton.queries.GetCourse(suite.ctx, courseUUID)
+	updatedCourse, err := suite.courseService.queries.GetCourse(suite.ctx, courseUUID)
 	assert.NoError(suite.T(), err)
 	assert.False(suite.T(), updatedCourse.Archived, "Course should be unarchived")
 	assert.False(suite.T(), updatedCourse.ArchivedOn.Valid, "ArchivedOn should be NULL")
@@ -289,7 +279,7 @@ func (suite *CourseRouterTestSuite) TestUpdateCourseTemplateStatus() {
 	assert.Equal(suite.T(), http.StatusOK, resp.Code)
 
 	courseUUID := uuid.MustParse(courseID)
-	updatedCourse, err := CourseServiceSingleton.queries.GetTemplateCourseByID(suite.ctx, courseUUID)
+	updatedCourse, err := suite.courseService.queries.GetTemplateCourseByID(suite.ctx, courseUUID)
 	assert.NoError(suite.T(), err)
 	assert.True(suite.T(), updatedCourse.Template, "Course should be marked as a template")
 }

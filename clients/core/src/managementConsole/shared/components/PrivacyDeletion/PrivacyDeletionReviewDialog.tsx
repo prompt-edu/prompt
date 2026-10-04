@@ -1,8 +1,6 @@
-import {
-  type AdminPrivacyDeletionRequest,
-  type AuditorDecision,
-  decideOnDeletionRequest,
-} from '@core/network/queries/privacyStudentDataDeletion'
+import type { AdminPrivacyDeletionRequest, AuditorDecision } from '@core/interfaces/privacy'
+import { coreApi } from '@core/network/api'
+import { coreCache } from '@core/network/cache'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Button,
@@ -54,9 +52,9 @@ export function PrivacyDeletionReviewDialog({
 
   const mutation = useMutation({
     mutationFn: (decision: AuditorDecision) =>
-      decideOnDeletionRequest(request!.id, { decision, note }),
+      coreApi.privacy.decideOnDeletion(request!.id, { decision, note }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['privacy', 'admin', 'deletions'] })
+      coreCache.privacyDeletionsChanged(queryClient)
       setNote('')
       onClose()
     },

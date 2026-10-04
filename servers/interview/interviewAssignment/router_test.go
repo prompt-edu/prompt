@@ -26,6 +26,7 @@ type InterviewAssignmentRouterTestSuite struct {
 	ctx     context.Context
 	testDB  *sdkTestUtils.TestDB[*db.Queries]
 	cleanup func()
+	service *InterviewAssignmentService
 }
 
 func (suite *InterviewAssignmentRouterTestSuite) SetupSuite() {
@@ -37,10 +38,7 @@ func (suite *InterviewAssignmentRouterTestSuite) SetupSuite() {
 	suite.testDB = testDB
 	suite.cleanup = cleanup
 
-	InterviewAssignmentServiceSingleton = &InterviewAssignmentService{
-		queries: *testDB.Queries,
-		conn:    testDB.Conn,
-	}
+	suite.service = NewInterviewAssignmentService(*testDB.Queries, testDB.Conn)
 }
 
 func (suite *InterviewAssignmentRouterTestSuite) TearDownSuite() {
@@ -52,7 +50,7 @@ func (suite *InterviewAssignmentRouterTestSuite) TearDownSuite() {
 func (suite *InterviewAssignmentRouterTestSuite) newRouter(courseParticipationID uuid.UUID) *gin.Engine {
 	router := gin.Default()
 	api := router.Group("/api/course_phase/:coursePhaseID")
-	setupInterviewAssignmentRouter(api, func(allowedRoles ...string) gin.HandlerFunc {
+	RegisterRoutes(api, suite.service, func(allowedRoles ...string) gin.HandlerFunc {
 		return func(c *gin.Context) {
 			c.Set("courseParticipationID", courseParticipationID)
 			keycloakTokenVerifier.SetTokenUser(c, keycloakTokenVerifier.TokenUser{
@@ -121,7 +119,7 @@ func (suite *InterviewAssignmentRouterTestSuite) TestDeleteInterviewAssignmentRo
 	createBody := interviewAssignmentDTO.CreateInterviewAssignmentRequest{
 		InterviewSlotID: slot.ID,
 	}
-	assignment, err := CreateInterviewAssignment(suite.ctx, uuid.MustParse("11111111-1111-1111-1111-111111111111"), participationID, createBody)
+	assignment, err := suite.service.CreateInterviewAssignment(suite.ctx, uuid.MustParse("11111111-1111-1111-1111-111111111111"), participationID, createBody)
 	require.NoError(suite.T(), err)
 
 	router := suite.newRouter(participationID)

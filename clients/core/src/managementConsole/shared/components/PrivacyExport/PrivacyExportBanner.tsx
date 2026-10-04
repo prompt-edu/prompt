@@ -1,8 +1,5 @@
-import {
-  ExportStatus,
-  getExportDocDownloadURL,
-  type PrivacyExport,
-} from '@core/network/queries/privacyStudentDataExport'
+import { ExportStatus, type PrivacyExport } from '@core/interfaces/privacy'
+import { coreApi } from '@core/network/api'
 import { Button, useToast } from '@tumaet/prompt-ui-components'
 import { Download, Loader2 } from 'lucide-react'
 import { useState } from 'react'
@@ -38,7 +35,10 @@ export function PrivacyExportBanner({ inProgress, privacyExport }: PrivacyExport
         const expDoc = completeDocs[i]
 
         try {
-          const downloadURL = await getExportDocDownloadURL(privacyExport.id, expDoc.id)
+          const downloadURL = await coreApi.privacy.exportDocDownloadURL(
+            privacyExport.id,
+            expDoc.id,
+          )
           window.location.assign(downloadURL)
         } catch {
           failed++

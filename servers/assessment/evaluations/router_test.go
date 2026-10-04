@@ -12,10 +12,12 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
+	"github.com/prompt-edu/prompt/servers/assessment/assessmentSchemas"
 	"github.com/prompt-edu/prompt/servers/assessment/assessmentType"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/scoreLevel/scoreLevelDTO"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/assessment/evaluations/evaluationCompletion"
 	"github.com/prompt-edu/prompt/servers/assessment/evaluations/evaluationDTO"
 	"github.com/prompt-edu/prompt/servers/assessment/testutils"
 	"github.com/stretchr/testify/assert"
@@ -28,7 +30,7 @@ type EvaluationRouterTestSuite struct {
 	suiteCtx          context.Context
 	cleanup           func()
 	mockCoreCleanup   func()
-	evaluationService EvaluationService
+	evaluationService *EvaluationService
 	testCoursePhaseID uuid.UUID
 }
 
@@ -43,15 +45,10 @@ func (suite *EvaluationRouterTestSuite) SetupSuite() {
 	suite.mockCoreCleanup = mockCleanup
 
 	suite.cleanup = cleanup
-	suite.evaluationService = EvaluationService{
-		queries: *testDB.Queries,
-		conn:    testDB.Conn,
-	}
-
-	EvaluationServiceSingleton = &suite.evaluationService
-
-	// Initialize CoursePhaseConfigSingleton to prevent nil pointer dereference
-	coursePhaseConfig.CoursePhaseConfigSingleton = coursePhaseConfig.NewCoursePhaseConfigService(*testDB.Queries, testDB.Conn)
+	coursePhaseConfigService := coursePhaseConfig.NewCoursePhaseConfigService(*testDB.Queries, testDB.Conn, assessmentSchemas.NewAssessmentSchemaService(*testDB.Queries, testDB.Conn))
+	suite.evaluationService = NewEvaluationService(*testDB.Queries, testDB.Conn,
+		evaluationCompletion.NewEvaluationCompletionService(*testDB.Queries, testDB.Conn, coursePhaseConfig.GetTeamsForCoursePhase, coursePhaseConfigService),
+		coursePhaseConfigService)
 
 	suite.testCoursePhaseID = uuid.MustParse("4179d58a-d00d-4fa7-94a5-397bc69fab02")
 
@@ -70,7 +67,7 @@ func (suite *EvaluationRouterTestSuite) SetupSuite() {
 	testMiddleware := func(allowedRoles ...string) gin.HandlerFunc {
 		return sdkTestUtils.MockAuthMiddlewareWithEmail(allowedRoles, "existingstudent@example.com", "03711111", "ab12cde")
 	}
-	setupEvaluationRouter(api, testMiddleware)
+	RegisterRoutes(api, suite.evaluationService, testMiddleware)
 }
 
 func (suite *EvaluationRouterTestSuite) TearDownSuite() {

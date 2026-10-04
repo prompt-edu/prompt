@@ -31,8 +31,6 @@ type StorageService struct {
 	allowedTypes   []string
 }
 
-var StorageServiceSingleton *StorageService
-
 // ErrInvalidInput marks a client-supplied request as invalid (maps to HTTP 400).
 // ErrNotFound marks a referenced resource as missing (maps to HTTP 404).
 var (

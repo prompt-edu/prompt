@@ -60,7 +60,13 @@ export function PrivacyStatusBanner({
   footer,
 }: PrivacyStatusBannerProps) {
   return (
-    <div className='rounded-lg border border-border bg-muted p-4 flex flex-col gap-3'>
+    <div
+      className='rounded-lg border border-border bg-muted p-4 flex flex-col gap-3'
+      data-testid='privacy-status-banner'
+      // The banner's presentation state, not the backend enum: a pending export
+      // renders as in_progress and a complete one as success.
+      data-state={state}
+    >
       <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4'>
         <div className='flex items-center gap-3'>
           <div className='lg:mx-2'>

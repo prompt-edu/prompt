@@ -16,12 +16,12 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func validateUpdateForm(ctx context.Context, coursePhaseID uuid.UUID, updateForm applicationDTO.UpdateForm) error {
+func (s *ApplicationService) validateUpdateForm(ctx context.Context, coursePhaseID uuid.UUID, updateForm applicationDTO.UpdateForm) error {
 	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
 	defer cancel()
 
 	// Check if course phase is application phase
-	isApplicationPhase, err := ApplicationServiceSingleton.queries.CheckIfCoursePhaseIsApplicationPhase(ctxWithTimeout, coursePhaseID)
+	isApplicationPhase, err := s.queries.CheckIfCoursePhaseIsApplicationPhase(ctxWithTimeout, coursePhaseID)
 	if err != nil {
 		log.Error("could not validate application form: ", err)
 		return errors.New("could not validate the application form")
@@ -31,18 +31,18 @@ func validateUpdateForm(ctx context.Context, coursePhaseID uuid.UUID, updateForm
 	}
 
 	// Get all questions for the course phase
-	applicationQuestionsText, err := ApplicationServiceSingleton.queries.GetApplicationQuestionsTextForCoursePhase(ctxWithTimeout, coursePhaseID)
+	applicationQuestionsText, err := s.queries.GetApplicationQuestionsTextForCoursePhase(ctxWithTimeout, coursePhaseID)
 	if err != nil {
 		log.Error("could not validate application form: ", err)
 		return errors.New("could not validate the application form")
 	}
 
-	applicationQuestionsMultiSelect, err := ApplicationServiceSingleton.queries.GetApplicationQuestionsMultiSelectForCoursePhase(ctxWithTimeout, coursePhaseID)
+	applicationQuestionsMultiSelect, err := s.queries.GetApplicationQuestionsMultiSelectForCoursePhase(ctxWithTimeout, coursePhaseID)
 	if err != nil {
 		return errors.New("could not validate the application form")
 	}
 
-	applicationQuestionsFileUpload, err := ApplicationServiceSingleton.queries.GetApplicationQuestionsFileUploadForCoursePhase(ctxWithTimeout, coursePhaseID)
+	applicationQuestionsFileUpload, err := s.queries.GetApplicationQuestionsFileUploadForCoursePhase(ctxWithTimeout, coursePhaseID)
 	if err != nil {
 		return errors.New("could not validate the application form")
 	}
@@ -257,13 +257,13 @@ func validateExportSettings(accessibleForOtherPhases pgtype.Bool, accessKey pgty
 	return nil
 }
 
-func validateApplicationManualAdd(ctx context.Context, coursePhaseID uuid.UUID, application applicationDTO.PostApplication) error {
+func (s *ApplicationService) validateApplicationManualAdd(ctx context.Context, coursePhaseID uuid.UUID, application applicationDTO.PostApplication) error {
 	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
 	defer cancel()
 
 	// Check if course phase is application phase
 	// But we don't check if it's open, since we're manually adding an application
-	isApplicationPhase, err := ApplicationServiceSingleton.queries.CheckIfCoursePhaseIsApplicationPhase(ctxWithTimeout, coursePhaseID)
+	isApplicationPhase, err := s.queries.CheckIfCoursePhaseIsApplicationPhase(ctxWithTimeout, coursePhaseID)
 	if err != nil {
 		log.Error("could not validate application: ", err)
 		return errors.New("could not validate the application")
@@ -272,14 +272,14 @@ func validateApplicationManualAdd(ctx context.Context, coursePhaseID uuid.UUID, 
 		return errors.New("course phase is not an application phase")
 	}
 
-	return validateAnswers(ctx, coursePhaseID, application)
+	return s.validateAnswers(ctx, coursePhaseID, application)
 }
 
 // maxImportRows bounds a single CSV import. Each row runs several queries inside one transaction,
 // so an unbounded file would hold a long-running transaction open.
 const maxImportRows = 2000
 
-func validateApplicationImport(ctx context.Context, coursePhaseID uuid.UUID, req applicationDTO.ImportApplicationRequest) error {
+func (s *ApplicationService) validateApplicationImport(ctx context.Context, coursePhaseID uuid.UUID, req applicationDTO.ImportApplicationRequest) error {
 	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
 	defer cancel()
 
@@ -290,7 +290,7 @@ func validateApplicationImport(ctx context.Context, coursePhaseID uuid.UUID, req
 		return fmt.Errorf("too many rows in import: %d (maximum is %d)", len(req.Rows), maxImportRows)
 	}
 
-	isApplicationPhase, err := ApplicationServiceSingleton.queries.CheckIfCoursePhaseIsApplicationPhase(ctxWithTimeout, coursePhaseID)
+	isApplicationPhase, err := s.queries.CheckIfCoursePhaseIsApplicationPhase(ctxWithTimeout, coursePhaseID)
 	if err != nil {
 		log.Error("could not validate import: ", err)
 		return errors.New("could not validate the import")
@@ -299,7 +299,7 @@ func validateApplicationImport(ctx context.Context, coursePhaseID uuid.UUID, req
 		return errors.New("course phase is not an application phase")
 	}
 
-	importMode, err := IsImportModePhase(ctxWithTimeout, coursePhaseID)
+	importMode, err := s.IsImportModePhase(ctxWithTimeout, coursePhaseID)
 	if err != nil {
 		log.Error("could not validate import: ", err)
 		return errors.New("could not validate the import")
@@ -314,7 +314,7 @@ func validateApplicationImport(ctx context.Context, coursePhaseID uuid.UUID, req
 
 	// The import reuses an existing question when a title already exists, keeping its persisted
 	// allowed length. Load those lengths so answer validation matches what the service enforces.
-	existingQuestions, err := ApplicationServiceSingleton.queries.GetApplicationQuestionsTextForCoursePhase(ctxWithTimeout, coursePhaseID)
+	existingQuestions, err := s.queries.GetApplicationQuestionsTextForCoursePhase(ctxWithTimeout, coursePhaseID)
 	if err != nil {
 		log.Error("could not validate import: ", err)
 		return errors.New("could not validate the import")
@@ -399,12 +399,12 @@ func validateApplicationImport(ctx context.Context, coursePhaseID uuid.UUID, req
 	return nil
 }
 
-func validateApplication(ctx context.Context, coursePhaseID uuid.UUID, application applicationDTO.PostApplication, authenticatedRoute bool) error {
+func (s *ApplicationService) validateApplication(ctx context.Context, coursePhaseID uuid.UUID, application applicationDTO.PostApplication, authenticatedRoute bool) error {
 	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
 	defer cancel()
 
 	// Check if course phase is application phase
-	applicationDetails, err := ApplicationServiceSingleton.queries.CheckIfCoursePhaseIsOpenApplicationPhase(ctxWithTimeout, coursePhaseID)
+	applicationDetails, err := s.queries.CheckIfCoursePhaseIsOpenApplicationPhase(ctxWithTimeout, coursePhaseID)
 	if err != nil {
 		log.Error("could not validate application: ", err)
 		return errors.New("could not validate the application. the application deadline might have passed")
@@ -417,10 +417,10 @@ func validateApplication(ctx context.Context, coursePhaseID uuid.UUID, applicati
 		return errors.New("student with university data MUST log in to apply")
 	}
 
-	return validateAnswers(ctx, coursePhaseID, application)
+	return s.validateAnswers(ctx, coursePhaseID, application)
 }
 
-func validateAnswers(ctx context.Context, coursePhaseID uuid.UUID, application applicationDTO.PostApplication) error {
+func (s *ApplicationService) validateAnswers(ctx context.Context, coursePhaseID uuid.UUID, application applicationDTO.PostApplication) error {
 	// 1. Check that the student is valid
 	err := student.Validate(application.Student)
 	if err != nil {
@@ -428,18 +428,18 @@ func validateAnswers(ctx context.Context, coursePhaseID uuid.UUID, application a
 	}
 
 	// 2. Get all questions for the course phase
-	applicationQuestionsText, err := ApplicationServiceSingleton.queries.GetApplicationQuestionsTextForCoursePhase(ctx, coursePhaseID)
+	applicationQuestionsText, err := s.queries.GetApplicationQuestionsTextForCoursePhase(ctx, coursePhaseID)
 	if err != nil {
 		log.Error("could not validate application: ", err)
 		return errors.New("could not validate the application")
 	}
 
-	applicationQuestionsMultiSelect, err := ApplicationServiceSingleton.queries.GetApplicationQuestionsMultiSelectForCoursePhase(ctx, coursePhaseID)
+	applicationQuestionsMultiSelect, err := s.queries.GetApplicationQuestionsMultiSelectForCoursePhase(ctx, coursePhaseID)
 	if err != nil {
 		return errors.New("could not validate the application")
 	}
 
-	applicationQuestionsFileUpload, err := ApplicationServiceSingleton.queries.GetApplicationQuestionsFileUploadForCoursePhase(ctx, coursePhaseID)
+	applicationQuestionsFileUpload, err := s.queries.GetApplicationQuestionsFileUploadForCoursePhase(ctx, coursePhaseID)
 	if err != nil {
 		return errors.New("could not validate the application")
 	}
@@ -574,12 +574,12 @@ func contains(options []string, selection string) bool {
 }
 
 // TODO: update
-func validateUpdateAssessment(ctx context.Context, coursePhaseID, courseParticipationID uuid.UUID, assessment applicationDTO.PutAssessment) error {
+func (s *ApplicationService) validateUpdateAssessment(ctx context.Context, coursePhaseID, courseParticipationID uuid.UUID, assessment applicationDTO.PutAssessment) error {
 	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
 	defer cancel()
 
 	// Check if course phase is assessment phase
-	isAssessmentPhase, err := ApplicationServiceSingleton.queries.CheckIfCoursePhaseIsApplicationPhase(ctxWithTimeout, coursePhaseID)
+	isAssessmentPhase, err := s.queries.CheckIfCoursePhaseIsApplicationPhase(ctxWithTimeout, coursePhaseID)
 	if err != nil {
 		log.Error("could not validate assessment: ", err)
 		return errors.New("could not validate the assessment")
@@ -589,7 +589,7 @@ func validateUpdateAssessment(ctx context.Context, coursePhaseID, courseParticip
 	}
 
 	// Check if the course participation is valid
-	courseParticipation, err := ApplicationServiceSingleton.queries.GetCourseParticipation(ctxWithTimeout, courseParticipationID)
+	courseParticipation, err := s.queries.GetCourseParticipation(ctxWithTimeout, courseParticipationID)
 	if err != nil || courseParticipation.ID != courseParticipationID {
 		log.Error("could not validate assessment: ", err)
 		return errors.New("could not validate the assessment")

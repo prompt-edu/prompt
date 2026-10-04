@@ -1,4 +1,4 @@
-import { Page, expect } from '@playwright/test'
+import { Locator, Page, expect } from '@playwright/test'
 
 export interface ApplicantData {
   firstName: string
@@ -18,6 +18,29 @@ export class ApplyPage {
 
   async goto(phaseId: string) {
     await this.page.goto(`/apply/${phaseId}`)
+  }
+
+  // The sanitized welcome-text container: instructor HTML is rendered into it,
+  // so anything still inside it survived DOMPurify.
+  get welcomeText(): Locator {
+    return this.page.getByTestId('application-welcome-text-content')
+  }
+
+  welcomeLink(name: string): Locator {
+    return this.welcomeText.getByRole('link', { name })
+  }
+
+  async expectCourseHeading(courseName: string) {
+    await expect(this.page.getByRole('heading', { name: courseName })).toBeVisible({
+      timeout: 15_000,
+    })
+  }
+
+  async readGlobal(name: string): Promise<unknown> {
+    return this.page.evaluate(
+      (globalName) => (window as unknown as Record<string, unknown>)[globalName],
+      name,
+    )
   }
 
   async continueAsExternal() {

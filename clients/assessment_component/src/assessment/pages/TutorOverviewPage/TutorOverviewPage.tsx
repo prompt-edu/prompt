@@ -1,5 +1,8 @@
-import type { ColumnDef } from '@tanstack/react-table'
-import { ManagementPageHeader, PromptTable } from '@tumaet/prompt-ui-components'
+import {
+  ManagementPageHeader,
+  PromptTable,
+  type PromptTableColumnDef,
+} from '@tumaet/prompt-ui-components'
 import { type ReactNode, useMemo } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { AssessmentType } from '../../interfaces/assessmentType'
@@ -9,6 +12,7 @@ import { useGetAllEvaluationCompletions } from '../hooks/useGetAllEvaluationComp
 import { useGetAllEvaluations } from '../hooks/useGetAllEvaluations'
 import { useGetAllTeams } from '../hooks/useGetAllTeams'
 import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
+import { getTutorLabel } from '../hooks/useTutorLabel'
 import { getScoreLevelsFromEvaluations } from '../utils/getScoreLevelsFromEvaluations'
 
 interface TutorRow {
@@ -25,6 +29,7 @@ export const TutorOverviewPage = (): ReactNode => {
 
   const { data: teams } = useGetAllTeams()
   const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
+  const tutorLabel = getTutorLabel(coursePhaseConfig)
   const { data: evaluations } = useGetAllEvaluations()
 
   const { data: evaluationCompletions } = useGetAllEvaluationCompletions()
@@ -57,7 +62,7 @@ export const TutorOverviewPage = (): ReactNode => {
     [evaluations],
   )
 
-  const columns: ColumnDef<TutorRow>[] = useMemo(
+  const columns: PromptTableColumnDef<TutorRow>[] = useMemo(
     () => [
       {
         accessorKey: 'firstName',
@@ -77,11 +82,11 @@ export const TutorOverviewPage = (): ReactNode => {
 
   return (
     <div className='space-y-4'>
-      <ManagementPageHeader>Tutor Overview</ManagementPageHeader>
+      <ManagementPageHeader>{tutorLabel.title} Overview</ManagementPageHeader>
 
       {coursePhaseConfig?.tutorEvaluationEnabled && (
         <p className='text-sm text-muted-foreground mb-4'>
-          Click on a tutor to view their evaluation results from students.
+          Click on any {tutorLabel.text} to view their evaluation results from students.
         </p>
       )}
 
@@ -95,8 +100,8 @@ export const TutorOverviewPage = (): ReactNode => {
         <ScoreLevelDistributionDiagram
           participations={tutorParticipations}
           scoreLevels={tutorScoreLevels}
-          title='Tutor Evaluation Distribution'
-          description='Number of tutors per score level'
+          title={`${tutorLabel.title} Evaluation Distribution`}
+          description={`Number of ${tutorLabel.text} evaluations per score level`}
         />
       </div>
 

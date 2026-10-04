@@ -11,7 +11,6 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase/coursePhaseParticipation/coursePhaseParticipationDTO"
-	"github.com/prompt-edu/prompt/servers/core/coursePhase/resolution"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase/resolution/resolutionDTO"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/core/student/studentDTO"
@@ -19,15 +18,27 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type CoursePhaseParticipationService struct {
-	queries db.Queries
-	conn    *pgxpool.Pool
+// ResolutionReplacer rewrites the base URLs of course phase resolutions.
+type ResolutionReplacer interface {
+	ReplaceResolutionURLs(ctx context.Context, resolutions []resolutionDTO.Resolution) ([]resolutionDTO.Resolution, error)
 }
 
-var CoursePhaseParticipationServiceSingleton *CoursePhaseParticipationService
+type CoursePhaseParticipationService struct {
+	queries     db.Queries
+	conn        *pgxpool.Pool
+	resolutions ResolutionReplacer
+}
 
-func GetOwnCoursePhaseParticipation(ctx context.Context, coursePhaseID uuid.UUID, matriculationNumber string, universityLogin string) (coursePhaseParticipationDTO.CoursePhaseParticipationStudent, error) {
-	coursePhaseParticipation, err := CoursePhaseParticipationServiceSingleton.queries.GetCoursePhaseParticipationByUniversityLoginAndCoursePhase(ctx, db.GetCoursePhaseParticipationByUniversityLoginAndCoursePhaseParams{
+func NewCoursePhaseParticipationService(queries db.Queries, conn *pgxpool.Pool, resolutions ResolutionReplacer) *CoursePhaseParticipationService {
+	return &CoursePhaseParticipationService{
+		queries:     queries,
+		conn:        conn,
+		resolutions: resolutions,
+	}
+}
+
+func (s *CoursePhaseParticipationService) GetOwnCoursePhaseParticipation(ctx context.Context, coursePhaseID uuid.UUID, matriculationNumber string, universityLogin string) (coursePhaseParticipationDTO.CoursePhaseParticipationStudent, error) {
+	coursePhaseParticipation, err := s.queries.GetCoursePhaseParticipationByUniversityLoginAndCoursePhase(ctx, db.GetCoursePhaseParticipationByUniversityLoginAndCoursePhaseParams{
 		ToCoursePhaseID:     coursePhaseID,
 		MatriculationNumber: pgtype.Text{String: matriculationNumber, Valid: true},
 		UniversityLogin:     pgtype.Text{String: universityLogin, Valid: true},
@@ -42,13 +53,13 @@ func GetOwnCoursePhaseParticipation(ctx context.Context, coursePhaseID uuid.UUID
 		return coursePhaseParticipationDTO.CoursePhaseParticipationStudent{}, err
 	}
 
-	resolutions, err := CoursePhaseParticipationServiceSingleton.queries.GetResolutionsForCoursePhase(ctx, coursePhaseID)
+	resolutions, err := s.queries.GetResolutionsForCoursePhase(ctx, coursePhaseID)
 	if err != nil {
 		return coursePhaseParticipationDTO.CoursePhaseParticipationStudent{}, err
 	}
 
 	resolutionDTOs := resolutionDTO.GetParticipationResolutionsDTOFromDBModels(resolutions)
-	resolutionDTOs, err = resolution.ReplaceResolutionURLs(ctx, resolutionDTOs)
+	resolutionDTOs, err = s.resolutions.ReplaceResolutionURLs(ctx, resolutionDTOs)
 	if err != nil {
 		log.Error(err)
 		return coursePhaseParticipationDTO.CoursePhaseParticipationStudent{}, errors.New("failed to replace resolution URLs")
@@ -58,8 +69,8 @@ func GetOwnCoursePhaseParticipation(ctx context.Context, coursePhaseID uuid.UUID
 	return participationDTO, nil
 }
 
-func GetAllParticipationsForCoursePhase(ctx context.Context, coursePhaseID uuid.UUID) (coursePhaseParticipationDTO.CoursePhaseParticipationsWithResolutions, error) {
-	coursePhaseParticipations, err := CoursePhaseParticipationServiceSingleton.queries.GetAllCoursePhaseParticipationsForCoursePhaseIncludingPrevious(ctx, coursePhaseID)
+func (s *CoursePhaseParticipationService) GetAllParticipationsForCoursePhase(ctx context.Context, coursePhaseID uuid.UUID) (coursePhaseParticipationDTO.CoursePhaseParticipationsWithResolutions, error) {
+	coursePhaseParticipations, err := s.queries.GetAllCoursePhaseParticipationsForCoursePhaseIncludingPrevious(ctx, coursePhaseID)
 	if err != nil {
 		return coursePhaseParticipationDTO.CoursePhaseParticipationsWithResolutions{}, err
 	}
@@ -74,13 +85,13 @@ func GetAllParticipationsForCoursePhase(ctx context.Context, coursePhaseID uuid.
 	}
 
 	// Get required resolutions
-	resolutions, err := CoursePhaseParticipationServiceSingleton.queries.GetResolutionsForCoursePhase(ctx, coursePhaseID)
+	resolutions, err := s.queries.GetResolutionsForCoursePhase(ctx, coursePhaseID)
 	if err != nil {
 		return coursePhaseParticipationDTO.CoursePhaseParticipationsWithResolutions{}, err
 	}
 
 	resolutionDTOs := resolutionDTO.GetParticipationResolutionsDTOFromDBModels(resolutions)
-	resolutionDTOs, err = resolution.ReplaceResolutionURLs(ctx, resolutionDTOs)
+	resolutionDTOs, err = s.resolutions.ReplaceResolutionURLs(ctx, resolutionDTOs)
 	if err != nil {
 		log.Error(err)
 		return coursePhaseParticipationDTO.CoursePhaseParticipationsWithResolutions{}, errors.New("failed to replace resolution URLs")
@@ -92,8 +103,8 @@ func GetAllParticipationsForCoursePhase(ctx context.Context, coursePhaseID uuid.
 	}, nil
 }
 
-func GetCoursePhaseParticipation(ctx context.Context, coursePhaseID uuid.UUID, courseParticipationID uuid.UUID) (coursePhaseParticipationDTO.CoursePhaseParticipationWithResolution, error) {
-	coursePhaseParticipations, err := CoursePhaseParticipationServiceSingleton.queries.GetAllCoursePhaseParticipationsForCoursePhaseIncludingPrevious(ctx, coursePhaseID)
+func (s *CoursePhaseParticipationService) GetCoursePhaseParticipation(ctx context.Context, coursePhaseID uuid.UUID, courseParticipationID uuid.UUID) (coursePhaseParticipationDTO.CoursePhaseParticipationWithResolution, error) {
+	coursePhaseParticipations, err := s.queries.GetAllCoursePhaseParticipationsForCoursePhaseIncludingPrevious(ctx, coursePhaseID)
 	if err != nil {
 		log.Error(err)
 		return coursePhaseParticipationDTO.CoursePhaseParticipationWithResolution{}, err
@@ -117,13 +128,13 @@ func GetCoursePhaseParticipation(ctx context.Context, coursePhaseID uuid.UUID, c
 		return coursePhaseParticipationDTO.CoursePhaseParticipationWithResolution{}, err
 	}
 
-	resolutions, err := CoursePhaseParticipationServiceSingleton.queries.GetResolutionsForCoursePhase(ctx, coursePhaseID)
+	resolutions, err := s.queries.GetResolutionsForCoursePhase(ctx, coursePhaseID)
 	if err != nil {
 		return coursePhaseParticipationDTO.CoursePhaseParticipationWithResolution{}, err
 	}
 
 	resolutionDTOs := resolutionDTO.GetParticipationResolutionsDTOFromDBModels(resolutions)
-	resolutionDTOs, err = resolution.ReplaceResolutionURLs(ctx, resolutionDTOs)
+	resolutionDTOs, err = s.resolutions.ReplaceResolutionURLs(ctx, resolutionDTOs)
 	if err != nil {
 		log.Error(err)
 		return coursePhaseParticipationDTO.CoursePhaseParticipationWithResolution{}, errors.New("failed to replace resolution URLs")
@@ -135,8 +146,8 @@ func GetCoursePhaseParticipation(ctx context.Context, coursePhaseID uuid.UUID, c
 	}, nil
 }
 
-func CreateOrUpdateCoursePhaseParticipation(ctx context.Context, transactionQueries *db.Queries, newCoursePhaseParticipation coursePhaseParticipationDTO.CreateCoursePhaseParticipation) (coursePhaseParticipationDTO.GetCoursePhaseParticipation, error) {
-	queries := utils.GetQueries(transactionQueries, &CoursePhaseParticipationServiceSingleton.queries)
+func (s *CoursePhaseParticipationService) CreateOrUpdateCoursePhaseParticipation(ctx context.Context, transactionQueries *db.Queries, newCoursePhaseParticipation coursePhaseParticipationDTO.CreateCoursePhaseParticipation) (coursePhaseParticipationDTO.GetCoursePhaseParticipation, error) {
+	queries := utils.GetQueries(transactionQueries, &s.queries)
 	participation, err := newCoursePhaseParticipation.GetDBModel()
 	if err != nil {
 		log.Error(err)
@@ -152,8 +163,8 @@ func CreateOrUpdateCoursePhaseParticipation(ctx context.Context, transactionQuer
 	return coursePhaseParticipationDTO.GetCoursePhaseParticipationDTOFromDBModel(updatedParticipation)
 }
 
-func UpdateCoursePhaseParticipation(ctx context.Context, transactionQueries *db.Queries, updatedCoursePhaseParticipation coursePhaseParticipationDTO.UpdateCoursePhaseParticipation) error {
-	queries := utils.GetQueries(transactionQueries, &CoursePhaseParticipationServiceSingleton.queries)
+func (s *CoursePhaseParticipationService) UpdateCoursePhaseParticipation(ctx context.Context, transactionQueries *db.Queries, updatedCoursePhaseParticipation coursePhaseParticipationDTO.UpdateCoursePhaseParticipation) error {
+	queries := utils.GetQueries(transactionQueries, &s.queries)
 	participation, err := updatedCoursePhaseParticipation.GetDBModel()
 	if err != nil {
 		log.Error(err)
@@ -169,19 +180,19 @@ func UpdateCoursePhaseParticipation(ctx context.Context, transactionQueries *db.
 	return nil
 }
 
-func UpdateBatchCoursePhaseParticipation(ctx context.Context, createOrUpdateCoursePhaseParticipation []coursePhaseParticipationDTO.CreateCoursePhaseParticipation) ([]uuid.UUID, error) {
-	tx, err := CoursePhaseParticipationServiceSingleton.conn.Begin(ctx)
+func (s *CoursePhaseParticipationService) UpdateBatchCoursePhaseParticipation(ctx context.Context, createOrUpdateCoursePhaseParticipation []coursePhaseParticipationDTO.CreateCoursePhaseParticipation) ([]uuid.UUID, error) {
+	tx, err := s.conn.Begin(ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer sdkUtils.DeferRollback(tx, ctx)
-	qtx := CoursePhaseParticipationServiceSingleton.queries.WithTx(tx)
+	qtx := s.queries.WithTx(tx)
 
 	updatedIDs := make([]uuid.UUID, 0, len(createOrUpdateCoursePhaseParticipation))
 
 	// Replace for loop by DB batch operation in near future
 	for _, participation := range createOrUpdateCoursePhaseParticipation {
-		updatedParticipation, err := CreateOrUpdateCoursePhaseParticipation(ctx, qtx, participation)
+		updatedParticipation, err := s.CreateOrUpdateCoursePhaseParticipation(ctx, qtx, participation)
 		if err != nil {
 			log.Error(err)
 			return nil, errors.New("failed to update course phase participation")
@@ -198,8 +209,8 @@ func UpdateBatchCoursePhaseParticipation(ctx context.Context, createOrUpdateCour
 	return updatedIDs, nil
 }
 
-func CreateIfNotExistingPhaseParticipation(ctx context.Context, transactionQueries *db.Queries, CourseParticipationID uuid.UUID, coursePhaseID uuid.UUID) (coursePhaseParticipationDTO.GetCoursePhaseParticipation, error) {
-	queries := utils.GetQueries(transactionQueries, &CoursePhaseParticipationServiceSingleton.queries)
+func (s *CoursePhaseParticipationService) CreateIfNotExistingPhaseParticipation(ctx context.Context, transactionQueries *db.Queries, CourseParticipationID uuid.UUID, coursePhaseID uuid.UUID) (coursePhaseParticipationDTO.GetCoursePhaseParticipation, error) {
+	queries := utils.GetQueries(transactionQueries, &s.queries)
 	participation, err := queries.GetCoursePhaseParticipationByCourseParticipationAndCoursePhase(ctx, db.GetCoursePhaseParticipationByCourseParticipationAndCoursePhaseParams{
 		CourseParticipationID: CourseParticipationID,
 		CoursePhaseID:         coursePhaseID,
@@ -209,7 +220,7 @@ func CreateIfNotExistingPhaseParticipation(ctx context.Context, transactionQueri
 	} else if errors.Is(err, sql.ErrNoRows) {
 		// has to be created
 		passStatus := db.PassStatusNotAssessed
-		return CreateOrUpdateCoursePhaseParticipation(ctx, &queries, coursePhaseParticipationDTO.CreateCoursePhaseParticipation{
+		return s.CreateOrUpdateCoursePhaseParticipation(ctx, &queries, coursePhaseParticipationDTO.CreateCoursePhaseParticipation{
 			CourseParticipationID: CourseParticipationID,
 			CoursePhaseID:         coursePhaseID,
 			PassStatus:            &passStatus,
@@ -220,9 +231,9 @@ func CreateIfNotExistingPhaseParticipation(ctx context.Context, transactionQueri
 	}
 }
 
-func BatchUpdatePassStatus(ctx context.Context, coursePhaseID uuid.UUID, courseParticipationIDs []uuid.UUID, passStatus db.PassStatus) ([]uuid.UUID, error) {
+func (s *CoursePhaseParticipationService) BatchUpdatePassStatus(ctx context.Context, coursePhaseID uuid.UUID, courseParticipationIDs []uuid.UUID, passStatus db.PassStatus) ([]uuid.UUID, error) {
 	// passing the coursePhaseID to query ensures that only the coursePhases that are in the course are updated
-	changedParticipations, err := CoursePhaseParticipationServiceSingleton.queries.UpdateCoursePhasePassStatus(ctx, db.UpdateCoursePhasePassStatusParams{
+	changedParticipations, err := s.queries.UpdateCoursePhasePassStatus(ctx, db.UpdateCoursePhasePassStatusParams{
 		CourseParticipationID: courseParticipationIDs,
 		CoursePhaseID:         coursePhaseID,
 		PassStatus:            passStatus,
@@ -235,8 +246,8 @@ func BatchUpdatePassStatus(ctx context.Context, coursePhaseID uuid.UUID, courseP
 	return changedParticipations, nil
 }
 
-func GetStudentsOfCoursePhase(ctx context.Context, coursePhaseID uuid.UUID) ([]studentDTO.Student, error) {
-	students, err := CoursePhaseParticipationServiceSingleton.queries.GetStudentsOfCoursePhase(ctx, coursePhaseID)
+func (s *CoursePhaseParticipationService) GetStudentsOfCoursePhase(ctx context.Context, coursePhaseID uuid.UUID) ([]studentDTO.Student, error) {
+	students, err := s.queries.GetStudentsOfCoursePhase(ctx, coursePhaseID)
 	if err != nil {
 		log.Error(err)
 		return nil, errors.New("failed to get participations")

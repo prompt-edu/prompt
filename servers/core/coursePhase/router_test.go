@@ -27,7 +27,7 @@ type RouterTestSuite struct {
 	router             *gin.Engine
 	ctx                context.Context
 	cleanup            func()
-	coursePhaseService CoursePhaseService
+	coursePhaseService *CoursePhaseService
 }
 
 func (suite *RouterTestSuite) SetupSuite() {
@@ -40,28 +40,23 @@ func (suite *RouterTestSuite) SetupSuite() {
 	}
 
 	suite.cleanup = cleanup
-	suite.coursePhaseService = CoursePhaseService{
-		queries: *testDB.Queries,
-		conn:    testDB.Conn,
-	}
-	CoursePhaseServiceSingleton = &suite.coursePhaseService
-	resolution.InitResolutionModule("localhost:8080")
+	suite.coursePhaseService = NewCoursePhaseService(*testDB.Queries, testDB.Conn, resolution.NewResolutionService("localhost:8080"))
 
-	suite.router = setupRouter()
+	suite.router = setupRouter(suite.coursePhaseService)
 }
 
 func (suite *RouterTestSuite) TearDownSuite() {
 	suite.cleanup()
 }
 
-func setupRouter() *gin.Engine {
+func setupRouter(service *CoursePhaseService) *gin.Engine {
 	router := gin.Default()
 	api := router.Group("/api")
 	authMiddleware := func() gin.HandlerFunc {
 		return sdkTestUtils.MockAuthMiddleware([]string{"PROMPT_Admin", "iPraktikum-ios24245-Lecturer"})
 	}
 	permissionIDMiddleware := sdkTestUtils.MockPermissionMiddleware
-	setupCoursePhaseRouter(api, authMiddleware, permissionIDMiddleware, permissionIDMiddleware)
+	setupCoursePhaseRouter(api, service, authMiddleware, permissionIDMiddleware, permissionIDMiddleware)
 	return router
 }
 

@@ -144,6 +144,23 @@ You have three options for releasing certificates:
 Use the **Test Certificate** button before setting a release date to ensure your template works correctly.
 :::
 
+### Student Download Page Text
+
+The **Student Download Page Text** card lets you write an optional message that students see on their
+certificate page, above the certificate status. Use it for anything course-specific — congratulations,
+how to add the certificate to a profile, who to contact with questions, or why the certificate is not
+available yet.
+
+- The message is shown in every state, including before you have uploaded a template and before the
+  release date has passed, so it is a good place to explain a wait.
+- Leaving the editor empty shows no extra message at all.
+
+### Copying a Course
+
+When you copy a course, the certificate template and the student download page text are copied into
+the new certificate phase. The release date and the download records are not, so the copied
+certificates stay unreleased until you set a release date.
+
 ---
 
 ## For Students
@@ -158,7 +175,8 @@ Use the **Test Certificate** button before setting a release date to ensure your
 ### Certificate Availability
 
 - Certificates are available only after the instructor has released them (either by setting a release date that has passed, or by releasing immediately).
-- If certificates are not yet available, you will see a message indicating when they will be released.
+- If certificates are not yet available, you will see when they will be released, or that your instructor has not released them yet.
+- Your instructor may also add their own message to the page with further information.
 
 :::note
 If you encounter any issues downloading your certificate, contact your course instructor.

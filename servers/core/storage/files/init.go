@@ -11,8 +11,9 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// Init initializes the application documents file storage module.
-func Init(queries db.Queries, conn *pgxpool.Pool) error {
+// NewStorageServiceFromEnv builds the application documents file storage service from the
+// S3 environment configuration.
+func NewStorageServiceFromEnv(queries db.Queries, conn *pgxpool.Pool) (*StorageService, error) {
 	maxFileSizeMB := int64(50) // Default 50MB
 
 	allowedTypesStr := sdkUtils.GetEnv("ALLOWED_FILE_TYPES", "")
@@ -42,12 +43,12 @@ func Init(queries db.Queries, conn *pgxpool.Pool) error {
 			secretKey = "admin123"
 		}
 	} else if accessKey == "" || secretKey == "" {
-		return fmt.Errorf("missing S3 credentials for non-local endpoint: set S3_ACCESS_KEY and S3_SECRET_KEY")
+		return nil, fmt.Errorf("missing S3 credentials for non-local endpoint: set S3_ACCESS_KEY and S3_SECRET_KEY")
 	}
 
 	adapter, err := storage.NewS3Adapter(bucket, region, endpoint, publicEndpoint, accessKey, secretKey, forcePathStyle)
 	if err != nil {
-		return fmt.Errorf("failed to create S3 adapter: %w", err)
+		return nil, fmt.Errorf("failed to create S3 adapter: %w", err)
 	}
 
 	log.WithFields(log.Fields{
@@ -57,12 +58,12 @@ func Init(queries db.Queries, conn *pgxpool.Pool) error {
 		"forcePathStyle": forcePathStyle,
 	}).Info("Initialized application documents S3 adapter")
 
-	StorageServiceSingleton = NewStorageService(queries, conn, adapter, maxFileSizeMB, allowedTypes)
+	service := NewStorageService(queries, conn, adapter, maxFileSizeMB, allowedTypes)
 
 	log.WithFields(log.Fields{
 		"maxFileSizeMB": maxFileSizeMB,
 		"allowedTypes":  allowedTypes,
 	}).Info("Application documents storage service initialized")
 
-	return nil
+	return service, nil
 }

@@ -10,17 +10,22 @@ import (
 )
 
 func TestGetTimeframeDTOFromDBModel(t *testing.T) {
-	start := time.Now()
+	berlin, err := time.LoadLocation("Europe/Berlin")
+	require.NoError(t, err)
+
+	start := time.Date(2026, 1, 15, 12, 34, 56, 123456000, berlin)
 	end := start.Add(24 * time.Hour)
 
 	row := db.GetTimeframeRow{
-		Starttime: pgtype.Timestamp{Time: start, Valid: true},
-		Endtime:   pgtype.Timestamp{Time: end, Valid: true},
+		Starttime: pgtype.Timestamptz{Time: start, Valid: true},
+		Endtime:   pgtype.Timestamptz{Time: end, Valid: true},
 	}
 
 	dto := GetTimeframeDTOFromDBModel(row)
 
 	require.True(t, dto.TimeframeSet)
-	require.Equal(t, start, dto.StartTime)
-	require.Equal(t, end, dto.EndTime)
+	require.True(t, start.Equal(dto.StartTime))
+	require.True(t, end.Equal(dto.EndTime))
+	require.Equal(t, time.UTC, dto.StartTime.Location())
+	require.Equal(t, time.UTC, dto.EndTime.Location())
 }

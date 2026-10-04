@@ -1,4 +1,4 @@
-import { sendStatusMail } from '@core/network/mutations/sendStatusMail'
+import { coreApi } from '@core/network/api'
 import { type UseMutationResult, useMutation } from '@tanstack/react-query'
 import type { MailingReport, PassStatus } from '@tumaet/prompt-shared-state'
 import { useToast } from '@tumaet/prompt-ui-components'
@@ -19,7 +19,7 @@ export const useSendStatusMail = (): UseMutationResult<
 
   return useMutation({
     mutationFn: ({ status, recipientCourseParticipationIDs }: SendStatusMailVariables) =>
-      sendStatusMail(phaseId ?? 'undefined', {
+      coreApi.mailing.sendStatusMail(phaseId ?? 'undefined', {
         statusMailToBeSend: status,
         recipientCourseParticipationIDs,
       }),

@@ -18,7 +18,7 @@ type CourseParticipationTestSuite struct {
 	suite.Suite
 	ctx                        context.Context
 	cleanup                    func()
-	courseParticipationService CourseParticipationService
+	courseParticipationService *CourseParticipationService
 }
 
 func (suite *CourseParticipationTestSuite) SetupSuite() {
@@ -31,11 +31,7 @@ func (suite *CourseParticipationTestSuite) SetupSuite() {
 	}
 
 	suite.cleanup = cleanup
-	suite.courseParticipationService = CourseParticipationService{
-		queries: *testDB.Queries,
-		conn:    testDB.Conn,
-	}
-	CourseParticipationServiceSingleton = &suite.courseParticipationService
+	suite.courseParticipationService = NewCourseParticipationService(*testDB.Queries)
 }
 
 func (suite *CourseParticipationTestSuite) TearDownSuite() {
@@ -44,7 +40,7 @@ func (suite *CourseParticipationTestSuite) TearDownSuite() {
 
 func (suite *CourseParticipationTestSuite) TestGetAllCourseParticipationsForCourse() {
 	courseID := uuid.MustParse("3f42d322-e5bf-4faa-b576-51f2cab14c2e")
-	participations, err := GetAllCourseParticipationsForCourse(suite.ctx, courseID)
+	participations, err := suite.courseParticipationService.GetAllCourseParticipationsForCourse(suite.ctx, courseID)
 
 	assert.NoError(suite.T(), err)
 	assert.Greater(suite.T(), len(participations), 0, "Expected participations for the course")
@@ -63,7 +59,7 @@ func (suite *CourseParticipationTestSuite) TestGetAllCourseParticipationsForCour
 
 func (suite *CourseParticipationTestSuite) TestGetAllCourseParticipationsForStudent() {
 	studentID := uuid.MustParse("7dc1c4e8-4255-4874-80a0-0c12b958744b")
-	participations, err := GetAllCourseParticipationsForStudent(suite.ctx, studentID)
+	participations, err := suite.courseParticipationService.GetAllCourseParticipationsForStudent(suite.ctx, studentID)
 
 	assert.NoError(suite.T(), err)
 	assert.Greater(suite.T(), len(participations), 0, "Expected participations for the student")
@@ -85,7 +81,7 @@ func (suite *CourseParticipationTestSuite) TestCreateCourseParticipation() {
 		StudentID: uuid.MustParse("3d1f3b00-87f3-433b-a713-178c4050411a"),
 	}
 
-	createdParticipation, err := CreateCourseParticipation(suite.ctx, nil, newParticipation)
+	createdParticipation, err := suite.courseParticipationService.CreateCourseParticipation(suite.ctx, nil, newParticipation)
 	assert.NoError(suite.T(), err)
 
 	// Verify the created participation

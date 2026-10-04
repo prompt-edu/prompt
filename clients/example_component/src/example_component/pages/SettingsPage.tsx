@@ -1,6 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
-import { Card, CardContent, ErrorPage, ManagementPageHeader } from '@tumaet/prompt-ui-components'
-import { Loader2 } from 'lucide-react'
+import {
+  Card,
+  CardContent,
+  ErrorPage,
+  LoadingPage,
+  ManagementPageHeader,
+} from '@tumaet/prompt-ui-components'
 import { useParams } from 'react-router-dom'
 import { getExampleInfo } from '../network/queries/getExampleInfo'
 
@@ -21,12 +26,7 @@ export const SettingsPage = () => {
     return (
       <ErrorPage onRetry={refetchExampleInfo} description='Could not fetch example information' />
     )
-  if (isExampleInfoPending)
-    return (
-      <div className='flex justify-center items-center h-64'>
-        <Loader2 className='h-12 w-12 animate-spin text-primary' />
-      </div>
-    )
+  if (isExampleInfoPending) return <LoadingPage />
 
   return (
     <div>

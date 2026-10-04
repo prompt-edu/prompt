@@ -6,9 +6,11 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/prompt-edu/prompt-sdk/promptTypes"
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
+	"github.com/prompt-edu/prompt/servers/assessment/assessmentSchemas"
 	"github.com/prompt-edu/prompt/servers/assessment/assessmentType"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig/coursePhaseConfigDTO"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
@@ -40,7 +42,7 @@ type ReminderRecipientsServiceTestSuite struct {
 	testPhaseID             uuid.UUID
 	oldGetParticipationsFn  func(context.Context, string, uuid.UUID) ([]coursePhaseConfigDTO.AssessmentParticipationWithStudent, error)
 	oldGetTeamsFn           func(context.Context, string, uuid.UUID) ([]promptTypes.Team, error)
-	coursePhaseConfigServer CoursePhaseConfigService
+	coursePhaseConfigServer *CoursePhaseConfigService
 }
 
 func (suite *ReminderRecipientsServiceTestSuite) SetupSuite() {
@@ -66,11 +68,11 @@ func (suite *ReminderRecipientsServiceTestSuite) SetupSuite() {
 	}
 	suite.cleanup = cleanup
 
-	suite.coursePhaseConfigServer = CoursePhaseConfigService{
-		queries: *testDB.Queries,
-		conn:    testDB.Conn,
-	}
-	CoursePhaseConfigSingleton = &suite.coursePhaseConfigServer
+	suite.coursePhaseConfigServer = NewCoursePhaseConfigService(
+		*testDB.Queries,
+		testDB.Conn,
+		assessmentSchemas.NewAssessmentSchemaService(*testDB.Queries, testDB.Conn),
+	)
 
 	suite.oldGetParticipationsFn = getParticipationsForCoursePhaseFn
 	suite.oldGetTeamsFn = getTeamsForCoursePhaseFn
@@ -191,7 +193,7 @@ func (suite *ReminderRecipientsServiceTestSuite) TestGetEvaluationReminderRecipi
 		{targetID: authorThrID, authorID: authorThrID, tpe: assessmentType.Self, done: true},
 	})
 
-	response, err := GetEvaluationReminderRecipients(
+	response, err := suite.coursePhaseConfigServer.GetEvaluationReminderRecipients(
 		suite.ctx,
 		"Bearer test",
 		suite.testPhaseID,
@@ -210,7 +212,7 @@ func (suite *ReminderRecipientsServiceTestSuite) TestGetEvaluationReminderRecipi
 		{targetID: authorTwoID, authorID: authorOneID, tpe: assessmentType.Peer, done: true},
 	})
 
-	response, err := GetEvaluationReminderRecipients(
+	response, err := suite.coursePhaseConfigServer.GetEvaluationReminderRecipients(
 		suite.ctx,
 		"Bearer test",
 		suite.testPhaseID,
@@ -229,7 +231,7 @@ func (suite *ReminderRecipientsServiceTestSuite) TestGetEvaluationReminderRecipi
 		{targetID: tutorOneID, authorID: authorOneID, tpe: assessmentType.Tutor, done: true},
 	})
 
-	response, err := GetEvaluationReminderRecipients(
+	response, err := suite.coursePhaseConfigServer.GetEvaluationReminderRecipients(
 		suite.ctx,
 		"Bearer test",
 		suite.testPhaseID,
@@ -253,7 +255,7 @@ func (suite *ReminderRecipientsServiceTestSuite) TestGetEvaluationReminderRecipi
 	)
 	suite.Require().NoError(err)
 
-	response, err := GetEvaluationReminderRecipients(
+	response, err := suite.coursePhaseConfigServer.GetEvaluationReminderRecipients(
 		suite.ctx,
 		"Bearer test",
 		suite.testPhaseID,
@@ -280,7 +282,7 @@ func (suite *ReminderRecipientsServiceTestSuite) TestGetEvaluationReminderRecipi
 	)
 	suite.Require().NoError(err)
 
-	pastResponse, err := GetEvaluationReminderRecipients(
+	pastResponse, err := suite.coursePhaseConfigServer.GetEvaluationReminderRecipients(
 		suite.ctx,
 		"Bearer test",
 		suite.testPhaseID,
@@ -300,7 +302,7 @@ func (suite *ReminderRecipientsServiceTestSuite) TestGetEvaluationReminderRecipi
 	)
 	suite.Require().NoError(err)
 
-	futureResponse, err := GetEvaluationReminderRecipients(
+	futureResponse, err := suite.coursePhaseConfigServer.GetEvaluationReminderRecipients(
 		suite.ctx,
 		"Bearer test",
 		suite.testPhaseID,
@@ -324,7 +326,7 @@ func (suite *ReminderRecipientsServiceTestSuite) TestGetEvaluationReminderRecipi
 	)
 	suite.Require().NoError(err)
 
-	response, err := GetEvaluationReminderRecipients(
+	response, err := suite.coursePhaseConfigServer.GetEvaluationReminderRecipients(
 		suite.ctx,
 		"Bearer test",
 		suite.testPhaseID,
@@ -337,4 +339,10 @@ func (suite *ReminderRecipientsServiceTestSuite) TestGetEvaluationReminderRecipi
 
 func TestReminderRecipientsServiceTestSuite(t *testing.T) {
 	suite.Run(t, new(ReminderRecipientsServiceTestSuite))
+}
+
+func TestGetEvaluationTypeLabelUsesTutorDisplayName(t *testing.T) {
+	assert.Equal(t, "Tutor Evaluation", getEvaluationTypeLabel(assessmentType.Tutor, pgtype.Text{}))
+	assert.Equal(t, "Coach Evaluation", getEvaluationTypeLabel(assessmentType.Tutor, pgtype.Text{String: "Coach", Valid: true}))
+	assert.Equal(t, "Peer Evaluation", getEvaluationTypeLabel(assessmentType.Peer, pgtype.Text{String: "Coach", Valid: true}))
 }

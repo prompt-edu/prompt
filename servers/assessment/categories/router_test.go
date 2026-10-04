@@ -16,6 +16,7 @@ import (
 	"github.com/prompt-edu/prompt/servers/assessment/categories/categoryDTO"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/assessment/schemaModification"
 	"github.com/prompt-edu/prompt/servers/assessment/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -27,7 +28,7 @@ type CategoryRouterTestSuite struct {
 	suiteCtx        context.Context
 	cleanup         func()
 	mockCoreCleanup func()
-	categoryService CategoryService
+	categoryService *CategoryService
 }
 
 func (suite *CategoryRouterTestSuite) SetupTest() {
@@ -42,23 +43,16 @@ func (suite *CategoryRouterTestSuite) SetupTest() {
 	_, mockCleanup := testutils.SetupMockCoreService()
 	suite.mockCoreCleanup = mockCleanup
 
-	suite.categoryService = CategoryService{
-		queries: *testDB.Queries,
-		conn:    testDB.Conn,
-	}
-	CategoryServiceSingleton = &suite.categoryService
-
-	// Initialize service modules needed for schema copy logic
-	group := gin.New().Group("")
-	assessmentSchemas.InitAssessmentSchemaModule(group, *testDB.Queries, testDB.Conn)
-	coursePhaseConfig.InitCoursePhaseConfigModule(group, *testDB.Queries, testDB.Conn)
+	schemaService := assessmentSchemas.NewAssessmentSchemaService(*testDB.Queries, testDB.Conn)
+	coursePhaseConfigService := coursePhaseConfig.NewCoursePhaseConfigService(*testDB.Queries, testDB.Conn, schemaService)
+	suite.categoryService = NewCategoryService(*testDB.Queries, testDB.Conn, schemaService, schemaModification.NewSchemaModificationService(schemaService, coursePhaseConfigService, *testDB.Queries), coursePhaseConfigService)
 
 	suite.router = gin.Default()
 	api := suite.router.Group("/api/course_phase/:coursePhaseID")
 	testMiddleWare := func(allowedRoles ...string) gin.HandlerFunc {
 		return sdkTestUtils.MockAuthMiddlewareWithEmail(allowedRoles, "existingstudent@example.com", "03711111", "ab12cde")
 	}
-	setupCategoryRouter(api, testMiddleWare)
+	RegisterRoutes(api, suite.categoryService, testMiddleWare)
 }
 
 func (suite *CategoryRouterTestSuite) TearDownTest() {
@@ -151,7 +145,7 @@ func (suite *CategoryRouterTestSuite) TestDeleteCategory() {
 		Weight:             1,
 		AssessmentSchemaID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440000"), // From test data
 	}
-	_, err := CreateCategory(suite.suiteCtx, coursePhaseID, createReq)
+	_, err := suite.categoryService.CreateCategory(suite.suiteCtx, coursePhaseID, createReq)
 	assert.NoError(suite.T(), err)
 
 	// find created

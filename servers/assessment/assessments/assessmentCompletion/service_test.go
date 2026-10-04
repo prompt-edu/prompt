@@ -12,16 +12,18 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
+	"github.com/prompt-edu/prompt/servers/assessment/assessmentSchemas"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentCompletion/assessmentCompletionDTO"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/assessment/utils"
 )
 
 type AssessmentCompletionServiceTestSuite struct {
 	suite.Suite
 	suiteCtx context.Context
 	cleanup  func()
-	service  AssessmentCompletionService
+	service  *AssessmentCompletionService
 }
 
 func (suite *AssessmentCompletionServiceTestSuite) SetupSuite() {
@@ -32,13 +34,11 @@ func (suite *AssessmentCompletionServiceTestSuite) SetupSuite() {
 	}
 
 	suite.cleanup = cleanup
-	suite.service = AssessmentCompletionService{
-		queries: *testDB.Queries,
-		conn:    testDB.Conn,
-	}
-	AssessmentCompletionServiceSingleton = &suite.service
-
-	coursePhaseConfig.CoursePhaseConfigSingleton = coursePhaseConfig.NewCoursePhaseConfigService(*testDB.Queries, testDB.Conn)
+	suite.service = NewAssessmentCompletionService(
+		*testDB.Queries,
+		testDB.Conn,
+		coursePhaseConfig.NewCoursePhaseConfigService(*testDB.Queries, testDB.Conn, assessmentSchemas.NewAssessmentSchemaService(*testDB.Queries, testDB.Conn)),
+	)
 }
 
 func (suite *AssessmentCompletionServiceTestSuite) TearDownSuite() {
@@ -50,7 +50,7 @@ func (suite *AssessmentCompletionServiceTestSuite) TearDownSuite() {
 func (suite *AssessmentCompletionServiceTestSuite) TestCheckAssessmentCompletionExists() {
 	phaseID := uuid.MustParse("24461b6b-3c3a-4bc6-ba42-69eeb1514da9")
 	partID := uuid.MustParse("319f28d4-8877-400e-9450-d49077aae7fe")
-	exists, err := CheckAssessmentCompletionExists(suite.suiteCtx, partID, phaseID)
+	exists, err := suite.service.CheckAssessmentCompletionExists(suite.suiteCtx, partID, phaseID)
 	assert.NoError(suite.T(), err)
 	assert.False(suite.T(), exists, "Expected no assessment completion initially")
 }
@@ -58,7 +58,7 @@ func (suite *AssessmentCompletionServiceTestSuite) TestCheckAssessmentCompletion
 func (suite *AssessmentCompletionServiceTestSuite) TestCountRemainingAssessmentsForStudent() {
 	phaseID := uuid.MustParse("24461b6b-3c3a-4bc6-ba42-69eeb1514da9")
 	partID := uuid.MustParse("319f28d4-8877-400e-9450-d49077aae7fe")
-	remaining, err := CountRemainingAssessmentsForStudent(suite.suiteCtx, partID, phaseID)
+	remaining, err := suite.service.CountRemainingAssessmentsForStudent(suite.suiteCtx, partID, phaseID)
 	assert.NoError(suite.T(), err)
 	assert.Greater(suite.T(), remaining.RemainingAssessments, int32(0), "Expected remaining assessments > 0")
 }
@@ -66,13 +66,13 @@ func (suite *AssessmentCompletionServiceTestSuite) TestCountRemainingAssessments
 func (suite *AssessmentCompletionServiceTestSuite) TestUnmarkAssessmentAsCompletedNonExisting() {
 	phaseID := uuid.MustParse("4179d58a-d00d-4fa7-94a5-397bc69fab02")
 	partID := uuid.New()
-	err := UnmarkAssessmentAsCompleted(suite.suiteCtx, partID, phaseID)
+	err := suite.service.UnmarkAssessmentAsCompleted(suite.suiteCtx, partID, phaseID)
 	assert.NoError(suite.T(), err, "Unmarking non-existent completion should not error")
 }
 
 func (suite *AssessmentCompletionServiceTestSuite) TestListAssessmentCompletionsByCoursePhase() {
 	phaseID := uuid.MustParse("319f28d4-8877-400e-9450-d49077aae7fe")
-	completions, err := ListAssessmentCompletionsByCoursePhase(suite.suiteCtx, phaseID)
+	completions, err := suite.service.ListAssessmentCompletionsByCoursePhase(suite.suiteCtx, phaseID)
 	assert.NoError(suite.T(), err)
 	assert.Empty(suite.T(), completions, "Expected no completions initially")
 }
@@ -80,7 +80,7 @@ func (suite *AssessmentCompletionServiceTestSuite) TestListAssessmentCompletions
 func (suite *AssessmentCompletionServiceTestSuite) TestGetAssessmentCompletionNotFound() {
 	phaseID := uuid.MustParse("24461b6b-3c3a-4bc6-ba42-69eeb1514da9")
 	partID := uuid.New()
-	_, err := GetAssessmentCompletion(suite.suiteCtx, partID, phaseID)
+	_, err := suite.service.GetAssessmentCompletion(suite.suiteCtx, partID, phaseID)
 	assert.Error(suite.T(), err, "Expected error for non-existent completion")
 }
 
@@ -100,16 +100,16 @@ func (suite *AssessmentCompletionServiceTestSuite) TestCreateOrUpdateAssessmentC
 	}
 
 	// Test creation
-	err := CreateOrUpdateAssessmentCompletion(suite.suiteCtx, completionDTO)
+	err := suite.service.CreateOrUpdateAssessmentCompletion(suite.suiteCtx, completionDTO)
 	assert.NoError(suite.T(), err, "Expected no error while creating assessment completion")
 
 	// Verify creation - check existence
-	exists, err := CheckAssessmentCompletionExists(suite.suiteCtx, partID, phaseID)
+	exists, err := suite.service.CheckAssessmentCompletionExists(suite.suiteCtx, partID, phaseID)
 	assert.NoError(suite.T(), err)
 	assert.True(suite.T(), exists, "Expected assessment completion to exist after creation")
 
 	// Get the created completion and verify fields
-	completion, err := GetAssessmentCompletion(suite.suiteCtx, partID, phaseID)
+	completion, err := suite.service.GetAssessmentCompletion(suite.suiteCtx, partID, phaseID)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), phaseID, completion.CoursePhaseID)
 	assert.Equal(suite.T(), partID, completion.CourseParticipationID)
@@ -128,11 +128,11 @@ func (suite *AssessmentCompletionServiceTestSuite) TestCreateOrUpdateAssessmentC
 	completionDTO.GradeSuggestion = 2.0
 	completionDTO.Completed = false // Keep it false to allow updates
 
-	err = CreateOrUpdateAssessmentCompletion(suite.suiteCtx, completionDTO)
+	err = suite.service.CreateOrUpdateAssessmentCompletion(suite.suiteCtx, completionDTO)
 	assert.NoError(suite.T(), err, "Expected no error while updating assessment completion")
 
 	// Verify update
-	updatedCompletion, err := GetAssessmentCompletion(suite.suiteCtx, partID, phaseID)
+	updatedCompletion, err := suite.service.GetAssessmentCompletion(suite.suiteCtx, partID, phaseID)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), "Updated test comment", updatedCompletion.Comment)
 	assert.Equal(suite.T(), "Updated Author", updatedCompletion.Author)
@@ -149,7 +149,7 @@ func (suite *AssessmentCompletionServiceTestSuite) TestCreateOrUpdateAssessmentC
 
 	for _, grade := range []float64{-3.0, 0.0, 0.9, 5.1, 9.9} {
 		partID := uuid.New()
-		err := CreateOrUpdateAssessmentCompletion(suite.suiteCtx, assessmentCompletionDTO.AssessmentCompletion{
+		err := suite.service.CreateOrUpdateAssessmentCompletion(suite.suiteCtx, assessmentCompletionDTO.AssessmentCompletion{
 			CourseParticipationID: partID,
 			CoursePhaseID:         phaseID,
 			CompletedAt:           pgtype.Timestamptz{Time: time.Now(), Valid: true},
@@ -160,7 +160,7 @@ func (suite *AssessmentCompletionServiceTestSuite) TestCreateOrUpdateAssessmentC
 		})
 		assert.ErrorIs(suite.T(), err, ErrInvalidGradeSuggestion, "grade %.1f should be rejected", grade)
 
-		exists, err := CheckAssessmentCompletionExists(suite.suiteCtx, partID, phaseID)
+		exists, err := suite.service.CheckAssessmentCompletionExists(suite.suiteCtx, partID, phaseID)
 		assert.NoError(suite.T(), err)
 		assert.False(suite.T(), exists, "no completion should be stored for out-of-range grade %.1f", grade)
 	}
@@ -181,25 +181,25 @@ func (suite *AssessmentCompletionServiceTestSuite) TestDeleteAssessmentCompletio
 		Completed:             false,
 	}
 
-	err := CreateOrUpdateAssessmentCompletion(suite.suiteCtx, completionDTO)
+	err := suite.service.CreateOrUpdateAssessmentCompletion(suite.suiteCtx, completionDTO)
 	assert.NoError(suite.T(), err)
 
 	// Verify it exists
-	exists, err := CheckAssessmentCompletionExists(suite.suiteCtx, partID, phaseID)
+	exists, err := suite.service.CheckAssessmentCompletionExists(suite.suiteCtx, partID, phaseID)
 	assert.NoError(suite.T(), err)
 	assert.True(suite.T(), exists, "Expected assessment completion to exist before deletion")
 
 	// Test deletion
-	err = DeleteAssessmentCompletion(suite.suiteCtx, partID, phaseID)
+	err = suite.service.DeleteAssessmentCompletion(suite.suiteCtx, partID, phaseID)
 	assert.NoError(suite.T(), err, "Expected no error while deleting assessment completion")
 
 	// Verify deletion
-	exists, err = CheckAssessmentCompletionExists(suite.suiteCtx, partID, phaseID)
+	exists, err = suite.service.CheckAssessmentCompletionExists(suite.suiteCtx, partID, phaseID)
 	assert.NoError(suite.T(), err)
 	assert.False(suite.T(), exists, "Expected assessment completion to be deleted")
 
 	// Test deleting non-existent completion (should not error)
-	err = DeleteAssessmentCompletion(suite.suiteCtx, uuid.New(), phaseID)
+	err = suite.service.DeleteAssessmentCompletion(suite.suiteCtx, uuid.New(), phaseID)
 	assert.NoError(suite.T(), err, "Expected no error when deleting non-existent completion")
 }
 
@@ -218,7 +218,7 @@ func (suite *AssessmentCompletionServiceTestSuite) TestCreateOrUpdateAssessmentC
 
 	// This might not fail since nil UUIDs are technically valid
 	// The test expectation might be wrong - let's see what actually happens
-	err := CreateOrUpdateAssessmentCompletion(suite.suiteCtx, completionDTO)
+	err := suite.service.CreateOrUpdateAssessmentCompletion(suite.suiteCtx, completionDTO)
 	// Since nil UUIDs might be valid, we should not expect an error here
 	// The database constraints would determine if this fails
 	// If this consistently doesn't error, the test expectation is wrong
@@ -233,7 +233,7 @@ func (suite *AssessmentCompletionServiceTestSuite) TestCreateOrUpdateAssessmentC
 func (suite *AssessmentCompletionServiceTestSuite) TestGetAllGrades() {
 	phaseID := uuid.MustParse("24461b6b-3c3a-4bc6-ba42-69eeb1514da9")
 
-	grades, err := GetAllGrades(suite.suiteCtx, phaseID)
+	grades, err := suite.service.GetAllGrades(suite.suiteCtx, phaseID)
 
 	// Function should either succeed with grades or fail with error
 	if err != nil {
@@ -259,7 +259,7 @@ func (suite *AssessmentCompletionServiceTestSuite) TestGetAllGradesWithInvalidPh
 	// Test with a non-existent phase ID
 	invalidPhaseID := uuid.New()
 
-	grades, err := GetAllGrades(suite.suiteCtx, invalidPhaseID)
+	grades, err := suite.service.GetAllGrades(suite.suiteCtx, invalidPhaseID)
 
 	// Function should either succeed with empty grades or fail
 	if err != nil {
@@ -278,7 +278,7 @@ func (suite *AssessmentCompletionServiceTestSuite) TestGetStudentGrade() {
 	phaseID := uuid.MustParse("24461b6b-3c3a-4bc6-ba42-69eeb1514da9")
 	participationID := uuid.MustParse("ca42e447-60f9-4fe0-b297-2dae3f924fd7")
 
-	grade, err := GetStudentGrade(suite.suiteCtx, participationID, phaseID)
+	grade, err := suite.service.GetStudentGrade(suite.suiteCtx, participationID, phaseID)
 	assert.NoError(suite.T(), err)
 	assert.GreaterOrEqual(suite.T(), grade, 0.0)
 }
@@ -288,7 +288,7 @@ func (suite *AssessmentCompletionServiceTestSuite) TestGetStudentGradeNotFound()
 	// Use a non-existent participation ID
 	nonExistentParticipationID := uuid.New()
 
-	grade, err := GetStudentGrade(suite.suiteCtx, nonExistentParticipationID, phaseID)
+	grade, err := suite.service.GetStudentGrade(suite.suiteCtx, nonExistentParticipationID, phaseID)
 	assert.NoError(suite.T(), err)
 	// Should return 0 when no grade exists
 	assert.Equal(suite.T(), 0.0, grade)
@@ -298,7 +298,7 @@ func (suite *AssessmentCompletionServiceTestSuite) TestGetStudentGradeWithInvali
 	invalidPhaseID := uuid.New()
 	participationID := uuid.MustParse("ca42e447-60f9-4fe0-b297-2dae3f924fd7")
 
-	grade, err := GetStudentGrade(suite.suiteCtx, participationID, invalidPhaseID)
+	grade, err := suite.service.GetStudentGrade(suite.suiteCtx, participationID, invalidPhaseID)
 	assert.NoError(suite.T(), err)
 	// Should return 0 when no grade exists for invalid phase
 	assert.Equal(suite.T(), 0.0, grade)
@@ -308,10 +308,124 @@ func (suite *AssessmentCompletionServiceTestSuite) TestGetStudentGradeWithInvali
 	phaseID := uuid.MustParse("24461b6b-3c3a-4bc6-ba42-69eeb1514da9")
 	invalidParticipationID := uuid.New()
 
-	grade, err := GetStudentGrade(suite.suiteCtx, invalidParticipationID, phaseID)
+	grade, err := suite.service.GetStudentGrade(suite.suiteCtx, invalidParticipationID, phaseID)
 	assert.NoError(suite.T(), err)
 	// Should return 0 when no grade exists for invalid participation
 	assert.Equal(suite.T(), 0.0, grade)
+}
+
+// openPhaseID has started and its deadline lies in the future, so completions can be toggled.
+var openPhaseID = uuid.MustParse("4179d58a-d00d-4fa7-94a5-397bc69fab02")
+
+func (suite *AssessmentCompletionServiceTestSuite) seedCompletion(phaseID, partID uuid.UUID, completed bool) {
+	err := suite.service.queries.CreateOrUpdateAssessmentCompletion(suite.suiteCtx, db.CreateOrUpdateAssessmentCompletionParams{
+		CourseParticipationID: partID,
+		CoursePhaseID:         phaseID,
+		CompletedAt:           pgtype.Timestamptz{Time: time.Now(), Valid: true},
+		Author:                "Seed Author",
+		GradeSuggestion:       utils.MapFloat64ToNumeric(2.0),
+		Completed:             completed,
+	})
+	suite.Require().NoError(err)
+}
+
+func (suite *AssessmentCompletionServiceTestSuite) assessAllCompetencies(phaseID, partID uuid.UUID) {
+	_, err := suite.service.conn.Exec(suite.suiteCtx, `
+		INSERT INTO assessment (id, course_participation_id, course_phase_id, competency_id, score_level)
+		SELECT gen_random_uuid(), $1, $2, c.id, 'good'
+		FROM competency c
+		         INNER JOIN category_course_phase ccp ON c.category_id = ccp.category_id
+		WHERE ccp.course_phase_id = $2`, partID, phaseID)
+	suite.Require().NoError(err)
+}
+
+func (suite *AssessmentCompletionServiceTestSuite) TestMarkAssessmentsAsCompleted() {
+	eligible := uuid.New()
+	suite.seedCompletion(openPhaseID, eligible, false)
+	suite.assessAllCompetencies(openPhaseID, eligible)
+
+	incomplete := uuid.New()
+	suite.seedCompletion(openPhaseID, incomplete, false)
+
+	alreadyFinal := uuid.New()
+	suite.seedCompletion(openPhaseID, alreadyFinal, true)
+
+	missing := uuid.New()
+
+	result, err := suite.service.MarkAssessmentsAsCompleted(suite.suiteCtx, openPhaseID, []uuid.UUID{eligible, incomplete, alreadyFinal, missing, eligible}, "Batch Author")
+	suite.Require().NoError(err)
+
+	assert.Equal(suite.T(), []uuid.UUID{eligible}, result.Marked, "duplicates must only be marked once")
+	assert.ElementsMatch(suite.T(), []assessmentCompletionDTO.SkippedCompletion{
+		{CourseParticipationID: incomplete, Reason: assessmentCompletionDTO.SkipReasonRemainingAssessments},
+		{CourseParticipationID: alreadyFinal, Reason: assessmentCompletionDTO.SkipReasonAlreadyCompleted},
+		{CourseParticipationID: missing, Reason: assessmentCompletionDTO.SkipReasonNoCompletion},
+	}, result.Skipped)
+
+	completion, err := suite.service.GetAssessmentCompletion(suite.suiteCtx, eligible, openPhaseID)
+	suite.Require().NoError(err)
+	assert.True(suite.T(), completion.Completed)
+	assert.Equal(suite.T(), "Batch Author", completion.Author)
+
+	completion, err = suite.service.GetAssessmentCompletion(suite.suiteCtx, incomplete, openPhaseID)
+	suite.Require().NoError(err)
+	assert.False(suite.T(), completion.Completed)
+	assert.Equal(suite.T(), "Seed Author", completion.Author)
+}
+
+func (suite *AssessmentCompletionServiceTestSuite) TestMarkAssessmentsAsCompletedBeforeStart() {
+	phaseID := uuid.New()
+	_, err := suite.service.conn.Exec(suite.suiteCtx, `
+		INSERT INTO course_phase_config (assessment_schema_id, course_phase_id, start)
+		VALUES ('550e8400-e29b-41d4-a716-446655440000', $1, NOW() + INTERVAL '1 day')`, phaseID)
+	suite.Require().NoError(err)
+
+	partID := uuid.New()
+	suite.seedCompletion(phaseID, partID, false)
+	suite.assessAllCompetencies(phaseID, partID)
+
+	_, err = suite.service.MarkAssessmentsAsCompleted(suite.suiteCtx, phaseID, []uuid.UUID{partID}, "Batch Author")
+	assert.ErrorIs(suite.T(), err, coursePhaseConfig.ErrNotStarted)
+
+	completion, err := suite.service.GetAssessmentCompletion(suite.suiteCtx, partID, phaseID)
+	suite.Require().NoError(err)
+	assert.False(suite.T(), completion.Completed)
+}
+
+func (suite *AssessmentCompletionServiceTestSuite) TestUnmarkAssessmentsAsCompleted() {
+	final := uuid.New()
+	suite.seedCompletion(openPhaseID, final, true)
+
+	draft := uuid.New()
+	suite.seedCompletion(openPhaseID, draft, false)
+
+	missing := uuid.New()
+
+	result, err := suite.service.UnmarkAssessmentsAsCompleted(suite.suiteCtx, openPhaseID, []uuid.UUID{final, draft, missing, final})
+	suite.Require().NoError(err)
+
+	assert.Equal(suite.T(), []uuid.UUID{final}, result.Unmarked, "duplicates must only be unmarked once")
+	assert.ElementsMatch(suite.T(), []assessmentCompletionDTO.SkippedCompletion{
+		{CourseParticipationID: draft, Reason: assessmentCompletionDTO.SkipReasonNotCompleted},
+		{CourseParticipationID: missing, Reason: assessmentCompletionDTO.SkipReasonNotCompleted},
+	}, result.Skipped)
+
+	completion, err := suite.service.GetAssessmentCompletion(suite.suiteCtx, final, openPhaseID)
+	suite.Require().NoError(err)
+	assert.False(suite.T(), completion.Completed)
+}
+
+func (suite *AssessmentCompletionServiceTestSuite) TestUnmarkAssessmentsAsCompletedAfterDeadline() {
+	phaseID := uuid.MustParse("319f28d4-8877-400e-9450-d49077aae7fe")
+	partID := uuid.New()
+	suite.seedCompletion(phaseID, partID, true)
+
+	_, err := suite.service.UnmarkAssessmentsAsCompleted(suite.suiteCtx, phaseID, []uuid.UUID{partID})
+	assert.ErrorIs(suite.T(), err, coursePhaseConfig.ErrDeadlinePassed)
+
+	completion, err := suite.service.GetAssessmentCompletion(suite.suiteCtx, partID, phaseID)
+	suite.Require().NoError(err)
+	assert.True(suite.T(), completion.Completed)
 }
 
 func TestAssessmentCompletionServiceTestSuite(t *testing.T) {

@@ -7,7 +7,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/jackc/pgx/v5/pgxpool"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 	"github.com/prompt-edu/prompt/servers/core/student/studentDTO"
@@ -16,13 +15,14 @@ import (
 
 type StudentService struct {
 	queries db.Queries
-	conn    *pgxpool.Pool
 }
 
-var StudentServiceSingleton *StudentService
+func NewStudentService(queries db.Queries) *StudentService {
+	return &StudentService{queries: queries}
+}
 
-func GetAllStudents(ctx context.Context) ([]studentDTO.Student, error) {
-	students, err := StudentServiceSingleton.queries.GetAllStudents(ctx)
+func (s *StudentService) GetAllStudents(ctx context.Context) ([]studentDTO.Student, error) {
+	students, err := s.queries.GetAllStudents(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -34,8 +34,8 @@ func GetAllStudents(ctx context.Context) ([]studentDTO.Student, error) {
 	return dtoStudents, nil
 }
 
-func GetAllStudentsWithCourses(ctx context.Context) ([]studentDTO.StudentWithCourseParticipationsDTO, error) {
-	studentsWithCourses, err := StudentServiceSingleton.queries.GetAllStudentsWithCourseParticipations(ctx)
+func (s *StudentService) GetAllStudentsWithCourses(ctx context.Context) ([]studentDTO.StudentWithCourseParticipationsDTO, error) {
+	studentsWithCourses, err := s.queries.GetAllStudentsWithCourseParticipations(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -53,8 +53,8 @@ func GetAllStudentsWithCourses(ctx context.Context) ([]studentDTO.StudentWithCou
 	return dtoStudentsWithCourses, nil
 }
 
-func GetStudentByID(ctx context.Context, id uuid.UUID) (studentDTO.Student, error) {
-	student, err := StudentServiceSingleton.queries.GetStudent(ctx, id)
+func (s *StudentService) GetStudentByID(ctx context.Context, id uuid.UUID) (studentDTO.Student, error) {
+	student, err := s.queries.GetStudent(ctx, id)
 	if err != nil {
 		return studentDTO.Student{}, err
 	}
@@ -62,8 +62,8 @@ func GetStudentByID(ctx context.Context, id uuid.UUID) (studentDTO.Student, erro
 	return studentDTO.GetStudentDTOFromDBModel(student), nil
 }
 
-func GetStudentByCourseParticipationID(ctx context.Context, courseParticipationID uuid.UUID) (studentDTO.Student, error) {
-	student, err := StudentServiceSingleton.queries.GetStudentByCourseParticipationID(ctx, courseParticipationID)
+func (s *StudentService) GetStudentByCourseParticipationID(ctx context.Context, courseParticipationID uuid.UUID) (studentDTO.Student, error) {
+	student, err := s.queries.GetStudentByCourseParticipationID(ctx, courseParticipationID)
 	if err != nil {
 		return studentDTO.Student{}, err
 	}
@@ -71,8 +71,8 @@ func GetStudentByCourseParticipationID(ctx context.Context, courseParticipationI
 	return studentDTO.GetStudentDTOFromDBModel(student), nil
 }
 
-func CreateStudent(ctx context.Context, transactionQueries *db.Queries, student studentDTO.CreateStudent) (studentDTO.Student, error) {
-	queries := utils.GetQueries(transactionQueries, &StudentServiceSingleton.queries)
+func (s *StudentService) CreateStudent(ctx context.Context, transactionQueries *db.Queries, student studentDTO.CreateStudent) (studentDTO.Student, error) {
+	queries := utils.GetQueries(transactionQueries, &s.queries)
 	createStudentParams := student.GetDBModel()
 
 	createStudentParams.ID = uuid.New()
@@ -133,8 +133,8 @@ func ResolveStudentByUniversityCredentials(ctx context.Context, queries *db.Quer
 	return GetStudentByUniversityLogin(ctx, queries, universityLogin)
 }
 
-func UpdateStudent(ctx context.Context, transactionQueries *db.Queries, id uuid.UUID, student studentDTO.CreateStudent) (studentDTO.Student, error) {
-	queries := utils.GetQueries(transactionQueries, &StudentServiceSingleton.queries)
+func (s *StudentService) UpdateStudent(ctx context.Context, transactionQueries *db.Queries, id uuid.UUID, student studentDTO.CreateStudent) (studentDTO.Student, error) {
+	queries := utils.GetQueries(transactionQueries, &s.queries)
 	updateStudentParams := student.GetDBModel()
 	updateStudentParams.ID = id
 
@@ -146,8 +146,8 @@ func UpdateStudent(ctx context.Context, transactionQueries *db.Queries, id uuid.
 	return studentDTO.GetStudentDTOFromDBModel(updatedStudent), nil
 }
 
-func CreateOrUpdateStudent(ctx context.Context, transactionQueries *db.Queries, studentInput studentDTO.CreateStudent) (studentDTO.Student, error) {
-	queries := utils.GetQueries(transactionQueries, &StudentServiceSingleton.queries)
+func (s *StudentService) CreateOrUpdateStudent(ctx context.Context, transactionQueries *db.Queries, studentInput studentDTO.CreateStudent) (studentDTO.Student, error) {
+	queries := utils.GetQueries(transactionQueries, &s.queries)
 
 	var existingStudent studentDTO.Student
 	var err error
@@ -159,7 +159,7 @@ func CreateOrUpdateStudent(ctx context.Context, transactionQueries *db.Queries, 
 	}
 
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
-		return CreateStudent(ctx, &queries, studentInput)
+		return s.CreateStudent(ctx, &queries, studentInput)
 	}
 	if err != nil {
 		return studentDTO.Student{}, err
@@ -173,7 +173,7 @@ func CreateOrUpdateStudent(ctx context.Context, transactionQueries *db.Queries, 
 		if matriculationNumber == "" {
 			matriculationNumber = existingStudent.MatriculationNumber
 		}
-		return UpdateStudent(ctx, &queries, existingStudent.ID, studentDTO.CreateStudent{
+		return s.UpdateStudent(ctx, &queries, existingStudent.ID, studentDTO.CreateStudent{
 			ID:                   existingStudent.ID, // make sure the id is not overwritten
 			FirstName:            studentInput.FirstName,
 			LastName:             studentInput.LastName,
@@ -190,8 +190,8 @@ func CreateOrUpdateStudent(ctx context.Context, transactionQueries *db.Queries, 
 	}
 }
 
-func SearchStudents(ctx context.Context, searchString string) ([]studentDTO.Student, error) {
-	students, err := StudentServiceSingleton.queries.SearchStudents(ctx, pgtype.Text{String: searchString, Valid: true})
+func (s *StudentService) SearchStudents(ctx context.Context, searchString string) ([]studentDTO.Student, error) {
+	students, err := s.queries.SearchStudents(ctx, pgtype.Text{String: searchString, Valid: true})
 	if err != nil {
 		return nil, err
 	}
@@ -203,8 +203,8 @@ func SearchStudents(ctx context.Context, searchString string) ([]studentDTO.Stud
 	return dtoStudents, nil
 }
 
-func GetStudentEnrollmentsByID(ctx context.Context, id uuid.UUID) (studentDTO.StudentEnrollmentsDTO, error) {
-	studentWithEnrollments, err := StudentServiceSingleton.queries.GetStudentEnrollments(ctx, id)
+func (s *StudentService) GetStudentEnrollmentsByID(ctx context.Context, id uuid.UUID) (studentDTO.StudentEnrollmentsDTO, error) {
+	studentWithEnrollments, err := s.queries.GetStudentEnrollments(ctx, id)
 	if err != nil {
 		return studentDTO.StudentEnrollmentsDTO{}, err
 	}

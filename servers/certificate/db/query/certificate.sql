@@ -112,3 +112,17 @@ ORDER BY first_download ASC;
 DELETE FROM certificate_download
 WHERE
     student_id = $1;
+-- name: UpsertStudentPageText :one
+-- Upsert rather than update: the phase may have no config row yet, and the
+-- template and release date must survive a text-only write. updated_at and
+-- updated_by are deliberately left alone, because the settings page presents
+-- them as the template's provenance.
+INSERT INTO
+    course_phase_config (course_phase_id, student_page_text)
+VALUES ($1, $2)
+ON CONFLICT (course_phase_id) DO
+UPDATE
+SET
+    student_page_text = EXCLUDED.student_page_text
+RETURNING
+    *;

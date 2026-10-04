@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/google/uuid"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
@@ -12,14 +11,9 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var sendMailFn = SendCourseMail
-var nowFn = func() time.Time {
-	return time.Now().UTC()
-}
-
 var ErrManualMailValidation = errors.New("manual mail validation error")
 
-func SendManualMailToParticipants(
+func (s *MailingService) SendManualMailToParticipants(
 	ctx context.Context,
 	coursePhaseID uuid.UUID,
 	request mailingDTO.SendManualMailRequest,
@@ -35,7 +29,7 @@ func SendManualMailToParticipants(
 	}
 
 	recipientIDs := deduplicateUUIDList(request.RecipientCourseParticipationIDs)
-	participants, err := MailingServiceSingleton.queries.GetParticipantMailingInformationByIDs(
+	participants, err := s.queries.GetParticipantMailingInformationByIDs(
 		ctx,
 		db.GetParticipantMailingInformationByIDsParams{
 			ID:      coursePhaseID,
@@ -47,17 +41,17 @@ func SendManualMailToParticipants(
 	}
 	report.RequestedRecipients = len(participants)
 
-	courseMailingSettings, err := getSenderInformation(ctx, coursePhaseID)
+	courseMailingSettings, err := s.getSenderInformation(ctx, coursePhaseID)
 	if err != nil {
 		return report, fmt.Errorf("failed to get sender information: %w", err)
 	}
 
-	passedMailingInfo, err := MailingServiceSingleton.queries.GetPassedMailingInformation(ctx, coursePhaseID)
+	passedMailingInfo, err := s.queries.GetPassedMailingInformation(ctx, coursePhaseID)
 	if err != nil {
 		return report, fmt.Errorf("failed to load course mailing context: %w", err)
 	}
 
-	coursePhaseLink := buildCoursePhaseLink(ctx, coursePhaseID)
+	coursePhaseLink := s.buildCoursePhaseLink(ctx, coursePhaseID)
 
 	for _, participant := range participants {
 		if !participant.Email.Valid || participant.Email.String == "" {
@@ -92,7 +86,7 @@ func SendManualMailToParticipants(
 		finalContent := replacePlaceholders(request.Content, placeholderMap)
 
 		recipientEmail := participant.Email.String
-		if err := sendMailFn(courseMailingSettings, recipientEmail, finalSubject, finalContent); err != nil {
+		if err := s.sendMail(courseMailingSettings, recipientEmail, finalSubject, finalContent); err != nil {
 			log.WithError(err).WithField("email", recipientEmail).Warn("Failed to send manual mail to participant")
 			report.FailedEmails = append(report.FailedEmails, recipientEmail)
 			continue
@@ -100,18 +94,18 @@ func SendManualMailToParticipants(
 		report.SuccessfulEmails = append(report.SuccessfulEmails, recipientEmail)
 	}
 
-	report.SentAt = nowFn()
+	report.SentAt = s.now()
 	return report, nil
 }
 
-func buildCoursePhaseLink(ctx context.Context, coursePhaseID uuid.UUID) string {
-	courseID, err := MailingServiceSingleton.queries.GetCourseIDByCoursePhaseID(ctx, coursePhaseID)
+func (s *MailingService) buildCoursePhaseLink(ctx context.Context, coursePhaseID uuid.UUID) string {
+	courseID, err := s.queries.GetCourseIDByCoursePhaseID(ctx, coursePhaseID)
 	if err != nil {
 		log.WithError(err).WithField("coursePhaseID", coursePhaseID).
 			Warn("Failed to resolve course for manual mail course phase link")
 		return ""
 	}
-	return fmt.Sprintf("%s/management/course/%s/%s", MailingServiceSingleton.clientURL, courseID, coursePhaseID)
+	return fmt.Sprintf("%s/management/course/%s/%s", s.clientURL, courseID, coursePhaseID)
 }
 
 func deduplicateUUIDList(values []uuid.UUID) []uuid.UUID {

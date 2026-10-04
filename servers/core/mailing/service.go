@@ -13,27 +13,42 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgxpool"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/core/mailing/mailingDTO"
 	log "github.com/sirupsen/logrus"
 )
 
 type MailingService struct {
-	smtpHost     string
-	smtpPort     string
-	smtpUsername string
-	smtpPassword string
-	senderEmail  mail.Address
-	clientURL    string
-	queries      db.Queries
-	conn         *pgxpool.Pool
+	smtpHost       string
+	smtpPort       string
+	smtpUsername   string
+	smtpPassword   string
+	senderEmail    mail.Address
+	clientURL      string
+	queries        db.Queries
+	sendMail       func(mailingDTO.CourseMailingSettings, string, string, string) error
+	now            func() time.Time
+	sendManualMail func(context.Context, uuid.UUID, mailingDTO.SendManualMailRequest) (mailingDTO.ManualMailReport, error)
 }
 
-var MailingServiceSingleton *MailingService
+func NewMailingService(queries db.Queries, smtpHost, smtpPort, smtpUsername, smtpPassword, senderName, senderEmail, clientURL string) *MailingService {
+	service := &MailingService{
+		smtpHost:     smtpHost,
+		smtpPort:     smtpPort,
+		smtpUsername: smtpUsername,
+		smtpPassword: smtpPassword,
+		senderEmail:  mail.Address{Name: senderName, Address: senderEmail},
+		clientURL:    clientURL,
+		queries:      queries,
+	}
+	service.sendMail = service.SendCourseMail
+	service.now = func() time.Time { return time.Now().UTC() }
+	service.sendManualMail = service.SendManualMailToParticipants
+	return service
+}
 
-func SendApplicationConfirmationMail(ctx context.Context, coursePhaseID, courseParticipationID uuid.UUID) (bool, error) {
-	isApplicationPhase, err := MailingServiceSingleton.queries.CheckIfCoursePhaseIsApplicationPhase(ctx, coursePhaseID)
+func (s *MailingService) SendApplicationConfirmationMail(ctx context.Context, coursePhaseID, courseParticipationID uuid.UUID) (bool, error) {
+	isApplicationPhase, err := s.queries.CheckIfCoursePhaseIsApplicationPhase(ctx, coursePhaseID)
 	if err != nil {
 		return false, fmt.Errorf("failed to verify if course phase %s is an application phase: %v", coursePhaseID, err)
 	}
@@ -41,7 +56,7 @@ func SendApplicationConfirmationMail(ctx context.Context, coursePhaseID, courseP
 		return false, fmt.Errorf("course phase %s is not an application phase, cannot send confirmation mail", coursePhaseID)
 	}
 
-	mailingInfo, err := MailingServiceSingleton.queries.GetConfirmationMailingInformation(ctx, db.GetConfirmationMailingInformationParams{
+	mailingInfo, err := s.queries.GetConfirmationMailingInformation(ctx, db.GetConfirmationMailingInformationParams{
 		CourseParticipationID: courseParticipationID,
 		CoursePhaseID:         coursePhaseID,
 	})
@@ -61,7 +76,7 @@ func SendApplicationConfirmationMail(ctx context.Context, coursePhaseID, courseP
 		return false, fmt.Errorf("confirmation mail template is empty for course phase %s", coursePhaseID)
 	}
 
-	courseMailingSettings, err := getSenderInformation(ctx, coursePhaseID)
+	courseMailingSettings, err := s.getSenderInformation(ctx, coursePhaseID)
 	if err != nil {
 		log.Error("failed to get sender information")
 		return false, fmt.Errorf("failed to get sender information for course phase %s: %v", coursePhaseID, err)
@@ -69,14 +84,14 @@ func SendApplicationConfirmationMail(ctx context.Context, coursePhaseID, courseP
 
 	log.Info("Sending confirmation mail to ", mailingInfo.Email.String)
 
-	applicationURL := fmt.Sprintf("%s/apply/%s", MailingServiceSingleton.clientURL, coursePhaseID.String())
+	applicationURL := fmt.Sprintf("%s/apply/%s", s.clientURL, coursePhaseID.String())
 	placeholderValues := getApplicationConfirmationPlaceholderValues(mailingInfo, applicationURL)
 	finalMessage := replacePlaceholders(mailingInfo.ConfirmationMailContent, placeholderValues)
 
 	// replace values in subject
 	finalSubject := replacePlaceholders(mailingInfo.ConfirmationMailSubject, placeholderValues)
 
-	err = SendCourseMail(courseMailingSettings, mailingInfo.Email.String, finalSubject, finalMessage)
+	err = s.SendCourseMail(courseMailingSettings, mailingInfo.Email.String, finalSubject, finalMessage)
 	if err != nil {
 		log.Error("failed to send confirmation mail: ", err)
 		return false, fmt.Errorf("failed to send confirmation mail to %s: %v", mailingInfo.Email.String, err)
@@ -85,7 +100,7 @@ func SendApplicationConfirmationMail(ctx context.Context, coursePhaseID, courseP
 	return true, nil
 }
 
-func SendStatusMailManualTrigger(ctx context.Context, coursePhaseID uuid.UUID, status db.PassStatus, recipientCourseParticipationIDs []uuid.UUID) (mailingDTO.MailingReport, error) {
+func (s *MailingService) SendStatusMailManualTrigger(ctx context.Context, coursePhaseID uuid.UUID, status db.PassStatus, recipientCourseParticipationIDs []uuid.UUID) (mailingDTO.MailingReport, error) {
 	response := mailingDTO.MailingReport{
 		SuccessfulEmails: make([]string, 0),
 		FailedEmails:     make([]string, 0),
@@ -95,7 +110,7 @@ func SendStatusMailManualTrigger(ctx context.Context, coursePhaseID uuid.UUID, s
 	// 1.) get mailing info for course phase
 	switch status {
 	case db.PassStatusPassed:
-		infos, err := MailingServiceSingleton.queries.GetPassedMailingInformation(ctx, coursePhaseID)
+		infos, err := s.queries.GetPassedMailingInformation(ctx, coursePhaseID)
 		if err != nil {
 			log.Error("failed to get mailing information: ", err)
 			return response, fmt.Errorf("failed to retrieve passed status mailing information for course phase %s: %v", coursePhaseID, err)
@@ -103,7 +118,7 @@ func SendStatusMailManualTrigger(ctx context.Context, coursePhaseID uuid.UUID, s
 		mailingInfo = mailingDTO.GetMailingInfoFromPassedMailingInformation(infos)
 
 	case db.PassStatusFailed:
-		infos, err := MailingServiceSingleton.queries.GetFailedMailingInformation(ctx, coursePhaseID)
+		infos, err := s.queries.GetFailedMailingInformation(ctx, coursePhaseID)
 		if err != nil {
 			log.Error("failed to get mailing information: ", err)
 			return response, fmt.Errorf("failed to retrieve failed status mailing information for course phase %s: %v", coursePhaseID, err)
@@ -117,7 +132,7 @@ func SendStatusMailManualTrigger(ctx context.Context, coursePhaseID uuid.UUID, s
 	}
 
 	// Get the course mailing settings
-	courseMailingSettings, err := getSenderInformation(ctx, coursePhaseID)
+	courseMailingSettings, err := s.getSenderInformation(ctx, coursePhaseID)
 	if err != nil {
 		log.Error("failed to get sender information")
 		return response, fmt.Errorf("failed to get course mailing settings: %v", err)
@@ -137,10 +152,10 @@ func SendStatusMailManualTrigger(ctx context.Context, coursePhaseID uuid.UUID, s
 		recipientIDs = deduplicateUUIDList(recipientCourseParticipationIDs)
 	}
 
-	participants, err := MailingServiceSingleton.queries.ClaimStatusMailRecipients(ctx, db.ClaimStatusMailRecipientsParams{
+	participants, err := s.queries.ClaimStatusMailRecipients(ctx, db.ClaimStatusMailRecipientsParams{
 		CoursePhaseID:          coursePhaseID,
 		Status:                 string(status),
-		SentAt:                 nowFn().Format(time.RFC3339),
+		SentAt:                 s.now().Format(time.RFC3339),
 		CourseParticipationIds: recipientIDs,
 	})
 	if err != nil {
@@ -158,11 +173,11 @@ func SendStatusMailManualTrigger(ctx context.Context, coursePhaseID uuid.UUID, s
 		// replace values in content
 		finalMessage := replacePlaceholders(mailingInfo.MailContent, placeholderMap)
 
-		err = sendMailFn(courseMailingSettings, participant.Email.String, finalSubject, finalMessage)
+		err = s.sendMail(courseMailingSettings, participant.Email.String, finalSubject, finalMessage)
 		if err != nil {
 			log.Error("failed to send status mail to participant: ", err)
 			response.FailedEmails = append(response.FailedEmails, participant.Email.String)
-			releaseStatusMailClaim(ctx, coursePhaseID, participant.CourseParticipationID, status)
+			s.releaseStatusMailClaim(ctx, coursePhaseID, participant.CourseParticipationID, status)
 			continue
 		}
 
@@ -173,8 +188,8 @@ func SendStatusMailManualTrigger(ctx context.Context, coursePhaseID uuid.UUID, s
 	return response, nil
 }
 
-func releaseStatusMailClaim(ctx context.Context, coursePhaseID, courseParticipationID uuid.UUID, status db.PassStatus) {
-	if err := MailingServiceSingleton.queries.ReleaseStatusMailClaim(ctx, db.ReleaseStatusMailClaimParams{
+func (s *MailingService) releaseStatusMailClaim(ctx context.Context, coursePhaseID, courseParticipationID uuid.UUID, status db.PassStatus) {
+	if err := s.queries.ReleaseStatusMailClaim(ctx, db.ReleaseStatusMailClaimParams{
 		CoursePhaseID:         coursePhaseID,
 		CourseParticipationID: courseParticipationID,
 		Status:                string(status),
@@ -185,30 +200,30 @@ func releaseStatusMailClaim(ctx context.Context, coursePhaseID, courseParticipat
 
 // SendMail sends a transactional mail with no Reply-To, CC, or BCC. For mails
 // tied to a course phase, use SendCourseMail.
-func SendMail(recipientAddress, subject, htmlBody string) error {
-	if err := validateMailInputs(recipientAddress, subject, htmlBody); err != nil {
+func (s *MailingService) SendMail(recipientAddress, subject, htmlBody string) error {
+	if err := s.validateMailInputs(recipientAddress, subject, htmlBody); err != nil {
 		return err
 	}
 
 	to := mail.Address{Address: recipientAddress}
 
 	var message strings.Builder
-	buildBaseMailHeader(&message, to.String(), subject)
+	s.buildBaseMailHeader(&message, to.String(), subject)
 	message.WriteString("\r\n")
 	message.WriteString(htmlBody)
 
-	return dispatchSMTP([]string{recipientAddress}, message.String())
+	return s.dispatchSMTP([]string{recipientAddress}, message.String())
 }
 
-func SendCourseMail(courseMailingSettings mailingDTO.CourseMailingSettings, recipientAddress, subject, htmlBody string) error {
-	if err := validateMailInputs(recipientAddress, subject, htmlBody); err != nil {
+func (s *MailingService) SendCourseMail(courseMailingSettings mailingDTO.CourseMailingSettings, recipientAddress, subject, htmlBody string) error {
+	if err := s.validateMailInputs(recipientAddress, subject, htmlBody); err != nil {
 		return err
 	}
 
 	to := mail.Address{Address: recipientAddress}
 
 	var message strings.Builder
-	buildBaseMailHeader(&message, to.String(), subject)
+	s.buildBaseMailHeader(&message, to.String(), subject)
 	fmt.Fprintf(&message, "Reply-To: %s\r\n", courseMailingSettings.ReplyTo.String())
 	if len(courseMailingSettings.CC) > 0 {
 		var ccString string
@@ -228,14 +243,14 @@ func SendCourseMail(courseMailingSettings mailingDTO.CourseMailingSettings, reci
 		rcpts = append(rcpts, bcc.Address)
 	}
 
-	return dispatchSMTP(rcpts, message.String())
+	return s.dispatchSMTP(rcpts, message.String())
 }
 
-func validateMailInputs(recipientAddress, subject, htmlBody string) error {
-	if MailingServiceSingleton == nil {
+func (s *MailingService) validateMailInputs(recipientAddress, subject, htmlBody string) error {
+	if s == nil {
 		return errors.New("mailing service is not initialized")
 	}
-	if MailingServiceSingleton.senderEmail.Address == "" {
+	if s.senderEmail.Address == "" {
 		return errors.New("mailing is not correctly configured: sender email address is empty")
 	}
 	if recipientAddress == "" {
@@ -250,8 +265,8 @@ func validateMailInputs(recipientAddress, subject, htmlBody string) error {
 	return nil
 }
 
-func dispatchSMTP(recipients []string, message string) error {
-	addr := net.JoinHostPort(MailingServiceSingleton.smtpHost, MailingServiceSingleton.smtpPort)
+func (s *MailingService) dispatchSMTP(recipients []string, message string) error {
+	addr := net.JoinHostPort(s.smtpHost, s.smtpPort)
 	log.Debug("Connecting to SMTP server: ", addr)
 
 	conn, err := net.DialTimeout("tcp", addr, 10*time.Second)
@@ -266,36 +281,36 @@ func dispatchSMTP(recipients []string, message string) error {
 		return fmt.Errorf("failed to set SMTP connection timeout: %v", err)
 	}
 
-	client, err := smtp.NewClient(conn, MailingServiceSingleton.smtpHost)
+	client, err := smtp.NewClient(conn, s.smtpHost)
 	if err != nil {
 		_ = conn.Close()
 		log.Error("failed to create SMTP client: ", err.Error())
-		return fmt.Errorf("failed to create SMTP client for %s: %v", MailingServiceSingleton.smtpHost, err)
+		return fmt.Errorf("failed to create SMTP client for %s: %v", s.smtpHost, err)
 	}
 	defer func() { _ = client.Close() }()
 
 	if ok, _ := client.Extension("STARTTLS"); ok {
 		config := &tls.Config{
-			ServerName: MailingServiceSingleton.smtpHost,
+			ServerName: s.smtpHost,
 			MinVersion: tls.VersionTLS12,
 		}
 		if err = client.StartTLS(config); err != nil {
 			log.Error("failed to start TLS: ", err)
-			return fmt.Errorf("failed to establish TLS connection with %s: %v", MailingServiceSingleton.smtpHost, err)
+			return fmt.Errorf("failed to establish TLS connection with %s: %v", s.smtpHost, err)
 		}
 	}
 
-	if MailingServiceSingleton.smtpUsername != "" && MailingServiceSingleton.smtpPassword != "" {
-		auth := smtp.PlainAuth("", MailingServiceSingleton.smtpUsername, MailingServiceSingleton.smtpPassword, MailingServiceSingleton.smtpHost)
+	if s.smtpUsername != "" && s.smtpPassword != "" {
+		auth := smtp.PlainAuth("", s.smtpUsername, s.smtpPassword, s.smtpHost)
 		if err := client.Auth(auth); err != nil {
 			log.Error("failed to authenticate with SMTP server: ", err)
-			return fmt.Errorf("SMTP authentication failed for user '%s' on server %s: %v", MailingServiceSingleton.smtpUsername, MailingServiceSingleton.smtpHost, err)
+			return fmt.Errorf("SMTP authentication failed for user '%s' on server %s: %v", s.smtpUsername, s.smtpHost, err)
 		}
 	}
 
-	if err := client.Mail(MailingServiceSingleton.senderEmail.Address); err != nil {
+	if err := client.Mail(s.senderEmail.Address); err != nil {
 		log.Error("failed to set sender: ", err)
-		return fmt.Errorf("SMTP server rejected sender address '%s': %v", MailingServiceSingleton.senderEmail.Address, err)
+		return fmt.Errorf("SMTP server rejected sender address '%s': %v", s.senderEmail.Address, err)
 	}
 
 	for _, rcpt := range recipients {
@@ -322,8 +337,8 @@ func dispatchSMTP(recipients []string, message string) error {
 	return client.Quit()
 }
 
-func getSenderInformation(ctx context.Context, coursePhaseID uuid.UUID) (mailingDTO.CourseMailingSettings, error) {
-	courseMailing, err := MailingServiceSingleton.queries.GetCourseMailingSettingsForCoursePhaseID(ctx, coursePhaseID)
+func (s *MailingService) getSenderInformation(ctx context.Context, coursePhaseID uuid.UUID) (mailingDTO.CourseMailingSettings, error) {
+	courseMailing, err := s.queries.GetCourseMailingSettingsForCoursePhaseID(ctx, coursePhaseID)
 	if err != nil {
 		log.Error("failed to get course mailing settings: ", err)
 		return mailingDTO.CourseMailingSettings{}, fmt.Errorf("failed to retrieve course mailing settings for course phase %s: %v", coursePhaseID, err)
@@ -362,8 +377,8 @@ func generateMessageID() string {
 }
 
 // Does not write the trailing blank line; callers append optional headers first.
-func buildBaseMailHeader(message *strings.Builder, recipient, subject string) {
-	fmt.Fprintf(message, "From: %s\r\n", MailingServiceSingleton.senderEmail.String())
+func (s *MailingService) buildBaseMailHeader(message *strings.Builder, recipient, subject string) {
+	fmt.Fprintf(message, "From: %s\r\n", s.senderEmail.String())
 	fmt.Fprintf(message, "To: %s\r\n", recipient)
 	fmt.Fprintf(message, "Subject: %s\r\n", subject)
 	fmt.Fprintf(message, "Date: %s\r\n", time.Now().Format(time.RFC1123Z))

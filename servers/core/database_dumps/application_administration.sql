@@ -112,6 +112,8 @@ CREATE TABLE application_answer_text (
 --
 
 INSERT INTO course (id, name, start_date, end_date, semester_tag, course_type, ects, meta_data) VALUES ('be780b32-a678-4b79-ae1c-80071771d254', 'iPraktikum', '2024-10-01', '2025-01-01', 'ios24245', 'practical course', 10, '{"icon": "apple", "bg-color": "bg-orange-100"}');
+-- Own course, because only one initial phase is allowed per course.
+INSERT INTO course (id, name, start_date, end_date, semester_tag, course_type, ects, meta_data) VALUES ('c0000099-0000-0000-0000-000000000099', 'Welcome Text Course', '2024-10-01', '2025-01-01', 'ios24245', 'practical course', 10, '{}');
 
 
 
@@ -165,6 +167,8 @@ CREATE TABLE course_phase (
 --
 
 INSERT INTO course_phase (id, course_id, name, meta_data, is_initial_phase, course_phase_type_id) VALUES ('4179d58a-d00d-4fa7-94a5-397bc69fab02', 'be780b32-a678-4b79-ae1c-80071771d254', 'Dev Application', '{"applicationEndDate": "2030-01-18T00:00:00.000Z", "applicationStartDate": "2024-12-24T00:00:00.000Z", "externalStudentsAllowed": false, "universityLoginAvailable": true}', true, '96fb1001-b21c-4527-8b6f-2fd5f4ba3abc');
+-- Carries a welcomeText; the phase above deliberately has none, so both branches are covered.
+INSERT INTO course_phase (id, course_id, name, meta_data, is_initial_phase, course_phase_type_id) VALUES ('d0000099-0000-0000-0000-000000000099', 'c0000099-0000-0000-0000-000000000099', 'Welcome Application', '{"applicationEndDate": "2030-01-18T00:00:00.000Z", "applicationStartDate": "2024-12-24T00:00:00.000Z", "externalStudentsAllowed": true, "universityLoginAvailable": true, "welcomeText": "<p>Welcome to the course.</p>"}', true, '96fb1001-b21c-4527-8b6f-2fd5f4ba3abc');
 INSERT INTO course_phase (id, course_id, name, meta_data, is_initial_phase, course_phase_type_id) VALUES ('7062236a-e290-487c-be41-29b24e0afc64', 'e12ffe63-448d-4469-a840-1699e9b328d1', 'New Team Phase', '{}', false, '627b6fb9-2106-4fce-ba6d-b68eeb546382');
 INSERT INTO course_phase (id, course_id, name, meta_data, is_initial_phase, course_phase_type_id) VALUES ('e12ffe63-448d-4469-a840-1699e9b328d3', 'e12ffe63-448d-4469-a840-1699e9b328d1', 'Intro Course', '{}', false, '48d22f19-6cc0-417b-ac25-415fb40f2030');
 

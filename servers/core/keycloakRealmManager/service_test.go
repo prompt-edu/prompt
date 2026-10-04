@@ -6,8 +6,13 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 )
+
+func testKeycloakRealmService() *KeycloakRealmService {
+	return NewKeycloakRealmService("http://localhost:8081", "prompt", "prompt-server", "", "id-of-client", db.Queries{})
+}
 
 func TestIsAllowedCourseGroup(t *testing.T) {
 	cases := []struct {
@@ -37,14 +42,14 @@ func TestIsAllowedCourseGroup(t *testing.T) {
 // verification step in the plan.
 
 func TestAddUserToCourseGroup_RejectsBadGroupName(t *testing.T) {
-	err := AddUserToCourseGroup(context.Background(), uuid.New(), "Admin", "user-1", "caller-1")
+	err := testKeycloakRealmService().AddUserToCourseGroup(context.Background(), uuid.New(), "Admin", "user-1", "caller-1")
 	if !errors.Is(err, ErrInvalidGroupName) {
 		t.Errorf("expected ErrInvalidGroupName, got %v", err)
 	}
 }
 
 func TestRemoveUserFromCourseGroup_RejectsBadGroupName(t *testing.T) {
-	err := RemoveUserFromCourseGroup(context.Background(), uuid.New(), "Admin", "user-1", "caller-1")
+	err := testKeycloakRealmService().RemoveUserFromCourseGroup(context.Background(), uuid.New(), "Admin", "user-1", "caller-1")
 	if !errors.Is(err, ErrInvalidGroupName) {
 		t.Errorf("expected ErrInvalidGroupName, got %v", err)
 	}
@@ -52,7 +57,7 @@ func TestRemoveUserFromCourseGroup_RejectsBadGroupName(t *testing.T) {
 
 func TestRemoveUserFromCourseGroup_RejectsSelfRemoval(t *testing.T) {
 	const userID = "abc-123"
-	err := RemoveUserFromCourseGroup(context.Background(), uuid.New(), permissionValidation.CourseLecturer, userID, userID)
+	err := testKeycloakRealmService().RemoveUserFromCourseGroup(context.Background(), uuid.New(), permissionValidation.CourseLecturer, userID, userID)
 	if !errors.Is(err, ErrSelfRemoval) {
 		t.Errorf("expected ErrSelfRemoval, got %v", err)
 	}
@@ -62,7 +67,7 @@ func TestSearchKeycloakUsers_RejectsShortQuery(t *testing.T) {
 	cases := []string{"", " ", "a", "  x  "}
 	for _, q := range cases {
 		t.Run(q, func(t *testing.T) {
-			_, err := SearchKeycloakUsers(context.Background(), q, 20)
+			_, err := testKeycloakRealmService().SearchKeycloakUsers(context.Background(), q, 20)
 			if !errors.Is(err, ErrInvalidQuery) {
 				t.Errorf("expected ErrInvalidQuery for %q, got %v", q, err)
 			}

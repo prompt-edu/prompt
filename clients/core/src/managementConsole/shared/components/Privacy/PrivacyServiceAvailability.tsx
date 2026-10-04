@@ -1,10 +1,10 @@
+import { coreApi } from '@core/network/api'
+import { coreKeys } from '@core/network/cache'
 import { useQueries, useQuery } from '@tanstack/react-query'
-import { axiosInstance } from '@tumaet/prompt-shared-state'
 import { Button, Popover, PopoverContent, PopoverTrigger } from '@tumaet/prompt-ui-components'
 import { Loader2 } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useGetCoursePhaseTypes } from '../../../pages/SystemStatusPage/hooks/useGetCoursePhaseTypes'
-import { getServiceInfo } from '../../../pages/SystemStatusPage/network/getServiceCapabilities'
 import { isRealMicroservice } from '../../../pages/SystemStatusPage/utils/isRealMicroservice'
 
 enum PSAStatus {
@@ -63,16 +63,16 @@ export function PrivacyServiceAvailability({ forSelf }: PrivacyServiceAvailabili
   const coursePhaseTypes = allCoursePhaseTypes.filter((cpt) => isRealMicroservice(cpt.baseUrl))
 
   const coreQuery = useQuery({
-    queryKey: ['serviceInfo-core'],
-    queryFn: () => axiosInstance.get('/api/hello'),
+    queryKey: coreKeys.serviceInfo.core(),
+    queryFn: () => coreApi.system.coreInfo(),
     retry: false,
     staleTime: 30_000,
   })
 
   const cpmResults = useQueries({
     queries: coursePhaseTypes.map((service) => ({
-      queryKey: [`serviceInfo-${service.id}`],
-      queryFn: () => getServiceInfo(service),
+      queryKey: coreKeys.serviceInfo.ofService(service.id),
+      queryFn: () => coreApi.system.serviceInfo(service),
       retry: false,
       staleTime: 30_000,
     })),

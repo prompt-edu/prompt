@@ -87,9 +87,9 @@ type StudentTeamPreferenceResponse struct {
 }
 
 type SurveyTimeframe struct {
-	CoursePhaseID  uuid.UUID        `json:"course_phase_id"`
-	SurveyStart    pgtype.Timestamp `json:"survey_start"`
-	SurveyDeadline pgtype.Timestamp `json:"survey_deadline"`
+	CoursePhaseID  uuid.UUID          `json:"course_phase_id"`
+	SurveyStart    pgtype.Timestamptz `json:"survey_start"`
+	SurveyDeadline pgtype.Timestamptz `json:"survey_deadline"`
 }
 
 type Team struct {

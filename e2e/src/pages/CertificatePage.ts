@@ -39,6 +39,19 @@ export class CertificatePage {
     await expect(this.page.getByText(/Last downloaded:/)).toBeVisible({ timeout: 15_000 })
   }
 
+  // The instructor's message on the student page. Instructor HTML is rendered
+  // into this container, so anything still inside it survived DOMPurify.
+  get studentPageText(): Locator {
+    return this.page.getByTestId('certificate-student-page-text')
+  }
+
+  async readGlobal(name: string): Promise<unknown> {
+    return this.page.evaluate(
+      (globalName) => (window as unknown as Record<string, unknown>)[globalName],
+      name,
+    )
+  }
+
   // ── Settings ─────────────────────────────────────────────────────────────
 
   async expectSettingsLoaded() {
@@ -73,11 +86,45 @@ export class CertificatePage {
   // before the caller navigates away (which would otherwise abort the request).
   async releaseNow() {
     const responsePromise = this.page.waitForResponse(
-      (res) => res.url().includes('/config/release-date') && res.request().method() === 'PUT',
+      (res) => res.url().includes('/settings/release-date') && res.request().method() === 'PUT',
     )
     await this.page.getByRole('button', { name: 'Release Now' }).click()
     const response = await responsePromise
     expect(response.ok()).toBeTruthy()
+  }
+
+  // The settings page has more than one editor, so scope to the card.
+  get studentPageTextEditor(): Locator {
+    return this.page
+      .getByTestId('certificate-student-page-text-settings')
+      .locator('[contenteditable="true"]')
+  }
+
+  get studentPageTextSaveButton(): Locator {
+    return this.page.getByTestId('certificate-student-page-text-save')
+  }
+
+  async setStudentPageText(text: string) {
+    await expect(this.studentPageTextEditor).toBeVisible({ timeout: 15_000 })
+    await this.studentPageTextEditor.click()
+    await this.page.keyboard.press('ControlOrMeta+A')
+    await this.page.keyboard.press('Delete')
+    if (text) {
+      await this.page.keyboard.type(text)
+    }
+    await expect(this.studentPageTextSaveButton).toBeEnabled()
+
+    // The button is disabled while the request is in flight too, so waiting on
+    // the response is the only way to tell "saving" from "saved".
+    const saved = this.page.waitForResponse(
+      (response) =>
+        response.url().includes('/settings/student-page-text') &&
+        response.request().method() === 'PUT' &&
+        response.ok(),
+      { timeout: 15_000 },
+    )
+    await this.studentPageTextSaveButton.click()
+    await saved
   }
 
   // ── Participants ─────────────────────────────────────────────────────────

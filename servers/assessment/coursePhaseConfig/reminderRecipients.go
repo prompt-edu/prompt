@@ -17,13 +17,13 @@ import (
 var getParticipationsForCoursePhaseFn = GetParticipationsForCoursePhase
 var getTeamsForCoursePhaseFn = GetTeamsForCoursePhase
 
-func GetEvaluationReminderRecipients(
+func (s *CoursePhaseConfigService) GetEvaluationReminderRecipients(
 	ctx context.Context,
 	authHeader string,
 	coursePhaseID uuid.UUID,
 	evaluationType assessmentType.AssessmentType,
 ) (coursePhaseConfigDTO.EvaluationReminderRecipients, error) {
-	config, err := CoursePhaseConfigSingleton.queries.GetCoursePhaseConfig(ctx, coursePhaseID)
+	config, err := s.queries.GetCoursePhaseConfig(ctx, coursePhaseID)
 	if err != nil {
 		return coursePhaseConfigDTO.EvaluationReminderRecipients{}, fmt.Errorf("failed to load course phase config: %w", err)
 	}
@@ -43,7 +43,7 @@ func GetEvaluationReminderRecipients(
 
 	result := coursePhaseConfigDTO.EvaluationReminderRecipients{
 		EvaluationType:                         evaluationType,
-		EvaluationTypeLabel:                    getEvaluationTypeLabel(evaluationType),
+		EvaluationTypeLabel:                    getEvaluationTypeLabel(evaluationType, config.TutorDisplayName),
 		EvaluationEnabled:                      evaluationEnabled,
 		Deadline:                               deadlineTime,
 		EvaluationDeadlinePlaceholder:          getEvaluationDeadlinePlaceholder(deadlineTime),
@@ -64,7 +64,7 @@ func GetEvaluationReminderRecipients(
 		return coursePhaseConfigDTO.EvaluationReminderRecipients{}, err
 	}
 
-	completions, err := CoursePhaseConfigSingleton.queries.GetEvaluationCompletionsByCoursePhase(ctx, coursePhaseID)
+	completions, err := s.queries.GetEvaluationCompletionsByCoursePhase(ctx, coursePhaseID)
 	if err != nil {
 		return coursePhaseConfigDTO.EvaluationReminderRecipients{}, fmt.Errorf("failed to load evaluation completions: %w", err)
 	}
@@ -253,13 +253,16 @@ func deduplicateUUIDs(ids []uuid.UUID) []uuid.UUID {
 	return result
 }
 
-func getEvaluationTypeLabel(evaluationType assessmentType.AssessmentType) string {
+func getEvaluationTypeLabel(evaluationType assessmentType.AssessmentType, tutorDisplayName pgtype.Text) string {
 	switch evaluationType {
 	case assessmentType.Self:
 		return "Self Evaluation"
 	case assessmentType.Peer:
 		return "Peer Evaluation"
 	case assessmentType.Tutor:
+		if tutorDisplayName.Valid {
+			return tutorDisplayName.String + " Evaluation"
+		}
 		return "Tutor Evaluation"
 	default:
 		return string(evaluationType)

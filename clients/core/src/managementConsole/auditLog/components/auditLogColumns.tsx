@@ -1,8 +1,7 @@
-import type { ColumnDef } from '@tanstack/react-table'
-import { Badge } from '@tumaet/prompt-ui-components'
+import { Badge, type PromptTableColumnDef } from '@tumaet/prompt-ui-components'
 import type { AuditEntry } from '../interfaces/auditLog'
 
-export const getAuditLogColumns = (): ColumnDef<AuditEntry>[] => [
+export const getAuditLogColumns = (): PromptTableColumnDef<AuditEntry>[] => [
   {
     accessorKey: 'createdAt',
     header: 'Time',

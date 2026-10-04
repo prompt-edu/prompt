@@ -8,10 +8,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 	"github.com/prompt-edu/prompt/servers/core/privacy/privacyDTO"
 	"github.com/prompt-edu/prompt/servers/core/privacy/service"
-	coreutils "github.com/prompt-edu/prompt/servers/core/utils"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -19,17 +19,17 @@ import (
 // @Description Endpoints for managing GDPR data deletion requests
 // @Tags privacy
 // @Security BearerAuth
-func setupPrivacyDeletionRouter(privacyRouter *gin.RouterGroup, authMiddleware func() gin.HandlerFunc, permissionRoleMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
-	privacyRouter.POST("/data-deletion", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer, permissionValidation.CourseEditor, permissionValidation.CourseLecturer, permissionValidation.CourseStudent), createNewSubjectDataDeletionRequest)
-	privacyRouter.GET("/data-deletion", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer, permissionValidation.CourseEditor, permissionValidation.CourseLecturer, permissionValidation.CourseStudent), getLatestDeletionRequest)
-	privacyRouter.GET("/data-deletion/:uuid", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer, permissionValidation.CourseEditor, permissionValidation.CourseLecturer, permissionValidation.CourseStudent), getDeletionRequest)
+func (h *privacyHandler) registerDeletionRoutes(privacyRouter *gin.RouterGroup, permissionRoleMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
+	privacyRouter.POST("/data-deletion", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer, permissionValidation.CourseEditor, permissionValidation.CourseLecturer, permissionValidation.CourseStudent), h.createNewSubjectDataDeletionRequest)
+	privacyRouter.GET("/data-deletion", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer, permissionValidation.CourseEditor, permissionValidation.CourseLecturer, permissionValidation.CourseStudent), h.getLatestDeletionRequest)
+	privacyRouter.GET("/data-deletion/:uuid", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer, permissionValidation.CourseEditor, permissionValidation.CourseLecturer, permissionValidation.CourseStudent), h.getDeletionRequest)
 
-	privacyRouter.GET("/admin/data-deletions", permissionRoleMiddleware(permissionValidation.PromptAdmin), getAllDeletionRequests)
-	privacyRouter.POST("/admin/data-deletions/:uuid", permissionRoleMiddleware(permissionValidation.PromptAdmin), decideDeletionRequest)
+	privacyRouter.GET("/admin/data-deletions", permissionRoleMiddleware(permissionValidation.PromptAdmin), h.getAllDeletionRequests)
+	privacyRouter.POST("/admin/data-deletions/:uuid", permissionRoleMiddleware(permissionValidation.PromptAdmin), h.decideDeletionRequest)
 
 	// Admin-initiated deletion
-	privacyRouter.POST("/admin/data-deletions", permissionRoleMiddleware(permissionValidation.PromptAdmin), adminInitiateDeletionRequests)
-	privacyRouter.POST("/admin/data-deletions/status", permissionRoleMiddleware(permissionValidation.PromptAdmin), adminInitiatedDeletionsStatus)
+	privacyRouter.POST("/admin/data-deletions", permissionRoleMiddleware(permissionValidation.PromptAdmin), h.adminInitiateDeletionRequests)
+	privacyRouter.POST("/admin/data-deletions/status", permissionRoleMiddleware(permissionValidation.PromptAdmin), h.adminInitiatedDeletionsStatus)
 }
 
 // @Summary Submit a new data deletion request
@@ -37,18 +37,18 @@ func setupPrivacyDeletionRouter(privacyRouter *gin.RouterGroup, authMiddleware f
 // @Tags privacy
 // @Produce json
 // @Success 200 {object} privacyDTO.PrivacyDeletionRequest
-// @Failure 400 {object} coreutils.ErrorResponse
-// @Failure 409 {object} coreutils.ErrorResponse "An open request already exists for this user"
-// @Failure 500 {object} coreutils.ErrorResponse
+// @Failure 400 {object} utils.ErrorResponse
+// @Failure 409 {object} utils.ErrorResponse "An open request already exists for this user"
+// @Failure 500 {object} utils.ErrorResponse
 // @Security BearerAuth
 // @Router /privacy/data-deletion [post]
-func createNewSubjectDataDeletionRequest(c *gin.Context) {
-	if valErr := service.ValidateUserMayCreateDeletionRequest(c); valErr != nil {
+func (h *privacyHandler) createNewSubjectDataDeletionRequest(c *gin.Context) {
+	if valErr := h.service.ValidateUserMayCreateDeletionRequest(c); valErr != nil {
 		handleError(c, http.StatusConflict, valErr)
 		return
 	}
 
-	record, err := service.CreateDeletionRequest(c)
+	record, err := h.service.CreateDeletionRequest(c)
 	if err != nil {
 		log.Error("data deletion request creation failed: ", err)
 		handleError(c, http.StatusInternalServerError, err)
@@ -64,12 +64,12 @@ func createNewSubjectDataDeletionRequest(c *gin.Context) {
 // @Produce json
 // @Success 200 {object} map[string]interface{}
 // @Success 204 "No deletion request on file"
-// @Failure 400 {object} coreutils.ErrorResponse
-// @Failure 500 {object} coreutils.ErrorResponse
+// @Failure 400 {object} utils.ErrorResponse
+// @Failure 500 {object} utils.ErrorResponse
 // @Security BearerAuth
 // @Router /privacy/data-deletion [get]
-func getLatestDeletionRequest(c *gin.Context) {
-	request, err := service.GetLatestDeletionRequestForUser(c)
+func (h *privacyHandler) getLatestDeletionRequest(c *gin.Context) {
+	request, err := h.service.GetLatestDeletionRequestForUser(c)
 	if err != nil {
 		log.Error("get latest deletion request failed: ", err)
 		handleError(c, http.StatusInternalServerError, err)
@@ -89,24 +89,24 @@ func getLatestDeletionRequest(c *gin.Context) {
 // @Produce json
 // @Param uuid path string true "Deletion Request UUID"
 // @Success 200 {object} privacyDTO.PrivacyDeletionRequest
-// @Failure 400 {object} coreutils.ErrorResponse
-// @Failure 403 {object} coreutils.ErrorResponse
-// @Failure 500 {object} coreutils.ErrorResponse
+// @Failure 400 {object} utils.ErrorResponse
+// @Failure 403 {object} utils.ErrorResponse
+// @Failure 500 {object} utils.ErrorResponse
 // @Security BearerAuth
 // @Router /privacy/data-deletion/{uuid} [get]
-func getDeletionRequest(c *gin.Context) {
+func (h *privacyHandler) getDeletionRequest(c *gin.Context) {
 	requestID, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	if valErr := service.ValidateDeletionRequestBelongsToCaller(c, requestID); valErr != nil {
+	if valErr := h.service.ValidateDeletionRequestBelongsToCaller(c, requestID); valErr != nil {
 		handleError(c, http.StatusForbidden, valErr)
 		return
 	}
 
-	record, err := service.GetDeletionRequestWithSubrequests(c, requestID)
+	record, err := h.service.GetDeletionRequestWithSubrequests(c, requestID)
 	if err != nil {
 		log.Error("get deletion request failed: ", err)
 		handleError(c, http.StatusInternalServerError, err)
@@ -120,11 +120,11 @@ func getDeletionRequest(c *gin.Context) {
 // @Tags privacy
 // @Produce json
 // @Success 200 {array} privacyDTO.AdminPrivacyDeletionRequest
-// @Failure 500 {object} coreutils.ErrorResponse
+// @Failure 500 {object} utils.ErrorResponse
 // @Security BearerAuth
 // @Router /privacy/admin/data-deletions [get]
-func getAllDeletionRequests(c *gin.Context) {
-	records, err := service.GetAllDeletionRequests(c)
+func (h *privacyHandler) getAllDeletionRequests(c *gin.Context) {
+	records, err := h.service.GetAllDeletionRequests(c)
 	if err != nil {
 		log.Error("get all deletion requests failed: ", err)
 		handleError(c, http.StatusInternalServerError, err)
@@ -141,12 +141,12 @@ func getAllDeletionRequests(c *gin.Context) {
 // @Param uuid path string true "Deletion Request UUID"
 // @Param body body privacyDTO.AuditorDecisionRequest true "Auditor decision and optional note"
 // @Success 200 {object} privacyDTO.PrivacyDeletionRequest
-// @Failure 400 {object} coreutils.ErrorResponse "Invalid payload"
-// @Failure 409 {object} coreutils.ErrorResponse "Request is no longer in pending_approval state"
-// @Failure 500 {object} coreutils.ErrorResponse
+// @Failure 400 {object} utils.ErrorResponse "Invalid payload"
+// @Failure 409 {object} utils.ErrorResponse "Request is no longer in pending_approval state"
+// @Failure 500 {object} utils.ErrorResponse
 // @Security BearerAuth
 // @Router /privacy/admin/data-deletions/{uuid} [post]
-func decideDeletionRequest(c *gin.Context) {
+func (h *privacyHandler) decideDeletionRequest(c *gin.Context) {
 	requestID, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -159,14 +159,14 @@ func decideDeletionRequest(c *gin.Context) {
 		return
 	}
 
-	if valErr := service.ValidateDeletionRequestPending(c, requestID); valErr != nil {
+	if valErr := h.service.ValidateDeletionRequestPending(c, requestID); valErr != nil {
 		handleError(c, http.StatusConflict, valErr)
 		return
 	}
 
 	switch decision.Decision {
 	case privacyDTO.AuditorDecisionReject:
-		record, err := service.RejectDeletionRequest(c, requestID, decision.Note)
+		record, err := h.service.RejectDeletionRequest(c, requestID, decision.Note)
 		if err != nil {
 			if errors.Is(err, service.ErrDeletionRequestNotPending) {
 				handleError(c, http.StatusConflict, err)
@@ -179,7 +179,7 @@ func decideDeletionRequest(c *gin.Context) {
 		c.JSON(http.StatusOK, record)
 
 	case privacyDTO.AuditorDecisionApprove:
-		record, err := service.AcceptDeletionRequest(c, requestID, decision.Note)
+		record, err := h.service.AcceptDeletionRequest(c, requestID, decision.Note)
 		if err != nil {
 			if errors.Is(err, service.ErrDeletionRequestNotPending) {
 				handleError(c, http.StatusConflict, err)
@@ -189,10 +189,10 @@ func decideDeletionRequest(c *gin.Context) {
 			handleError(c, http.StatusInternalServerError, err)
 			return
 		}
-		state, err := service.PrepareDataDeletion(c, record)
+		state, err := h.service.PrepareDataDeletion(c, record)
 		if err != nil {
 			log.Error("deletion preparation failed: ", err)
-			service.MarkDeletionRequestFailed(c, requestID)
+			h.service.MarkDeletionRequestFailed(c, requestID)
 			handleError(c, http.StatusInternalServerError, err)
 			return
 		}
@@ -202,7 +202,7 @@ func decideDeletionRequest(c *gin.Context) {
 		go func() {
 			ctx, cancel := context.WithTimeout(context.Background(), service.DeletionRunTimeout)
 			defer cancel()
-			service.RunDataDeletion(ctx, authHeader, state)
+			h.service.RunDataDeletion(ctx, authHeader, state)
 		}()
 
 	default:
@@ -222,11 +222,11 @@ func decideDeletionRequest(c *gin.Context) {
 // @Produce json
 // @Param body body privacyDTO.AdminInitiateDeletionBody true "List of student IDs to delete"
 // @Success 200 {array} privacyDTO.PrivacyDeletionRequest
-// @Failure 400 {object} coreutils.ErrorResponse "Invalid payload or unknown student_id"
-// @Failure 500 {object} coreutils.ErrorResponse
+// @Failure 400 {object} utils.ErrorResponse "Invalid payload or unknown student_id"
+// @Failure 500 {object} utils.ErrorResponse
 // @Security BearerAuth
 // @Router /privacy/admin/data-deletions [post]
-func adminInitiateDeletionRequests(c *gin.Context) {
+func (h *privacyHandler) adminInitiateDeletionRequests(c *gin.Context) {
 	var body privacyDTO.AdminInitiateDeletionBody
 	if err := c.ShouldBindJSON(&body); err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -235,12 +235,12 @@ func adminInitiateDeletionRequests(c *gin.Context) {
 
 	body.StudentIDs = service.UniqueUUIDs(body.StudentIDs)
 
-	if err := service.ValidateStudentsExist(c, body.StudentIDs); err != nil {
+	if err := h.service.ValidateStudentsExist(c, body.StudentIDs); err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	records, err := service.CreateAdminInitiatedDeletionRequests(c, body.StudentIDs)
+	records, err := h.service.CreateAdminInitiatedDeletionRequests(c, body.StudentIDs)
 	if err != nil {
 		log.Error("admin-initiated deletion creation failed: ", err)
 		handleError(c, http.StatusInternalServerError, err)
@@ -253,7 +253,7 @@ func adminInitiateDeletionRequests(c *gin.Context) {
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), service.DeletionRunTimeout)
 		defer cancel()
-		service.RunAdminInitiatedDeletions(ctx, authHeader, records)
+		h.service.RunAdminInitiatedDeletions(ctx, authHeader, records)
 	}()
 }
 
@@ -266,18 +266,18 @@ func adminInitiateDeletionRequests(c *gin.Context) {
 // @Produce json
 // @Param body body privacyDTO.DeletionStatusBody true "List of deletion request IDs"
 // @Success 200 {array} privacyDTO.PrivacyDeletionRequest
-// @Failure 400 {object} coreutils.ErrorResponse
-// @Failure 500 {object} coreutils.ErrorResponse
+// @Failure 400 {object} utils.ErrorResponse
+// @Failure 500 {object} utils.ErrorResponse
 // @Security BearerAuth
 // @Router /privacy/admin/data-deletions/status [post]
-func adminInitiatedDeletionsStatus(c *gin.Context) {
+func (h *privacyHandler) adminInitiatedDeletionsStatus(c *gin.Context) {
 	var body privacyDTO.DeletionStatusBody
 	if err := c.ShouldBindJSON(&body); err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	records, err := service.GetDeletionRequestsByIDs(c, body.IDs)
+	records, err := h.service.GetDeletionRequestsByIDs(c, body.IDs)
 	if err != nil {
 		log.Error("deletion status fetch failed: ", err)
 		handleError(c, http.StatusInternalServerError, err)
@@ -288,7 +288,7 @@ func adminInitiatedDeletionsStatus(c *gin.Context) {
 }
 
 func handleError(c *gin.Context, statusCode int, err error) {
-	c.JSON(statusCode, coreutils.ErrorResponse{
+	c.JSON(statusCode, sdkUtils.ErrorResponse{
 		Error: err.Error(),
 	})
 }

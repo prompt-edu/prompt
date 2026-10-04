@@ -7,15 +7,10 @@ import (
 	"github.com/coreos/go-oidc/v3/oidc"
 )
 
-// Global verifier, initialized at application start-up
-var verifier *oidc.IDTokenVerifier
-
-func InitKeycloakVerifier() error {
-	ctx := context.Background()
-
+func (v *KeycloakTokenVerifier) initOIDCVerifier(ctx context.Context) error {
 	// Construct the provider URL. Keycloak hosts OIDC metadata at:
 	//   {BaseURL}/realms/{Realm}/.well-known/openid-configuration
-	providerURL := fmt.Sprintf("%s/realms/%s", KeycloakTokenVerifierSingleton.BaseURL, KeycloakTokenVerifierSingleton.Realm)
+	providerURL := fmt.Sprintf("%s/realms/%s", v.BaseURL, v.Realm)
 
 	provider, err := oidc.NewProvider(ctx, providerURL)
 	if err != nil {
@@ -27,6 +22,6 @@ func InitKeycloakVerifier() error {
 		SkipClientIDCheck: true, // otherwise students cannot apply to courses
 	}
 
-	verifier = provider.Verifier(config)
+	v.verifier = provider.Verifier(config)
 	return nil
 }

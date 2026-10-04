@@ -25,7 +25,7 @@ type RouterTestSuite struct {
 	router         *gin.Engine
 	ctx            context.Context
 	cleanup        func()
-	studentService StudentService
+	studentService *StudentService
 }
 
 func (suite *RouterTestSuite) SetupSuite() {
@@ -38,28 +38,23 @@ func (suite *RouterTestSuite) SetupSuite() {
 	}
 
 	suite.cleanup = cleanup
-	suite.studentService = StudentService{
-		queries: *testDB.Queries,
-		conn:    testDB.Conn,
-	}
+	suite.studentService = NewStudentService(*testDB.Queries)
 
-	StudentServiceSingleton = &suite.studentService
-
-	suite.router = setupRouter()
+	suite.router = setupRouter(suite.studentService)
 }
 
 func (suite *RouterTestSuite) TearDownSuite() {
 	suite.cleanup()
 }
 
-func setupRouter() *gin.Engine {
+func setupRouter(service *StudentService) *gin.Engine {
 	router := gin.Default()
 	api := router.Group("/api")
 	authMiddleware := func() gin.HandlerFunc {
 		return sdkTestUtils.MockAuthMiddleware([]string{"PROMPT_Admin"})
 	}
 	permissionMiddleware := sdkTestUtils.MockPermissionMiddleware
-	setupStudentRouter(api, authMiddleware, permissionMiddleware)
+	setupStudentRouter(api, service, authMiddleware, permissionMiddleware)
 	return router
 }
 
@@ -92,7 +87,7 @@ func (suite *RouterTestSuite) TestRouterGetStudentByID() {
 		StudyProgram:         "Computer Science",
 		StudyDegree:          "bachelor",
 	}
-	createdStudent, err := CreateStudent(suite.ctx, nil, newStudent)
+	createdStudent, err := suite.studentService.CreateStudent(suite.ctx, nil, newStudent)
 	assert.NoError(suite.T(), err)
 	expectedID = createdStudent.ID
 

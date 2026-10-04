@@ -1,5 +1,5 @@
+import type { StudentCourseParticipation } from '@core/interfaces/studentWithCourses'
 import { CourseAvatar } from '@core/managementConsole/layout/Sidebar/CourseSwitchSidebar/components/CourseAvatar'
-import type { StudentCourseParticipation } from '@core/network/queries/getStudentsWithCourses'
 
 export const StudentCoursePreview = ({
   studentCourseParticipation,

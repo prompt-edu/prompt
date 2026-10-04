@@ -14,14 +14,20 @@ import (
 // required configurations for a phase are already set and which are still missing.
 // The response helps the phase settings page indicate incomplete setup steps
 // (e.g. missing survey timeframe, teams, or skills) before activation.
+//
+// The service implements promptTypes.PhaseConfigHandler itself, so `RegisterRoutes`
+// passes it straight to the SDK and there is no separate handler type to keep in sync.
 type ConfigService struct {
 	queries db.Queries
 	conn    *pgxpool.Pool
 }
 
-var ConfigServiceSingleton *ConfigService
-
-type ExampleServerConfigHandler struct{}
+func NewConfigService(queries db.Queries, conn *pgxpool.Pool) *ConfigService {
+	return &ConfigService{
+		queries: queries,
+		conn:    conn,
+	}
+}
 
 // HandlePhaseConfig godoc
 // @Summary Get phase configuration status
@@ -34,8 +40,9 @@ type ExampleServerConfigHandler struct{}
 // @Router /course_phase/{coursePhaseID}/config [get]
 // HandlePhaseConfig is a placeholder implementation demonstrating the expected
 // method signature for phase config handlers. It currently returns 404 until
-// the actual functionality is implemented.
-func (h *ExampleServerConfigHandler) HandlePhaseConfig(c *gin.Context) (config map[string]bool, err error) {
+// the actual functionality is implemented. Read the database through the
+// receiver's fields (`s.queries`, `s.conn`), never through a global.
+func (s *ConfigService) HandlePhaseConfig(c *gin.Context) (map[string]bool, error) {
 	c.AbortWithStatus(http.StatusNotFound)
 	return nil, nil
 }

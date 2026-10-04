@@ -11,11 +11,13 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt-sdk/audit"
 	"github.com/prompt-edu/prompt-sdk/promptTypes"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/team_allocation/allocation"
 	"github.com/prompt-edu/prompt/servers/team_allocation/config"
 	"github.com/prompt-edu/prompt/servers/team_allocation/copy"
+	"github.com/prompt-edu/prompt/servers/team_allocation/coursePhaseDeletion"
 	db "github.com/prompt-edu/prompt/servers/team_allocation/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/team_allocation/privacy"
 	"github.com/prompt-edu/prompt/servers/team_allocation/skills"
@@ -25,15 +27,15 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func getDatabaseURL() string {
-	dbUser := promptSDK.GetEnv("DB_USER", "prompt-postgres")
-	dbPassword := promptSDK.GetEnv("DB_PASSWORD", "prompt-postgres")
-	dbHost := promptSDK.GetEnv("DB_HOST_TEAM_ALLOCATION", "localhost")
-	dbPort := promptSDK.GetEnv("DB_PORT_TEAM_ALLOCATION", "5434")
-	dbName := promptSDK.GetEnv("DB_NAME", "prompt")
-	sslMode := promptSDK.GetEnv("SSL_MODE", "disable")
-	timeZone := promptSDK.GetEnv("DB_TIMEZONE", "Europe/Berlin") // Add a timezone parameter
+var dbUser string = promptSDK.GetEnv("DB_USER", "prompt-postgres")
+var dbPassword string = promptSDK.GetEnv("DB_PASSWORD", "prompt-postgres")
+var dbHost string = promptSDK.GetEnv("DB_HOST_TEAM_ALLOCATION", "localhost")
+var dbPort string = promptSDK.GetEnv("DB_PORT_TEAM_ALLOCATION", "5434")
+var dbName string = promptSDK.GetEnv("DB_NAME", "prompt")
+var sslMode string = promptSDK.GetEnv("SSL_MODE", "disable")
+var timeZone string = promptSDK.GetEnv("DB_TIMEZONE", "Europe/Berlin") // Add a timezone parameter
 
+func getDatabaseURL() string {
 	return fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s&TimeZone=%s", dbUser, dbPassword, dbHost, dbPort, dbName, sslMode, timeZone)
 }
 
@@ -57,7 +59,7 @@ func main() {
 	}
 
 	databaseURL := getDatabaseURL()
-	log.Debug("Connecting to database at:", databaseURL)
+	log.Debugf("Connecting to database at host=%s port=%s db=%s user=%s sslmode=%s", dbHost, dbPort, dbName, dbUser, sslMode)
 
 	if err := sdkUtils.RunMigrations(databaseURL, "./db/migration"); err != nil {
 		log.Fatalf("Failed to run migrations: %v", err)
@@ -81,6 +83,8 @@ func main() {
 	router.Use(promptSDK.CORSMiddleware(clientHost))
 
 	api := router.Group("/team-allocation/api")
+	// Gin snapshots the handler chain when a subgroup is created, so this must run before coursePhaseApi.
+	api.Use(audit.Middleware(audit.NewCoreSink(sdkUtils.GetCoreUrl(), "team-allocation")))
 	coursePhaseApi := api.Group("/course_phase/:coursePhaseID")
 	if err := promptSDK.InitPhaseKeycloak(); err != nil {
 		log.Fatalf("Failed to initialize keycloak: %v", err)
@@ -88,21 +92,30 @@ func main() {
 
 	// No health endpoint; health checks are handled externally.
 
-	skills.InitSkillModule(coursePhaseApi, *query, conn)
-	teams.InitTeamModule(coursePhaseApi, *query, conn)
-	survey.InitSurveyModule(coursePhaseApi, *query, conn)
-	allocation.InitAllocationModule(coursePhaseApi, *query, conn)
+	skillsService := skills.NewSkillsService(*query, conn)
+	teamsService := teams.NewTeamsService(*query, conn)
+	surveyService := survey.NewSurveyService(*query, conn)
+	allocationService := allocation.NewAllocationService(*query)
+	teaseService := tease.NewTeaseService(*query, conn)
+	configService := config.NewConfigService(*query, surveyService)
+	copyService := copy.NewCopyService(*query, conn)
+	privacyService := privacy.NewTeamsPrivacyService(*query, conn)
+	coursePhaseDeletionService := coursePhaseDeletion.NewCoursePhaseDeletionService(*query, conn)
 
-	tease.InitTeaseModule(router.Group("team-allocation/api"), *query, conn) // some tease endpoint are coursePhase independent
+	skills.RegisterRoutes(coursePhaseApi, skillsService, promptSDK.AuthenticationMiddleware)
+	teams.RegisterRoutes(coursePhaseApi, teamsService, promptSDK.AuthenticationMiddleware)
+	survey.RegisterRoutes(coursePhaseApi, surveyService, promptSDK.AuthenticationMiddleware)
+	allocation.RegisterRoutes(coursePhaseApi, allocationService, promptSDK.AuthenticationMiddleware)
 
-	copyApi := router.Group("team-allocation/api")
-	copy.InitCopyModule(copyApi, *query, conn)
+	tease.RegisterRoutes(api, teaseService, promptSDK.AuthenticationMiddleware) // some tease endpoint are coursePhase independent
+	copy.RegisterRoutes(api, copyService)
 
-	config.InitConfigModule(coursePhaseApi, *query, conn)
+	config.RegisterRoutes(coursePhaseApi, configService)
 
-	privacy.InitPrivacyModule(api, *query, conn)
+	privacy.RegisterRoutes(api, privacyService)
+	coursePhaseDeletion.RegisterRoutes(coursePhaseApi, coursePhaseDeletionService)
 
-	promptTypes.RegisterInfoEndpoint(copyApi, promptTypes.ServiceInfo{
+	promptTypes.RegisterInfoEndpoint(api, promptTypes.ServiceInfo{
 		ServiceName: "team-allocation",
 		Version:     promptSDK.GetEnv("SERVER_IMAGE_TAG", ""),
 		Capabilities: map[string]bool{
@@ -110,6 +123,8 @@ func main() {
 			promptTypes.CapabilityPrivacyDeletion: true,
 			promptTypes.CapabilityPhaseCopy:       true,
 			promptTypes.CapabilityPhaseConfig:     true,
+			promptTypes.CapabilityPhaseDeletion:   true,
+			promptTypes.CapabilityAuditLog:        audit.Enabled(),
 		},
 	}, func() bool {
 		return conn.Ping(context.Background()) == nil

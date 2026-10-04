@@ -11,10 +11,12 @@ import (
 	"os/exec"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	"github.com/prompt-edu/prompt/servers/certificate/config"
 	db "github.com/prompt-edu/prompt/servers/certificate/db/sqlc"
@@ -173,6 +175,75 @@ func (s *GeneratorRouterTestSuite) TestCertificateStatusEndpoint_NoTemplate() {
 	assert.NoError(s.T(), err)
 	assert.Equal(s.T(), false, result["available"])
 	assert.Equal(s.T(), false, result["hasDownloaded"])
+}
+
+// staffRouter authenticates every request as a course lecturer. The default suite
+// router installs a no-op permission middleware, which leaves no token user, and
+// the status handler needs one for every branch past "template not configured".
+func (s *GeneratorRouterTestSuite) staffRouter() *gin.Engine {
+	router := gin.New()
+	api := router.Group("/api/course_phase/:coursePhaseID")
+	RegisterRoutes(api, s.service, func(allowedRoles ...string) gin.HandlerFunc {
+		return func(c *gin.Context) {
+			keycloakTokenVerifier.SetTokenUser(c, keycloakTokenVerifier.TokenUser{
+				Roles: map[string]bool{keycloakTokenVerifier.CourseLecturer: true},
+			})
+			c.Next()
+		}
+	})
+	return router
+}
+
+func (s *GeneratorRouterTestSuite) certificateStatus(router *gin.Engine, coursePhaseID uuid.UUID) map[string]interface{} {
+	url := fmt.Sprintf("/api/course_phase/%s/certificate/status", coursePhaseID)
+	req, _ := http.NewRequest(http.MethodGet, url, nil)
+	resp := httptest.NewRecorder()
+	router.ServeHTTP(resp, req)
+	assert.Equal(s.T(), http.StatusOK, resp.Code)
+
+	var result map[string]interface{}
+	assert.NoError(s.T(), json.Unmarshal(resp.Body.Bytes(), &result))
+	return result
+}
+
+func (s *GeneratorRouterTestSuite) TestCertificateStatus_CarriesStudentPageText() {
+	configService := config.NewConfigService(s.service.queries)
+	text := "<p>Add it to your LinkedIn profile.</p>"
+
+	// Without a template: the instructor's text is exactly what explains the wait.
+	noTemplatePhase := uuid.New()
+	_, err := configService.UpdateStudentPageText(s.suiteCtx, noTemplatePhase, &text)
+	assert.NoError(s.T(), err)
+
+	status := s.certificateStatus(s.router, noTemplatePhase)
+	assert.Equal(s.T(), false, status["available"])
+	assert.Equal(s.T(), text, status["studentPageText"])
+
+	// With a template configured, it is carried on the available status too.
+	withTemplatePhase := uuid.New()
+	_, err = configService.UpdateCoursePhaseConfig(s.suiteCtx, withTemplatePhase, "= Certificate", "Lecturer")
+	assert.NoError(s.T(), err)
+	_, err = configService.UpdateStudentPageText(s.suiteCtx, withTemplatePhase, &text)
+	assert.NoError(s.T(), err)
+
+	staff := s.staffRouter()
+	status = s.certificateStatus(staff, withTemplatePhase)
+	assert.Equal(s.T(), true, status["available"])
+	assert.Equal(s.T(), text, status["studentPageText"])
+
+	// Cleared again, the key disappears rather than turning into an empty string.
+	_, err = configService.UpdateStudentPageText(s.suiteCtx, withTemplatePhase, nil)
+	assert.NoError(s.T(), err)
+
+	status = s.certificateStatus(staff, withTemplatePhase)
+	_, present := status["studentPageText"]
+	assert.False(s.T(), present)
+}
+
+func (s *GeneratorRouterTestSuite) TestCertificateStatus_OmitsStudentPageTextWhenUnset() {
+	status := s.certificateStatus(s.router, uuid.New())
+	_, present := status["studentPageText"]
+	assert.False(s.T(), present)
 }
 
 // newGinContext creates a minimal gin.Context for unit-testing service functions.
@@ -390,6 +461,53 @@ func (s *GeneratorRouterTestSuite) TestCompileTypst_ValidTemplate() {
 	assert.NoError(s.T(), err)
 	assert.GreaterOrEqual(s.T(), len(pdfData), 4, "PDF output should be at least 4 bytes")
 	assert.Equal(s.T(), "%PDF", string(pdfData[:4]))
+}
+
+// studentRouter authenticates every request as an enrolled student, the only role the release date
+// gates.
+func (s *GeneratorRouterTestSuite) studentRouter() *gin.Engine {
+	router := gin.New()
+	api := router.Group("/api/course_phase/:coursePhaseID")
+	RegisterRoutes(api, s.service, func(allowedRoles ...string) gin.HandlerFunc {
+		return func(c *gin.Context) {
+			keycloakTokenVerifier.SetTokenUser(c, keycloakTokenVerifier.TokenUser{
+				Roles: map[string]bool{keycloakTokenVerifier.CourseStudent: true},
+			})
+			c.Next()
+		}
+	})
+	return router
+}
+
+func (s *GeneratorRouterTestSuite) TestStudentAccess_WithoutReleaseDateIsUnreleased() {
+	configService := config.NewConfigService(s.service.queries)
+	coursePhaseID := uuid.New()
+	_, err := configService.UpdateCoursePhaseConfig(s.suiteCtx, coursePhaseID, "= Certificate", "Lecturer")
+	assert.NoError(s.T(), err)
+	student := s.studentRouter()
+
+	status := s.certificateStatus(student, coursePhaseID)
+	assert.Equal(s.T(), false, status["available"])
+	assert.Equal(s.T(), "Your instructor has not released the certificates yet.", status["message"])
+
+	req, _ := http.NewRequest(http.MethodGet, fmt.Sprintf("/api/course_phase/%s/certificate/download", coursePhaseID), nil)
+	resp := httptest.NewRecorder()
+	student.ServeHTTP(resp, req)
+	assert.Equal(s.T(), http.StatusForbidden, resp.Code)
+}
+
+func (s *GeneratorRouterTestSuite) TestStudentAccess_BeforeReleaseDateNamesTheDate() {
+	configService := config.NewConfigService(s.service.queries)
+	coursePhaseID := uuid.New()
+	_, err := configService.UpdateCoursePhaseConfig(s.suiteCtx, coursePhaseID, "= Certificate", "Lecturer")
+	assert.NoError(s.T(), err)
+	releaseDate := time.Now().Add(48 * time.Hour)
+	_, err = configService.UpdateReleaseDate(s.suiteCtx, coursePhaseID, &releaseDate, "Lecturer")
+	assert.NoError(s.T(), err)
+
+	status := s.certificateStatus(s.studentRouter(), coursePhaseID)
+	assert.Equal(s.T(), false, status["available"])
+	assert.Contains(s.T(), status["message"], "Certificate will be available after")
 }
 
 func TestGeneratorRouterTestSuite(t *testing.T) {

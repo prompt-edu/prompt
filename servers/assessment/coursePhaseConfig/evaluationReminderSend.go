@@ -18,7 +18,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var getEvaluationReminderRecipientsForSendFn = GetEvaluationReminderRecipients
 var getCoreCoursePhaseFn = getCoreCoursePhase
 var sendManualReminderMailFn = sendManualReminderMail
 var updateCoreCoursePhaseFn = updateCoreCoursePhase
@@ -59,7 +58,7 @@ type coreManualMailReport struct {
 	SentAt              time.Time `json:"sentAt"`
 }
 
-func SendEvaluationReminderManualTrigger(
+func (s *CoursePhaseConfigService) SendEvaluationReminderManualTrigger(
 	ctx context.Context,
 	authHeader string,
 	coursePhaseID uuid.UUID,
@@ -72,7 +71,7 @@ func SendEvaluationReminderManualTrigger(
 		EvaluationType:      evaluationType,
 	}
 
-	recipients, err := getEvaluationReminderRecipientsForSendFn(ctx, authHeader, coursePhaseID, evaluationType)
+	recipients, err := s.getEvaluationReminderRecipients(ctx, authHeader, coursePhaseID, evaluationType)
 	if err != nil {
 		return report, err
 	}

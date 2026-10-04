@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt-sdk/audit"
 	db "github.com/prompt-edu/prompt/servers/interview/db/sqlc"
 	interviewSlotDTO "github.com/prompt-edu/prompt/servers/interview/interviewSlot/interviewSlotDTO"
 	log "github.com/sirupsen/logrus"
@@ -14,16 +15,16 @@ import (
 
 var _ db.InterviewSlot
 
-func setupInterviewSlotRouter(routerGroup *gin.RouterGroup, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
+func RegisterRoutes(routerGroup *gin.RouterGroup, service *InterviewSlotService, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
 	interviewRouter := routerGroup.Group("/interview-slots")
 
 	// Admin routes - manage interview slots
-	interviewRouter.POST("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), createInterviewSlot)
-	interviewRouter.POST("/batch", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), createInterviewSlotsBatch)
-	interviewRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.PromptLecturer, promptSDK.CourseStudent), getAllInterviewSlots)
-	interviewRouter.GET("/:slotId", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.PromptLecturer, promptSDK.CourseStudent), getInterviewSlot)
-	interviewRouter.PUT("/:slotId", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), updateInterviewSlot)
-	interviewRouter.DELETE("/:slotId", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), deleteInterviewSlot)
+	interviewRouter.POST("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.createInterviewSlot)
+	interviewRouter.POST("/batch", audit.Describe("Created interview slots in bulk"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.createInterviewSlotsBatch)
+	interviewRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.PromptLecturer, promptSDK.CourseStudent), service.getAllInterviewSlots)
+	interviewRouter.GET("/:slotId", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.PromptLecturer, promptSDK.CourseStudent), service.getInterviewSlot)
+	interviewRouter.PUT("/:slotId", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.updateInterviewSlot)
+	interviewRouter.DELETE("/:slotId", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.deleteInterviewSlot)
 }
 
 func writeServiceError(c *gin.Context, err error) {
@@ -50,7 +51,7 @@ func writeServiceError(c *gin.Context, err error) {
 // @Failure 500 {object} map[string]string
 // @Security ApiKeyAuth
 // @Router /course_phase/{coursePhaseID}/interview-slots [post]
-func createInterviewSlot(c *gin.Context) {
+func (s *InterviewSlotService) createInterviewSlot(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid course phase ID"})
@@ -63,7 +64,7 @@ func createInterviewSlot(c *gin.Context) {
 		return
 	}
 
-	slot, err := CreateInterviewSlot(c.Request.Context(), coursePhaseID, req)
+	slot, err := s.CreateInterviewSlot(c.Request.Context(), coursePhaseID, req)
 	if err != nil {
 		writeServiceError(c, err)
 		return
@@ -85,7 +86,7 @@ func createInterviewSlot(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Security ApiKeyAuth
 // @Router /course_phase/{coursePhaseID}/interview-slots/batch [post]
-func createInterviewSlotsBatch(c *gin.Context) {
+func (s *InterviewSlotService) createInterviewSlotsBatch(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid course phase ID"})
@@ -98,7 +99,7 @@ func createInterviewSlotsBatch(c *gin.Context) {
 		return
 	}
 
-	slots, err := CreateInterviewSlotsBatch(c.Request.Context(), coursePhaseID, req)
+	slots, err := s.CreateInterviewSlotsBatch(c.Request.Context(), coursePhaseID, req)
 	if err != nil {
 		writeServiceError(c, err)
 		return
@@ -118,14 +119,14 @@ func createInterviewSlotsBatch(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Security ApiKeyAuth
 // @Router /course_phase/{coursePhaseID}/interview-slots [get]
-func getAllInterviewSlots(c *gin.Context) {
+func (s *InterviewSlotService) getAllInterviewSlots(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid course phase ID"})
 		return
 	}
 
-	slots, err := GetAllInterviewSlots(c.Request.Context(), coursePhaseID, c.GetHeader("Authorization"))
+	slots, err := s.GetAllInterviewSlots(c.Request.Context(), coursePhaseID, c.GetHeader("Authorization"))
 	if err != nil {
 		writeServiceError(c, err)
 		return
@@ -147,7 +148,7 @@ func getAllInterviewSlots(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Security ApiKeyAuth
 // @Router /course_phase/{coursePhaseID}/interview-slots/{slotId} [get]
-func getInterviewSlot(c *gin.Context) {
+func (s *InterviewSlotService) getInterviewSlot(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid course phase ID"})
@@ -160,7 +161,7 @@ func getInterviewSlot(c *gin.Context) {
 		return
 	}
 
-	slot, err := GetInterviewSlot(c.Request.Context(), coursePhaseID, slotID, c.GetHeader("Authorization"))
+	slot, err := s.GetInterviewSlot(c.Request.Context(), coursePhaseID, slotID, c.GetHeader("Authorization"))
 	if err != nil {
 		writeServiceError(c, err)
 		return
@@ -183,7 +184,7 @@ func getInterviewSlot(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Security ApiKeyAuth
 // @Router /course_phase/{coursePhaseID}/interview-slots/{slotId} [put]
-func updateInterviewSlot(c *gin.Context) {
+func (s *InterviewSlotService) updateInterviewSlot(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid course phase ID"})
@@ -202,7 +203,7 @@ func updateInterviewSlot(c *gin.Context) {
 		return
 	}
 
-	slot, err := UpdateInterviewSlot(c.Request.Context(), coursePhaseID, slotID, req)
+	slot, err := s.UpdateInterviewSlot(c.Request.Context(), coursePhaseID, slotID, req)
 	if err != nil {
 		writeServiceError(c, err)
 		return
@@ -222,7 +223,7 @@ func updateInterviewSlot(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Security ApiKeyAuth
 // @Router /course_phase/{coursePhaseID}/interview-slots/{slotId} [delete]
-func deleteInterviewSlot(c *gin.Context) {
+func (s *InterviewSlotService) deleteInterviewSlot(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid course phase ID"})
@@ -235,7 +236,7 @@ func deleteInterviewSlot(c *gin.Context) {
 		return
 	}
 
-	if err := DeleteInterviewSlot(c.Request.Context(), coursePhaseID, slotID); err != nil {
+	if err := s.DeleteInterviewSlot(c.Request.Context(), coursePhaseID, slotID); err != nil {
 		writeServiceError(c, err)
 		return
 	}

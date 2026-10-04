@@ -8,21 +8,22 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt-sdk/audit"
 	"github.com/prompt-edu/prompt/servers/team_allocation/survey/surveyDTO"
 	log "github.com/sirupsen/logrus"
 )
 
-// SetupSurveyRouter sets up survey endpoints under /survey.
-func setupSurveyRouter(routerGroup *gin.RouterGroup, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
+// RegisterRoutes sets up survey endpoints under /survey.
+func RegisterRoutes(routerGroup *gin.RouterGroup, service *SurveyService, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
 	surveyRouter := routerGroup.Group("/survey")
 	// Endpoints accessible to CourseStudents.
-	surveyRouter.GET("/form", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseStudent), getSurveyForm)
-	surveyRouter.GET("/answers", authMiddleware(promptSDK.CourseStudent), getStudentSurveyResponses)
-	surveyRouter.POST("/answers", authMiddleware(promptSDK.CourseStudent), submitSurveyResponses)
+	surveyRouter.GET("/form", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseStudent), service.getSurveyForm)
+	surveyRouter.GET("/answers", authMiddleware(promptSDK.CourseStudent), service.getStudentSurveyResponses)
+	surveyRouter.POST("/answers", audit.Describe("Submitted survey answers"), authMiddleware(promptSDK.CourseStudent), service.submitSurveyResponses)
 
-	surveyRouter.PUT("/timeframe", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), setSurveyTimeframe)
-	surveyRouter.GET("/timeframe", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), getSurveyTimeframe)
-	surveyRouter.GET("/statistics", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), getSurveyStatistics)
+	surveyRouter.PUT("/timeframe", audit.Describe("Updated the survey timeframe"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.setSurveyTimeframe)
+	surveyRouter.GET("/timeframe", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.getSurveyTimeframe)
+	surveyRouter.GET("/statistics", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.getSurveyStatistics)
 
 }
 
@@ -39,7 +40,7 @@ func setupSurveyRouter(routerGroup *gin.RouterGroup, authMiddleware func(allowed
 // @Router /course_phase/{coursePhaseID}/survey/form [get]
 // getAvailableSurveyData returns teams and skills if the survey has started.
 // Expects coursePhaseID to be provided as a query parameter.
-func getSurveyForm(c *gin.Context) {
+func (s *SurveyService) getSurveyForm(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.Error("Error parsing coursePhaseID: ", err)
@@ -47,7 +48,7 @@ func getSurveyForm(c *gin.Context) {
 		return
 	}
 
-	surveyData, err := GetSurveyForm(c, coursePhaseID)
+	surveyData, err := s.GetSurveyForm(c, coursePhaseID)
 	if err != nil {
 		if err.Error() == "survey has not started yet" {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -74,7 +75,7 @@ func getSurveyForm(c *gin.Context) {
 // @Router /course_phase/{coursePhaseID}/survey/answers [get]
 // getStudentSurveyResponses returns the student's submitted survey answers.
 // Expects courseParticipationID to be provided as a query parameter.
-func getStudentSurveyResponses(c *gin.Context) {
+func (s *SurveyService) getStudentSurveyResponses(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.Error("Error parsing coursePhaseID: ", err)
@@ -89,7 +90,7 @@ func getStudentSurveyResponses(c *gin.Context) {
 		return
 	}
 
-	responses, err := GetStudentSurveyResponses(c, courseParticipationID.(uuid.UUID), coursePhaseID)
+	responses, err := s.GetStudentSurveyResponses(c, courseParticipationID.(uuid.UUID), coursePhaseID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -112,7 +113,7 @@ func getStudentSurveyResponses(c *gin.Context) {
 // @Router /course_phase/{coursePhaseID}/survey/answers [post]
 // submitSurveyResponses accepts and stores (or overwrites) the student's survey answers.
 // Expects courseParticipationID and coursePhaseID as query parameters.
-func submitSurveyResponses(c *gin.Context) {
+func (s *SurveyService) submitSurveyResponses(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.Error("Error parsing coursePhaseID: ", err)
@@ -134,13 +135,13 @@ func submitSurveyResponses(c *gin.Context) {
 	}
 
 	// validate the request
-	err = ValidateStudentResponse(c, coursePhaseID, submission)
+	err = s.ValidateStudentResponse(c, coursePhaseID, submission)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	err = SubmitSurveyResponses(c, courseParticipationID.(uuid.UUID), coursePhaseID, submission)
+	err = s.SubmitSurveyResponses(c, courseParticipationID.(uuid.UUID), coursePhaseID, submission)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -163,7 +164,7 @@ func submitSurveyResponses(c *gin.Context) {
 // @Router /course_phase/{coursePhaseID}/survey/timeframe [put]
 // setSurveyTimeframe allows lecturers to set or update the survey timeframe.
 // Expects coursePhaseID as a query parameter and the new timeframe in the JSON body.
-func setSurveyTimeframe(c *gin.Context) {
+func (s *SurveyService) setSurveyTimeframe(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.Error("Error parsing coursePhaseID: ", err)
@@ -177,7 +178,7 @@ func setSurveyTimeframe(c *gin.Context) {
 		return
 	}
 
-	err = SetSurveyTimeframe(c, coursePhaseID, req.SurveyStart, req.SurveyDeadline)
+	err = s.SetSurveyTimeframe(c, coursePhaseID, req.SurveyStart, req.SurveyDeadline)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -196,7 +197,7 @@ func setSurveyTimeframe(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Security ApiKeyAuth
 // @Router /course_phase/{coursePhaseID}/survey/timeframe [get]
-func getSurveyTimeframe(c *gin.Context) {
+func (s *SurveyService) getSurveyTimeframe(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.Error("Error parsing coursePhaseID: ", err)
@@ -204,7 +205,7 @@ func getSurveyTimeframe(c *gin.Context) {
 		return
 	}
 
-	timeframe, err := GetSurveyTimeframe(c, coursePhaseID)
+	timeframe, err := s.GetSurveyTimeframe(c, coursePhaseID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -223,7 +224,7 @@ func getSurveyTimeframe(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Security ApiKeyAuth
 // @Router /course_phase/{coursePhaseID}/survey/statistics [get]
-func getSurveyStatistics(c *gin.Context) {
+func (s *SurveyService) getSurveyStatistics(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.Error("Error parsing coursePhaseID: ", err)
@@ -231,7 +232,7 @@ func getSurveyStatistics(c *gin.Context) {
 		return
 	}
 
-	statistics, err := GetSurveyStatistics(c, coursePhaseID)
+	statistics, err := s.GetSurveyStatistics(c, coursePhaseID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

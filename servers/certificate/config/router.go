@@ -6,18 +6,27 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt-sdk/audit"
 	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
+	"github.com/prompt-edu/prompt-sdk/promptTypes"
 	"github.com/prompt-edu/prompt/servers/certificate/config/configDTO"
 	log "github.com/sirupsen/logrus"
 )
 
 func RegisterRoutes(routerGroup *gin.RouterGroup, service *ConfigService, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
-	configRouter := routerGroup.Group("/config")
+	// The standardized GET /config reports which required settings are in place. The settings
+	// themselves are served under /settings, which the certificate client reads and writes.
+	promptTypes.RegisterConfigModule(routerGroup, service, promptSDK.PromptAdmin, promptSDK.CourseLecturer)
 
-	configRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.CourseStudent), service.getConfig)
-	configRouter.PUT("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.updateConfig)
-	configRouter.PUT("/release-date", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.updateReleaseDate)
-	configRouter.GET("/template", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.getTemplate)
+	settingsRouter := routerGroup.Group("/settings")
+
+	// Students are deliberately absent: the payload carries the full Typst
+	// template. The student page reads its instructor text from /certificate/status.
+	settingsRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.getConfig)
+	settingsRouter.PUT("", audit.Describe("Updated the certificate configuration"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.updateConfig)
+	settingsRouter.PUT("/release-date", audit.Describe("Updated the certificate release date"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.updateReleaseDate)
+	settingsRouter.PUT("/student-page-text", audit.Describe("Updated the certificate student page text"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.updateStudentPageText)
+	settingsRouter.GET("/template", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.getTemplate)
 }
 
 func (s *ConfigService) getConfig(c *gin.Context) {
@@ -94,6 +103,37 @@ func (s *ConfigService) updateReleaseDate(c *gin.Context) {
 	if err != nil {
 		log.WithError(err).Error("Failed to update release date")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update release date"})
+		return
+	}
+
+	c.JSON(http.StatusOK, config)
+}
+
+func (s *ConfigService) updateStudentPageText(c *gin.Context) {
+	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
+	if err != nil {
+		log.WithError(err).Error("Failed to parse course phase ID")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid course phase ID"})
+		return
+	}
+
+	var request configDTO.UpdateStudentPageTextRequest
+	if err := c.ShouldBindJSON(&request); err != nil {
+		log.WithError(err).Error("Failed to bind request")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format"})
+		return
+	}
+
+	studentPageText, err := request.Text()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	config, err := s.UpdateStudentPageText(c, coursePhaseID, studentPageText)
+	if err != nil {
+		log.WithError(err).Error("Failed to update student page text")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update student page text"})
 		return
 	}
 

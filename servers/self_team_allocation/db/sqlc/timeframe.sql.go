@@ -19,8 +19,8 @@ WHERE course_phase_id = $1
 `
 
 type GetTimeframeRow struct {
-	Starttime pgtype.Timestamp `json:"starttime"`
-	Endtime   pgtype.Timestamp `json:"endtime"`
+	Starttime pgtype.Timestamptz `json:"starttime"`
+	Endtime   pgtype.Timestamptz `json:"endtime"`
 }
 
 // Returns the start and end time for a given course phase.
@@ -40,9 +40,9 @@ DO UPDATE SET starttime = EXCLUDED.starttime,
 `
 
 type SetTimeframeParams struct {
-	CoursePhaseID uuid.UUID        `json:"course_phase_id"`
-	Starttime     pgtype.Timestamp `json:"starttime"`
-	Endtime       pgtype.Timestamp `json:"endtime"`
+	CoursePhaseID uuid.UUID          `json:"course_phase_id"`
+	Starttime     pgtype.Timestamptz `json:"starttime"`
+	Endtime       pgtype.Timestamptz `json:"endtime"`
 }
 
 // Upsert the start and end time for a given course phase.

@@ -1299,7 +1299,10 @@ SELECT
     c.long_description,
     (cp.restricted_data->>'applicationEndDate')::text AS application_end_date,
     (cp.restricted_data->>'externalStudentsAllowed')::boolean AS external_students_allowed,
-    (cp.restricted_data->>'universityLoginAvailable')::boolean AS university_login_available
+    (cp.restricted_data->>'universityLoginAvailable')::boolean AS university_login_available,
+    -- deliberately public: rendered to applicants on the unauthenticated apply page.
+    -- COALESCE keeps the column non-null, so an unset key does not fail the scan.
+    COALESCE(cp.restricted_data->>'welcomeText', '')::text AS welcome_text
 FROM 
     course_phase cp
 JOIN 
@@ -1330,6 +1333,7 @@ type GetOpenApplicationPhaseRow struct {
 	ApplicationEndDate       string      `json:"application_end_date"`
 	ExternalStudentsAllowed  bool        `json:"external_students_allowed"`
 	UniversityLoginAvailable bool        `json:"university_login_available"`
+	WelcomeText              string      `json:"welcome_text"`
 }
 
 func (q *Queries) GetOpenApplicationPhase(ctx context.Context, id uuid.UUID) (GetOpenApplicationPhaseRow, error) {
@@ -1347,6 +1351,7 @@ func (q *Queries) GetOpenApplicationPhase(ctx context.Context, id uuid.UUID) (Ge
 		&i.ApplicationEndDate,
 		&i.ExternalStudentsAllowed,
 		&i.UniversityLoginAvailable,
+		&i.WelcomeText,
 	)
 	return i, err
 }

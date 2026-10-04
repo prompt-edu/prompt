@@ -22,6 +22,6 @@ func GetSurveyDataDTOFromDBModels(teams []db.Team, skills []db.Skill, deadline t
 	return SurveyForm{
 		Teams:    teamsDTO,
 		Skills:   skillsDTO,
-		Deadline: deadline,
+		Deadline: deadline.UTC(),
 	}
 }

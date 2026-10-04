@@ -14,9 +14,10 @@ import (
 
 type AllocationServiceTestSuite struct {
 	suite.Suite
-	ctx     context.Context
-	testDB  *sdkTestUtils.TestDB[*db.Queries]
-	cleanup func()
+	ctx               context.Context
+	testDB            *sdkTestUtils.TestDB[*db.Queries]
+	cleanup           func()
+	allocationService *AllocationService
 }
 
 func (suite *AllocationServiceTestSuite) SetupSuite() {
@@ -27,10 +28,7 @@ func (suite *AllocationServiceTestSuite) SetupSuite() {
 	suite.testDB = testDB
 	suite.cleanup = cleanup
 
-	AllocationServiceSingleton = &AllocationService{
-		queries: *testDB.Queries,
-		conn:    testDB.Conn,
-	}
+	suite.allocationService = NewAllocationService(*testDB.Queries)
 }
 
 func (suite *AllocationServiceTestSuite) TearDownSuite() {
@@ -42,7 +40,7 @@ func (suite *AllocationServiceTestSuite) TearDownSuite() {
 func (suite *AllocationServiceTestSuite) TestGetAllAllocations() {
 	coursePhaseID := uuid.MustParse("11111111-1111-1111-1111-111111111111")
 
-	allocations, err := GetAllAllocations(suite.ctx, coursePhaseID)
+	allocations, err := suite.allocationService.GetAllAllocations(suite.ctx, coursePhaseID)
 
 	require.NoError(suite.T(), err)
 	require.Len(suite.T(), allocations, 3)
@@ -52,7 +50,7 @@ func (suite *AllocationServiceTestSuite) TestGetAllocationByCourseParticipationI
 	coursePhaseID := uuid.MustParse("11111111-1111-1111-1111-111111111111")
 	participantID := uuid.MustParse("aaaa1111-1111-1111-1111-111111111111")
 
-	teamID, err := GetAllocationByCourseParticipationID(suite.ctx, participantID, coursePhaseID)
+	teamID, err := suite.allocationService.GetAllocationByCourseParticipationID(suite.ctx, participantID, coursePhaseID)
 
 	require.NoError(suite.T(), err)
 	require.Equal(suite.T(), uuid.MustParse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"), teamID)
@@ -62,7 +60,7 @@ func (suite *AllocationServiceTestSuite) TestGetAllocationByCourseParticipationI
 	coursePhaseID := uuid.MustParse("11111111-1111-1111-1111-111111111111")
 	participantID := uuid.MustParse("ffffffff-ffff-ffff-ffff-ffffffffffff")
 
-	_, err := GetAllocationByCourseParticipationID(suite.ctx, participantID, coursePhaseID)
+	_, err := suite.allocationService.GetAllocationByCourseParticipationID(suite.ctx, participantID, coursePhaseID)
 
 	require.Error(suite.T(), err)
 }

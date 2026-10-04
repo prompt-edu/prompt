@@ -18,12 +18,29 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type EvaluationCompletionService struct {
-	queries db.Queries
-	conn    *pgxpool.Pool
+type teamsResolver func(ctx context.Context, authHeader string, coursePhaseID uuid.UUID) ([]promptTypes.Team, error)
+
+type coursePhaseConfigProvider interface {
+	IsSelfEvaluationDeadlinePassed(ctx context.Context, coursePhaseID uuid.UUID) (bool, error)
+	IsPeerEvaluationDeadlinePassed(ctx context.Context, coursePhaseID uuid.UUID) (bool, error)
+	IsTutorEvaluationDeadlinePassed(ctx context.Context, coursePhaseID uuid.UUID) (bool, error)
 }
 
-var EvaluationCompletionServiceSingleton *EvaluationCompletionService
+type EvaluationCompletionService struct {
+	queries                db.Queries
+	conn                   *pgxpool.Pool
+	getTeamsForCoursePhase teamsResolver
+	coursePhaseConfig      coursePhaseConfigProvider
+}
+
+func NewEvaluationCompletionService(queries db.Queries, conn *pgxpool.Pool, getTeamsForCoursePhase teamsResolver, coursePhaseConfig coursePhaseConfigProvider) *EvaluationCompletionService {
+	return &EvaluationCompletionService{
+		queries:                queries,
+		conn:                   conn,
+		getTeamsForCoursePhase: getTeamsForCoursePhase,
+		coursePhaseConfig:      coursePhaseConfig,
+	}
+}
 
 var ErrInvalidEvaluationType = errors.New("invalid evaluation type")
 var ErrSelfEvaluationTargetMismatch = errors.New("self evaluation must target its author")
@@ -31,8 +48,6 @@ var ErrPeerEvaluationTargetNotInTeam = errors.New("peer evaluation must target a
 var ErrTutorEvaluationTargetNotTeamTutor = errors.New("tutor evaluation must target a tutor of the author's team")
 var ErrAuthorHasNoTeam = errors.New("author is not a member of any team in this course phase")
 var ErrEvaluationAlreadyCompleted = errors.New("evaluation completion already exists and is marked as completed")
-
-var getTeamsForCoursePhaseFn = coursePhaseConfig.GetTeamsForCoursePhase
 
 // IsTargetAuthorizationError reports whether err means the caller may not write a record
 // about the requested subject, so routers can answer 403 instead of 500.
@@ -42,8 +57,8 @@ func IsTargetAuthorizationError(err error) bool {
 		errors.Is(err, ErrAuthorHasNoTeam)
 }
 
-func CheckEvaluationIsEditable(ctx context.Context, qtx *db.Queries, authHeader string, courseParticipationID, coursePhaseID, authorCourseParticipationID uuid.UUID, evaluationType assessmentType.AssessmentType) error {
-	if err := checkEvaluationTarget(ctx, authHeader, coursePhaseID, courseParticipationID, authorCourseParticipationID, evaluationType); err != nil {
+func (s *EvaluationCompletionService) CheckEvaluationIsEditable(ctx context.Context, qtx *db.Queries, authHeader string, courseParticipationID, coursePhaseID, authorCourseParticipationID uuid.UUID, evaluationType assessmentType.AssessmentType) error {
+	if err := s.checkEvaluationTarget(ctx, authHeader, coursePhaseID, courseParticipationID, authorCourseParticipationID, evaluationType); err != nil {
 		return err
 	}
 
@@ -100,7 +115,7 @@ func CheckEvaluationIsEditable(ctx context.Context, qtx *db.Queries, authHeader 
 //
 // The default branch returns nil rather than rejecting: unknown types are the responsibility of
 // the evaluation-type switch in CheckEvaluationIsEditable, which answers ErrInvalidEvaluationType.
-func checkEvaluationTarget(ctx context.Context, authHeader string, coursePhaseID, courseParticipationID, authorCourseParticipationID uuid.UUID, evaluationType assessmentType.AssessmentType) error {
+func (s *EvaluationCompletionService) checkEvaluationTarget(ctx context.Context, authHeader string, coursePhaseID, courseParticipationID, authorCourseParticipationID uuid.UUID, evaluationType assessmentType.AssessmentType) error {
 	switch evaluationType {
 	case assessmentType.Self:
 		if courseParticipationID != authorCourseParticipationID {
@@ -108,14 +123,14 @@ func checkEvaluationTarget(ctx context.Context, authHeader string, coursePhaseID
 		}
 		return nil
 	case assessmentType.Peer, assessmentType.Tutor:
-		return checkTeamTarget(ctx, authHeader, coursePhaseID, courseParticipationID, authorCourseParticipationID, evaluationType)
+		return s.checkTeamTarget(ctx, authHeader, coursePhaseID, courseParticipationID, authorCourseParticipationID, evaluationType)
 	default:
 		return nil
 	}
 }
 
-func checkTeamTarget(ctx context.Context, authHeader string, coursePhaseID, courseParticipationID, authorCourseParticipationID uuid.UUID, evaluationType assessmentType.AssessmentType) error {
-	teams, err := getTeamsForCoursePhaseFn(ctx, authHeader, coursePhaseID)
+func (s *EvaluationCompletionService) checkTeamTarget(ctx context.Context, authHeader string, coursePhaseID, courseParticipationID, authorCourseParticipationID uuid.UUID, evaluationType assessmentType.AssessmentType) error {
+	teams, err := s.getTeamsForCoursePhase(ctx, authHeader, coursePhaseID)
 	if err != nil {
 		log.Error("could not fetch teams to validate the evaluation target: ", err)
 		return errors.New("could not fetch teams to validate the evaluation target")
@@ -159,19 +174,19 @@ func containsPerson(persons []promptTypes.Person, courseParticipationID uuid.UUI
 	return false
 }
 
-func CreateOrUpdateEvaluationCompletion(ctx context.Context, authHeader string, req evaluationCompletionDTO.EvaluationCompletion) error {
-	err := CheckEvaluationIsEditable(ctx, &EvaluationCompletionServiceSingleton.queries, authHeader, req.CourseParticipationID, req.CoursePhaseID, req.AuthorCourseParticipationID, req.Type)
+func (s *EvaluationCompletionService) CreateOrUpdateEvaluationCompletion(ctx context.Context, authHeader string, req evaluationCompletionDTO.EvaluationCompletion) error {
+	err := s.CheckEvaluationIsEditable(ctx, &s.queries, authHeader, req.CourseParticipationID, req.CoursePhaseID, req.AuthorCourseParticipationID, req.Type)
 	if err != nil {
 		return err
 	}
 
-	tx, err := EvaluationCompletionServiceSingleton.conn.Begin(ctx)
+	tx, err := s.conn.Begin(ctx)
 	if err != nil {
 		return err
 	}
 	defer promptSDK.DeferDBRollback(tx, ctx)
 
-	qtx := EvaluationCompletionServiceSingleton.queries.WithTx(tx)
+	qtx := s.queries.WithTx(tx)
 
 	err = qtx.CreateOrUpdateEvaluationCompletion(ctx, db.CreateOrUpdateEvaluationCompletionParams{
 		CourseParticipationID:       req.CourseParticipationID,
@@ -193,14 +208,14 @@ func CreateOrUpdateEvaluationCompletion(ctx context.Context, authHeader string, 
 	return nil
 }
 
-func MarkEvaluationAsCompleted(ctx context.Context, authHeader string, req evaluationCompletionDTO.EvaluationCompletion) error {
-	err := CheckEvaluationIsEditable(ctx, &EvaluationCompletionServiceSingleton.queries, authHeader, req.CourseParticipationID, req.CoursePhaseID, req.AuthorCourseParticipationID, req.Type)
+func (s *EvaluationCompletionService) MarkEvaluationAsCompleted(ctx context.Context, authHeader string, req evaluationCompletionDTO.EvaluationCompletion) error {
+	err := s.CheckEvaluationIsEditable(ctx, &s.queries, authHeader, req.CourseParticipationID, req.CoursePhaseID, req.AuthorCourseParticipationID, req.Type)
 	if err != nil {
 		return err
 	}
 
 	// Check if there are remaining evaluations before marking as completed
-	remainingEvaluations, err := EvaluationCompletionServiceSingleton.queries.CountRemainingEvaluationsForStudent(ctx, db.CountRemainingEvaluationsForStudentParams{
+	remainingEvaluations, err := s.queries.CountRemainingEvaluationsForStudent(ctx, db.CountRemainingEvaluationsForStudentParams{
 		CourseParticipationID:       req.CourseParticipationID,
 		AuthorCourseParticipationID: req.AuthorCourseParticipationID,
 		CoursePhaseID:               req.CoursePhaseID,
@@ -216,13 +231,13 @@ func MarkEvaluationAsCompleted(ctx context.Context, authHeader string, req evalu
 		return fmt.Errorf("cannot mark evaluation as completed: %d evaluations still remaining", remainingEvaluations)
 	}
 
-	tx, err := EvaluationCompletionServiceSingleton.conn.Begin(ctx)
+	tx, err := s.conn.Begin(ctx)
 	if err != nil {
 		return err
 	}
 	defer promptSDK.DeferDBRollback(tx, ctx)
 
-	qtx := EvaluationCompletionServiceSingleton.queries.WithTx(tx)
+	qtx := s.queries.WithTx(tx)
 
 	err = qtx.MarkEvaluationAsFinished(ctx, db.MarkEvaluationAsFinishedParams{
 		CourseParticipationID:       req.CourseParticipationID,
@@ -244,9 +259,9 @@ func MarkEvaluationAsCompleted(ctx context.Context, authHeader string, req evalu
 	return nil
 }
 
-func UnmarkEvaluationAsCompleted(ctx context.Context, courseParticipationID, coursePhaseID, authorCourseParticipationID uuid.UUID) error {
+func (s *EvaluationCompletionService) UnmarkEvaluationAsCompleted(ctx context.Context, courseParticipationID, coursePhaseID, authorCourseParticipationID uuid.UUID) error {
 	// Get the evaluation completion to determine its type
-	dbCompletion, err := EvaluationCompletionServiceSingleton.queries.GetEvaluationCompletion(ctx, db.GetEvaluationCompletionParams{
+	dbCompletion, err := s.queries.GetEvaluationCompletion(ctx, db.GetEvaluationCompletionParams{
 		CourseParticipationID:       courseParticipationID,
 		CoursePhaseID:               coursePhaseID,
 		AuthorCourseParticipationID: authorCourseParticipationID,
@@ -259,7 +274,7 @@ func UnmarkEvaluationAsCompleted(ctx context.Context, courseParticipationID, cou
 	completion := evaluationCompletionDTO.MapDBEvaluationCompletionToEvaluationCompletionDTO(dbCompletion)
 	switch completion.Type {
 	case assessmentType.Self:
-		deadlinePassed, err := coursePhaseConfig.IsSelfEvaluationDeadlinePassed(ctx, coursePhaseID)
+		deadlinePassed, err := s.coursePhaseConfig.IsSelfEvaluationDeadlinePassed(ctx, coursePhaseID)
 		if err != nil {
 			return err
 		}
@@ -267,7 +282,7 @@ func UnmarkEvaluationAsCompleted(ctx context.Context, courseParticipationID, cou
 			return coursePhaseConfig.ErrDeadlinePassed
 		}
 	case assessmentType.Peer:
-		deadlinePassed, err := coursePhaseConfig.IsPeerEvaluationDeadlinePassed(ctx, coursePhaseID)
+		deadlinePassed, err := s.coursePhaseConfig.IsPeerEvaluationDeadlinePassed(ctx, coursePhaseID)
 		if err != nil {
 			return err
 		}
@@ -275,7 +290,7 @@ func UnmarkEvaluationAsCompleted(ctx context.Context, courseParticipationID, cou
 			return coursePhaseConfig.ErrDeadlinePassed
 		}
 	case assessmentType.Tutor:
-		deadlinePassed, err := coursePhaseConfig.IsTutorEvaluationDeadlinePassed(ctx, coursePhaseID)
+		deadlinePassed, err := s.coursePhaseConfig.IsTutorEvaluationDeadlinePassed(ctx, coursePhaseID)
 		if err != nil {
 			return err
 		}
@@ -284,7 +299,7 @@ func UnmarkEvaluationAsCompleted(ctx context.Context, courseParticipationID, cou
 		}
 	}
 
-	err = EvaluationCompletionServiceSingleton.queries.UnmarkEvaluationAsFinished(ctx, db.UnmarkEvaluationAsFinishedParams{
+	err = s.queries.UnmarkEvaluationAsFinished(ctx, db.UnmarkEvaluationAsFinishedParams{
 		CourseParticipationID:       courseParticipationID,
 		CoursePhaseID:               coursePhaseID,
 		AuthorCourseParticipationID: authorCourseParticipationID,
@@ -296,8 +311,8 @@ func UnmarkEvaluationAsCompleted(ctx context.Context, courseParticipationID, cou
 	return nil
 }
 
-func DeleteEvaluationCompletion(ctx context.Context, courseParticipationID, coursePhaseID, authorCourseParticipationID uuid.UUID) error {
-	err := EvaluationCompletionServiceSingleton.queries.DeleteEvaluationCompletion(ctx, db.DeleteEvaluationCompletionParams{
+func (s *EvaluationCompletionService) DeleteEvaluationCompletion(ctx context.Context, courseParticipationID, coursePhaseID, authorCourseParticipationID uuid.UUID) error {
+	err := s.queries.DeleteEvaluationCompletion(ctx, db.DeleteEvaluationCompletionParams{
 		CourseParticipationID:       courseParticipationID,
 		CoursePhaseID:               coursePhaseID,
 		AuthorCourseParticipationID: authorCourseParticipationID,
@@ -309,8 +324,8 @@ func DeleteEvaluationCompletion(ctx context.Context, courseParticipationID, cour
 	return nil
 }
 
-func ListEvaluationCompletionsByCoursePhase(ctx context.Context, coursePhaseID uuid.UUID) ([]db.EvaluationCompletion, error) {
-	completions, err := EvaluationCompletionServiceSingleton.queries.GetEvaluationCompletionsByCoursePhase(ctx, coursePhaseID)
+func (s *EvaluationCompletionService) ListEvaluationCompletionsByCoursePhase(ctx context.Context, coursePhaseID uuid.UUID) ([]db.EvaluationCompletion, error) {
+	completions, err := s.queries.GetEvaluationCompletionsByCoursePhase(ctx, coursePhaseID)
 	if err != nil {
 		log.Error("could not get evaluation completions by course phase: ", err)
 		return nil, errors.New("could not get evaluation completions by course phase")
@@ -318,8 +333,8 @@ func ListEvaluationCompletionsByCoursePhase(ctx context.Context, coursePhaseID u
 	return completions, nil
 }
 
-func GetEvaluationCompletionForParticipantInPhase(ctx context.Context, courseParticipationID, coursePhaseID uuid.UUID) ([]db.EvaluationCompletion, error) {
-	completions, err := EvaluationCompletionServiceSingleton.queries.GetEvaluationCompletionsForParticipantInPhase(ctx, db.GetEvaluationCompletionsForParticipantInPhaseParams{
+func (s *EvaluationCompletionService) GetEvaluationCompletionForParticipantInPhase(ctx context.Context, courseParticipationID, coursePhaseID uuid.UUID) ([]db.EvaluationCompletion, error) {
+	completions, err := s.queries.GetEvaluationCompletionsForParticipantInPhase(ctx, db.GetEvaluationCompletionsForParticipantInPhaseParams{
 		CourseParticipationID: courseParticipationID,
 		CoursePhaseID:         coursePhaseID,
 	})
@@ -330,8 +345,8 @@ func GetEvaluationCompletionForParticipantInPhase(ctx context.Context, coursePar
 	return completions, nil
 }
 
-func GetEvaluationCompletionsForAuthorInPhase(ctx context.Context, authorCourseParticipationID, coursePhaseID uuid.UUID) ([]db.EvaluationCompletion, error) {
-	completions, err := EvaluationCompletionServiceSingleton.queries.GetEvaluationCompletionsForAuthorInPhase(ctx, db.GetEvaluationCompletionsForAuthorInPhaseParams{
+func (s *EvaluationCompletionService) GetEvaluationCompletionsForAuthorInPhase(ctx context.Context, authorCourseParticipationID, coursePhaseID uuid.UUID) ([]db.EvaluationCompletion, error) {
+	completions, err := s.queries.GetEvaluationCompletionsForAuthorInPhase(ctx, db.GetEvaluationCompletionsForAuthorInPhaseParams{
 		AuthorCourseParticipationID: authorCourseParticipationID,
 		CoursePhaseID:               coursePhaseID,
 	})

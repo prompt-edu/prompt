@@ -58,6 +58,8 @@ func NewS3Adapter(bucket, region, endpoint, publicEndpoint, accessKey, secretKey
 		if presignEndpoint != "" {
 			o.BaseEndpoint = aws.String(presignEndpoint)
 		}
+		// Browsers consume these URLs and cannot send the x-amz-checksum-mode header the SDK would otherwise sign.
+		o.ResponseChecksumValidation = aws.ResponseChecksumValidationWhenRequired
 	}))
 
 	_, err = client.HeadBucket(ctx, &s3.HeadBucketInput{

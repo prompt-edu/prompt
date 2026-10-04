@@ -13,15 +13,20 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/prompt-edu/prompt-sdk/testutils"
+	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/core/mailing/mailingDTO"
 	"github.com/stretchr/testify/assert"
 )
 
-func setupMailingTestRouter() *gin.Engine {
+func newTestMailingService() *MailingService {
+	return NewMailingService(db.Queries{}, "localhost", "25", "", "", "Test-Email-Sender", "test@test.de", "localhost")
+}
+
+func setupMailingTestRouter(service *MailingService) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
 	api := router.Group("/api")
-	setupMailingRouter(api, func() gin.HandlerFunc {
+	setupMailingRouter(api, service, func() gin.HandlerFunc {
 		return testutils.MockAuthMiddleware([]string{"PROMPT_Admin"})
 	}, testutils.MockPermissionMiddleware)
 
@@ -29,7 +34,7 @@ func setupMailingTestRouter() *gin.Engine {
 }
 
 func TestSendManualMailTriggerInvalidPhaseID(t *testing.T) {
-	router := setupMailingTestRouter()
+	router := setupMailingTestRouter(newTestMailingService())
 	requestBody := []byte(`{"subject":"s","content":"c","recipientCourseParticipationIDs":[]}`)
 	req := httptest.NewRequest(http.MethodPost, "/api/mailing/not-a-uuid/manual", bytes.NewReader(requestBody))
 	req.Header.Set("Content-Type", "application/json")
@@ -42,7 +47,7 @@ func TestSendManualMailTriggerInvalidPhaseID(t *testing.T) {
 }
 
 func TestSendManualMailTriggerInvalidBody(t *testing.T) {
-	router := setupMailingTestRouter()
+	router := setupMailingTestRouter(newTestMailingService())
 	phaseID := uuid.MustParse("33333333-3333-3333-3333-333333333333")
 
 	req := httptest.NewRequest(
@@ -59,10 +64,8 @@ func TestSendManualMailTriggerInvalidBody(t *testing.T) {
 }
 
 func TestSendManualMailTriggerSuccess(t *testing.T) {
-	oldSendManualMailFn := sendManualMailFn
-	t.Cleanup(func() { sendManualMailFn = oldSendManualMailFn })
-
-	sendManualMailFn = func(
+	service := newTestMailingService()
+	service.sendManualMail = func(
 		ctx context.Context,
 		coursePhaseID uuid.UUID,
 		request mailingDTO.SendManualMailRequest,
@@ -77,7 +80,7 @@ func TestSendManualMailTriggerSuccess(t *testing.T) {
 		}, nil
 	}
 
-	router := setupMailingTestRouter()
+	router := setupMailingTestRouter(service)
 	phaseID := uuid.MustParse("33333333-3333-3333-3333-333333333333")
 	requestBody := []byte(`{
 		"subject":"Subj",
@@ -104,10 +107,8 @@ func TestSendManualMailTriggerSuccess(t *testing.T) {
 }
 
 func TestSendManualMailTriggerServiceError(t *testing.T) {
-	oldSendManualMailFn := sendManualMailFn
-	t.Cleanup(func() { sendManualMailFn = oldSendManualMailFn })
-
-	sendManualMailFn = func(
+	service := newTestMailingService()
+	service.sendManualMail = func(
 		ctx context.Context,
 		coursePhaseID uuid.UUID,
 		request mailingDTO.SendManualMailRequest,
@@ -115,7 +116,7 @@ func TestSendManualMailTriggerServiceError(t *testing.T) {
 		return mailingDTO.ManualMailReport{}, errors.New("sending failed")
 	}
 
-	router := setupMailingTestRouter()
+	router := setupMailingTestRouter(service)
 	phaseID := uuid.MustParse("33333333-3333-3333-3333-333333333333")
 	requestBody := []byte(`{"subject":"Subj","content":"Body","recipientCourseParticipationIDs":[]}`)
 	req := httptest.NewRequest(
@@ -133,10 +134,8 @@ func TestSendManualMailTriggerServiceError(t *testing.T) {
 }
 
 func TestSendManualMailTriggerValidationError(t *testing.T) {
-	oldSendManualMailFn := sendManualMailFn
-	t.Cleanup(func() { sendManualMailFn = oldSendManualMailFn })
-
-	sendManualMailFn = func(
+	service := newTestMailingService()
+	service.sendManualMail = func(
 		ctx context.Context,
 		coursePhaseID uuid.UUID,
 		request mailingDTO.SendManualMailRequest,
@@ -144,7 +143,7 @@ func TestSendManualMailTriggerValidationError(t *testing.T) {
 		return mailingDTO.ManualMailReport{}, ErrManualMailValidation
 	}
 
-	router := setupMailingTestRouter()
+	router := setupMailingTestRouter(service)
 	phaseID := uuid.MustParse("33333333-3333-3333-3333-333333333333")
 	requestBody := []byte(`{"subject":"Subj","content":"Body","recipientCourseParticipationIDs":[]}`)
 	req := httptest.NewRequest(

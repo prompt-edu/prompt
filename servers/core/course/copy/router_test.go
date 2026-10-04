@@ -17,8 +17,8 @@ import (
 	"github.com/prompt-edu/prompt/servers/core/course/copy/courseCopyDTO"
 	"github.com/prompt-edu/prompt/servers/core/course/courseDTO"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase"
+	"github.com/prompt-edu/prompt/servers/core/coursePhase/resolution"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
-	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
@@ -28,7 +28,7 @@ type CourseCopyRouterTestSuite struct {
 	router            *gin.Engine
 	ctx               context.Context
 	cleanup           func()
-	courseCopyService CourseCopyService
+	courseCopyService *CourseCopyService
 }
 
 func (suite *CourseCopyRouterTestSuite) SetupSuite() {
@@ -46,24 +46,15 @@ func (suite *CourseCopyRouterTestSuite) SetupSuite() {
 	}
 
 	suite.cleanup = cleanup
-	suite.courseCopyService = CourseCopyService{
-		queries:                    *testDB.Queries,
-		conn:                       testDB.Conn,
-		createCourseGroupsAndRoles: mockCreateGroupsAndRoles,
-	}
-
-	CourseCopyServiceSingleton = &suite.courseCopyService
-
-	// Init the permissionValidation service
-	permissionValidation.InitValidationService(*testDB.Queries, testDB.Conn)
+	coursePhaseService := coursePhase.NewCoursePhaseService(*testDB.Queries, testDB.Conn, resolution.NewResolutionService("localhost:8080"))
+	suite.courseCopyService = NewCourseCopyService(*testDB.Queries, testDB.Conn, coursePhaseService, mockCreateGroupsAndRoles)
 
 	// Initialize router
 	suite.router = gin.Default()
 	api := suite.router.Group("/api")
-	setupCourseCopyRouter(api, func() gin.HandlerFunc {
+	setupCourseCopyRouter(api, suite.courseCopyService, func() gin.HandlerFunc {
 		return sdkTestUtils.MockAuthMiddleware([]string{"PROMPT_Admin", "iPraktikum-ios24245-Lecturer"})
 	}, sdkTestUtils.MockPermissionMiddleware, sdkTestUtils.MockPermissionMiddleware)
-	coursePhase.InitCoursePhaseModule(api, *testDB.Queries, testDB.Conn)
 }
 
 func (suite *CourseCopyRouterTestSuite) TearDownSuite() {

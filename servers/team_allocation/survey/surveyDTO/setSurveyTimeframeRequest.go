@@ -15,7 +15,7 @@ type SurveyTimeframe struct {
 func GetSurveyTimeframeDTOFromDBModel(timeframe db.GetSurveyTimeframeRow) SurveyTimeframe {
 	return SurveyTimeframe{
 		TimeframeSet:   true,
-		SurveyStart:    timeframe.SurveyStart.Time,
-		SurveyDeadline: timeframe.SurveyDeadline.Time,
+		SurveyStart:    timeframe.SurveyStart.Time.UTC(),
+		SurveyDeadline: timeframe.SurveyDeadline.Time.UTC(),
 	}
 }

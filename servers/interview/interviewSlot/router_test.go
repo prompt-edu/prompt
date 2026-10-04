@@ -25,6 +25,7 @@ type InterviewSlotRouterTestSuite struct {
 	ctx     context.Context
 	testDB  *sdkTestUtils.TestDB[*db.Queries]
 	cleanup func()
+	service *InterviewSlotService
 }
 
 func (suite *InterviewSlotRouterTestSuite) SetupSuite() {
@@ -36,10 +37,7 @@ func (suite *InterviewSlotRouterTestSuite) SetupSuite() {
 	suite.testDB = testDB
 	suite.cleanup = cleanup
 
-	InterviewSlotServiceSingleton = &InterviewSlotService{
-		queries: *testDB.Queries,
-		conn:    testDB.Conn,
-	}
+	suite.service = NewInterviewSlotService(*testDB.Queries, testDB.Conn)
 }
 
 func (suite *InterviewSlotRouterTestSuite) TearDownSuite() {
@@ -51,7 +49,7 @@ func (suite *InterviewSlotRouterTestSuite) TearDownSuite() {
 func (suite *InterviewSlotRouterTestSuite) newRouter() *gin.Engine {
 	router := gin.Default()
 	api := router.Group("/api/course_phase/:coursePhaseID")
-	setupInterviewSlotRouter(api, func(allowedRoles ...string) gin.HandlerFunc {
+	RegisterRoutes(api, suite.service, func(allowedRoles ...string) gin.HandlerFunc {
 		return sdkTestUtils.MockAuthMiddleware(allowedRoles)
 	})
 	return router
@@ -121,7 +119,7 @@ func (suite *InterviewSlotRouterTestSuite) TestUpdateInterviewSlotRoute() {
 		Location:  &location,
 		Capacity:  2,
 	}
-	slot, err := CreateInterviewSlot(suite.ctx, uuid.MustParse("11111111-1111-1111-1111-111111111111"), createBody)
+	slot, err := suite.service.CreateInterviewSlot(suite.ctx, uuid.MustParse("11111111-1111-1111-1111-111111111111"), createBody)
 	require.NoError(suite.T(), err)
 
 	router := suite.newRouter()
@@ -157,7 +155,7 @@ func (suite *InterviewSlotRouterTestSuite) TestDeleteInterviewSlotRoute() {
 		Location:  &location,
 		Capacity:  1,
 	}
-	slot, err := CreateInterviewSlot(suite.ctx, uuid.MustParse("11111111-1111-1111-1111-111111111111"), createBody)
+	slot, err := suite.service.CreateInterviewSlot(suite.ctx, uuid.MustParse("11111111-1111-1111-1111-111111111111"), createBody)
 	require.NoError(suite.T(), err)
 
 	router := suite.newRouter()

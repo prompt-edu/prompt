@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/scoreLevel/scoreLevelDTO"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
 	log "github.com/sirupsen/logrus"
@@ -12,13 +11,16 @@ import (
 
 type ScoreLevelService struct {
 	queries db.Queries
-	conn    *pgxpool.Pool
 }
 
-var ScoreLevelServiceSingleton *ScoreLevelService
+func NewScoreLevelService(queries db.Queries) *ScoreLevelService {
+	return &ScoreLevelService{
+		queries: queries,
+	}
+}
 
-func GetAllScoreLevels(ctx context.Context, coursePhaseID uuid.UUID) ([]scoreLevelDTO.ScoreLevelWithParticipation, error) {
-	dbScoreLevels, err := ScoreLevelServiceSingleton.queries.GetAllScoreLevels(ctx, coursePhaseID)
+func (s *ScoreLevelService) GetAllScoreLevels(ctx context.Context, coursePhaseID uuid.UUID) ([]scoreLevelDTO.ScoreLevelWithParticipation, error) {
+	dbScoreLevels, err := s.queries.GetAllScoreLevels(ctx, coursePhaseID)
 	if err != nil {
 		log.Error("Error fetching score levels from database: ", err)
 		return []scoreLevelDTO.ScoreLevelWithParticipation{}, err
@@ -28,8 +30,8 @@ func GetAllScoreLevels(ctx context.Context, coursePhaseID uuid.UUID) ([]scoreLev
 	return scoreLevels, nil
 }
 
-func GetScoreLevelByCourseParticipationID(ctx context.Context, courseParticipationID, coursePhaseID uuid.UUID) (db.ScoreLevel, error) {
-	dbScoreLevel, err := ScoreLevelServiceSingleton.queries.GetScoreLevelByCourseParticipationID(ctx, db.GetScoreLevelByCourseParticipationIDParams{
+func (s *ScoreLevelService) GetScoreLevelByCourseParticipationID(ctx context.Context, courseParticipationID, coursePhaseID uuid.UUID) (db.ScoreLevel, error) {
+	dbScoreLevel, err := s.queries.GetScoreLevelByCourseParticipationID(ctx, db.GetScoreLevelByCourseParticipationIDParams{
 		CourseParticipationID: courseParticipationID,
 		CoursePhaseID:         coursePhaseID,
 	})
@@ -41,8 +43,8 @@ func GetScoreLevelByCourseParticipationID(ctx context.Context, courseParticipati
 	return db.ScoreLevel(dbScoreLevel), nil
 }
 
-func GetStudentScore(ctx context.Context, courseParticipationID, coursePhaseID uuid.UUID) (scoreLevelDTO.StudentScore, error) {
-	studentScoreWithLevel, err := ScoreLevelServiceSingleton.queries.GetStudentScoreWithLevel(ctx, db.GetStudentScoreWithLevelParams{
+func (s *ScoreLevelService) GetStudentScore(ctx context.Context, courseParticipationID, coursePhaseID uuid.UUID) (scoreLevelDTO.StudentScore, error) {
+	studentScoreWithLevel, err := s.queries.GetStudentScoreWithLevel(ctx, db.GetStudentScoreWithLevelParams{
 		CourseParticipationID: courseParticipationID,
 		CoursePhaseID:         coursePhaseID,
 	})

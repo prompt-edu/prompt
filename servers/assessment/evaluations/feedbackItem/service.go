@@ -11,7 +11,6 @@ import (
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	"github.com/prompt-edu/prompt/servers/assessment/assessmentType"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
-	"github.com/prompt-edu/prompt/servers/assessment/evaluations/evaluationCompletion"
 	"github.com/prompt-edu/prompt/servers/assessment/evaluations/feedbackItem/feedbackItemDTO"
 	log "github.com/sirupsen/logrus"
 )
@@ -19,15 +18,26 @@ import (
 var ErrFeedbackItemNotFound = errors.New("feedback item not found")
 var ErrNotFeedbackItemAuthor = errors.New("you are not the author of this feedback item")
 
-type FeedbackItemService struct {
-	queries db.Queries
-	conn    *pgxpool.Pool
+type evaluationCompletionProvider interface {
+	CheckEvaluationIsEditable(ctx context.Context, qtx *db.Queries, authHeader string, courseParticipationID, coursePhaseID, authorCourseParticipationID uuid.UUID, evaluationType assessmentType.AssessmentType) error
 }
 
-var FeedbackItemServiceSingleton *FeedbackItemService
+type FeedbackItemService struct {
+	queries              db.Queries
+	conn                 *pgxpool.Pool
+	evaluationCompletion evaluationCompletionProvider
+}
 
-func GetFeedbackItem(ctx context.Context, feedbackItemID uuid.UUID) (feedbackItemDTO.FeedbackItem, error) {
-	feedbackItem, err := FeedbackItemServiceSingleton.queries.GetFeedbackItem(ctx, feedbackItemID)
+func NewFeedbackItemService(queries db.Queries, conn *pgxpool.Pool, evaluationCompletion evaluationCompletionProvider) *FeedbackItemService {
+	return &FeedbackItemService{
+		queries:              queries,
+		conn:                 conn,
+		evaluationCompletion: evaluationCompletion,
+	}
+}
+
+func (s *FeedbackItemService) GetFeedbackItem(ctx context.Context, feedbackItemID uuid.UUID) (feedbackItemDTO.FeedbackItem, error) {
+	feedbackItem, err := s.queries.GetFeedbackItem(ctx, feedbackItemID)
 	if err != nil {
 		log.Error("could not get feedback item: ", err)
 		return feedbackItemDTO.FeedbackItem{}, errors.New("could not get feedback item")
@@ -35,8 +45,8 @@ func GetFeedbackItem(ctx context.Context, feedbackItemID uuid.UUID) (feedbackIte
 	return feedbackItemDTO.MapDBFeedbackItemToFeedbackItemDTO(feedbackItem), nil
 }
 
-func ListFeedbackItemsForCoursePhase(ctx context.Context, coursePhaseID uuid.UUID) ([]feedbackItemDTO.FeedbackItem, error) {
-	feedbackItems, err := FeedbackItemServiceSingleton.queries.ListFeedbackItemsForCoursePhase(ctx, coursePhaseID)
+func (s *FeedbackItemService) ListFeedbackItemsForCoursePhase(ctx context.Context, coursePhaseID uuid.UUID) ([]feedbackItemDTO.FeedbackItem, error) {
+	feedbackItems, err := s.queries.ListFeedbackItemsForCoursePhase(ctx, coursePhaseID)
 	if err != nil {
 		log.Error("could not list feedback items for course phase: ", err)
 		return nil, errors.New("could not list feedback items for course phase")
@@ -44,8 +54,8 @@ func ListFeedbackItemsForCoursePhase(ctx context.Context, coursePhaseID uuid.UUI
 	return feedbackItemDTO.GetFeedbackItemDTOsFromDBModels(feedbackItems), nil
 }
 
-func ListFeedbackItemsForParticipantInPhase(ctx context.Context, courseParticipationID, coursePhaseID uuid.UUID) ([]feedbackItemDTO.FeedbackItem, error) {
-	feedbackItems, err := FeedbackItemServiceSingleton.queries.ListFeedbackItemsForParticipantInPhase(ctx, db.ListFeedbackItemsForParticipantInPhaseParams{
+func (s *FeedbackItemService) ListFeedbackItemsForParticipantInPhase(ctx context.Context, courseParticipationID, coursePhaseID uuid.UUID) ([]feedbackItemDTO.FeedbackItem, error) {
+	feedbackItems, err := s.queries.ListFeedbackItemsForParticipantInPhase(ctx, db.ListFeedbackItemsForParticipantInPhaseParams{
 		CourseParticipationID: courseParticipationID,
 		CoursePhaseID:         coursePhaseID,
 	})
@@ -56,8 +66,8 @@ func ListFeedbackItemsForParticipantInPhase(ctx context.Context, courseParticipa
 	return feedbackItemDTO.GetFeedbackItemDTOsFromDBModels(feedbackItems), nil
 }
 
-func ListFeedbackItemsForTutorInPhase(ctx context.Context, courseParticipationID, coursePhaseID uuid.UUID) ([]feedbackItemDTO.FeedbackItem, error) {
-	feedbackItems, err := FeedbackItemServiceSingleton.queries.ListFeedbackItemsForTutorInPhase(ctx, db.ListFeedbackItemsForTutorInPhaseParams{
+func (s *FeedbackItemService) ListFeedbackItemsForTutorInPhase(ctx context.Context, courseParticipationID, coursePhaseID uuid.UUID) ([]feedbackItemDTO.FeedbackItem, error) {
+	feedbackItems, err := s.queries.ListFeedbackItemsForTutorInPhase(ctx, db.ListFeedbackItemsForTutorInPhaseParams{
 		CourseParticipationID: courseParticipationID,
 		CoursePhaseID:         coursePhaseID,
 	})
@@ -68,8 +78,8 @@ func ListFeedbackItemsForTutorInPhase(ctx context.Context, courseParticipationID
 	return feedbackItemDTO.GetFeedbackItemDTOsFromDBModels(feedbackItems), nil
 }
 
-func ListFeedbackItemsByAuthorInPhase(ctx context.Context, authorCourseParticipationID, coursePhaseID uuid.UUID) ([]feedbackItemDTO.FeedbackItem, error) {
-	feedbackItems, err := FeedbackItemServiceSingleton.queries.ListFeedbackItemsByAuthorInPhase(ctx, db.ListFeedbackItemsByAuthorInPhaseParams{
+func (s *FeedbackItemService) ListFeedbackItemsByAuthorInPhase(ctx context.Context, authorCourseParticipationID, coursePhaseID uuid.UUID) ([]feedbackItemDTO.FeedbackItem, error) {
+	feedbackItems, err := s.queries.ListFeedbackItemsByAuthorInPhase(ctx, db.ListFeedbackItemsByAuthorInPhaseParams{
 		AuthorCourseParticipationID: authorCourseParticipationID,
 		CoursePhaseID:               coursePhaseID,
 	})
@@ -80,16 +90,16 @@ func ListFeedbackItemsByAuthorInPhase(ctx context.Context, authorCourseParticipa
 	return feedbackItemDTO.GetFeedbackItemDTOsFromDBModels(feedbackItems), nil
 }
 
-func CreateFeedbackItem(ctx context.Context, authHeader string, req feedbackItemDTO.CreateFeedbackItemRequest) error {
-	tx, err := FeedbackItemServiceSingleton.conn.Begin(ctx)
+func (s *FeedbackItemService) CreateFeedbackItem(ctx context.Context, authHeader string, req feedbackItemDTO.CreateFeedbackItemRequest) error {
+	tx, err := s.conn.Begin(ctx)
 	if err != nil {
 		return err
 	}
 	defer promptSDK.DeferDBRollback(tx, ctx)
 
-	qtx := FeedbackItemServiceSingleton.queries.WithTx(tx)
+	qtx := s.queries.WithTx(tx)
 
-	err = evaluationCompletion.CheckEvaluationIsEditable(ctx, qtx, authHeader, req.CourseParticipationID, req.CoursePhaseID, req.AuthorCourseParticipationID, req.Type)
+	err = s.evaluationCompletion.CheckEvaluationIsEditable(ctx, qtx, authHeader, req.CourseParticipationID, req.CoursePhaseID, req.AuthorCourseParticipationID, req.Type)
 	if err != nil {
 		return err
 	}
@@ -116,14 +126,14 @@ func CreateFeedbackItem(ctx context.Context, authHeader string, req feedbackItem
 	return nil
 }
 
-func UpdateFeedbackItem(ctx context.Context, authHeader string, feedbackItemID, coursePhaseID, authorCourseParticipationID uuid.UUID, req feedbackItemDTO.UpdateFeedbackItemRequest) error {
-	tx, err := FeedbackItemServiceSingleton.conn.Begin(ctx)
+func (s *FeedbackItemService) UpdateFeedbackItem(ctx context.Context, authHeader string, feedbackItemID, coursePhaseID, authorCourseParticipationID uuid.UUID, req feedbackItemDTO.UpdateFeedbackItemRequest) error {
+	tx, err := s.conn.Begin(ctx)
 	if err != nil {
 		return err
 	}
 	defer promptSDK.DeferDBRollback(tx, ctx)
 
-	qtx := FeedbackItemServiceSingleton.queries.WithTx(tx)
+	qtx := s.queries.WithTx(tx)
 
 	existing, err := qtx.GetFeedbackItem(ctx, feedbackItemID)
 	if err != nil {
@@ -141,7 +151,7 @@ func UpdateFeedbackItem(ctx context.Context, authHeader string, feedbackItemID, 
 		return ErrNotFeedbackItemAuthor
 	}
 
-	err = evaluationCompletion.CheckEvaluationIsEditable(ctx, qtx, authHeader, existing.CourseParticipationID, existing.CoursePhaseID, existing.AuthorCourseParticipationID, assessmentType.MapDBAssessmentTypeToDTO(existing.Type))
+	err = s.evaluationCompletion.CheckEvaluationIsEditable(ctx, qtx, authHeader, existing.CourseParticipationID, existing.CoursePhaseID, existing.AuthorCourseParticipationID, assessmentType.MapDBAssessmentTypeToDTO(existing.Type))
 	if err != nil {
 		return err
 	}
@@ -169,8 +179,8 @@ func UpdateFeedbackItem(ctx context.Context, authHeader string, feedbackItemID, 
 	return nil
 }
 
-func DeleteFeedbackItem(ctx context.Context, feedbackItemID uuid.UUID) error {
-	err := FeedbackItemServiceSingleton.queries.DeleteFeedbackItem(ctx, feedbackItemID)
+func (s *FeedbackItemService) DeleteFeedbackItem(ctx context.Context, feedbackItemID uuid.UUID) error {
+	err := s.queries.DeleteFeedbackItem(ctx, feedbackItemID)
 	if err != nil {
 		log.Error("could not delete feedback item: ", err)
 		return errors.New("could not delete feedback item")
@@ -178,8 +188,8 @@ func DeleteFeedbackItem(ctx context.Context, feedbackItemID uuid.UUID) error {
 	return nil
 }
 
-func IsFeedbackItemAuthor(ctx context.Context, feedbackItemID, authorID uuid.UUID) bool {
-	feedbackItem, err := FeedbackItemServiceSingleton.queries.GetFeedbackItem(ctx, feedbackItemID)
+func (s *FeedbackItemService) IsFeedbackItemAuthor(ctx context.Context, feedbackItemID, authorID uuid.UUID) bool {
+	feedbackItem, err := s.queries.GetFeedbackItem(ctx, feedbackItemID)
 	if err != nil {
 		log.Error("Error fetching feedback item: ", err)
 		return false

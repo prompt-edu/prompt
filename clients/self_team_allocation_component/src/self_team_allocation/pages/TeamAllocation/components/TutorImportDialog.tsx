@@ -151,7 +151,7 @@ export function TutorImportDialog() {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant='outline'>
-          <UserPlus className='mr-2 h-4 w-4' />
+          <UserPlus className='h-4 w-4' />
           Import Tutors
         </Button>
       </DialogTrigger>

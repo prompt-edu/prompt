@@ -10,14 +10,14 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func setupInterviewReviewRouter(routerGroup *gin.RouterGroup, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
+func RegisterRoutes(routerGroup *gin.RouterGroup, service *InterviewReviewService, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
 	reviewRouter := routerGroup.Group("/interview-review")
 
-	reviewRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), getAllInterviewReviews)
-	reviewRouter.PUT("/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), upsertInterviewReview)
+	reviewRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.getAllInterviewReviews)
+	reviewRouter.PUT("/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.upsertInterviewReview)
 
-	reviewRouter.GET("/score", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), getScores)
-	reviewRouter.GET("/scoreLevel", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), getScoreLevels)
+	reviewRouter.GET("/score", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.getScores)
+	reviewRouter.GET("/scoreLevel", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.getScoreLevels)
 }
 
 func handleError(c *gin.Context, statusCode int, err error) {
@@ -36,14 +36,14 @@ func handleError(c *gin.Context, statusCode int, err error) {
 // @Failure 500 {object} map[string]string
 // @Security ApiKeyAuth
 // @Router /course_phase/{coursePhaseID}/interview-review [get]
-func getAllInterviewReviews(c *gin.Context) {
+func (s *InterviewReviewService) getAllInterviewReviews(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	reviews, err := GetInterviewReviews(c.Request.Context(), coursePhaseID)
+	reviews, err := s.GetInterviewReviews(c.Request.Context(), coursePhaseID)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -66,7 +66,7 @@ func getAllInterviewReviews(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Security ApiKeyAuth
 // @Router /course_phase/{coursePhaseID}/interview-review/{courseParticipationID} [put]
-func upsertInterviewReview(c *gin.Context) {
+func (s *InterviewReviewService) upsertInterviewReview(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -90,7 +90,7 @@ func upsertInterviewReview(c *gin.Context) {
 		return
 	}
 
-	review, err := UpsertInterviewReview(c.Request.Context(), coursePhaseID, courseParticipationID, req)
+	review, err := s.UpsertInterviewReview(c.Request.Context(), coursePhaseID, courseParticipationID, req)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -110,14 +110,14 @@ func upsertInterviewReview(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Security ApiKeyAuth
 // @Router /course_phase/{coursePhaseID}/interview-review/score [get]
-func getScores(c *gin.Context) {
+func (s *InterviewReviewService) getScores(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	scores, err := GetScores(c.Request.Context(), coursePhaseID)
+	scores, err := s.GetScores(c.Request.Context(), coursePhaseID)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -137,14 +137,14 @@ func getScores(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Security ApiKeyAuth
 // @Router /course_phase/{coursePhaseID}/interview-review/scoreLevel [get]
-func getScoreLevels(c *gin.Context) {
+func (s *InterviewReviewService) getScoreLevels(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	scoreLevels, err := GetScoreLevels(c.Request.Context(), coursePhaseID)
+	scoreLevels, err := s.GetScoreLevels(c.Request.Context(), coursePhaseID)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return

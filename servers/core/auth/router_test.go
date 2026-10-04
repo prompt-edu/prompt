@@ -12,8 +12,8 @@ import (
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	"github.com/prompt-edu/prompt/servers/core/auth/authDTO"
 	"github.com/prompt-edu/prompt/servers/core/auth/service"
+	"github.com/prompt-edu/prompt/servers/core/course/courseParticipation"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
-	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/suite"
 )
@@ -35,15 +35,12 @@ func (suite *CourseRouterTestSuite) SetupSuite() {
 	}
 	suite.cleanup = cleanup
 
-	service.InitAuthService(*testDB.Queries, testDB.Conn)
-
-	// Init the permissionValidation service.
-	permissionValidation.InitValidationService(*testDB.Queries, testDB.Conn)
+	authService := service.NewAuthService(*testDB.Queries, courseParticipation.NewCourseParticipationService(*testDB.Queries))
 
 	// Initialize router.
 	suite.router = gin.Default()
 	api := suite.router.Group("/api")
-	setupAuthRouter(api,
+	setupAuthRouter(api, authService,
 		// Auth middleware: simulate a student with known email, matriculation number, and university login.
 		func() gin.HandlerFunc {
 			return sdkTestUtils.MockAuthMiddlewareWithEmail([]string{"ios2425-TestCourse-Student"}, "existingstudent@example.com", "09999999", "as45fgh")

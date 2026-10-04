@@ -5,10 +5,11 @@ description: Run PROMPT 2.0 and observe a change in a real browser. Boots the se
 
 # Verify a change in a real browser
 
-The `docker-compose.e2e.yml` stack is the fastest handle: core client, core server, every
-phase service, Keycloak with an imported realm, and a fully seeded database
-(`e2e/seed/e2e_seed.sql`) on ports that coexist with a dev stack — client 4000, core API
-18090, Keycloak 18081, Mailpit 18025.
+The `docker-compose.e2e.yml` stack is the fastest handle: it boots the core client, the
+core server, every phase service, Keycloak with an imported realm, and every database
+seeded from `seed/` (by the one-shot `seed` service, after the servers have migrated) on
+ports that coexist with a dev stack — client 4000, core API 18090, Keycloak 18081,
+Mailpit 18025.
 
 `e2e/docker-compose.browser.yml` overlays it for **host-browser mode**, and
 `make verify-up` boots that combination. Drive it with the **Playwright MCP** browser
@@ -20,11 +21,15 @@ phase service, Keycloak with an imported realm, and a fully seeded database
 make verify-up               # add SKIP_BUILD=1 to reuse images already built
 ```
 
-A cold build is ~10 min; afterwards startup is under a minute. Readiness:
+`depends_on` pulls in the databases, Keycloak, SeaweedFS and every phase service.
+`verify-up` also names `seed` explicitly: only `e2e-runner` depends on it, so without it
+the stack boots against empty databases. A cold build is ~10 min; afterwards startup is
+under a minute. Readiness:
 
 ```bash
 curl -s -o /dev/null -w '%{http_code}\n' http://localhost:18090/api/hello   # core API
 curl -s -o /dev/null -w '%{http_code}\n' http://localhost:4000              # core client
+docker compose -f docker-compose.e2e.yml logs seed | tail -1                # "seed: done"
 ```
 
 Tear down with `make verify-down` (removes volumes, so the seed is fresh next boot).
@@ -114,34 +119,18 @@ from the repo when done — `e2e/` is checked in.
 - The console logs a `[prompt-shared-state] Missing or invalid env keys` warning and
   404s for optional phase assets on every page — pre-existing noise, not your change.
   Offline you also get `ERR_NAME_NOT_RESOLVED` for the `gravatar.com` avatar.
-- The seed is a `pg_dump` file loaded by `initdb` with `ON_ERROR_STOP`: one duplicate key
-  aborts it and the whole stack fails to boot with `container prompt-e2e-db exited (3)`.
-  Validate a seed edit on its own before a full run. The image has no one-shot mode — on
-  success `postgres` goes on serving — so bound it on the init-complete line and tear the
-  container down either way:
-
-  ```bash
-  docker rm -f prompt-seed-check >/dev/null 2>&1
-  docker run -d --name prompt-seed-check \
-    -e POSTGRES_PASSWORD=x -e POSTGRES_DB=prompt \
-    -v "$PWD/e2e/seed/e2e_seed.sql:/docker-entrypoint-initdb.d/e2e_seed.sql:ro" \
-    postgres:15.18-alpine >/dev/null
-  for _ in $(seq 60); do
-    docker logs prompt-seed-check 2>&1 | grep -q 'init process complete' && break
-    [ "$(docker inspect -f '{{.State.Running}}' prompt-seed-check)" = true ] || break
-    sleep 2
-  done
-  docker logs prompt-seed-check 2>&1 | grep -Ei 'error|init process complete' | tail -5
-  docker rm -f prompt-seed-check >/dev/null
-  ```
-
-  `PostgreSQL init process complete` means the seed loaded; a `duplicate key value violates
-  unique constraint ...` line is the abort the stack would hit at boot. A clean seed
-  finishes in about five seconds, a broken one faster, and the loop caps the wait at two
-  minutes. Don't add `--rm` to the run: it deletes the container the moment initdb fails,
-  taking the error log with it. `timeout` is not used because macOS ships no such binary.
-- `SKIP_BUILD=1` keeps the *baked-in* copy of `e2e/src` and `e2e/tests` in the runner
-  image; the seed is a bind mount and updates without a rebuild. A client or server code
-  change always needs the build.
+- The seed runs in the one-shot `seed` container with `--single-transaction` and
+  `ON_ERROR_STOP`: a bad statement rolls the whole file back and `seed` exits non-zero.
+  `make verify-up` does not wait for it, so the browser stack still comes up, just without
+  the demo data. Read `docker compose -f docker-compose.e2e.yml logs seed` first.
+  `make seed-check` catches a mistyped cross-database id without booting anything.
+- The driver command's `--no-deps` skips `seed` along with everything else, so the boot
+  step above is the only thing that seeds the databases. The seed is authoritative, so
+  `docker compose -f docker-compose.e2e.yml start seed` runs the one-shot container
+  again and resets a stack you have written into.
+- Reusing images with `SKIP_BUILD=1` keeps the *baked-in* copy of `e2e/src` and
+  `e2e/tests`; `seed/` is a bind mount and updates without a rebuild. Edited constants
+  therefore need a rebuild, or the fallback driver navigates to stale ids. A client or
+  server code change always needs the build.
 - Both stacks share container names, so run one at a time: `make verify-down` before
   `make test-e2e-shard`, and vice versa.

@@ -27,10 +27,15 @@ type TeamsService struct {
 	conn    *pgxpool.Pool
 }
 
-var TeamsServiceSingleton *TeamsService
+func NewTeamsService(queries db.Queries, conn *pgxpool.Pool) *TeamsService {
+	return &TeamsService{
+		queries: queries,
+		conn:    conn,
+	}
+}
 
-func GetAllTeams(ctx context.Context, coursePhaseID uuid.UUID) ([]promptTypes.Team, error) {
-	dbTeams, err := TeamsServiceSingleton.queries.GetTeamsWithMembers(ctx, coursePhaseID)
+func (s *TeamsService) GetAllTeams(ctx context.Context, coursePhaseID uuid.UUID) ([]promptTypes.Team, error) {
+	dbTeams, err := s.queries.GetTeamsWithMembers(ctx, coursePhaseID)
 	if err != nil {
 		log.Error("could not get the teams from the database: ", err)
 		return nil, errors.New("could not get the teams from the database")
@@ -43,8 +48,8 @@ func GetAllTeams(ctx context.Context, coursePhaseID uuid.UUID) ([]promptTypes.Te
 	return dtos, nil
 }
 
-func GetTeamByID(ctx context.Context, coursePhaseID uuid.UUID, teamID uuid.UUID) (promptTypes.Team, error) {
-	dbTeam, err := TeamsServiceSingleton.queries.GetTeamByCoursePhaseAndTeamID(ctx, db.GetTeamByCoursePhaseAndTeamIDParams{
+func (s *TeamsService) GetTeamByID(ctx context.Context, coursePhaseID uuid.UUID, teamID uuid.UUID) (promptTypes.Team, error) {
+	dbTeam, err := s.queries.GetTeamByCoursePhaseAndTeamID(ctx, db.GetTeamByCoursePhaseAndTeamIDParams{
 		ID:            teamID,
 		CoursePhaseID: coursePhaseID,
 	})
@@ -55,13 +60,13 @@ func GetTeamByID(ctx context.Context, coursePhaseID uuid.UUID, teamID uuid.UUID)
 	return teamDTO.GetTeamDTOFromDBModel(dbTeam), nil
 }
 
-func CreateNewTeams(ctx context.Context, teamNames []string, coursePhaseID uuid.UUID) error {
-	tx, err := TeamsServiceSingleton.conn.Begin(ctx)
+func (s *TeamsService) CreateNewTeams(ctx context.Context, teamNames []string, coursePhaseID uuid.UUID) error {
+	tx, err := s.conn.Begin(ctx)
 	if err != nil {
 		return err
 	}
 	defer promptSDK.DeferDBRollback(tx, ctx)
-	qtx := TeamsServiceSingleton.queries.WithTx(tx)
+	qtx := s.queries.WithTx(tx)
 
 	for _, teamName := range teamNames {
 		err := qtx.CreateTeam(ctx, db.CreateTeamParams{
@@ -82,8 +87,8 @@ func CreateNewTeams(ctx context.Context, teamNames []string, coursePhaseID uuid.
 	return nil
 }
 
-func UpdateTeam(ctx context.Context, coursePhaseID, teamID uuid.UUID, newTeamName string) error {
-	err := TeamsServiceSingleton.queries.UpdateTeam(ctx, db.UpdateTeamParams{
+func (s *TeamsService) UpdateTeam(ctx context.Context, coursePhaseID, teamID uuid.UUID, newTeamName string) error {
+	err := s.queries.UpdateTeam(ctx, db.UpdateTeamParams{
 		ID:            teamID,
 		CoursePhaseID: coursePhaseID,
 		Name:          newTeamName,
@@ -95,8 +100,8 @@ func UpdateTeam(ctx context.Context, coursePhaseID, teamID uuid.UUID, newTeamNam
 	return nil
 }
 
-func DeleteTeam(ctx context.Context, coursePhaseID, teamID uuid.UUID) error {
-	err := TeamsServiceSingleton.queries.DeleteTeam(ctx, db.DeleteTeamParams{
+func (s *TeamsService) DeleteTeam(ctx context.Context, coursePhaseID, teamID uuid.UUID) error {
+	err := s.queries.DeleteTeam(ctx, db.DeleteTeamParams{
 		ID:            teamID,
 		CoursePhaseID: coursePhaseID,
 	})
@@ -107,13 +112,13 @@ func DeleteTeam(ctx context.Context, coursePhaseID, teamID uuid.UUID) error {
 	return nil
 }
 
-func AddStudentNamesToAllocations(ctx context.Context, req teamDTO.StudentNameUpdateRequest) error {
-	tx, err := TeamsServiceSingleton.conn.Begin(ctx)
+func (s *TeamsService) AddStudentNamesToAllocations(ctx context.Context, req teamDTO.StudentNameUpdateRequest) error {
+	tx, err := s.conn.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	defer promptSDK.DeferDBRollback(tx, ctx)
-	qtx := TeamsServiceSingleton.queries.WithTx(tx)
+	qtx := s.queries.WithTx(tx)
 
 	for participationID, name := range req.StudentNamesPerID {
 		err := qtx.UpdateStudentNameForAllocation(ctx, db.UpdateStudentNameForAllocationParams{
@@ -134,13 +139,13 @@ func AddStudentNamesToAllocations(ctx context.Context, req teamDTO.StudentNameUp
 	return nil
 }
 
-func ImportTutors(ctx context.Context, coursePhaseID uuid.UUID, tutors []teamDTO.Tutor) error {
-	tx, err := TeamsServiceSingleton.conn.Begin(ctx)
+func (s *TeamsService) ImportTutors(ctx context.Context, coursePhaseID uuid.UUID, tutors []teamDTO.Tutor) error {
+	tx, err := s.conn.Begin(ctx)
 	if err != nil {
 		return err
 	}
 	defer sdkUtils.DeferRollback(tx, ctx)
-	qtx := TeamsServiceSingleton.queries.WithTx(tx)
+	qtx := s.queries.WithTx(tx)
 
 	for _, tutor := range tutors {
 		normalizedLogin := teamDTO.NormalizeUniversityLogin(tutor.UniversityLogin)
@@ -169,8 +174,8 @@ func ImportTutors(ctx context.Context, coursePhaseID uuid.UUID, tutors []teamDTO
 	return nil
 }
 
-func UpdateTutorTeam(ctx context.Context, coursePhaseID uuid.UUID, universityLogin string, teamID uuid.UUID) error {
-	rows, err := TeamsServiceSingleton.queries.UpdateTutorTeam(ctx, db.UpdateTutorTeamParams{
+func (s *TeamsService) UpdateTutorTeam(ctx context.Context, coursePhaseID uuid.UUID, universityLogin string, teamID uuid.UUID) error {
+	rows, err := s.queries.UpdateTutorTeam(ctx, db.UpdateTutorTeamParams{
 		CoursePhaseID:   coursePhaseID,
 		UniversityLogin: teamDTO.UniversityLoginParam(universityLogin),
 		TeamID:          teamID,

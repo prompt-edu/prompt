@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
+	"github.com/prompt-edu/prompt/servers/assessment/assessmentSchemas"
 	"github.com/prompt-edu/prompt/servers/assessment/assessmentType"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/scoreLevel/scoreLevelDTO"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
@@ -25,7 +26,7 @@ type EvaluationServiceTestSuite struct {
 	mockCore              *testutils.MockCore
 	mockCoreCleanup       func()
 	testAuthHeader        string
-	evaluationService     EvaluationService
+	evaluationService     *EvaluationService
 	testCoursePhaseID     uuid.UUID
 	testCoursePhaseID2    uuid.UUID
 	testParticipantID1    uuid.UUID
@@ -51,15 +52,10 @@ func (suite *EvaluationServiceTestSuite) SetupSuite() {
 	suite.testAuthHeader = "Bearer evaluation-service-test-token"
 
 	suite.cleanup = cleanup
-	suite.evaluationService = EvaluationService{
-		queries: *testDB.Queries,
-		conn:    testDB.Conn,
-	}
-
-	EvaluationServiceSingleton = &suite.evaluationService
-
-	// Initialize CoursePhaseConfigSingleton to prevent nil pointer dereference
-	coursePhaseConfig.CoursePhaseConfigSingleton = coursePhaseConfig.NewCoursePhaseConfigService(*testDB.Queries, testDB.Conn)
+	coursePhaseConfigService := coursePhaseConfig.NewCoursePhaseConfigService(*testDB.Queries, testDB.Conn, assessmentSchemas.NewAssessmentSchemaService(*testDB.Queries, testDB.Conn))
+	suite.evaluationService = NewEvaluationService(*testDB.Queries, testDB.Conn,
+		evaluationCompletion.NewEvaluationCompletionService(*testDB.Queries, testDB.Conn, coursePhaseConfig.GetTeamsForCoursePhase, coursePhaseConfigService),
+		coursePhaseConfigService)
 
 	// Test data IDs matching the evaluations.sql dump
 	suite.testCoursePhaseID = uuid.MustParse("4179d58a-d00d-4fa7-94a5-397bc69fab02")
@@ -88,7 +84,7 @@ func TestEvaluationServiceTestSuite(t *testing.T) {
 }
 
 func (suite *EvaluationServiceTestSuite) TestGetEvaluationsByPhase() {
-	evaluations, err := GetEvaluationsByPhase(suite.suiteCtx, suite.testCoursePhaseID)
+	evaluations, err := suite.evaluationService.GetEvaluationsByPhase(suite.suiteCtx, suite.testCoursePhaseID)
 
 	assert.NoError(suite.T(), err)
 	assert.NotEmpty(suite.T(), evaluations)
@@ -101,7 +97,7 @@ func (suite *EvaluationServiceTestSuite) TestGetEvaluationsByPhase() {
 
 // Test getting evaluations by author
 func (suite *EvaluationServiceTestSuite) TestGetEvaluationsForAuthorInPhase() {
-	evaluations, err := GetEvaluationsForAuthorInPhase(suite.suiteCtx, suite.testParticipantID1, suite.testCoursePhaseID)
+	evaluations, err := suite.evaluationService.GetEvaluationsForAuthorInPhase(suite.suiteCtx, suite.testParticipantID1, suite.testCoursePhaseID)
 
 	assert.NoError(suite.T(), err)
 	assert.NotEmpty(suite.T(), evaluations)
@@ -115,7 +111,7 @@ func (suite *EvaluationServiceTestSuite) TestGetEvaluationsForAuthorInPhase() {
 
 // Test getting evaluation by ID
 func (suite *EvaluationServiceTestSuite) TestGetEvaluationByID() {
-	evaluation, err := GetEvaluationByID(suite.suiteCtx, suite.existingEvaluationID1)
+	evaluation, err := suite.evaluationService.GetEvaluationByID(suite.suiteCtx, suite.existingEvaluationID1)
 
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), suite.existingEvaluationID1, evaluation.ID)
@@ -129,7 +125,7 @@ func (suite *EvaluationServiceTestSuite) TestGetEvaluationByID() {
 // Test getting evaluation by non-existent ID
 func (suite *EvaluationServiceTestSuite) TestGetEvaluationByNonExistentID() {
 	nonExistentID := uuid.New()
-	_, err := GetEvaluationByID(suite.suiteCtx, nonExistentID)
+	_, err := suite.evaluationService.GetEvaluationByID(suite.suiteCtx, nonExistentID)
 
 	assert.Error(suite.T(), err)
 	assert.Contains(suite.T(), err.Error(), "could not get evaluation by ID")
@@ -145,11 +141,11 @@ func (suite *EvaluationServiceTestSuite) TestCreateOrUpdateEvaluation_Create() {
 		Type:                        assessmentType.Self,
 	}
 
-	err := CreateOrUpdateEvaluation(suite.suiteCtx, suite.testAuthHeader, suite.testCoursePhaseID, request)
+	err := suite.evaluationService.CreateOrUpdateEvaluation(suite.suiteCtx, suite.testAuthHeader, suite.testCoursePhaseID, request)
 	assert.NoError(suite.T(), err)
 
 	// Verify the evaluation was created by retrieving all evaluations for this participant
-	evaluations, err := GetEvaluationsForParticipantInPhase(suite.suiteCtx, suite.testParticipantID3, suite.testCoursePhaseID)
+	evaluations, err := suite.evaluationService.GetEvaluationsForParticipantInPhase(suite.suiteCtx, suite.testParticipantID3, suite.testCoursePhaseID)
 	assert.NoError(suite.T(), err)
 
 	// Find the newly created evaluation
@@ -174,16 +170,16 @@ func (suite *EvaluationServiceTestSuite) TestCreateOrUpdateEvaluation_Update() {
 		Type:                        assessmentType.Self,
 	}
 
-	err := CreateOrUpdateEvaluation(suite.suiteCtx, suite.testAuthHeader, suite.testCoursePhaseID, request)
+	err := suite.evaluationService.CreateOrUpdateEvaluation(suite.suiteCtx, suite.testAuthHeader, suite.testCoursePhaseID, request)
 	assert.NoError(suite.T(), err)
 
 	// Now update it with a different score
 	request.ScoreLevel = scoreLevelDTO.ScoreLevelVeryGood
-	err = CreateOrUpdateEvaluation(suite.suiteCtx, suite.testAuthHeader, suite.testCoursePhaseID, request)
+	err = suite.evaluationService.CreateOrUpdateEvaluation(suite.suiteCtx, suite.testAuthHeader, suite.testCoursePhaseID, request)
 	assert.NoError(suite.T(), err)
 
 	// Verify the evaluation was updated
-	evaluations, err := GetEvaluationsForParticipantInPhase(suite.suiteCtx, suite.testParticipantID2, suite.testCoursePhaseID)
+	evaluations, err := suite.evaluationService.GetEvaluationsForParticipantInPhase(suite.suiteCtx, suite.testParticipantID2, suite.testCoursePhaseID)
 	assert.NoError(suite.T(), err)
 
 	// Find the updated evaluation
@@ -208,11 +204,11 @@ func (suite *EvaluationServiceTestSuite) TestDeleteEvaluation() {
 		Type:                        assessmentType.Self,
 	}
 
-	err := CreateOrUpdateEvaluation(suite.suiteCtx, suite.testAuthHeader, suite.testCoursePhaseID, request)
+	err := suite.evaluationService.CreateOrUpdateEvaluation(suite.suiteCtx, suite.testAuthHeader, suite.testCoursePhaseID, request)
 	assert.NoError(suite.T(), err)
 
 	// Get the evaluation to find its ID
-	evaluations, err := GetEvaluationsForParticipantInPhase(suite.suiteCtx, suite.testParticipantID1, suite.testCoursePhaseID)
+	evaluations, err := suite.evaluationService.GetEvaluationsForParticipantInPhase(suite.suiteCtx, suite.testParticipantID1, suite.testCoursePhaseID)
 	assert.NoError(suite.T(), err)
 
 	var evaluationToDelete evaluationDTO.Evaluation
@@ -227,11 +223,11 @@ func (suite *EvaluationServiceTestSuite) TestDeleteEvaluation() {
 	assert.True(suite.T(), found, "Evaluation to delete should be found")
 
 	// Delete the evaluation
-	err = DeleteEvaluation(suite.suiteCtx, suite.testAuthHeader, evaluationToDelete.ID)
+	err = suite.evaluationService.DeleteEvaluation(suite.suiteCtx, suite.testAuthHeader, evaluationToDelete.ID)
 	assert.NoError(suite.T(), err)
 
 	// Verify the evaluation was deleted
-	_, err = GetEvaluationByID(suite.suiteCtx, evaluationToDelete.ID)
+	_, err = suite.evaluationService.GetEvaluationByID(suite.suiteCtx, evaluationToDelete.ID)
 	assert.Error(suite.T(), err)
 }
 
@@ -245,11 +241,11 @@ func (suite *EvaluationServiceTestSuite) TestCreatePeerEvaluation() {
 		Type:                        assessmentType.Peer,
 	}
 
-	err := CreateOrUpdateEvaluation(suite.suiteCtx, suite.testAuthHeader, suite.testCoursePhaseID, request)
+	err := suite.evaluationService.CreateOrUpdateEvaluation(suite.suiteCtx, suite.testAuthHeader, suite.testCoursePhaseID, request)
 	assert.NoError(suite.T(), err)
 
 	// Verify the peer evaluation was created
-	evaluations, err := GetEvaluationsForParticipantInPhase(suite.suiteCtx, suite.testParticipantID2, suite.testCoursePhaseID)
+	evaluations, err := suite.evaluationService.GetEvaluationsForParticipantInPhase(suite.suiteCtx, suite.testParticipantID2, suite.testCoursePhaseID)
 	assert.NoError(suite.T(), err)
 
 	found := false
@@ -274,7 +270,7 @@ func (suite *EvaluationServiceTestSuite) TestCreatePeerEvaluationRejectsOutsider
 		Type:                        assessmentType.Peer,
 	}
 
-	err := CreateOrUpdateEvaluation(suite.suiteCtx, suite.testAuthHeader, suite.testCoursePhaseID, request)
+	err := suite.evaluationService.CreateOrUpdateEvaluation(suite.suiteCtx, suite.testAuthHeader, suite.testCoursePhaseID, request)
 	assert.ErrorIs(suite.T(), err, evaluationCompletion.ErrPeerEvaluationTargetNotInTeam)
 }
 
@@ -288,7 +284,7 @@ func (suite *EvaluationServiceTestSuite) TestCreatePeerEvaluationRejectsSelfTarg
 		Type:                        assessmentType.Peer,
 	}
 
-	err := CreateOrUpdateEvaluation(suite.suiteCtx, suite.testAuthHeader, suite.testCoursePhaseID, request)
+	err := suite.evaluationService.CreateOrUpdateEvaluation(suite.suiteCtx, suite.testAuthHeader, suite.testCoursePhaseID, request)
 	assert.ErrorIs(suite.T(), err, evaluationCompletion.ErrPeerEvaluationTargetNotInTeam)
 }
 
@@ -302,7 +298,7 @@ func (suite *EvaluationServiceTestSuite) TestCreateTutorEvaluationRejectsNonTuto
 		Type:                        assessmentType.Tutor,
 	}
 
-	err := CreateOrUpdateEvaluation(suite.suiteCtx, suite.testAuthHeader, suite.testCoursePhaseID, request)
+	err := suite.evaluationService.CreateOrUpdateEvaluation(suite.suiteCtx, suite.testAuthHeader, suite.testCoursePhaseID, request)
 	assert.ErrorIs(suite.T(), err, evaluationCompletion.ErrTutorEvaluationTargetNotTeamTutor)
 }
 
@@ -316,7 +312,7 @@ func (suite *EvaluationServiceTestSuite) TestCreatePeerEvaluationRejectsTeamless
 		Type:                        assessmentType.Peer,
 	}
 
-	err := CreateOrUpdateEvaluation(suite.suiteCtx, suite.testAuthHeader, suite.testCoursePhaseID, request)
+	err := suite.evaluationService.CreateOrUpdateEvaluation(suite.suiteCtx, suite.testAuthHeader, suite.testCoursePhaseID, request)
 	assert.ErrorIs(suite.T(), err, evaluationCompletion.ErrAuthorHasNoTeam)
 }
 
@@ -333,10 +329,10 @@ func (suite *EvaluationServiceTestSuite) TestCreateTutorEvaluation() {
 		Type:                        assessmentType.Tutor,
 	}
 
-	err := CreateOrUpdateEvaluation(suite.suiteCtx, suite.testAuthHeader, suite.testCoursePhaseID, request)
+	err := suite.evaluationService.CreateOrUpdateEvaluation(suite.suiteCtx, suite.testAuthHeader, suite.testCoursePhaseID, request)
 	assert.NoError(suite.T(), err)
 
-	evaluations, err := GetEvaluationsForTutorInPhase(suite.suiteCtx, tutorParticipationID, suite.testCoursePhaseID)
+	evaluations, err := suite.evaluationService.GetEvaluationsForTutorInPhase(suite.suiteCtx, tutorParticipationID, suite.testCoursePhaseID)
 	assert.NoError(suite.T(), err)
 
 	found := false
@@ -361,14 +357,14 @@ func (suite *EvaluationServiceTestSuite) TestTargetCheckForwardsAuthHeaderToCore
 		Type:                        assessmentType.Peer,
 	}
 
-	err := CreateOrUpdateEvaluation(suite.suiteCtx, suite.testAuthHeader, suite.testCoursePhaseID, request)
+	err := suite.evaluationService.CreateOrUpdateEvaluation(suite.suiteCtx, suite.testAuthHeader, suite.testCoursePhaseID, request)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), suite.testAuthHeader, suite.mockCore.LastCoursePhaseDataAuthHeader())
 }
 
 // Test DTO mapping functionality
 func (suite *EvaluationServiceTestSuite) TestDTOMapping() {
-	evaluation, err := GetEvaluationByID(suite.suiteCtx, suite.existingEvaluationID1)
+	evaluation, err := suite.evaluationService.GetEvaluationByID(suite.suiteCtx, suite.existingEvaluationID1)
 	assert.NoError(suite.T(), err)
 
 	// Verify DTO fields are properly mapped

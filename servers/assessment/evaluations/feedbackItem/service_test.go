@@ -10,7 +10,9 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
+	"github.com/prompt-edu/prompt/servers/assessment/assessmentSchemas"
 	"github.com/prompt-edu/prompt/servers/assessment/assessmentType"
+	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/assessment/evaluations/evaluationCompletion"
 	"github.com/prompt-edu/prompt/servers/assessment/evaluations/feedbackItem/feedbackItemDTO"
@@ -20,7 +22,7 @@ type FeedbackItemServiceTestSuite struct {
 	suite.Suite
 	suiteCtx                  context.Context
 	cleanup                   func()
-	feedbackItemService       FeedbackItemService
+	feedbackItemService       *FeedbackItemService
 	testCoursePhaseID         uuid.UUID
 	testCourseParticipationID uuid.UUID
 	testAuthorID              uuid.UUID
@@ -35,11 +37,13 @@ func (suite *FeedbackItemServiceTestSuite) SetupSuite() {
 		suite.T().Fatalf("Failed to set up test database: %v", err)
 	}
 	suite.cleanup = cleanup
-	suite.feedbackItemService = FeedbackItemService{
-		queries: *testDB.Queries,
-		conn:    testDB.Conn,
-	}
-	FeedbackItemServiceSingleton = &suite.feedbackItemService
+	suite.feedbackItemService = NewFeedbackItemService(*testDB.Queries, testDB.Conn,
+		evaluationCompletion.NewEvaluationCompletionService(
+			*testDB.Queries,
+			testDB.Conn,
+			coursePhaseConfig.GetTeamsForCoursePhase,
+			coursePhaseConfig.NewCoursePhaseConfigService(*testDB.Queries, testDB.Conn, assessmentSchemas.NewAssessmentSchemaService(*testDB.Queries, testDB.Conn)),
+		))
 
 	// Use predefined test UUIDs from the test data that match feedbackItems.sql
 	suite.testCoursePhaseID = uuid.MustParse("24461b6b-3c3a-4bc6-ba42-69eeb1514da9")
@@ -83,7 +87,7 @@ func (suite *FeedbackItemServiceTestSuite) TestCreateFeedbackItem() {
 		Type:                        assessmentType.Self,
 	}
 
-	err := CreateFeedbackItem(suite.suiteCtx, suite.testAuthHeader, req)
+	err := suite.feedbackItemService.CreateFeedbackItem(suite.suiteCtx, suite.testAuthHeader, req)
 	assert.NoError(suite.T(), err)
 }
 
@@ -97,7 +101,7 @@ func (suite *FeedbackItemServiceTestSuite) TestCreateFeedbackItemRejectsForeignS
 		Type:                        assessmentType.Self,
 	}
 
-	err := CreateFeedbackItem(suite.suiteCtx, suite.testAuthHeader, req)
+	err := suite.feedbackItemService.CreateFeedbackItem(suite.suiteCtx, suite.testAuthHeader, req)
 	assert.ErrorIs(suite.T(), err, evaluationCompletion.ErrSelfEvaluationTargetMismatch)
 }
 
@@ -108,10 +112,10 @@ func (suite *FeedbackItemServiceTestSuite) TestUpdateFeedbackItem() {
 		FeedbackText: "Updated feedback text",
 	}
 
-	err := UpdateFeedbackItem(suite.suiteCtx, suite.testAuthHeader, updateFeedbackItemID, suite.testCoursePhaseID, suite.testAuthorID, req)
+	err := suite.feedbackItemService.UpdateFeedbackItem(suite.suiteCtx, suite.testAuthHeader, updateFeedbackItemID, suite.testCoursePhaseID, suite.testAuthorID, req)
 	assert.NoError(suite.T(), err)
 
-	updated, err := GetFeedbackItem(suite.suiteCtx, updateFeedbackItemID)
+	updated, err := suite.feedbackItemService.GetFeedbackItem(suite.suiteCtx, updateFeedbackItemID)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), "Updated feedback text", updated.FeedbackText)
 	assert.Equal(suite.T(), db.FeedbackTypeNegative, updated.FeedbackType)
@@ -125,7 +129,7 @@ func (suite *FeedbackItemServiceTestSuite) TestUpdateFeedbackItemRejectsWrongPha
 		FeedbackText: "Updated from another phase",
 	}
 
-	err := UpdateFeedbackItem(suite.suiteCtx, suite.testAuthHeader, updateFeedbackItemID, otherPhaseID, suite.testAuthorID, req)
+	err := suite.feedbackItemService.UpdateFeedbackItem(suite.suiteCtx, suite.testAuthHeader, updateFeedbackItemID, otherPhaseID, suite.testAuthorID, req)
 	assert.ErrorIs(suite.T(), err, ErrFeedbackItemNotFound)
 }
 
@@ -137,16 +141,16 @@ func (suite *FeedbackItemServiceTestSuite) TestUpdateFeedbackItemRejectsNonAutho
 		FeedbackText: "Rewritten by a non-author",
 	}
 
-	err := UpdateFeedbackItem(suite.suiteCtx, suite.testAuthHeader, updateFeedbackItemID, suite.testCoursePhaseID, suite.testAuthorID, req)
+	err := suite.feedbackItemService.UpdateFeedbackItem(suite.suiteCtx, suite.testAuthHeader, updateFeedbackItemID, suite.testCoursePhaseID, suite.testAuthorID, req)
 	assert.ErrorIs(suite.T(), err, ErrNotFeedbackItemAuthor)
 
-	unchanged, err := GetFeedbackItem(suite.suiteCtx, updateFeedbackItemID)
+	unchanged, err := suite.feedbackItemService.GetFeedbackItem(suite.suiteCtx, updateFeedbackItemID)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), "Need to improve time management", unchanged.FeedbackText)
 }
 
 func (suite *FeedbackItemServiceTestSuite) TestGetFeedbackItem() {
-	feedbackItem, err := GetFeedbackItem(suite.suiteCtx, suite.testFeedbackItemID)
+	feedbackItem, err := suite.feedbackItemService.GetFeedbackItem(suite.suiteCtx, suite.testFeedbackItemID)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), suite.testFeedbackItemID, feedbackItem.ID)
 	assert.Equal(suite.T(), "Great teamwork and communication skills!", feedbackItem.FeedbackText)
@@ -178,33 +182,33 @@ func (suite *FeedbackItemServiceTestSuite) TestDeleteFeedbackItem() {
 	assert.NoError(suite.T(), err)
 
 	// Now delete it
-	err = DeleteFeedbackItem(suite.suiteCtx, newID)
+	err = suite.feedbackItemService.DeleteFeedbackItem(suite.suiteCtx, newID)
 	assert.NoError(suite.T(), err)
 
 	// Verify it's deleted
-	_, err = GetFeedbackItem(suite.suiteCtx, newID)
+	_, err = suite.feedbackItemService.GetFeedbackItem(suite.suiteCtx, newID)
 	assert.Error(suite.T(), err)
 }
 
 func (suite *FeedbackItemServiceTestSuite) TestListFeedbackItemsForCoursePhase() {
-	feedbackItems, err := ListFeedbackItemsForCoursePhase(suite.suiteCtx, suite.testCoursePhaseID)
+	feedbackItems, err := suite.feedbackItemService.ListFeedbackItemsForCoursePhase(suite.suiteCtx, suite.testCoursePhaseID)
 	assert.NoError(suite.T(), err)
 	assert.GreaterOrEqual(suite.T(), len(feedbackItems), 2) // We have at least 2 in test data
 }
 
 func (suite *FeedbackItemServiceTestSuite) TestListFeedbackItemsForParticipantInPhase() {
-	feedbackItems, err := ListFeedbackItemsForParticipantInPhase(suite.suiteCtx, suite.testCourseParticipationID, suite.testCoursePhaseID)
+	feedbackItems, err := suite.feedbackItemService.ListFeedbackItemsForParticipantInPhase(suite.suiteCtx, suite.testCourseParticipationID, suite.testCoursePhaseID)
 	assert.NoError(suite.T(), err)
 	assert.GreaterOrEqual(suite.T(), len(feedbackItems), 1)
 }
 
 func (suite *FeedbackItemServiceTestSuite) TestIsFeedbackItemAuthor() {
-	isAuthor := IsFeedbackItemAuthor(suite.suiteCtx, suite.testFeedbackItemID, suite.testAuthorID)
+	isAuthor := suite.feedbackItemService.IsFeedbackItemAuthor(suite.suiteCtx, suite.testFeedbackItemID, suite.testAuthorID)
 	assert.True(suite.T(), isAuthor)
 
 	// Test with wrong author
 	wrongAuthor := uuid.MustParse("03234567-1234-1234-1234-123456789012")
-	isAuthor = IsFeedbackItemAuthor(suite.suiteCtx, suite.testFeedbackItemID, wrongAuthor)
+	isAuthor = suite.feedbackItemService.IsFeedbackItemAuthor(suite.suiteCtx, suite.testFeedbackItemID, wrongAuthor)
 	assert.False(suite.T(), isAuthor)
 }
 

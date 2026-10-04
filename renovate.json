@@ -6,6 +6,16 @@
   "prConcurrentLimit": 3,
   "rangeStrategy": "bump",
   "minimumReleaseAge": "7 days",
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Track the Playwright runner image through the @playwright/test npm release so both move together",
+      "managerFilePatterns": ["/^e2e/Dockerfile$/"],
+      "matchStrings": ["FROM mcr\\.microsoft\\.com/playwright:v(?<currentValue>\\S+)-jammy"],
+      "depNameTemplate": "@playwright/test",
+      "datasourceTemplate": "npm"
+    }
+  ],
   "packageRules": [
     {
       "description": "Group all non-major updates together",
@@ -13,8 +23,23 @@
       "groupName": "all non-major dependencies"
     },
     {
+      "description": "mcr.microsoft.com has no release timestamps, so minimumReleaseAge holds this image forever; the custom manager bumps it instead",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["mcr.microsoft.com/playwright"],
+      "enabled": false
+    },
+    {
       "description": "No minimum age for security updates",
       "matchCategories": ["security"],
+      "minimumReleaseAge": "0 days"
+    },
+    {
+      "description": "No minimum age for the packages we maintain ourselves",
+      "matchPackageNames": [
+        "@tumaet/prompt-shared-state",
+        "@tumaet/prompt-ui-components",
+        "github.com/prompt-edu/prompt-sdk"
+      ],
       "minimumReleaseAge": "0 days"
     }
   ]

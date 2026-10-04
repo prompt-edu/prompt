@@ -6,9 +6,10 @@ import {
   CoursePhaseParticipationsTable,
   ErrorPage,
   type ExtraParticipantColumn,
+  LoadingPage,
   ManagementPageHeader,
 } from '@tumaet/prompt-ui-components'
-import { Loader2, TriangleAlert } from 'lucide-react'
+import { TriangleAlert } from 'lucide-react'
 import { useMemo } from 'react'
 import { useParams } from 'react-router-dom'
 import { getResolvedCoursePhaseParticipations } from '../../network/getResolvedCoursePhaseParticipations'
@@ -57,9 +58,7 @@ export const MatchingParticipantsPage = () => {
       {isError ? (
         <ErrorPage onRetry={refetch} />
       ) : isPending ? (
-        <div className='flex justify-center items-center h-64'>
-          <Loader2 className='h-12 w-12 animate-spin text-primary' />
-        </div>
+        <LoadingPage />
       ) : (
         <>
           {failedResolutions.length > 0 && (

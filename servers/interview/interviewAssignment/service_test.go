@@ -20,6 +20,7 @@ type InterviewAssignmentServiceTestSuite struct {
 	ctx               context.Context
 	testDB            *sdkTestUtils.TestDB[*db.Queries]
 	cleanup           func()
+	service           *InterviewAssignmentService
 	activePhaseID     uuid.UUID
 	participationUUID uuid.UUID
 }
@@ -33,10 +34,7 @@ func (suite *InterviewAssignmentServiceTestSuite) SetupSuite() {
 	suite.activePhaseID = uuid.MustParse("11111111-1111-1111-1111-111111111111")
 	suite.participationUUID = uuid.MustParse("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee")
 
-	InterviewAssignmentServiceSingleton = &InterviewAssignmentService{
-		queries: *testDB.Queries,
-		conn:    testDB.Conn,
-	}
+	suite.service = NewInterviewAssignmentService(*testDB.Queries, testDB.Conn)
 }
 
 func (suite *InterviewAssignmentServiceTestSuite) TearDownSuite() {
@@ -52,7 +50,7 @@ func (suite *InterviewAssignmentServiceTestSuite) TestCreateInterviewAssignment(
 		InterviewSlotID: slotID,
 	}
 
-	assignment, err := CreateInterviewAssignment(suite.ctx, suite.activePhaseID, participationID, req)
+	assignment, err := suite.service.CreateInterviewAssignment(suite.ctx, suite.activePhaseID, participationID, req)
 
 	require.NoError(suite.T(), err)
 	require.Equal(suite.T(), slotID, assignment.InterviewSlotID)
@@ -72,7 +70,7 @@ func (suite *InterviewAssignmentServiceTestSuite) TestCreateInterviewAssignmentE
 		InterviewSlotID: slotID,
 	}
 
-	_, err := CreateInterviewAssignment(suite.ctx, suite.activePhaseID, participationID, req)
+	_, err := suite.service.CreateInterviewAssignment(suite.ctx, suite.activePhaseID, participationID, req)
 
 	require.Error(suite.T(), err)
 	var serviceErr *ServiceError
@@ -88,7 +86,7 @@ func (suite *InterviewAssignmentServiceTestSuite) TestCreateInterviewAssignmentS
 		InterviewSlotID: wrongPhaseSlotID,
 	}
 
-	_, err := CreateInterviewAssignment(suite.ctx, suite.activePhaseID, participationID, req)
+	_, err := suite.service.CreateInterviewAssignment(suite.ctx, suite.activePhaseID, participationID, req)
 
 	require.Error(suite.T(), err)
 	var serviceErr *ServiceError
@@ -99,7 +97,7 @@ func (suite *InterviewAssignmentServiceTestSuite) TestCreateInterviewAssignmentS
 func (suite *InterviewAssignmentServiceTestSuite) TestGetMyInterviewAssignment() {
 	participationID := uuid.MustParse("ffffffff-ffff-ffff-ffff-ffffffffffff")
 
-	assignment, err := GetMyInterviewAssignment(suite.ctx, suite.activePhaseID, participationID)
+	assignment, err := suite.service.GetMyInterviewAssignment(suite.ctx, suite.activePhaseID, participationID)
 
 	require.NoError(suite.T(), err)
 	require.Equal(suite.T(), participationID, assignment.CourseParticipationID)
@@ -109,7 +107,7 @@ func (suite *InterviewAssignmentServiceTestSuite) TestGetMyInterviewAssignment()
 func (suite *InterviewAssignmentServiceTestSuite) TestGetMyInterviewAssignmentNotFound() {
 	participationID := uuid.New()
 
-	_, err := GetMyInterviewAssignment(suite.ctx, suite.activePhaseID, participationID)
+	_, err := suite.service.GetMyInterviewAssignment(suite.ctx, suite.activePhaseID, participationID)
 
 	require.Error(suite.T(), err)
 	var serviceErr *ServiceError
@@ -131,10 +129,10 @@ func (suite *InterviewAssignmentServiceTestSuite) TestDeleteInterviewAssignment(
 	createReq := interviewAssignmentDTO.CreateInterviewAssignmentRequest{
 		InterviewSlotID: slot.ID,
 	}
-	assignment, err := CreateInterviewAssignment(suite.ctx, suite.activePhaseID, participationID, createReq)
+	assignment, err := suite.service.CreateInterviewAssignment(suite.ctx, suite.activePhaseID, participationID, createReq)
 	require.NoError(suite.T(), err)
 
-	err = DeleteInterviewAssignment(suite.ctx, suite.activePhaseID, assignment.ID, participationID, false)
+	err = suite.service.DeleteInterviewAssignment(suite.ctx, suite.activePhaseID, assignment.ID, participationID, false)
 
 	require.NoError(suite.T(), err)
 
@@ -146,7 +144,7 @@ func (suite *InterviewAssignmentServiceTestSuite) TestDeleteInterviewAssignmentU
 	assignmentID := uuid.MustParse("11111111-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
 	wrongParticipationID := uuid.New()
 
-	err := DeleteInterviewAssignment(suite.ctx, suite.activePhaseID, assignmentID, wrongParticipationID, false)
+	err := suite.service.DeleteInterviewAssignment(suite.ctx, suite.activePhaseID, assignmentID, wrongParticipationID, false)
 
 	require.Error(suite.T(), err)
 	var serviceErr *ServiceError

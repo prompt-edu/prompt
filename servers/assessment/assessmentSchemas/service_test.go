@@ -18,7 +18,7 @@ type AssessmentSchemaServiceTestSuite struct {
 	suite.Suite
 	suiteCtx                context.Context
 	cleanup                 func()
-	assessmentSchemaService AssessmentSchemaService
+	assessmentSchemaService *AssessmentSchemaService
 }
 
 func (suite *AssessmentSchemaServiceTestSuite) SetupSuite() {
@@ -28,11 +28,7 @@ func (suite *AssessmentSchemaServiceTestSuite) SetupSuite() {
 		suite.T().Fatalf("Failed to set up test database: %v", err)
 	}
 	suite.cleanup = cleanup
-	suite.assessmentSchemaService = AssessmentSchemaService{
-		queries: *testDB.Queries,
-		conn:    testDB.Conn,
-	}
-	AssessmentSchemaServiceSingleton = &suite.assessmentSchemaService
+	suite.assessmentSchemaService = NewAssessmentSchemaService(*testDB.Queries, testDB.Conn)
 }
 
 func (suite *AssessmentSchemaServiceTestSuite) TearDownSuite() {
@@ -42,7 +38,7 @@ func (suite *AssessmentSchemaServiceTestSuite) TearDownSuite() {
 }
 
 func (suite *AssessmentSchemaServiceTestSuite) TestListAssessmentSchemas() {
-	schemas, err := ListAssessmentSchemas(suite.suiteCtx)
+	schemas, err := suite.assessmentSchemaService.ListAssessmentSchemas(suite.suiteCtx)
 	assert.NoError(suite.T(), err)
 	assert.Greater(suite.T(), len(schemas), 0, "Expected at least one assessment schema")
 
@@ -62,7 +58,7 @@ func (suite *AssessmentSchemaServiceTestSuite) TestGetAssessmentSchema() {
 	// Use the default assessment schema ID from the database dump
 	defaultID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
 
-	schema, err := GetAssessmentSchema(suite.suiteCtx, defaultID)
+	schema, err := suite.assessmentSchemaService.GetAssessmentSchema(suite.suiteCtx, defaultID)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), defaultID, schema.ID)
 	assert.Equal(suite.T(), "Intro Course Assessment Schema", schema.Name)
@@ -75,7 +71,7 @@ func (suite *AssessmentSchemaServiceTestSuite) TestCreateAssessmentSchema() {
 		Description: "Test Description",
 	}
 
-	schema, err := CreateAssessmentSchema(suite.suiteCtx, req)
+	schema, err := suite.assessmentSchemaService.CreateAssessmentSchema(suite.suiteCtx, req)
 	assert.NoError(suite.T(), err, "Should be able to create assessment schema")
 	assert.NotEqual(suite.T(), uuid.Nil, schema.ID, "Should have a valid ID")
 	assert.Equal(suite.T(), req.Name, schema.Name, "Name should match")
@@ -85,7 +81,7 @@ func (suite *AssessmentSchemaServiceTestSuite) TestCreateAssessmentSchema() {
 func (suite *AssessmentSchemaServiceTestSuite) TestGetAssessmentSchemaNotFound() {
 	nonExistentID := uuid.New()
 
-	_, err := GetAssessmentSchema(suite.suiteCtx, nonExistentID)
+	_, err := suite.assessmentSchemaService.GetAssessmentSchema(suite.suiteCtx, nonExistentID)
 	assert.Error(suite.T(), err, "Should return error for non-existent schema")
 }
 
@@ -97,7 +93,7 @@ func (suite *AssessmentSchemaServiceTestSuite) TestUpdateAssessmentSchema() {
 		Description: "Original Description",
 	}
 
-	schema, err := CreateAssessmentSchemaForCoursePhase(suite.suiteCtx, coursePhaseID, createReq)
+	schema, err := suite.assessmentSchemaService.CreateAssessmentSchemaForCoursePhase(suite.suiteCtx, coursePhaseID, createReq)
 	assert.NoError(suite.T(), err, "Should be able to create assessment schema")
 
 	// Now update it
@@ -106,11 +102,11 @@ func (suite *AssessmentSchemaServiceTestSuite) TestUpdateAssessmentSchema() {
 		Description: "Updated Description",
 	}
 
-	err = UpdateAssessmentSchema(suite.suiteCtx, coursePhaseID, schema.ID, updateReq, false)
+	err = suite.assessmentSchemaService.UpdateAssessmentSchema(suite.suiteCtx, coursePhaseID, schema.ID, updateReq, false)
 	assert.NoError(suite.T(), err, "Owner should be able to update assessment schema")
 
 	// Verify the update
-	updatedSchema, err := GetAssessmentSchema(suite.suiteCtx, schema.ID)
+	updatedSchema, err := suite.assessmentSchemaService.GetAssessmentSchema(suite.suiteCtx, schema.ID)
 	assert.NoError(suite.T(), err, "Should be able to retrieve updated schema")
 	assert.Equal(suite.T(), updateReq.Name, updatedSchema.Name, "Name should be updated")
 	assert.Equal(suite.T(), updateReq.Description, updatedSchema.Description, "Description should be updated")
@@ -122,11 +118,11 @@ func (suite *AssessmentSchemaServiceTestSuite) TestUpdateAssessmentSchemaNonOwne
 		Name:        "Global Schema",
 		Description: "Shared",
 	}
-	schema, err := CreateAssessmentSchema(suite.suiteCtx, createReq)
+	schema, err := suite.assessmentSchemaService.CreateAssessmentSchema(suite.suiteCtx, createReq)
 	assert.NoError(suite.T(), err, "Should be able to create assessment schema")
 
 	updateReq := assessmentSchemaDTO.UpdateAssessmentSchemaRequest{Name: "Renamed", Description: "Shared"}
-	err = UpdateAssessmentSchema(suite.suiteCtx, uuid.New(), schema.ID, updateReq, false)
+	err = suite.assessmentSchemaService.UpdateAssessmentSchema(suite.suiteCtx, uuid.New(), schema.ID, updateReq, false)
 	assert.ErrorIs(suite.T(), err, ErrSchemaNotAccessible, "Non-owner should be denied")
 }
 
@@ -136,14 +132,14 @@ func (suite *AssessmentSchemaServiceTestSuite) TestUpdateAssessmentSchemaAdminBy
 		Name:        "Global Schema Admin",
 		Description: "Shared",
 	}
-	schema, err := CreateAssessmentSchema(suite.suiteCtx, createReq)
+	schema, err := suite.assessmentSchemaService.CreateAssessmentSchema(suite.suiteCtx, createReq)
 	assert.NoError(suite.T(), err, "Should be able to create assessment schema")
 
 	updateReq := assessmentSchemaDTO.UpdateAssessmentSchemaRequest{Name: "Admin Renamed", Description: "Shared"}
-	err = UpdateAssessmentSchema(suite.suiteCtx, uuid.New(), schema.ID, updateReq, true)
+	err = suite.assessmentSchemaService.UpdateAssessmentSchema(suite.suiteCtx, uuid.New(), schema.ID, updateReq, true)
 	assert.NoError(suite.T(), err, "Admin should be able to rename any schema")
 
-	updatedSchema, err := GetAssessmentSchema(suite.suiteCtx, schema.ID)
+	updatedSchema, err := suite.assessmentSchemaService.GetAssessmentSchema(suite.suiteCtx, schema.ID)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), updateReq.Name, updatedSchema.Name, "Name should be updated")
 }
@@ -156,7 +152,7 @@ func (suite *AssessmentSchemaServiceTestSuite) TestUpdateAssessmentSchemaNotFoun
 	}
 
 	// Admin path reaches the update and gets ErrSchemaNotFound for a missing schema.
-	err := UpdateAssessmentSchema(suite.suiteCtx, uuid.New(), nonExistentID, updateReq, true)
+	err := suite.assessmentSchemaService.UpdateAssessmentSchema(suite.suiteCtx, uuid.New(), nonExistentID, updateReq, true)
 	assert.ErrorIs(suite.T(), err, ErrSchemaNotFound, "Should return ErrSchemaNotFound for non-existent schema")
 }
 
@@ -167,33 +163,33 @@ func (suite *AssessmentSchemaServiceTestSuite) TestDeleteAssessmentSchema() {
 		Description: "Will be deleted",
 	}
 
-	schema, err := CreateAssessmentSchema(suite.suiteCtx, createReq)
+	schema, err := suite.assessmentSchemaService.CreateAssessmentSchema(suite.suiteCtx, createReq)
 	assert.NoError(suite.T(), err, "Should be able to create assessment schema")
 
 	// Now delete it
-	err = DeleteAssessmentSchema(suite.suiteCtx, schema.ID)
+	err = suite.assessmentSchemaService.DeleteAssessmentSchema(suite.suiteCtx, schema.ID)
 	assert.NoError(suite.T(), err, "Should be able to delete assessment schema")
 
 	// Verify it's gone
-	_, err = GetAssessmentSchema(suite.suiteCtx, schema.ID)
+	_, err = suite.assessmentSchemaService.GetAssessmentSchema(suite.suiteCtx, schema.ID)
 	assert.Error(suite.T(), err, "Should return error for deleted schema")
 }
 
 func (suite *AssessmentSchemaServiceTestSuite) TestDeleteAssessmentSchemaNotFound() {
 	nonExistentID := uuid.New()
 
-	err := DeleteAssessmentSchema(suite.suiteCtx, nonExistentID)
+	err := suite.assessmentSchemaService.DeleteAssessmentSchema(suite.suiteCtx, nonExistentID)
 	// This may or may not error depending on implementation - test that it doesn't panic
 	_ = err // Ignore the error for this test
 	assert.NotPanics(suite.T(), func() {
-		_ = DeleteAssessmentSchema(suite.suiteCtx, nonExistentID)
+		_ = suite.assessmentSchemaService.DeleteAssessmentSchema(suite.suiteCtx, nonExistentID)
 	})
 }
 
 func (suite *AssessmentSchemaServiceTestSuite) TestGetCoursePhasesByAssessmentSchema() {
 	defaultID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
 
-	coursePhases, err := GetCoursePhasesByAssessmentSchema(suite.suiteCtx, defaultID)
+	coursePhases, err := suite.assessmentSchemaService.GetCoursePhasesByAssessmentSchema(suite.suiteCtx, defaultID)
 	assert.NoError(suite.T(), err, "Should be able to get course phases")
 	assert.NotNil(suite.T(), coursePhases, "Should return non-nil slice")
 	assert.IsType(suite.T(), []uuid.UUID{}, coursePhases, "Should return correct type")

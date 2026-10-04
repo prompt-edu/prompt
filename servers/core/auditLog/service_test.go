@@ -28,6 +28,7 @@ type AuditLogTestSuite struct {
 	conn    *pgxpool.Pool
 	queries *db.Queries
 	sink    *DBSink
+	service *AuditLogService
 }
 
 func TestAuditLogTestSuite(t *testing.T) {
@@ -46,7 +47,7 @@ func (s *AuditLogTestSuite) SetupSuite() {
 	s.conn = testDB.Conn
 	s.queries = testDB.Queries
 	s.sink = NewDBSink(*testDB.Queries)
-	AuditLogServiceSingleton = &AuditLogService{queries: *testDB.Queries, conn: testDB.Conn}
+	s.service = NewAuditLogService(*testDB.Queries)
 }
 
 func (s *AuditLogTestSuite) TearDownSuite() {
@@ -112,12 +113,12 @@ func (s *AuditLogTestSuite) TestDBSink_BackfillsCourseIDFromCoursesRoute() {
 		EntityID: "55555555-5555-5555-5555-555555555555",
 	}))
 
-	scoped, err := AuditLogServiceSingleton.ListAuditLog(s.ctx, auditLogDTO.ListFilters{CourseID: seededCourseID})
+	scoped, err := s.service.ListAuditLog(s.ctx, auditLogDTO.ListFilters{CourseID: seededCourseID})
 	require.NoError(s.T(), err)
 	require.Len(s.T(), scoped.Entries, 1)
 	require.Equal(s.T(), "Archived course", scoped.Entries[0].Action)
 
-	global, err := AuditLogServiceSingleton.ListAuditLog(s.ctx, auditLogDTO.ListFilters{})
+	global, err := s.service.ListAuditLog(s.ctx, auditLogDTO.ListFilters{})
 	require.NoError(s.T(), err)
 	require.Len(s.T(), global.Entries, 2)
 	for _, e := range global.Entries {
@@ -133,13 +134,13 @@ func (s *AuditLogTestSuite) TestListAuditLog_SearchEscapesWildcards() {
 	s.insertRaw(now.Add(-1*time.Minute), seededCourseID, "Lecturer", "success", "studentXid")
 
 	// "_" is a LIKE wildcard; escaped it matches literally, so only "student_id".
-	page, err := AuditLogServiceSingleton.ListAuditLog(s.ctx, auditLogDTO.ListFilters{Search: "student_id"})
+	page, err := s.service.ListAuditLog(s.ctx, auditLogDTO.ListFilters{Search: "student_id"})
 	require.NoError(s.T(), err)
 	require.Len(s.T(), page.Entries, 1)
 	require.Equal(s.T(), "student_id", page.Entries[0].Action)
 
 	// A bare "%" must match nothing (there is no literal percent), not everything.
-	pct, err := AuditLogServiceSingleton.ListAuditLog(s.ctx, auditLogDTO.ListFilters{Search: "%"})
+	pct, err := s.service.ListAuditLog(s.ctx, auditLogDTO.ListFilters{Search: "%"})
 	require.NoError(s.T(), err)
 	require.Len(s.T(), pct.Entries, 0)
 }
@@ -183,7 +184,7 @@ func (s *AuditLogTestSuite) TestListAuditLog_CourseScopeAndOutcomeFilter() {
 	s.insertRaw(now.Add(-1*time.Minute), otherCourseID, "Lecturer", "success", "c")
 
 	// Course scope: only the seeded course's rows.
-	page, err := AuditLogServiceSingleton.ListAuditLog(s.ctx, auditLogDTO.ListFilters{CourseID: seededCourseID})
+	page, err := s.service.ListAuditLog(s.ctx, auditLogDTO.ListFilters{CourseID: seededCourseID})
 	require.NoError(s.T(), err)
 	require.Len(s.T(), page.Entries, 2)
 	for _, e := range page.Entries {
@@ -191,13 +192,13 @@ func (s *AuditLogTestSuite) TestListAuditLog_CourseScopeAndOutcomeFilter() {
 	}
 
 	// Outcome filter within the course.
-	denied, err := AuditLogServiceSingleton.ListAuditLog(s.ctx, auditLogDTO.ListFilters{CourseID: seededCourseID, Outcome: "denied"})
+	denied, err := s.service.ListAuditLog(s.ctx, auditLogDTO.ListFilters{CourseID: seededCourseID, Outcome: "denied"})
 	require.NoError(s.T(), err)
 	require.Len(s.T(), denied.Entries, 1)
 	require.Equal(s.T(), "b", denied.Entries[0].Action)
 
 	// Global (no course filter) sees everything.
-	global, err := AuditLogServiceSingleton.ListAuditLog(s.ctx, auditLogDTO.ListFilters{})
+	global, err := s.service.ListAuditLog(s.ctx, auditLogDTO.ListFilters{})
 	require.NoError(s.T(), err)
 	require.Len(s.T(), global.Entries, 3)
 }
@@ -213,7 +214,7 @@ func (s *AuditLogTestSuite) TestListAuditLog_KeysetPagination() {
 	pages := 0
 	var prev *time.Time
 	for {
-		page, err := AuditLogServiceSingleton.ListAuditLog(s.ctx, filters)
+		page, err := s.service.ListAuditLog(s.ctx, filters)
 		require.NoError(s.T(), err)
 		for _, e := range page.Entries {
 			require.False(s.T(), seen[e.ID], "entry appeared on two pages")
@@ -243,7 +244,7 @@ func (s *AuditLogTestSuite) TestListAuditLog_ClampsLimitToMaximum() {
 		s.insertRaw(now.Add(-time.Duration(i)*time.Second), seededCourseID, "Lecturer", "success", "row")
 	}
 
-	page, err := AuditLogServiceSingleton.ListAuditLog(s.ctx, auditLogDTO.ListFilters{Limit: 1000})
+	page, err := s.service.ListAuditLog(s.ctx, auditLogDTO.ListFilters{Limit: 1000})
 	require.NoError(s.T(), err)
 	require.Len(s.T(), page.Entries, maxPageLimit)
 	require.NotNil(s.T(), page.NextCursor)
@@ -261,7 +262,7 @@ func (s *AuditLogTestSuite) TestListAuditLog_KeysetHandlesIdenticalTimestamps() 
 	filters := auditLogDTO.ListFilters{CourseID: seededCourseID, Limit: 2}
 	for pages := 0; ; pages++ {
 		require.LessOrEqual(s.T(), pages, 5)
-		page, err := AuditLogServiceSingleton.ListAuditLog(s.ctx, filters)
+		page, err := s.service.ListAuditLog(s.ctx, filters)
 		require.NoError(s.T(), err)
 		for _, e := range page.Entries {
 			require.False(s.T(), seen[e.ID], "entry appeared on two pages")

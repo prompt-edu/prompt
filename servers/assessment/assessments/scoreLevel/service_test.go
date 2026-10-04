@@ -18,7 +18,7 @@ type ScoreLevelServiceTestSuite struct {
 	suite.Suite
 	suiteCtx context.Context
 	cleanup  func()
-	service  ScoreLevelService
+	service  *ScoreLevelService
 }
 
 func (suite *ScoreLevelServiceTestSuite) SetupSuite() {
@@ -28,11 +28,7 @@ func (suite *ScoreLevelServiceTestSuite) SetupSuite() {
 		suite.T().Fatalf("Failed to set up test database: %v", err)
 	}
 	suite.cleanup = cleanup
-	suite.service = ScoreLevelService{
-		queries: *testDB.Queries,
-		conn:    testDB.Conn,
-	}
-	ScoreLevelServiceSingleton = &suite.service
+	suite.service = NewScoreLevelService(*testDB.Queries)
 }
 
 func (suite *ScoreLevelServiceTestSuite) TearDownSuite() {
@@ -43,7 +39,7 @@ func (suite *ScoreLevelServiceTestSuite) TearDownSuite() {
 
 func (suite *ScoreLevelServiceTestSuite) TestGetAllScoreLevels() {
 	phaseID := uuid.MustParse("24461b6b-3c3a-4bc6-ba42-69eeb1514da9")
-	levels, err := GetAllScoreLevels(suite.suiteCtx, phaseID)
+	levels, err := suite.service.GetAllScoreLevels(suite.suiteCtx, phaseID)
 	assert.NoError(suite.T(), err)
 	assert.Greater(suite.T(), len(levels), 0, "Expected at least one score level")
 	for _, lvl := range levels {
@@ -55,7 +51,7 @@ func (suite *ScoreLevelServiceTestSuite) TestGetAllScoreLevels() {
 func (suite *ScoreLevelServiceTestSuite) TestGetScoreLevelByCourseParticipationID() {
 	phaseID := uuid.MustParse("24461b6b-3c3a-4bc6-ba42-69eeb1514da9")
 	partID := uuid.MustParse("ca42e447-60f9-4fe0-b297-2dae3f924fd7")
-	lvl, err := GetScoreLevelByCourseParticipationID(suite.suiteCtx, partID, phaseID)
+	lvl, err := suite.service.GetScoreLevelByCourseParticipationID(suite.suiteCtx, partID, phaseID)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), db.ScoreLevelVeryBad, lvl, "Expected very bad level")
 }
@@ -63,14 +59,14 @@ func (suite *ScoreLevelServiceTestSuite) TestGetScoreLevelByCourseParticipationI
 func (suite *ScoreLevelServiceTestSuite) TestGetScoreLevelByCourseParticipationIDNotFound() {
 	phaseID := uuid.MustParse("24461b6b-3c3a-4bc6-ba42-69eeb1514da9")
 	partID := uuid.New()
-	_, err := GetScoreLevelByCourseParticipationID(suite.suiteCtx, partID, phaseID)
+	_, err := suite.service.GetScoreLevelByCourseParticipationID(suite.suiteCtx, partID, phaseID)
 	assert.Error(suite.T(), err, "Expected error for non-existent participation")
 }
 
 func (suite *ScoreLevelServiceTestSuite) TestGetStudentScore() {
 	phaseID := uuid.MustParse("24461b6b-3c3a-4bc6-ba42-69eeb1514da9")
 	partID := uuid.MustParse("e482ab63-c1c0-4943-9221-989b0c257559")
-	score, err := GetStudentScore(suite.suiteCtx, partID, phaseID)
+	score, err := suite.service.GetStudentScore(suite.suiteCtx, partID, phaseID)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), scoreLevelDTO.ScoreLevelBad, score.ScoreLevel, "Expected bad level")
 	assert.GreaterOrEqual(suite.T(), score.ScoreNumeric.Float64, float64(1), "Score should be >= 1")

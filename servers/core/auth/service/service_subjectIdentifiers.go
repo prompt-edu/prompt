@@ -8,18 +8,17 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	sdk "github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
-	"github.com/prompt-edu/prompt/servers/core/course/courseParticipation"
 	"github.com/prompt-edu/prompt/servers/core/student"
 	"github.com/prompt-edu/prompt/servers/core/utils"
 )
 
-func GetSubjectIdentifiers(ctx *gin.Context) (sdk.SubjectIdentifiers, error) {
+func (s *AuthService) GetSubjectIdentifiers(ctx *gin.Context) (sdk.SubjectIdentifiers, error) {
 	userID, errUserUUID := utils.GetUserUUIDFromContext(ctx)
 	if errUserUUID != nil {
 		return sdk.SubjectIdentifiers{}, errUserUUID
 	}
 
-	studentID, errStudentUUID := getStudentID(ctx)
+	studentID, errStudentUUID := s.getStudentID(ctx)
 
 	if errors.Is(errStudentUUID, sql.ErrNoRows) {
 		return sdk.SubjectIdentifiers{UserID: userID}, nil
@@ -29,7 +28,7 @@ func GetSubjectIdentifiers(ctx *gin.Context) (sdk.SubjectIdentifiers, error) {
 		return sdk.SubjectIdentifiers{}, errStudentUUID
 	}
 
-	courseParticipationIDs, errCourseParts := getCourseParticipations(ctx, studentID)
+	courseParticipationIDs, errCourseParts := s.getCourseParticipations(ctx, studentID)
 	if errCourseParts != nil {
 		return sdk.SubjectIdentifiers{}, errCourseParts
 	}
@@ -41,14 +40,14 @@ func GetSubjectIdentifiers(ctx *gin.Context) (sdk.SubjectIdentifiers, error) {
 	}, nil
 }
 
-func AssembleSubjectIdentifiers(ctx context.Context, userID uuid.UUID, studentID *uuid.UUID) (sdk.SubjectIdentifiers, error) {
+func (s *AuthService) AssembleSubjectIdentifiers(ctx context.Context, userID uuid.UUID, studentID *uuid.UUID) (sdk.SubjectIdentifiers, error) {
 	identifiers := sdk.SubjectIdentifiers{UserID: userID}
 	if studentID == nil {
 		return identifiers, nil
 	}
 	identifiers.StudentID = *studentID
 
-	cpIDs, err := getCourseParticipations(ctx, *studentID)
+	cpIDs, err := s.getCourseParticipations(ctx, *studentID)
 	if err != nil {
 		return sdk.SubjectIdentifiers{}, err
 	}
@@ -56,11 +55,11 @@ func AssembleSubjectIdentifiers(ctx context.Context, userID uuid.UUID, studentID
 	return identifiers, nil
 }
 
-func getStudentID(ctx *gin.Context) (uuid.UUID, error) {
+func (s *AuthService) getStudentID(ctx *gin.Context) (uuid.UUID, error) {
 	matrNr := utils.GetMatriculationNumberFromContext(ctx)
 	universityLogin := utils.GetUniversityLoginFromContext(ctx)
 
-	student, err := student.ResolveStudentByUniversityCredentials(ctx, &AuthServiceSingleton.queries, matrNr, universityLogin)
+	student, err := student.ResolveStudentByUniversityCredentials(ctx, &s.queries, matrNr, universityLogin)
 	if err != nil {
 		return uuid.UUID{}, err
 	}
@@ -68,8 +67,8 @@ func getStudentID(ctx *gin.Context) (uuid.UUID, error) {
 	return student.ID, nil
 }
 
-func getCourseParticipations(ctx context.Context, studentID uuid.UUID) ([]uuid.UUID, error) {
-	cps, err := courseParticipation.GetAllCourseParticipationsForStudent(ctx, studentID)
+func (s *AuthService) getCourseParticipations(ctx context.Context, studentID uuid.UUID) ([]uuid.UUID, error) {
+	cps, err := s.courseParticipations.GetAllCourseParticipationsForStudent(ctx, studentID)
 	if err != nil {
 		return []uuid.UUID{}, err
 	}

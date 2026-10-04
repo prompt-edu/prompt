@@ -22,7 +22,7 @@ type CopyServiceTestSuite struct {
 	suite.Suite
 	suiteCtx    context.Context
 	cleanup     func()
-	copyService CopyService
+	copyService *CopyService
 }
 
 func (suite *CopyServiceTestSuite) SetupSuite() {
@@ -32,11 +32,7 @@ func (suite *CopyServiceTestSuite) SetupSuite() {
 		suite.T().Fatalf("Failed to set up test database: %v", err)
 	}
 	suite.cleanup = cleanup
-	suite.copyService = CopyService{
-		queries: *testDB.Queries,
-		conn:    testDB.Conn,
-	}
-	CopyServiceSingleton = &suite.copyService
+	suite.copyService = NewCopyService(*testDB.Queries, testDB.Conn)
 }
 
 func (suite *CopyServiceTestSuite) TearDownSuite() {
@@ -83,7 +79,7 @@ func (suite *CopyServiceTestSuite) TestHandlePhaseCopy_Success() {
 	assert.NoError(suite.T(), err)
 
 	// Execute copy
-	handler := &AssessmentCopyHandler{}
+	handler := suite.copyService
 	req := promptTypes.PhaseCopyRequest{
 		SourceCoursePhaseID: sourceCoursePhaseID,
 		TargetCoursePhaseID: targetCoursePhaseID,
@@ -118,7 +114,7 @@ func (suite *CopyServiceTestSuite) TestHandlePhaseCopy_Success() {
 func (suite *CopyServiceTestSuite) TestHandlePhaseCopy_SameSourceAndTarget() {
 	coursePhaseID := uuid.New()
 
-	handler := &AssessmentCopyHandler{}
+	handler := suite.copyService
 	req := promptTypes.PhaseCopyRequest{
 		SourceCoursePhaseID: coursePhaseID,
 		TargetCoursePhaseID: coursePhaseID,
@@ -137,7 +133,7 @@ func (suite *CopyServiceTestSuite) TestHandlePhaseCopy_NonExistentSource() {
 	nonExistentSourceID := uuid.New()
 	targetCoursePhaseID := uuid.New()
 
-	handler := &AssessmentCopyHandler{}
+	handler := suite.copyService
 	req := promptTypes.PhaseCopyRequest{
 		SourceCoursePhaseID: nonExistentSourceID,
 		TargetCoursePhaseID: targetCoursePhaseID,
@@ -177,7 +173,7 @@ func (suite *CopyServiceTestSuite) copyPhase(sourceID, targetID uuid.UUID) error
 	c, _ := gin.CreateTestContext(w)
 	c.Request = httptest.NewRequest("POST", "/api/copy", nil)
 
-	return (&AssessmentCopyHandler{}).HandlePhaseCopy(c, promptTypes.PhaseCopyRequest{
+	return suite.copyService.HandlePhaseCopy(c, promptTypes.PhaseCopyRequest{
 		SourceCoursePhaseID: sourceID,
 		TargetCoursePhaseID: targetID,
 	})

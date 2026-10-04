@@ -5,7 +5,7 @@
 # `yarn install` only re-runs when a manifest or the lockfile changes. A source
 # edit then only invalidates the final `COPY . ./`.
 # Requires BuildKit (Docker 23+) for the cache mount below.
-FROM node:24.19.0 AS base
+FROM node:24.21.0 AS base
 
 RUN corepack enable
 RUN yarn config set httpTimeout 300000 --home
@@ -32,6 +32,7 @@ COPY team_allocation_component/package.json      team_allocation_component/packa
 COPY self_team_allocation_component/package.json self_team_allocation_component/package.json
 COPY certificate_component/package.json          certificate_component/package.json
 COPY presentation_component/package.json         presentation_component/package.json
+COPY infrastructure_setup_component/package.json infrastructure_setup_component/package.json
 
 RUN --mount=type=cache,target=/root/.yarn/berry/cache,sharing=locked \
     yarn install --immutable

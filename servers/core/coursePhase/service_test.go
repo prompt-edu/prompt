@@ -22,7 +22,7 @@ type CoursePhaseTestSuite struct {
 	suite.Suite
 	ctx                context.Context
 	cleanup            func()
-	coursePhaseService CoursePhaseService
+	coursePhaseService *CoursePhaseService
 }
 
 func (suite *CoursePhaseTestSuite) SetupSuite() {
@@ -35,13 +35,7 @@ func (suite *CoursePhaseTestSuite) SetupSuite() {
 	}
 
 	suite.cleanup = cleanup
-	suite.coursePhaseService = CoursePhaseService{
-		queries: *testDB.Queries,
-		conn:    testDB.Conn,
-	}
-	resolution.InitResolutionModule("localhost:8080")
-
-	CoursePhaseServiceSingleton = &suite.coursePhaseService
+	suite.coursePhaseService = NewCoursePhaseService(*testDB.Queries, testDB.Conn, resolution.NewResolutionService("localhost:8080"))
 }
 
 func (suite *CoursePhaseTestSuite) TearDownSuite() {
@@ -50,7 +44,7 @@ func (suite *CoursePhaseTestSuite) TearDownSuite() {
 
 func (suite *CoursePhaseTestSuite) TestGetCoursePhaseByID() {
 	id := uuid.MustParse("3d1f3b00-87f3-433b-a713-178c4050411b")
-	coursePhase, err := GetCoursePhaseByID(suite.ctx, id)
+	coursePhase, err := suite.coursePhaseService.GetCoursePhaseByID(suite.ctx, id)
 
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), "Test", coursePhase.Name, "Expected course phase name to match")
@@ -77,11 +71,11 @@ func (suite *CoursePhaseTestSuite) TestUpdateCoursePhase() {
 		StudentReadableData: studentData,
 	}
 
-	err = UpdateCoursePhase(suite.ctx, update)
+	err = suite.coursePhaseService.UpdateCoursePhase(suite.ctx, update)
 	assert.NoError(suite.T(), err)
 
 	// Verify update
-	updatedCoursePhase, err := GetCoursePhaseByID(suite.ctx, id)
+	updatedCoursePhase, err := suite.coursePhaseService.GetCoursePhaseByID(suite.ctx, id)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), "Updated Phase", updatedCoursePhase.Name, "Expected updated course phase name to match")
 	assert.False(suite.T(), updatedCoursePhase.IsInitialPhase, "Expected updated course phase to be an initial phase")
@@ -108,11 +102,11 @@ func (suite *CoursePhaseTestSuite) TestUpdateCoursePhaseWithMetaDataOverride() {
 		StudentReadableData: studentData,
 	}
 
-	err = UpdateCoursePhase(suite.ctx, update)
+	err = suite.coursePhaseService.UpdateCoursePhase(suite.ctx, update)
 	assert.NoError(suite.T(), err)
 
 	// Verify update
-	updatedCoursePhase, err := GetCoursePhaseByID(suite.ctx, id)
+	updatedCoursePhase, err := suite.coursePhaseService.GetCoursePhaseByID(suite.ctx, id)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), "Updated Phase", updatedCoursePhase.Name, "Expected updated course phase name to match")
 	assert.Equal(suite.T(), meta.MetaData{"test-key": "test-value-new", "updated_key": "updated_value"}, updatedCoursePhase.RestrictedData, "Expected metadata to match updated data including the old data")
@@ -139,11 +133,11 @@ func (suite *CoursePhaseTestSuite) TestCreateCoursePhase() {
 		CoursePhaseTypeID:   uuid.MustParse("7dc1c4e8-4255-4874-80a0-0c12b958744c"),
 	}
 
-	createdCoursePhase, err := CreateCoursePhase(suite.ctx, newCoursePhase)
+	createdCoursePhase, err := suite.coursePhaseService.CreateCoursePhase(suite.ctx, newCoursePhase)
 	assert.NoError(suite.T(), err)
 
 	// Verify creation
-	fetchedCoursePhase, err := GetCoursePhaseByID(suite.ctx, createdCoursePhase.ID)
+	fetchedCoursePhase, err := suite.coursePhaseService.GetCoursePhaseByID(suite.ctx, createdCoursePhase.ID)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), "New Phase", fetchedCoursePhase.Name, "Expected course phase name to match")
 	assert.False(suite.T(), fetchedCoursePhase.IsInitialPhase, "Expected course phase to not be an initial phase")
@@ -157,7 +151,7 @@ func (suite *CoursePhaseTestSuite) TestGetPrevPhaseDataByCoursePhaseID() {
 	predecessorPhaseID := uuid.MustParse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")
 
 	// Call the function under test.
-	prevData, err := GetPrevPhaseDataByCoursePhaseID(suite.ctx, targetPhaseID)
+	prevData, err := suite.coursePhaseService.GetPrevPhaseDataByCoursePhaseID(suite.ctx, targetPhaseID)
 	suite.NoError(err)
 
 	// Verify that the core data (from the provided output DTO with endpoint 'core') is merged correctly.

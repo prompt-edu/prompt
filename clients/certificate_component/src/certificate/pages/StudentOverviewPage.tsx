@@ -7,12 +7,14 @@ import {
   CardHeader,
   CardTitle,
   ErrorPage,
+  LoadingPage,
   ManagementPageHeader,
   useToast,
 } from '@tumaet/prompt-ui-components'
 import { Download, FileCheck2, Loader2 } from 'lucide-react'
 import { useState } from 'react'
 import { useParams } from 'react-router-dom'
+import { SanitizedHtml } from '../components/SanitizedHtml'
 import { downloadOwnCertificate, triggerBlobDownload } from '../network/queries/downloadCertificate'
 import { getCertificateStatus } from '../network/queries/getCertificateStatus'
 
@@ -59,17 +61,24 @@ export const StudentOverviewPage = () => {
   }
 
   if (isLoading) {
-    return (
-      <div className='flex justify-center items-center h-64'>
-        <Loader2 className='h-12 w-12 animate-spin text-primary' />
-      </div>
-    )
+    return <LoadingPage />
   }
 
   return (
     <div className='space-y-4'>
       <ManagementPageHeader>Course Certificate</ManagementPageHeader>
       <p className='text-muted-foreground'>Download your course completion certificate.</p>
+
+      {status?.studentPageText && (
+        <Card data-testid='certificate-student-page-text'>
+          <CardContent className='pt-6'>
+            <SanitizedHtml
+              html={status.studentPageText}
+              className='text-sm text-muted-foreground'
+            />
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>

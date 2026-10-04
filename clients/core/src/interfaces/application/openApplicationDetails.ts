@@ -12,4 +12,5 @@ export interface OpenApplicationDetails {
   universityLoginAvailable: boolean
   shortDescription?: string | null
   longDescription?: string | null
+  welcomeText?: string | null
 }

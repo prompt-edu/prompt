@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt-sdk/audit"
 	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt/servers/team_allocation/tease/teaseDTO"
 	log "github.com/sirupsen/logrus"
@@ -16,24 +17,24 @@ import (
 
 const maxTeaseWorkspaceBodyBytes = 5 << 20
 
-func setupTeaseRouter(routerGroup *gin.RouterGroup, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
+func RegisterRoutes(routerGroup *gin.RouterGroup, service *TeaseService, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
 	teaseRouter := routerGroup.Group("/tease")
 
-	teaseRouter.GET("/course-phases", keycloakTokenVerifier.KeycloakMiddleware(), getAllCoursePhases)
+	teaseRouter.GET("/course-phases", keycloakTokenVerifier.KeycloakMiddleware(), service.getAllCoursePhases)
 
 	teaseCoursePhaseRouter := teaseRouter.Group("/course_phase/:coursePhaseID")
-	teaseCoursePhaseRouter.GET("/students", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), getTeaseStudentsForCoursePhase)
-	teaseCoursePhaseRouter.GET("/skills", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), getTeaseSkillsByCoursePhase)
-	teaseCoursePhaseRouter.GET("/projects", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), getTeaseTeamsByCoursePhase)
+	teaseCoursePhaseRouter.GET("/students", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.getTeaseStudentsForCoursePhase)
+	teaseCoursePhaseRouter.GET("/skills", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.getTeaseSkillsByCoursePhase)
+	teaseCoursePhaseRouter.GET("/projects", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.getTeaseTeamsByCoursePhase)
 
-	teaseCoursePhaseRouter.GET("/allocations", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), getAllocations)
+	teaseCoursePhaseRouter.GET("/allocations", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.getAllocations)
 
-	teaseCoursePhaseRouter.GET("/workspace", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), getTeaseWorkspace)
-	teaseCoursePhaseRouter.PUT("/workspace", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), putTeaseWorkspace)
-	teaseCoursePhaseRouter.POST("/save", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), postTeaseSave)
+	teaseCoursePhaseRouter.GET("/workspace", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.getTeaseWorkspace)
+	teaseCoursePhaseRouter.PUT("/workspace", audit.Describe("Updated the TEASE workspace"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.putTeaseWorkspace)
+	teaseCoursePhaseRouter.POST("/save", audit.Describe("Published TEASE allocations"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.postTeaseSave)
 }
 
-func getAllCoursePhases(c *gin.Context) {
+func (s *TeaseService) getAllCoursePhases(c *gin.Context) {
 	authHeader := c.GetHeader("Authorization")
 
 	rolesVal, exists := c.Get("userRoles")
@@ -48,7 +49,7 @@ func getAllCoursePhases(c *gin.Context) {
 		return
 	}
 
-	teasePhases, err := GetTeamAllocationCoursePhases(
+	teasePhases, err := s.GetTeamAllocationCoursePhases(
 		c,
 		authHeader,
 		userRoles,
@@ -61,7 +62,7 @@ func getAllCoursePhases(c *gin.Context) {
 	c.JSON(http.StatusOK, teasePhases)
 }
 
-func getTeaseStudentsForCoursePhase(c *gin.Context) {
+func (s *TeaseService) getTeaseStudentsForCoursePhase(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.Error("Error parsing coursePhaseID: ", err)
@@ -70,7 +71,7 @@ func getTeaseStudentsForCoursePhase(c *gin.Context) {
 	}
 	authHeader := c.GetHeader("Authorization")
 
-	students, err := GetTeaseStudentsForCoursePhase(c, authHeader, coursePhaseID)
+	students, err := s.GetTeaseStudentsForCoursePhase(c, authHeader, coursePhaseID)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -78,7 +79,7 @@ func getTeaseStudentsForCoursePhase(c *gin.Context) {
 	c.JSON(http.StatusOK, students)
 }
 
-func getTeaseSkillsByCoursePhase(c *gin.Context) {
+func (s *TeaseService) getTeaseSkillsByCoursePhase(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.Error("Error parsing coursePhaseID: ", err)
@@ -86,7 +87,7 @@ func getTeaseSkillsByCoursePhase(c *gin.Context) {
 		return
 	}
 
-	skills, err := GetTeaseSkillsByCoursePhase(c, coursePhaseID)
+	skills, err := s.GetTeaseSkillsByCoursePhase(c, coursePhaseID)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -95,7 +96,7 @@ func getTeaseSkillsByCoursePhase(c *gin.Context) {
 	c.JSON(http.StatusOK, skills)
 }
 
-func getTeaseTeamsByCoursePhase(c *gin.Context) {
+func (s *TeaseService) getTeaseTeamsByCoursePhase(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.Error("Error parsing coursePhaseID: ", err)
@@ -103,7 +104,7 @@ func getTeaseTeamsByCoursePhase(c *gin.Context) {
 		return
 	}
 
-	teams, err := GetTeaseTeamsByCoursePhase(c, coursePhaseID)
+	teams, err := s.GetTeaseTeamsByCoursePhase(c, coursePhaseID)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -116,7 +117,7 @@ func handleError(c *gin.Context, statusCode int, err error) {
 	c.JSON(statusCode, gin.H{"error": err.Error()})
 }
 
-func getAllocations(c *gin.Context) {
+func (s *TeaseService) getAllocations(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 
 	if err != nil {
@@ -124,7 +125,7 @@ func getAllocations(c *gin.Context) {
 		return
 	}
 
-	allocations, err := GetAllocationsByCoursePhase(c, coursePhaseID)
+	allocations, err := s.GetAllocationsByCoursePhase(c, coursePhaseID)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -144,7 +145,7 @@ func getAllocations(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Security ApiKeyAuth
 // @Router /tease/course_phase/{coursePhaseID}/workspace [get]
-func getTeaseWorkspace(c *gin.Context) {
+func (s *TeaseService) getTeaseWorkspace(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.Error("Error parsing coursePhaseID: ", err)
@@ -152,7 +153,7 @@ func getTeaseWorkspace(c *gin.Context) {
 		return
 	}
 
-	workspace, err := GetTeaseWorkspace(c, coursePhaseID)
+	workspace, err := s.GetTeaseWorkspace(c, coursePhaseID)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -176,7 +177,7 @@ func getTeaseWorkspace(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Security ApiKeyAuth
 // @Router /tease/course_phase/{coursePhaseID}/workspace [put]
-func putTeaseWorkspace(c *gin.Context) {
+func (s *TeaseService) putTeaseWorkspace(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.Error("Error parsing coursePhaseID: ", err)
@@ -195,7 +196,7 @@ func putTeaseWorkspace(c *gin.Context) {
 		return
 	}
 
-	workspace, err := UpsertTeaseWorkspace(c, coursePhaseID, req, updatedBy)
+	workspace, err := s.UpsertTeaseWorkspace(c, coursePhaseID, req, updatedBy)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -219,7 +220,7 @@ func putTeaseWorkspace(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Security ApiKeyAuth
 // @Router /tease/course_phase/{coursePhaseID}/save [post]
-func postTeaseSave(c *gin.Context) {
+func (s *TeaseService) postTeaseSave(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.Error("Error parsing coursePhaseID: ", err)
@@ -238,7 +239,7 @@ func postTeaseSave(c *gin.Context) {
 		return
 	}
 
-	workspace, err := SaveTeaseWorkspaceAndAllocations(c, coursePhaseID, req, updatedBy)
+	workspace, err := s.SaveTeaseWorkspaceAndAllocations(c, coursePhaseID, req, updatedBy)
 	if err != nil {
 		if errors.Is(err, errInvalidAllocation) {
 			handleError(c, http.StatusBadRequest, err)

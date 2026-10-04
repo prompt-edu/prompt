@@ -7,7 +7,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/prompt-edu/prompt/servers/core/course/courseDTO"
-	"github.com/prompt-edu/prompt/servers/core/coursePhase"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -65,10 +64,10 @@ func validateCreateCourse(c courseDTO.CreateCourse) error {
 	return nil
 }
 
-func validateUpdateCourseOrder(ctx context.Context, courseID uuid.UUID, c []courseDTO.CoursePhaseGraph) error {
+func (s *CourseService) validateUpdateCourseOrder(ctx context.Context, courseID uuid.UUID, c []courseDTO.CoursePhaseGraph) error {
 	// for each course phase check if the course id is the same
 	for _, graphItem := range c {
-		coursePhase, err := coursePhase.GetCoursePhaseByID(ctx, graphItem.ToCoursePhaseID)
+		coursePhase, err := s.coursePhases.GetCoursePhaseByID(ctx, graphItem.ToCoursePhaseID)
 		if err != nil {
 			return err
 		}
@@ -82,7 +81,7 @@ func validateUpdateCourseOrder(ctx context.Context, courseID uuid.UUID, c []cour
 	return nil
 }
 
-func validateMetaDataGraph(ctx context.Context, courseID uuid.UUID, newGraph []courseDTO.MetaDataGraphItem) error {
+func (s *CourseService) validateMetaDataGraph(ctx context.Context, courseID uuid.UUID, newGraph []courseDTO.MetaDataGraphItem) error {
 	// for each check if the course phase really belongs to this course
 	uniqueCoursePhaseIDs := make([]uuid.UUID, 0)
 	seen := make(map[uuid.UUID]bool)
@@ -103,7 +102,7 @@ func validateMetaDataGraph(ctx context.Context, courseID uuid.UUID, newGraph []c
 	}
 
 	// Check if they all belong to this course and exist
-	valid, err := coursePhase.CheckCoursePhasesBelongToCourse(ctx, courseID, uniqueCoursePhaseIDs)
+	valid, err := s.coursePhases.CheckCoursePhasesBelongToCourse(ctx, courseID, uniqueCoursePhaseIDs)
 	if err != nil {
 		return err
 	}

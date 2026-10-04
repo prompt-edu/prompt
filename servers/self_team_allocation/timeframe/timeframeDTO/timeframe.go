@@ -15,7 +15,7 @@ type Timeframe struct {
 func GetTimeframeDTOFromDBModel(timeframe db.GetTimeframeRow) Timeframe {
 	return Timeframe{
 		TimeframeSet: true,
-		StartTime:    timeframe.Starttime.Time,
-		EndTime:      timeframe.Endtime.Time,
+		StartTime:    timeframe.Starttime.Time.UTC(),
+		EndTime:      timeframe.Endtime.Time.UTC(),
 	}
 }

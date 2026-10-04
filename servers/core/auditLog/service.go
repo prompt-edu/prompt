@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/prompt-edu/prompt-sdk/audit"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/core/auditLog/auditLogDTO"
@@ -23,10 +22,11 @@ const (
 // AuditLogService owns audit-log reads and maintenance for core.
 type AuditLogService struct {
 	queries db.Queries
-	conn    *pgxpool.Pool
 }
 
-var AuditLogServiceSingleton *AuditLogService
+func NewAuditLogService(queries db.Queries) *AuditLogService {
+	return &AuditLogService{queries: queries}
+}
 
 // ListAuditLog returns one keyset-paginated page of audit entries matching the
 // filters, plus the cursor for the next (older) page.
@@ -126,7 +126,7 @@ func RecordTx(ctx context.Context, qtx *db.Queries, e audit.Event) error {
 // StartRetentionPruner launches a daily goroutine that deletes audit entries
 // older than AUDIT_RETENTION_DAYS. When the variable is unset, no pruning ever
 // runs (fail-safe toward retention). Mirrors the privacy export-deletion job.
-func StartRetentionPruner(ctx context.Context) {
+func (s *AuditLogService) StartRetentionPruner(ctx context.Context) {
 	raw := sdkUtils.GetEnv("AUDIT_RETENTION_DAYS", "")
 	if raw == "" {
 		log.Info("audit retention disabled (AUDIT_RETENTION_DAYS not set); entries are never pruned")
@@ -144,11 +144,11 @@ func StartRetentionPruner(ctx context.Context) {
 		// Run the first prune inside the goroutine so a large initial backlog
 		// delete never blocks startup (core must bind its port for the health
 		// probe before this finishes).
-		pruneOnce(ctx, days)
+		s.pruneOnce(ctx, days)
 		for {
 			select {
 			case <-ticker.C:
-				pruneOnce(ctx, days)
+				s.pruneOnce(ctx, days)
 			case <-ctx.Done():
 				return
 			}
@@ -156,12 +156,12 @@ func StartRetentionPruner(ctx context.Context) {
 	}()
 }
 
-func pruneOnce(ctx context.Context, days int) {
+func (s *AuditLogService) pruneOnce(ctx context.Context, days int) {
 	runCtx, cancel := context.WithTimeout(ctx, 10*time.Minute)
 	defer cancel()
 
 	cutoff := time.Now().AddDate(0, 0, -days)
-	if err := AuditLogServiceSingleton.queries.DeleteExpiredAuditEntries(runCtx, pgtype.Timestamptz{Time: cutoff, Valid: true}); err != nil {
+	if err := s.queries.DeleteExpiredAuditEntries(runCtx, pgtype.Timestamptz{Time: cutoff, Valid: true}); err != nil {
 		log.WithError(err).Error("failed to prune expired audit entries")
 		return
 	}

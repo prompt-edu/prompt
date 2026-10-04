@@ -12,29 +12,37 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt-sdk/audit"
 	"github.com/prompt-edu/prompt-sdk/promptTypes"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/assessment/assessmentSchemas"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments"
+	"github.com/prompt-edu/prompt/servers/assessment/assessments/actionItem"
+	"github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentCompletion"
+	"github.com/prompt-edu/prompt/servers/assessment/assessments/categoryAssessment"
+	"github.com/prompt-edu/prompt/servers/assessment/assessments/scoreLevel"
 	"github.com/prompt-edu/prompt/servers/assessment/categories"
 	"github.com/prompt-edu/prompt/servers/assessment/competencies"
 	"github.com/prompt-edu/prompt/servers/assessment/copy"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/assessment/evaluations"
+	"github.com/prompt-edu/prompt/servers/assessment/evaluations/evaluationCompletion"
+	"github.com/prompt-edu/prompt/servers/assessment/evaluations/feedbackItem"
 	"github.com/prompt-edu/prompt/servers/assessment/privacy"
+	"github.com/prompt-edu/prompt/servers/assessment/schemaModification"
 	log "github.com/sirupsen/logrus"
 )
 
-func getDatabaseURL() string {
-	dbUser := promptSDK.GetEnv("DB_USER", "prompt-postgres")
-	dbPassword := promptSDK.GetEnv("DB_PASSWORD", "prompt-postgres")
-	dbHost := promptSDK.GetEnv("DB_HOST_ASSESSMENT", "localhost")
-	dbPort := promptSDK.GetEnv("DB_PORT_ASSESSMENT", "5435")
-	dbName := promptSDK.GetEnv("DB_NAME", "prompt")
-	sslMode := promptSDK.GetEnv("SSL_MODE", "disable")
-	timeZone := promptSDK.GetEnv("DB_TIMEZONE", "Europe/Berlin") // Add a timezone parameter
+var dbUser string = promptSDK.GetEnv("DB_USER", "prompt-postgres")
+var dbPassword string = promptSDK.GetEnv("DB_PASSWORD", "prompt-postgres")
+var dbHost string = promptSDK.GetEnv("DB_HOST_ASSESSMENT", "localhost")
+var dbPort string = promptSDK.GetEnv("DB_PORT_ASSESSMENT", "5435")
+var dbName string = promptSDK.GetEnv("DB_NAME", "prompt")
+var sslMode string = promptSDK.GetEnv("SSL_MODE", "disable")
+var timeZone string = promptSDK.GetEnv("DB_TIMEZONE", "Europe/Berlin") // Add a timezone parameter
 
+func getDatabaseURL() string {
 	return fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s&TimeZone=%s", dbUser, dbPassword, dbHost, dbPort, dbName, sslMode, timeZone)
 }
 
@@ -69,7 +77,7 @@ func main() {
 	}
 
 	databaseURL := getDatabaseURL()
-	log.Debug("Connecting to database at:", databaseURL)
+	log.Debugf("Connecting to database at host=%s port=%s db=%s user=%s sslmode=%s", dbHost, dbPort, dbName, dbUser, sslMode)
 
 	if err := sdkUtils.RunMigrations(databaseURL, "./db/migration"); err != nil {
 		log.Fatalf("Failed to run migrations: %v", err)
@@ -93,6 +101,14 @@ func main() {
 	router.Use(promptSDK.CORSMiddleware(clientHost))
 
 	api := router.Group("/assessment/api")
+
+	// The audit auto-capture middleware must wrap every module's routes. Gin
+	// snapshots the middleware chain when a route or subgroup is registered, so
+	// it has to be registered before coursePhaseApi and all module routes below;
+	// otherwise those routes keep the pre-audit chain and their mutations are
+	// never captured. It is a no-op unless the AUDIT_ENABLED toggle is set.
+	api.Use(audit.Middleware(audit.NewCoreSink(sdkUtils.GetCoreUrl(), "assessment")))
+
 	coursePhaseApi := api.Group("/course_phase/:coursePhaseID")
 
 	if err := promptSDK.InitPhaseKeycloak(); err != nil {
@@ -101,15 +117,46 @@ func main() {
 
 	coursePhaseApi.GET("/hello", helloAssessment)
 
-	competencies.InitCompetencyModule(coursePhaseApi, *query, conn)
-	categories.InitCategoryModule(coursePhaseApi, *query, conn)
-	coursePhaseConfig.InitCoursePhaseConfigModule(coursePhaseApi, *query, conn)
-	assessmentSchemas.InitAssessmentSchemaModule(coursePhaseApi, *query, conn)
-	assessments.InitAssessmentModule(coursePhaseApi, *query, conn)
-	evaluations.InitEvaluationModule(coursePhaseApi, *query, conn)
+	assessmentSchemaService := assessmentSchemas.NewAssessmentSchemaService(*query, conn)
+	coursePhaseConfigService := coursePhaseConfig.NewCoursePhaseConfigService(*query, conn, assessmentSchemaService)
+	schemaModificationService := schemaModification.NewSchemaModificationService(assessmentSchemaService, coursePhaseConfigService, *query)
 
-	copy.InitCopyModule(api, *query, conn)
-	privacy.InitPrivacyModule(api, *query, conn)
+	competencyService := competencies.NewCompetencyService(*query, conn, assessmentSchemaService, schemaModificationService)
+	categoryService := categories.NewCategoryService(*query, conn, assessmentSchemaService, schemaModificationService, coursePhaseConfigService)
+
+	evaluationCompletionService := evaluationCompletion.NewEvaluationCompletionService(*query, conn, coursePhaseConfig.GetTeamsForCoursePhase, coursePhaseConfigService)
+	evaluationService := evaluations.NewEvaluationService(*query, conn, evaluationCompletionService, coursePhaseConfigService)
+	feedbackItemService := feedbackItem.NewFeedbackItemService(*query, conn, evaluationCompletionService)
+
+	assessmentCompletionService := assessmentCompletion.NewAssessmentCompletionService(*query, conn, coursePhaseConfigService)
+	categoryAssessmentService := categoryAssessment.NewCategoryAssessmentService(*query, conn, assessmentCompletionService)
+	actionItemService := actionItem.NewActionItemService(*query, assessmentCompletionService, coursePhaseConfigService)
+	scoreLevelService := scoreLevel.NewScoreLevelService(*query)
+	assessmentService := assessments.NewAssessmentService(*query, conn, assessmentCompletionService, categoryAssessmentService, actionItemService, scoreLevelService, evaluationService, coursePhaseConfigService)
+
+	competencies.RegisterRoutes(coursePhaseApi, competencyService, promptSDK.AuthenticationMiddleware)
+	categories.RegisterRoutes(coursePhaseApi, categoryService, promptSDK.AuthenticationMiddleware)
+
+	coursePhaseConfig.RegisterRoutes(coursePhaseApi, coursePhaseConfigService, promptSDK.AuthenticationMiddleware)
+	assessmentSchemas.RegisterRoutes(coursePhaseApi, assessmentSchemaService, promptSDK.AuthenticationMiddleware)
+
+	assessments.RegisterRoutes(coursePhaseApi, assessmentService, coursePhaseConfigService, promptSDK.AuthenticationMiddleware)
+	assessmentCompletion.RegisterRoutes(coursePhaseApi, assessmentCompletionService, coursePhaseConfigService, promptSDK.AuthenticationMiddleware)
+	categoryAssessment.RegisterRoutes(coursePhaseApi, categoryAssessmentService, coursePhaseConfigService, promptSDK.AuthenticationMiddleware)
+	actionItem.RegisterRoutes(coursePhaseApi, actionItemService, coursePhaseConfigService, promptSDK.AuthenticationMiddleware)
+	scoreLevel.RegisterRoutes(coursePhaseApi, scoreLevelService, promptSDK.AuthenticationMiddleware)
+	evaluations.RegisterRoutes(coursePhaseApi, evaluationService, promptSDK.AuthenticationMiddleware)
+	evaluationCompletion.RegisterRoutes(coursePhaseApi, evaluationCompletionService, promptSDK.AuthenticationMiddleware)
+	feedbackItem.RegisterRoutes(coursePhaseApi, feedbackItemService, promptSDK.AuthenticationMiddleware)
+
+	copyService := copy.NewCopyService(*query, conn)
+	privacyService := privacy.NewPrivacyService(*query, conn)
+
+	// The SDK registrar owns the POST /copy route itself and has no per-route
+	// slot for the audit label, so it is attached through a group. An empty
+	// relative path leaves the registered route path unchanged.
+	copy.RegisterRoutes(api.Group("", audit.Describe(copy.AuditCopyAction)), copyService)
+	privacy.RegisterRoutes(api, privacyService)
 
 	promptTypes.RegisterInfoEndpoint(api, promptTypes.ServiceInfo{
 		ServiceName: "assessment",
@@ -119,6 +166,7 @@ func main() {
 			promptTypes.CapabilityPrivacyDeletion: true,
 			promptTypes.CapabilityPhaseCopy:       true,
 			promptTypes.CapabilityPhaseConfig:     true,
+			promptTypes.CapabilityAuditLog:        audit.Enabled(),
 		},
 	}, func() bool {
 		return conn.Ping(context.Background()) == nil

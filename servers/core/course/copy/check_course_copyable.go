@@ -17,12 +17,12 @@ import (
 )
 
 // checkAllCoursePhasesCopyable checks if all course phases from the source course can be copied to the target course.
-func checkAllCoursePhasesCopyable(c *gin.Context, sourceCourseID uuid.UUID) ([]string, error) {
-	sequence, err := CourseCopyServiceSingleton.queries.GetCoursePhaseSequence(c, sourceCourseID)
+func (s *CourseCopyService) checkAllCoursePhasesCopyable(c *gin.Context, sourceCourseID uuid.UUID) ([]string, error) {
+	sequence, err := s.queries.GetCoursePhaseSequence(c, sourceCourseID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get course phase sequence: %w", err)
 	}
-	unordered, err := CourseCopyServiceSingleton.queries.GetNotOrderedCoursePhases(c, sourceCourseID)
+	unordered, err := s.queries.GetNotOrderedCoursePhases(c, sourceCourseID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get unordered course phases: %w", err)
 	}
@@ -31,13 +31,13 @@ func checkAllCoursePhasesCopyable(c *gin.Context, sourceCourseID uuid.UUID) ([]s
 	missingPhases := []string{}
 
 	for _, p := range sequence {
-		if err := checkPhaseCopyable(c, p.ID, p.CoursePhaseTypeID, p.Name.String, checkedCoursePhases, &missingPhases); err != nil {
+		if err := s.checkPhaseCopyable(c, p.ID, p.CoursePhaseTypeID, p.Name.String, checkedCoursePhases, &missingPhases); err != nil {
 			return nil, fmt.Errorf("failed to check phase copyable: %w", err)
 		}
 	}
 
 	for _, p := range unordered {
-		if err := checkPhaseCopyable(c, p.ID, p.CoursePhaseTypeID, p.Name.String, checkedCoursePhases, &missingPhases); err != nil {
+		if err := s.checkPhaseCopyable(c, p.ID, p.CoursePhaseTypeID, p.Name.String, checkedCoursePhases, &missingPhases); err != nil {
 			return nil, fmt.Errorf("failed to check phase copyable: %w", err)
 		}
 	}
@@ -46,8 +46,8 @@ func checkAllCoursePhasesCopyable(c *gin.Context, sourceCourseID uuid.UUID) ([]s
 }
 
 // checkPhaseCopyable checks if a single course phase can be copied by sending a dummy request to the copy endpoint.
-func checkPhaseCopyable(c *gin.Context, phaseID, phaseTypeID uuid.UUID, phaseName string, checkedCoursePhases map[uuid.UUID]bool, missingPhases *[]string) error {
-	coursePhaseType, err := CourseCopyServiceSingleton.queries.GetCoursePhaseTypeByID(c, phaseTypeID)
+func (s *CourseCopyService) checkPhaseCopyable(c *gin.Context, phaseID, phaseTypeID uuid.UUID, phaseName string, checkedCoursePhases map[uuid.UUID]bool, missingPhases *[]string) error {
+	coursePhaseType, err := s.queries.GetCoursePhaseTypeByID(c, phaseTypeID)
 	if err != nil {
 		return fmt.Errorf("failed to get phase type: %w", err)
 	}

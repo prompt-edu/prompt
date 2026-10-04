@@ -8,6 +8,7 @@ import { ApplicationMailingSettings } from '../Mailing/ApplicationMailingSetting
 import ApplicationOverview from './components/Overview/ApplicationSettingsOverview'
 import { ApplicationSettingsCustomScores } from './components/SettingsCustomScores/ApplicationSettingsCustomScores'
 import { ApplicationGeneralSettings } from './components/SettingsGeneral/ApplicationSettingsGeneral'
+import { ApplicationSettingsWelcomeText } from './components/SettingsWelcomeText/ApplicationSettingsWelcomeText'
 
 export const ApplicationConfiguration = () => {
   const [applicationMetaData, setApplicationMetaData] = useState<ApplicationMetaData | null>(null)
@@ -29,6 +30,7 @@ export const ApplicationConfiguration = () => {
       />
 
       {applicationMetaData && <ApplicationGeneralSettings initialData={applicationMetaData} />}
+      {applicationMetaData && <ApplicationSettingsWelcomeText initialData={applicationMetaData} />}
       {applicationMetaData && <ApplicationSettingsCustomScores initialData={applicationMetaData} />}
       <ApplicationMailingSettings />
     </div>

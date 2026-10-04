@@ -382,6 +382,10 @@ definitions:
         type: string
       universityLoginAvailable:
         type: boolean
+      welcomeText:
+        description: WelcomeText is instructor-authored HTML shown above the application
+          form.
+        type: string
     type: object
   applicationDTO.ParticipationExportedAnswers:
     properties:
@@ -3075,6 +3079,10 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/utils.ErrorResponse'
+        "502":
+          description: Bad Gateway
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
       summary: Delete a course phase
       tags:
       - course_phases
@@ -3502,8 +3510,20 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
         "500":
           description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "502":
+          description: Bad Gateway
           schema:
             $ref: '#/definitions/utils.ErrorResponse'
       summary: Delete a course

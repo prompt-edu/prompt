@@ -27,7 +27,7 @@ type ScoreLevelRouterTestSuite struct {
 	router   *gin.Engine
 	suiteCtx context.Context
 	cleanup  func()
-	service  ScoreLevelService
+	service  *ScoreLevelService
 }
 
 func (suite *ScoreLevelRouterTestSuite) SetupSuite() {
@@ -37,11 +37,7 @@ func (suite *ScoreLevelRouterTestSuite) SetupSuite() {
 		suite.T().Fatalf("Failed to set up test database: %v", err)
 	}
 	suite.cleanup = cleanup
-	suite.service = ScoreLevelService{
-		queries: *testDB.Queries,
-		conn:    testDB.Conn,
-	}
-	ScoreLevelServiceSingleton = &suite.service
+	suite.service = NewScoreLevelService(*testDB.Queries)
 
 	suite.router = gin.Default()
 	api := suite.router.Group("/api/course_phase/:coursePhaseID")
@@ -49,7 +45,7 @@ func (suite *ScoreLevelRouterTestSuite) SetupSuite() {
 		return sdkTestUtils.MockAuthMiddlewareWithEmail(allowedRoles, "user@example.com", "1234", "id")
 	}
 	// attach routes
-	setupScoreLevelRouter(api, testMiddleware)
+	RegisterRoutes(api, suite.service, testMiddleware)
 }
 
 func (suite *ScoreLevelRouterTestSuite) TearDownSuite() {

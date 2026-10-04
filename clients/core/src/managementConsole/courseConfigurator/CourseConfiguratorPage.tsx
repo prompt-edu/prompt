@@ -1,5 +1,4 @@
-import { Card, ErrorPage, ManagementPageHeader } from '@tumaet/prompt-ui-components'
-import { Loader2 } from 'lucide-react'
+import { Card, ErrorPage, LoadingPage, ManagementPageHeader } from '@tumaet/prompt-ui-components'
 import { Canvas } from './Canvas'
 import { HelpDialog } from './components/HelpDialog'
 import { useCourseConfiguratorDataSetup } from './handlers/useCourseConfiguratorDataSetup'
@@ -25,9 +24,7 @@ export default function CourseConfiguratorPage() {
             onRetry={() => refetchAll()}
           />
         ) : isPending || !finishedSetup ? (
-          <div className='flex justify-center items-center h-64'>
-            <Loader2 className='h-12 w-12 animate-spin text-primary' />
-          </div>
+          <LoadingPage />
         ) : (
           <Canvas />
         )}

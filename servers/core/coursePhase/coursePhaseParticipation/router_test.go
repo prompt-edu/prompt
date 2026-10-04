@@ -26,7 +26,7 @@ type RouterTestSuite struct {
 	router                          *gin.Engine
 	ctx                             context.Context
 	cleanup                         func()
-	coursePhaseParticipationService CoursePhaseParticipationService
+	coursePhaseParticipationService *CoursePhaseParticipationService
 }
 
 func (suite *RouterTestSuite) SetupSuite() {
@@ -39,11 +39,7 @@ func (suite *RouterTestSuite) SetupSuite() {
 	}
 
 	suite.cleanup = cleanup
-	suite.coursePhaseParticipationService = CoursePhaseParticipationService{
-		queries: *testDB.Queries,
-		conn:    testDB.Conn,
-	}
-	CoursePhaseParticipationServiceSingleton = &suite.coursePhaseParticipationService
+	suite.coursePhaseParticipationService = NewCoursePhaseParticipationService(*testDB.Queries, testDB.Conn, resolution.NewResolutionService("localhost:8080"))
 
 	fromCoursePhaseID := uuid.MustParse("7ffffd38-2454-4c67-821d-5692d8086e6c")
 	toCoursePhaseID := uuid.MustParse("4e736d05-c125-48f0-8fa0-848b03ca6908")
@@ -71,19 +67,17 @@ func (suite *RouterTestSuite) SetupSuite() {
 		ToCoursePhaseDtoID:   requiredInputID,
 	}))
 
-	resolution.InitResolutionModule("localhost:8080")
-
-	suite.router = setupRouter()
+	suite.router = setupRouter(suite.coursePhaseParticipationService)
 }
 
 func (suite *RouterTestSuite) TearDownSuite() {
 	suite.cleanup()
 }
 
-func setupRouter() *gin.Engine {
+func setupRouter(service *CoursePhaseParticipationService) *gin.Engine {
 	router := gin.Default()
 	api := router.Group("/api")
-	setupCoursePhaseParticipationRouter(api, func() gin.HandlerFunc {
+	setupCoursePhaseParticipationRouter(api, service, func() gin.HandlerFunc {
 		return sdkTestUtils.MockAuthMiddlewareWithEmail([]string{"PROMPT_Admin", "ios24245-iPraktikum-Lecturer"}, "supertest@test.de", "08888889", "ab00hhh")
 	}, sdkTestUtils.MockPermissionMiddleware)
 	return router

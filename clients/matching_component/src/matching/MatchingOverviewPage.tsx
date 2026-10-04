@@ -10,10 +10,11 @@ import {
   CardHeader,
   CardTitle,
   ErrorPage,
+  LoadingPage,
   ManagementPageHeader,
   Separator,
 } from '@tumaet/prompt-ui-components'
-import { ClipboardList, FileUp, Loader2, TriangleAlert, UserRoundCheck } from 'lucide-react'
+import { ClipboardList, FileUp, TriangleAlert, UserRoundCheck } from 'lucide-react'
 import { useEffect } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { UploadButton } from './components/UploadButton'
@@ -56,9 +57,7 @@ export const MatchingOverviewPage = () => {
       {isParticipationsError ? (
         <ErrorPage onRetry={refetchCoursePhaseParticipations} />
       ) : isCoursePhaseParticipationsPending ? (
-        <div className='flex justify-center items-center h-64'>
-          <Loader2 className='h-12 w-12 animate-spin text-primary' />
-        </div>
+        <LoadingPage />
       ) : (
         <div>
           {failedResolutions.length > 0 && (

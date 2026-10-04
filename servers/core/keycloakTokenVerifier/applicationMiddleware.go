@@ -8,7 +8,7 @@ import (
 )
 
 // this is a reduced middleware, which does not require an prompt service account
-func ApplicationMiddleware() gin.HandlerFunc {
+func (v *KeycloakTokenVerifier) ApplicationMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		tokenString, err := extractBearerToken(c)
 		if err != nil {
@@ -17,7 +17,7 @@ func ApplicationMiddleware() gin.HandlerFunc {
 		}
 
 		ctx := c.Request.Context()
-		idToken, err := verifier.Verify(ctx, tokenString)
+		idToken, err := v.verifier.Verify(ctx, tokenString)
 		if err != nil {
 			logTokenVerificationFailure(err)
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
@@ -31,7 +31,7 @@ func ApplicationMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		if !checkAuthorizedParty(claims, KeycloakTokenVerifierSingleton.expectedAuthorizedParty) {
+		if !checkAuthorizedParty(claims, v.expectedAuthorizedParty) {
 			log.Error("Token authorized party mismatch")
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Token authorized party mismatch"})
 			return

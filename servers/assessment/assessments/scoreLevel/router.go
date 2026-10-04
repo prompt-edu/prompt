@@ -12,16 +12,16 @@ import (
 
 var _ = scoreLevelDTO.ScoreLevelWithParticipation{}
 
-// setupScoreLevelRouter sets up score level endpoints.
+// RegisterRoutes sets up score level endpoints.
 // @Summary Score Level Endpoints
 // @Description Access score levels for assessments.
 // @Tags score_levels
 // @Security BearerAuth
-func setupScoreLevelRouter(routerGroup *gin.RouterGroup, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
+func RegisterRoutes(routerGroup *gin.RouterGroup, service *ScoreLevelService, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
 	scoreLevelRouter := routerGroup.Group("/student-assessment/scoreLevel")
 
-	scoreLevelRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), getAllScoreLevels)
-	scoreLevelRouter.GET("/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), getScoreLevelByCourseParticipationID)
+	scoreLevelRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.getAllScoreLevels)
+	scoreLevelRouter.GET("/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.getScoreLevelByCourseParticipationID)
 }
 
 // getAllScoreLevels godoc
@@ -34,14 +34,14 @@ func setupScoreLevelRouter(routerGroup *gin.RouterGroup, authMiddleware func(all
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/student-assessment/scoreLevel [get]
-func getAllScoreLevels(c *gin.Context) {
+func (s *ScoreLevelService) getAllScoreLevels(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	scoreLevels, err := GetAllScoreLevels(c, coursePhaseID)
+	scoreLevels, err := s.GetAllScoreLevels(c, coursePhaseID)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -61,7 +61,7 @@ func getAllScoreLevels(c *gin.Context) {
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/student-assessment/scoreLevel/{courseParticipationID} [get]
-func getScoreLevelByCourseParticipationID(c *gin.Context) {
+func (s *ScoreLevelService) getScoreLevelByCourseParticipationID(c *gin.Context) {
 	courseParticipationID, err := uuid.Parse(c.Param("courseParticipationID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -74,7 +74,7 @@ func getScoreLevelByCourseParticipationID(c *gin.Context) {
 		return
 	}
 
-	scoreLevel, err := GetScoreLevelByCourseParticipationID(c, courseParticipationID, coursePhaseID)
+	scoreLevel, err := s.GetScoreLevelByCourseParticipationID(c, courseParticipationID, coursePhaseID)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return

@@ -100,3 +100,10 @@ func addScoreName(oldMetaData meta.MetaData, newName, newKey string) ([]byte, er
 
 	return byteArray, nil
 }
+
+func getScoreLevelSpecificationBytes() ([]byte, error) {
+	scoreLevelSpecificationJson := meta.MetaData{}
+	scoreLevelSpecificationJson["type"] = "string"
+	scoreLevelSpecificationJson["enum"] = []string{"veryBad", "bad", "ok", "good", "veryGood"}
+	return scoreLevelSpecificationJson.GetDBModel()
+}

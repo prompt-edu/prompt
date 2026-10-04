@@ -1,11 +1,30 @@
 import { Page, Locator, expect } from '@playwright/test'
+import { apiContextFor } from '../fixtures/api'
 
-// Seeded course_phase_type ids (e2e/seed/e2e_seed.sql). Application is the only
-// initial-phase type, so it must be added first; Matching is a core-based
-// non-initial type (no phase-module service needed).
-export const PHASE_TYPE_IDS: Record<string, string> = {
-  Application: 'a1111111-1111-1111-1111-111111111111',
-  Matching: 'b2222222-2222-2222-2222-222222222222',
+// Course phase types are created by the core server at startup with random
+// UUIDs (servers/core/coursePhaseType/initializeTypes.go), so the palette's
+// test ids are only known at runtime. Application is the only initial-phase
+// type, so it must be added first; Matching is a core-based non-initial type
+// (no phase-module service needed).
+let phaseTypeIds: Record<string, string> | undefined
+
+export async function phaseTypeId(name: string): Promise<string> {
+  if (!phaseTypeIds) {
+    const api = await apiContextFor('admin')
+    try {
+      const res = await api.get('/api/course_phase_types')
+      if (!res.ok()) {
+        throw new Error(`GET course phase types failed: ${res.status()} ${await res.text()}`)
+      }
+      const types = (await res.json()) as { id: string; name: string }[]
+      phaseTypeIds = Object.fromEntries(types.map((t) => [t.name, t.id]))
+    } finally {
+      await api.dispose()
+    }
+  }
+  const id = phaseTypeIds[name]
+  if (!id) throw new Error(`no course phase type named "${name}"`)
+  return id
 }
 
 // /management/course/:id/configurator — the @xyflow/react DAG editor.
@@ -49,7 +68,7 @@ export class CourseConfiguratorPage {
   // .react-flow root (Canvas.tsx). Returns the new node's data-id (a temp
   // no-valid-id-* until the next save).
   async addPhase(phaseTypeName: string): Promise<string> {
-    const typeId = PHASE_TYPE_IDS[phaseTypeName]
+    const typeId = await phaseTypeId(phaseTypeName)
     await this.page.getByTestId('phase-type-panel').hover()
     const item = this.page.getByTestId(`phase-type-item-${typeId}`)
     await expect(item).toBeVisible()

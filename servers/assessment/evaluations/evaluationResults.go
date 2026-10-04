@@ -58,7 +58,7 @@ func AggregateEvaluations(evals []evaluationDTO.Evaluation, targetType assessmen
 
 // GetStudentEvaluationResults bundles what a student may see on an evaluation-only phase: their own
 // submitted self-evaluation plus anonymized peer averages.
-func GetStudentEvaluationResults(ctx context.Context, coursePhaseID, courseParticipationID uuid.UUID, config coursePhaseConfigDTO.CoursePhaseConfig) (evaluationDTO.StudentEvaluationResults, error) {
+func (s *EvaluationService) GetStudentEvaluationResults(ctx context.Context, coursePhaseID, courseParticipationID uuid.UUID, config coursePhaseConfigDTO.CoursePhaseConfig) (evaluationDTO.StudentEvaluationResults, error) {
 	results := evaluationDTO.StudentEvaluationResults{
 		CourseParticipationID: courseParticipationID,
 		CoursePhaseID:         coursePhaseID,
@@ -66,7 +66,7 @@ func GetStudentEvaluationResults(ctx context.Context, coursePhaseID, courseParti
 		PeerResults:           []evaluationDTO.AggregatedEvaluationResult{},
 	}
 
-	evals, err := GetEvaluationsForParticipantInPhase(ctx, courseParticipationID, coursePhaseID)
+	evals, err := s.GetEvaluationsForParticipantInPhase(ctx, courseParticipationID, coursePhaseID)
 	if err != nil {
 		return results, err
 	}

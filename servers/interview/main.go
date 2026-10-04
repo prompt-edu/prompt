@@ -11,6 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt-sdk/audit"
 	"github.com/prompt-edu/prompt-sdk/promptTypes"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/interview/config"
@@ -88,6 +89,8 @@ func main() {
 	router.Use(promptSDK.CORSMiddleware(clientHost))
 
 	api := router.Group("interview/api")
+	// Gin snapshots the handler chain when a subgroup is created, so this must run before coursePhaseApi.
+	api.Use(audit.Middleware(audit.NewCoreSink(sdkUtils.GetCoreUrl(), "interview")))
 	coursePhaseApi := api.Group("/course_phase/:coursePhaseID")
 	if err := promptSDK.InitPhaseKeycloak(); err != nil {
 		log.Fatalf("Failed to initialize keycloak: %v", err)
@@ -101,10 +104,15 @@ func main() {
 		promptSDK.CourseStudent,
 	), helloInterviewServer)
 
-	copy.InitCopyModule(api, *query, conn)
-	privacy.InitPrivacyModule(api, *query, conn)
+	privacyService := privacy.NewPrivacyService(*query, conn)
+	interviewSlotService := interview_slot.NewInterviewSlotService(*query, conn)
+	interviewAssignmentService := interview_assignment.NewInterviewAssignmentService(*query, conn)
+	interviewReviewService := interview_review.NewInterviewReviewService(*query)
 
-	config.InitConfigModule(coursePhaseApi, *query, conn)
+	copy.RegisterRoutes(api)
+	privacy.RegisterRoutes(api, privacyService)
+
+	config.RegisterRoutes(coursePhaseApi)
 
 	promptTypes.RegisterInfoEndpoint(api, promptTypes.ServiceInfo{
 		ServiceName: "interview",
@@ -114,6 +122,7 @@ func main() {
 			promptTypes.CapabilityPrivacyDeletion: true,
 			promptTypes.CapabilityPhaseCopy:       true,
 			promptTypes.CapabilityPhaseConfig:     true,
+			promptTypes.CapabilityAuditLog:        audit.Enabled(),
 		},
 	}, func() bool {
 		ctt, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
@@ -121,9 +130,9 @@ func main() {
 		return conn.Ping(ctt) == nil
 	})
 
-	interview_slot.InitInterviewSlotModule(coursePhaseApi, *query, conn)
-	interview_assignment.InitInterviewAssignmentModule(coursePhaseApi, *query, conn)
-	interview_review.InitInterviewReviewModule(coursePhaseApi, *query)
+	interview_slot.RegisterRoutes(coursePhaseApi, interviewSlotService, promptSDK.AuthenticationMiddleware)
+	interview_assignment.RegisterRoutes(coursePhaseApi, interviewAssignmentService, promptSDK.AuthenticationMiddleware)
+	interview_review.RegisterRoutes(coursePhaseApi, interviewReviewService, promptSDK.AuthenticationMiddleware)
 
 	serverAddress := promptSDK.GetEnv("SERVER_ADDRESS", "localhost:8087")
 	log.Info("Interview Server started")

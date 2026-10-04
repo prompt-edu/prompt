@@ -9,7 +9,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
-	authService "github.com/prompt-edu/prompt/servers/core/auth/service"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/core/privacy/privacyDTO"
 	coreutils "github.com/prompt-edu/prompt/servers/core/utils"
@@ -18,13 +17,13 @@ import (
 
 var ErrDeletionRequestNotPending = errors.New("deletion request is no longer in pending_approval state")
 
-func CreateDeletionRequest(c *gin.Context) (privacyDTO.PrivacyDeletionRequest, error) {
-	subjectIdentifiers, err := authService.GetSubjectIdentifiers(c)
+func (s *PrivacyService) CreateDeletionRequest(c *gin.Context) (privacyDTO.PrivacyDeletionRequest, error) {
+	subjectIdentifiers, err := s.subjects.GetSubjectIdentifiers(c)
 	if err != nil {
 		return privacyDTO.PrivacyDeletionRequest{}, err
 	}
 
-	record, err := PrivacyServiceSingleton.queries.CreateNewDeletionRequest(c, db.CreateNewDeletionRequestParams{
+	record, err := s.queries.CreateNewDeletionRequest(c, db.CreateNewDeletionRequestParams{
 		ID:             uuid.New(),
 		UserID:         pgtype.UUID{Bytes: subjectIdentifiers.UserID, Valid: subjectIdentifiers.UserID != uuid.Nil},
 		StudentID:      pgtype.UUID{Bytes: subjectIdentifiers.StudentID, Valid: subjectIdentifiers.StudentID != uuid.Nil},
@@ -37,21 +36,21 @@ func CreateDeletionRequest(c *gin.Context) (privacyDTO.PrivacyDeletionRequest, e
 	return privacyDTO.GetPrivacyDeletionRequestDTOFromDBModel(record), nil
 }
 
-func GetDeletionRequestWithSubrequests(c *gin.Context, requestID uuid.UUID) (privacyDTO.PrivacyDeletionRequest, error) {
-	record, err := PrivacyServiceSingleton.queries.GetDeletionRequestByIDWithSubrequests(c, requestID)
+func (s *PrivacyService) GetDeletionRequestWithSubrequests(c *gin.Context, requestID uuid.UUID) (privacyDTO.PrivacyDeletionRequest, error) {
+	record, err := s.queries.GetDeletionRequestByIDWithSubrequests(c, requestID)
 	if err != nil {
 		return privacyDTO.PrivacyDeletionRequest{}, err
 	}
 	return privacyDTO.GetPrivacyDeletionRequestWithSubrequestsDTOFromDBModel(record)
 }
 
-func GetLatestDeletionRequestForUser(c *gin.Context) (*privacyDTO.PrivacyDeletionRequest, error) {
+func (s *PrivacyService) GetLatestDeletionRequestForUser(c *gin.Context) (*privacyDTO.PrivacyDeletionRequest, error) {
 	userID, err := coreutils.GetUserUUIDFromContext(c)
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve user identity: %w", err)
 	}
 
-	record, err := PrivacyServiceSingleton.queries.GetLatestDeletionRequestForUserWithSubrequests(c, pgtype.UUID{Bytes: userID, Valid: true})
+	record, err := s.queries.GetLatestDeletionRequestForUserWithSubrequests(c, pgtype.UUID{Bytes: userID, Valid: true})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
@@ -66,8 +65,8 @@ func GetLatestDeletionRequestForUser(c *gin.Context) (*privacyDTO.PrivacyDeletio
 	return &dto, nil
 }
 
-func GetDeletionRequestsByIDs(c context.Context, ids []uuid.UUID) ([]privacyDTO.PrivacyDeletionRequest, error) {
-	rows, err := PrivacyServiceSingleton.queries.GetDeletionRequestsByIDsWithSubrequests(c, ids)
+func (s *PrivacyService) GetDeletionRequestsByIDs(c context.Context, ids []uuid.UUID) ([]privacyDTO.PrivacyDeletionRequest, error) {
+	rows, err := s.queries.GetDeletionRequestsByIDsWithSubrequests(c, ids)
 	if err != nil {
 		return nil, err
 	}
@@ -82,8 +81,8 @@ func GetDeletionRequestsByIDs(c context.Context, ids []uuid.UUID) ([]privacyDTO.
 	return results, nil
 }
 
-func GetAllDeletionRequests(c context.Context) ([]privacyDTO.AdminPrivacyDeletionRequest, error) {
-	dbRecords, err := PrivacyServiceSingleton.queries.GetAllDeletionRequests(c)
+func (s *PrivacyService) GetAllDeletionRequests(c context.Context) ([]privacyDTO.AdminPrivacyDeletionRequest, error) {
+	dbRecords, err := s.queries.GetAllDeletionRequests(c)
 	if err != nil {
 		return nil, err
 	}
@@ -116,26 +115,26 @@ func CreateDeletionSubrequest(ctx context.Context, q *db.Queries, deletionReques
 	}, nil
 }
 
-func AcceptDeletionRequest(c *gin.Context, requestID uuid.UUID, note string) (privacyDTO.PrivacyDeletionRequest, error) {
-	return setAuditorDecision(c, requestID, note, db.PrivacyDeletionRequestStatusInProgress)
+func (s *PrivacyService) AcceptDeletionRequest(c *gin.Context, requestID uuid.UUID, note string) (privacyDTO.PrivacyDeletionRequest, error) {
+	return s.setAuditorDecision(c, requestID, note, db.PrivacyDeletionRequestStatusInProgress)
 }
 
-func RejectDeletionRequest(c *gin.Context, requestID uuid.UUID, note string) (privacyDTO.PrivacyDeletionRequest, error) {
-	return setAuditorDecision(c, requestID, note, db.PrivacyDeletionRequestStatusRejected)
+func (s *PrivacyService) RejectDeletionRequest(c *gin.Context, requestID uuid.UUID, note string) (privacyDTO.PrivacyDeletionRequest, error) {
+	return s.setAuditorDecision(c, requestID, note, db.PrivacyDeletionRequestStatusRejected)
 }
 
-func setAuditorDecision(c *gin.Context, requestID uuid.UUID, note string, status db.PrivacyDeletionRequestStatus) (privacyDTO.PrivacyDeletionRequest, error) {
+func (s *PrivacyService) setAuditorDecision(c *gin.Context, requestID uuid.UUID, note string, status db.PrivacyDeletionRequestStatus) (privacyDTO.PrivacyDeletionRequest, error) {
 	auditorID, err := coreutils.GetUserUUIDFromContext(c)
 	if err != nil {
 		return privacyDTO.PrivacyDeletionRequest{}, fmt.Errorf("failed to resolve auditor identity: %w", err)
 	}
 
-	tx, err := PrivacyServiceSingleton.conn.Begin(c)
+	tx, err := s.conn.Begin(c)
 	if err != nil {
 		return privacyDTO.PrivacyDeletionRequest{}, fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	defer func() { _ = tx.Rollback(c) }()
-	txQueries := PrivacyServiceSingleton.queries.WithTx(tx)
+	txQueries := s.queries.WithTx(tx)
 
 	if err := txQueries.SetDeletionRequestAuditor(c, db.SetDeletionRequestAuditorParams{
 		ID:           requestID,
@@ -165,8 +164,8 @@ func setAuditorDecision(c *gin.Context, requestID uuid.UUID, note string, status
 	return privacyDTO.GetPrivacyDeletionRequestDTOFromDBModel(record), nil
 }
 
-func MarkDeletionRequestFailed(ctx context.Context, requestID uuid.UUID) {
-	if _, err := PrivacyServiceSingleton.queries.SetDeletionRequestStatus(context.WithoutCancel(ctx), db.SetDeletionRequestStatusParams{
+func (s *PrivacyService) MarkDeletionRequestFailed(ctx context.Context, requestID uuid.UUID) {
+	if _, err := s.queries.SetDeletionRequestStatus(context.WithoutCancel(ctx), db.SetDeletionRequestStatusParams{
 		ID:     requestID,
 		Status: db.PrivacyDeletionRequestStatusFailed,
 	}); err != nil {

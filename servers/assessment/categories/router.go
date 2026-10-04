@@ -10,27 +10,26 @@ import (
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	"github.com/prompt-edu/prompt/servers/assessment/assessmentSchemas"
 	"github.com/prompt-edu/prompt/servers/assessment/categories/categoryDTO"
-	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	log "github.com/sirupsen/logrus"
 )
 
-// setupCategoryRouter sets up category endpoints.
+// RegisterRoutes sets up category endpoints.
 // @Summary Category Endpoints
 // @Description Manage assessment categories.
 // @Tags categories
 // @Security BearerAuth
-func setupCategoryRouter(routerGroup *gin.RouterGroup, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
+func RegisterRoutes(routerGroup *gin.RouterGroup, service *CategoryService, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
 	categoryRouter := routerGroup.Group("/category")
 
-	categoryRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), getAllCategories)
-	categoryRouter.GET("/assessment/with-competencies", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.CourseStudent), getCategoriesWithCompetencies)
-	categoryRouter.GET("/self/with-competencies", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.CourseStudent), getSelfEvaluationCategoriesWithCompetencies)
-	categoryRouter.GET("/peer/with-competencies", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.CourseStudent), getPeerEvaluationCategoriesWithCompetencies)
-	categoryRouter.GET("/tutor/with-competencies", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.CourseStudent), getTutorEvaluationCategoriesWithCompetencies)
+	categoryRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.getAllCategories)
+	categoryRouter.GET("/assessment/with-competencies", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.CourseStudent), service.getCategoriesWithCompetencies)
+	categoryRouter.GET("/self/with-competencies", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.CourseStudent), service.getSelfEvaluationCategoriesWithCompetencies)
+	categoryRouter.GET("/peer/with-competencies", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.CourseStudent), service.getPeerEvaluationCategoriesWithCompetencies)
+	categoryRouter.GET("/tutor/with-competencies", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.CourseStudent), service.getTutorEvaluationCategoriesWithCompetencies)
 
-	categoryRouter.POST("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), createCategory)
-	categoryRouter.PUT("/:categoryID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), updateCategory)
-	categoryRouter.DELETE("/:categoryID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), deleteCategory)
+	categoryRouter.POST("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.createCategory)
+	categoryRouter.PUT("/:categoryID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.updateCategory)
+	categoryRouter.DELETE("/:categoryID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.deleteCategory)
 }
 
 // getAllCategories godoc
@@ -43,14 +42,14 @@ func setupCategoryRouter(routerGroup *gin.RouterGroup, authMiddleware func(allow
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/category [get]
-func getAllCategories(c *gin.Context) {
+func (s *CategoryService) getAllCategories(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	categories, err := ListCategoriesForCoursePhase(c, coursePhaseID)
+	categories, err := s.ListCategoriesForCoursePhase(c, coursePhaseID)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -69,7 +68,7 @@ func getAllCategories(c *gin.Context) {
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/category [post]
-func createCategory(c *gin.Context) {
+func (s *CategoryService) createCategory(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -81,7 +80,7 @@ func createCategory(c *gin.Context) {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
-	category, err := CreateCategory(c, coursePhaseID, request)
+	category, err := s.CreateCategory(c, coursePhaseID, request)
 	if err != nil {
 		if errors.Is(err, assessmentSchemas.ErrSchemaNotAccessible) {
 			handleError(c, http.StatusForbidden, err)
@@ -105,7 +104,7 @@ func createCategory(c *gin.Context) {
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/category/{categoryID} [put]
-func updateCategory(c *gin.Context) {
+func (s *CategoryService) updateCategory(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -125,7 +124,7 @@ func updateCategory(c *gin.Context) {
 		return
 	}
 
-	err = UpdateCategory(c, categoryID, coursePhaseID, request)
+	err = s.UpdateCategory(c, categoryID, coursePhaseID, request)
 	if err != nil {
 		if errors.Is(err, assessmentSchemas.ErrSchemaNotAccessible) {
 			handleError(c, http.StatusForbidden, err)
@@ -147,7 +146,7 @@ func updateCategory(c *gin.Context) {
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/category/{categoryID} [delete]
-func deleteCategory(c *gin.Context) {
+func (s *CategoryService) deleteCategory(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -161,7 +160,7 @@ func deleteCategory(c *gin.Context) {
 		return
 	}
 
-	err = DeleteCategory(c, categoryID, coursePhaseID)
+	err = s.DeleteCategory(c, categoryID, coursePhaseID)
 	if err != nil {
 		if errors.Is(err, assessmentSchemas.ErrSchemaNotAccessible) {
 			handleError(c, http.StatusForbidden, err)
@@ -184,14 +183,14 @@ func deleteCategory(c *gin.Context) {
 // @Failure 403 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/category/assessment/with-competencies [get]
-func getCategoriesWithCompetencies(c *gin.Context) {
+func (s *CategoryService) getCategoriesWithCompetencies(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	config, err := coursePhaseConfig.GetCoursePhaseConfig(c, coursePhaseID)
+	config, err := s.coursePhaseConfig.GetCoursePhaseConfig(c, coursePhaseID)
 	if err != nil {
 		log.Error("Error getting course phase config: ", err)
 		handleError(c, http.StatusInternalServerError, err)
@@ -203,7 +202,7 @@ func getCategoriesWithCompetencies(c *gin.Context) {
 		return
 	}
 
-	result, err := GetCategoriesWithCompetencies(c, config.AssessmentSchemaID)
+	result, err := s.GetCategoriesWithCompetencies(c, config.AssessmentSchemaID)
 	if err != nil {
 		log.Error("Error getting categories with competencies: ", err)
 		handleError(c, http.StatusInternalServerError, err)
@@ -222,21 +221,21 @@ func getCategoriesWithCompetencies(c *gin.Context) {
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/category/self/with-competencies [get]
-func getSelfEvaluationCategoriesWithCompetencies(c *gin.Context) {
+func (s *CategoryService) getSelfEvaluationCategoriesWithCompetencies(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	config, err := coursePhaseConfig.GetCoursePhaseConfig(c, coursePhaseID)
+	config, err := s.coursePhaseConfig.GetCoursePhaseConfig(c, coursePhaseID)
 	if err != nil {
 		log.Error("Error getting course phase config: ", err)
 		handleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
-	result, err := GetCategoriesWithCompetencies(c, config.SelfEvaluationSchema)
+	result, err := s.GetCategoriesWithCompetencies(c, config.SelfEvaluationSchema)
 	if err != nil {
 		log.Error("Error getting self evaluation categories with competencies: ", err)
 		handleError(c, http.StatusInternalServerError, err)
@@ -255,21 +254,21 @@ func getSelfEvaluationCategoriesWithCompetencies(c *gin.Context) {
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/category/peer/with-competencies [get]
-func getPeerEvaluationCategoriesWithCompetencies(c *gin.Context) {
+func (s *CategoryService) getPeerEvaluationCategoriesWithCompetencies(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	config, err := coursePhaseConfig.GetCoursePhaseConfig(c, coursePhaseID)
+	config, err := s.coursePhaseConfig.GetCoursePhaseConfig(c, coursePhaseID)
 	if err != nil {
 		log.Error("Error getting course phase config: ", err)
 		handleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
-	result, err := GetCategoriesWithCompetencies(c, config.PeerEvaluationSchema)
+	result, err := s.GetCategoriesWithCompetencies(c, config.PeerEvaluationSchema)
 	if err != nil {
 		log.Error("Error getting peer evaluation categories with competencies: ", err)
 		handleError(c, http.StatusInternalServerError, err)
@@ -288,21 +287,21 @@ func getPeerEvaluationCategoriesWithCompetencies(c *gin.Context) {
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/category/tutor/with-competencies [get]
-func getTutorEvaluationCategoriesWithCompetencies(c *gin.Context) {
+func (s *CategoryService) getTutorEvaluationCategoriesWithCompetencies(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	config, err := coursePhaseConfig.GetCoursePhaseConfig(c, coursePhaseID)
+	config, err := s.coursePhaseConfig.GetCoursePhaseConfig(c, coursePhaseID)
 	if err != nil {
 		log.Error("Error getting course phase config: ", err)
 		handleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
-	result, err := GetCategoriesWithCompetencies(c, config.TutorEvaluationSchema)
+	result, err := s.GetCategoriesWithCompetencies(c, config.TutorEvaluationSchema)
 	if err != nil {
 		log.Error("Error getting tutor evaluation categories with competencies: ", err)
 		handleError(c, http.StatusInternalServerError, err)

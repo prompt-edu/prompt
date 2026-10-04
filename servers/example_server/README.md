@@ -23,9 +23,10 @@ another service's DB). Auth, CORS, and inter-service communication come from
 main.go              Wiring: env config, migrations, DB pool, Keycloak auth, route groups,
                      service info endpoint (capabilities), Sentry (optional)
 example/             The actual phase module — the part you replace with your logic
-  main.go            InitExampleModule: registers routes, creates the service singleton
-  router.go          Gin routes under /api/course_phase/:coursePhaseID with role middleware
-  service.go         Business logic (keep handlers thin, logic here)
+  router.go          RegisterRoutes plus Gin routes under /api/course_phase/:coursePhaseID
+                     with role middleware; handlers are methods on the service
+  service.go         NewExampleService constructor and business logic (keep handlers thin,
+                     logic here; reach the DB through the receiver, never a package global)
 config/              Phase config endpoint (PhaseConfigHandler) — lets core ask "is this
                      phase fully configured?"; placeholder returns 404 until implemented
 copy/                Phase copy endpoint (PhaseCopyHandler) — called on course deep copy and
@@ -43,10 +44,16 @@ sqlc.yaml            sqlc config (postgresql, pgx/v5, output db/sqlc)
 
 - **SDK auth wiring** — `initKeycloak` + `promptSDK.InitAuthenticationMiddleware` once in
   `main.go`, then per-route `promptSDK.AuthenticationMiddleware(promptSDK.PromptAdmin, ...)`.
-- **Module layout** — `example/` follows the repo convention `main.go` (init) / `router.go`
-  (thin handlers) / `service.go` (logic); add `validation.go` for input validation.
+- **Module layout** — `example/` follows the repo convention `router.go` (thin handlers) /
+  `service.go` (constructor and logic); add `validation.go` for input validation.
+- **Construction separate from routing** — `NewExampleService(...)` builds the service and
+  `RegisterRoutes(group, service, authMiddleware)` mounts it, so a test can build the service
+  without a router and `main.go` is the only place that knows the wiring order. Handlers are
+  methods on the service and reach the database through the receiver; no package-level
+  singletons.
 - **Config & copy endpoints** — `config/` and `copy/` implement the SDK's `PhaseConfigHandler`
-  and `PhaseCopyHandler` contracts. Keep both packages in your phase; core relies on the
+  and `PhaseCopyHandler` contracts on the service itself, so the service is passed straight to
+  the SDK with no separate handler type. Keep both packages in your phase; core relies on the
   capabilities advertised via `RegisterInfoEndpoint`.
 - **Database access** — migrations run on startup; queries go through generated sqlc methods.
 

@@ -8,8 +8,8 @@ import (
 	"github.com/google/uuid"
 )
 
-func CheckCoursePhasePermission(c *gin.Context, coursePhaseID uuid.UUID, allowedUsers ...string) (bool, error) {
-	courseIdentifier, err := courseIdentifierStringFromCoursePhaseID(c, coursePhaseID)
+func (s *ValidationService) CheckCoursePhasePermission(c *gin.Context, coursePhaseID uuid.UUID, allowedUsers ...string) (bool, error) {
+	courseIdentifier, err := s.courseIdentifierStringFromCoursePhaseID(c, coursePhaseID)
 	if err != nil {
 		c.IndentedJSON(500, gin.H{"error": err.Error()})
 		return false, err
@@ -18,8 +18,8 @@ func CheckCoursePhasePermission(c *gin.Context, coursePhaseID uuid.UUID, allowed
 	return checkUserRole(c, courseIdentifier, allowedUsers...)
 }
 
-func courseIdentifierStringFromCoursePhaseID(ctx context.Context, uuid uuid.UUID) (string, error) {
-	identifier, err := ValidationServiceSingleton.queries.GetPermissionStringByCoursePhaseID(ctx, uuid)
+func (s *ValidationService) courseIdentifierStringFromCoursePhaseID(ctx context.Context, uuid uuid.UUID) (string, error) {
+	identifier, err := s.queries.GetPermissionStringByCoursePhaseID(ctx, uuid)
 	if err != nil {
 		return "", err
 	}

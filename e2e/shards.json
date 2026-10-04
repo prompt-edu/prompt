@@ -13,12 +13,15 @@
         "/tests/courses/.*\\.spec\\.ts$",
         "/tests/students/.*\\.spec\\.ts$",
         "/tests/permissions/.*\\.spec\\.ts$",
+        "/tests/privacy/.*\\.spec\\.ts$",
+        "/tests/api/privacy\\.api\\.spec\\.ts$",
         "/tests/api/client-static\\.api\\.spec\\.ts$",
         "/tests/api/courses\\.api\\.spec\\.ts$",
         "/tests/api/application-apply\\.api\\.spec\\.ts$",
         "/tests/api/application-files\\.api\\.spec\\.ts$",
         "/tests/api/application-import\\.api\\.spec\\.ts$",
-        "/tests/api/course-staff\\.api\\.spec\\.ts$"
+        "/tests/api/course-staff\\.api\\.spec\\.ts$",
+        "/tests/api/service-info\\.api\\.spec\\.ts$"
       ]
     },
     {
@@ -74,6 +77,13 @@
       "cacheWriter": false,
       "paths": [
         "/tests/presentation/.*\\.spec\\.ts$"
+      ]
+    },
+    {
+      "name": "infrastructure-setup",
+      "cacheWriter": false,
+      "paths": [
+        "/tests/infrastructure-setup/.*\\.spec\\.ts$"
       ]
     },
     {

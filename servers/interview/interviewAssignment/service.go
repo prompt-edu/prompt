@@ -21,7 +21,12 @@ type InterviewAssignmentService struct {
 	conn    *pgxpool.Pool
 }
 
-var InterviewAssignmentServiceSingleton *InterviewAssignmentService
+func NewInterviewAssignmentService(queries db.Queries, conn *pgxpool.Pool) *InterviewAssignmentService {
+	return &InterviewAssignmentService{
+		queries: queries,
+		conn:    conn,
+	}
+}
 
 type ServiceError struct {
 	StatusCode int
@@ -55,19 +60,19 @@ func pgTextToStringPtr(t pgtype.Text) *string {
 	return nil
 }
 
-func CreateInterviewAssignment(ctx context.Context, coursePhaseID uuid.UUID, participationUUID uuid.UUID, req interviewAssignmentDTO.CreateInterviewAssignmentRequest) (interviewAssignmentDTO.InterviewAssignmentResponse, error) {
+func (s *InterviewAssignmentService) CreateInterviewAssignment(ctx context.Context, coursePhaseID uuid.UUID, participationUUID uuid.UUID, req interviewAssignmentDTO.CreateInterviewAssignmentRequest) (interviewAssignmentDTO.InterviewAssignmentResponse, error) {
 	if participationUUID == uuid.Nil {
 		return interviewAssignmentDTO.InterviewAssignmentResponse{}, newServiceError(http.StatusBadRequest, "Invalid course participation ID", nil)
 	}
 
-	tx, err := InterviewAssignmentServiceSingleton.conn.Begin(ctx)
+	tx, err := s.conn.Begin(ctx)
 	if err != nil {
 		log.Errorf("Failed to begin transaction: %v", err)
 		return interviewAssignmentDTO.InterviewAssignmentResponse{}, newServiceError(http.StatusInternalServerError, "Failed to process request", err)
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 
-	qtx := InterviewAssignmentServiceSingleton.queries.WithTx(tx)
+	qtx := s.queries.WithTx(tx)
 
 	slot, err := qtx.GetInterviewSlotForUpdate(ctx, req.InterviewSlotID)
 	if err != nil {
@@ -125,19 +130,19 @@ func CreateInterviewAssignment(ctx context.Context, coursePhaseID uuid.UUID, par
 	}, nil
 }
 
-func CreateInterviewAssignmentAdmin(ctx context.Context, coursePhaseID uuid.UUID, req interviewAssignmentDTO.CreateInterviewAssignmentAdminRequest) (interviewAssignmentDTO.InterviewAssignmentResponse, error) {
+func (s *InterviewAssignmentService) CreateInterviewAssignmentAdmin(ctx context.Context, coursePhaseID uuid.UUID, req interviewAssignmentDTO.CreateInterviewAssignmentAdminRequest) (interviewAssignmentDTO.InterviewAssignmentResponse, error) {
 	if req.CourseParticipationID == uuid.Nil {
 		return interviewAssignmentDTO.InterviewAssignmentResponse{}, newServiceError(http.StatusBadRequest, "Invalid course participation ID", nil)
 	}
 
-	tx, err := InterviewAssignmentServiceSingleton.conn.Begin(ctx)
+	tx, err := s.conn.Begin(ctx)
 	if err != nil {
 		log.Errorf("Failed to begin transaction: %v", err)
 		return interviewAssignmentDTO.InterviewAssignmentResponse{}, newServiceError(http.StatusInternalServerError, "Failed to process request", err)
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 
-	qtx := InterviewAssignmentServiceSingleton.queries.WithTx(tx)
+	qtx := s.queries.WithTx(tx)
 
 	slot, err := qtx.GetInterviewSlotForUpdate(ctx, req.InterviewSlotID)
 	if err != nil {
@@ -195,12 +200,12 @@ func CreateInterviewAssignmentAdmin(ctx context.Context, coursePhaseID uuid.UUID
 	}, nil
 }
 
-func GetMyInterviewAssignment(ctx context.Context, coursePhaseID uuid.UUID, participationUUID uuid.UUID) (interviewAssignmentDTO.InterviewAssignmentResponse, error) {
+func (s *InterviewAssignmentService) GetMyInterviewAssignment(ctx context.Context, coursePhaseID uuid.UUID, participationUUID uuid.UUID) (interviewAssignmentDTO.InterviewAssignmentResponse, error) {
 	if participationUUID == uuid.Nil {
 		return interviewAssignmentDTO.InterviewAssignmentResponse{}, newServiceError(http.StatusBadRequest, "Invalid course participation ID", nil)
 	}
 
-	assignment, err := InterviewAssignmentServiceSingleton.queries.GetInterviewAssignmentByParticipation(ctx, db.GetInterviewAssignmentByParticipationParams{
+	assignment, err := s.queries.GetInterviewAssignmentByParticipation(ctx, db.GetInterviewAssignmentByParticipationParams{
 		CourseParticipationID: participationUUID,
 		CoursePhaseID:         coursePhaseID,
 	})
@@ -212,13 +217,13 @@ func GetMyInterviewAssignment(ctx context.Context, coursePhaseID uuid.UUID, part
 		return interviewAssignmentDTO.InterviewAssignmentResponse{}, newServiceError(http.StatusInternalServerError, "Failed to get interview assignment", err)
 	}
 
-	slot, err := InterviewAssignmentServiceSingleton.queries.GetInterviewSlot(ctx, assignment.InterviewSlotID)
+	slot, err := s.queries.GetInterviewSlot(ctx, assignment.InterviewSlotID)
 	if err != nil {
 		log.Errorf("Failed to get slot details: %v", err)
 		return interviewAssignmentDTO.InterviewAssignmentResponse{}, newServiceError(http.StatusInternalServerError, "Failed to get slot details", err)
 	}
 
-	count, err := InterviewAssignmentServiceSingleton.queries.CountAssignmentsBySlot(ctx, slot.ID)
+	count, err := s.queries.CountAssignmentsBySlot(ctx, slot.ID)
 	if err != nil {
 		log.Errorf("Failed to count assignments for slot: %v", err)
 		return interviewAssignmentDTO.InterviewAssignmentResponse{}, newServiceError(http.StatusInternalServerError, "Failed to count assignments", err)
@@ -243,8 +248,8 @@ func GetMyInterviewAssignment(ctx context.Context, coursePhaseID uuid.UUID, part
 	}, nil
 }
 
-func DeleteInterviewAssignment(ctx context.Context, coursePhaseID uuid.UUID, assignmentID uuid.UUID, selfParticipationID uuid.UUID, isPrivileged bool) error {
-	assignment, err := InterviewAssignmentServiceSingleton.queries.GetInterviewAssignment(ctx, assignmentID)
+func (s *InterviewAssignmentService) DeleteInterviewAssignment(ctx context.Context, coursePhaseID uuid.UUID, assignmentID uuid.UUID, selfParticipationID uuid.UUID, isPrivileged bool) error {
+	assignment, err := s.queries.GetInterviewAssignment(ctx, assignmentID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return newServiceError(http.StatusNotFound, "Assignment not found", err)
@@ -253,7 +258,7 @@ func DeleteInterviewAssignment(ctx context.Context, coursePhaseID uuid.UUID, ass
 		return newServiceError(http.StatusInternalServerError, "Failed to get interview assignment", err)
 	}
 
-	slot, err := InterviewAssignmentServiceSingleton.queries.GetInterviewSlot(ctx, assignment.InterviewSlotID)
+	slot, err := s.queries.GetInterviewSlot(ctx, assignment.InterviewSlotID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return newServiceError(http.StatusNotFound, "Slot not found", err)
@@ -276,7 +281,7 @@ func DeleteInterviewAssignment(ctx context.Context, coursePhaseID uuid.UUID, ass
 		}
 	}
 
-	if err := InterviewAssignmentServiceSingleton.queries.DeleteInterviewAssignment(ctx, assignmentID); err != nil {
+	if err := s.queries.DeleteInterviewAssignment(ctx, assignmentID); err != nil {
 		log.Errorf("Failed to delete interview assignment: %v", err)
 		return newServiceError(http.StatusInternalServerError, "Failed to delete interview assignment", err)
 	}

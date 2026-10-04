@@ -18,8 +18,8 @@ RETURNING *;
 
 -- name: UpdateCoursePhase :exec
 UPDATE course_phase
-SET 
-    name = COALESCE($2, name), 
+SET
+    name = COALESCE($2, name),
     restricted_data = restricted_data || $3,
     student_readable_data = student_readable_data || $4
 WHERE id = $1;
@@ -37,7 +37,7 @@ LIMIT 1;
 -- name: GetResolutionsForCoursePhase :many
 SELECT po.dto_name, cpt.base_url, po.endpoint_path, mdg.from_course_phase_id
 FROM participation_data_dependency_graph mdg
-JOIN course_phase_type_participation_provided_output_dto po 
+JOIN course_phase_type_participation_provided_output_dto po
   ON po.id = mdg.from_course_phase_DTO_id
 JOIN course_phase_type cpt
   ON cpt.id = po.course_phase_type_id
@@ -70,3 +70,9 @@ JOIN course_phase_type cpt
   ON cpt.id = po.course_phase_type_id
 WHERE dg.to_course_phase_id = $1
     AND po.endpoint_path <> 'core';
+
+-- name: GetCoursePhaseDeletionTargets :many
+SELECT cp.id, cpt.name AS course_phase_type_name, cpt.base_url
+FROM course_phase cp
+JOIN course_phase_type cpt ON cpt.id = cp.course_phase_type_id
+WHERE cp.id = ANY(sqlc.arg(course_phase_ids)::uuid[]);

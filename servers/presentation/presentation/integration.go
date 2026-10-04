@@ -5,20 +5,35 @@ import (
 	"fmt"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt-sdk/audit"
 	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt-sdk/promptTypes"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	db "github.com/prompt-edu/prompt/servers/presentation/db/sqlc"
 )
 
+// AuditCopyAction names the copy route and the event its handler records, so both
+// describe the same action in the audit log.
+const AuditCopyAction = "Copied course phase"
+
 type CopyHandler struct {
 	Service *Service
 }
 
 func (h *CopyHandler) HandlePhaseCopy(c *gin.Context, request promptTypes.PhaseCopyRequest) error {
+	// Core probes this endpoint by posting a copy of a phase onto itself to find out
+	// whether the service supports copying. Copying in place clears the target first, so
+	// it would wipe the phase's own slots, presentations and uploaded material.
+	if request.SourceCoursePhaseID == request.TargetCoursePhaseID {
+		audit.Suppress(c)
+		return nil
+	}
+	recordCopyAudit(c, request)
+
 	sourceConfig, err := h.Service.queries.GetCoursePhaseConfig(c, request.SourceCoursePhaseID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		// Nothing configured on the source phase, so there is nothing to copy.
@@ -77,6 +92,23 @@ func (h *CopyHandler) HandlePhaseCopy(c *gin.Context, request promptTypes.PhaseC
 	}
 	h.Service.deleteStoredMaterials(c, targetStorageKeys)
 	return nil
+}
+
+// recordCopyAudit scopes the event to the target phase. The route sits outside
+// :coursePhaseID, so an automatically captured event would carry no phase and never reach
+// the course audit log. A blank target is left to that automatic entry rather than pinning
+// the log to the nil phase.
+func recordCopyAudit(c *gin.Context, request promptTypes.PhaseCopyRequest) {
+	if request.TargetCoursePhaseID == uuid.Nil {
+		return
+	}
+	audit.Record(c, audit.Event{
+		Action:        AuditCopyAction,
+		EntityType:    "coursePhase",
+		EntityID:      request.TargetCoursePhaseID.String(),
+		CoursePhaseID: request.TargetCoursePhaseID.String(),
+		Metadata:      map[string]any{"sourceCoursePhaseID": request.SourceCoursePhaseID.String()},
+	})
 }
 
 func (s *Service) PrivacyExportHandler(

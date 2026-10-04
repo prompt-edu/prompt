@@ -29,6 +29,7 @@ node_modules/
 dist/
 build/
 .cache/
+TestResults-*.xml
 
 # =============================================================================
 # Go / Backend

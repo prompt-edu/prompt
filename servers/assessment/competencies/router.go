@@ -12,20 +12,20 @@ import (
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
 )
 
-// setupCompetencyRouter sets up competency endpoints.
+// RegisterRoutes sets up competency endpoints.
 // @Summary Competency Endpoints
 // @Description Manage competencies for assessment categories.
 // @Tags competencies
 // @Security BearerAuth
-func setupCompetencyRouter(routerGroup *gin.RouterGroup, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
+func RegisterRoutes(routerGroup *gin.RouterGroup, service *CompetencyService, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
 	competencyRouter := routerGroup.Group("/competency")
 
-	competencyRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), listCompetencies)
-	competencyRouter.GET("/:competencyID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), getCompetency)
-	competencyRouter.GET("/category/:categoryID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), listCompetenciesByCategory)
-	competencyRouter.POST("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), createCompetency)
-	competencyRouter.PUT("/:competencyID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), updateCompetency)
-	competencyRouter.DELETE("/:competencyID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), deleteCompetency)
+	competencyRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.listCompetencies)
+	competencyRouter.GET("/:competencyID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.getCompetency)
+	competencyRouter.GET("/category/:categoryID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.listCompetenciesByCategory)
+	competencyRouter.POST("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.createCompetency)
+	competencyRouter.PUT("/:competencyID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.updateCompetency)
+	competencyRouter.DELETE("/:competencyID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.deleteCompetency)
 }
 
 // listCompetencies godoc
@@ -38,14 +38,14 @@ func setupCompetencyRouter(routerGroup *gin.RouterGroup, authMiddleware func(all
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/competency [get]
-func listCompetencies(c *gin.Context) {
+func (s *CompetencyService) listCompetencies(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
 
-	competencies, err := ListCompetenciesForCoursePhase(c, coursePhaseID)
+	competencies, err := s.ListCompetenciesForCoursePhase(c, coursePhaseID)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, err)
 		return
@@ -64,7 +64,7 @@ func listCompetencies(c *gin.Context) {
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/competency/{competencyID} [get]
-func getCompetency(c *gin.Context) {
+func (s *CompetencyService) getCompetency(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -76,7 +76,7 @@ func getCompetency(c *gin.Context) {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
-	competency, err := GetCompetencyForCoursePhase(c, coursePhaseID, competencyID)
+	competency, err := s.GetCompetencyForCoursePhase(c, coursePhaseID, competencyID)
 	if err != nil {
 		if errors.Is(err, assessmentSchemas.ErrSchemaNotAccessible) {
 			handleError(c, http.StatusForbidden, err)
@@ -99,7 +99,7 @@ func getCompetency(c *gin.Context) {
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/competency/category/{categoryID} [get]
-func listCompetenciesByCategory(c *gin.Context) {
+func (s *CompetencyService) listCompetenciesByCategory(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -111,7 +111,7 @@ func listCompetenciesByCategory(c *gin.Context) {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
-	competencies, err := ListCompetenciesByCategoryForCoursePhase(c, coursePhaseID, categoryID)
+	competencies, err := s.ListCompetenciesByCategoryForCoursePhase(c, coursePhaseID, categoryID)
 	if err != nil {
 		if errors.Is(err, assessmentSchemas.ErrSchemaNotAccessible) {
 			handleError(c, http.StatusForbidden, err)
@@ -134,7 +134,7 @@ func listCompetenciesByCategory(c *gin.Context) {
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/competency [post]
-func createCompetency(c *gin.Context) {
+func (s *CompetencyService) createCompetency(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -147,7 +147,7 @@ func createCompetency(c *gin.Context) {
 		return
 	}
 
-	err = CreateCompetency(c, coursePhaseID, req)
+	err = s.CreateCompetency(c, coursePhaseID, req)
 	if err != nil {
 		if errors.Is(err, assessmentSchemas.ErrSchemaNotAccessible) {
 			handleError(c, http.StatusForbidden, err)
@@ -171,7 +171,7 @@ func createCompetency(c *gin.Context) {
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/competency/{competencyID} [put]
-func updateCompetency(c *gin.Context) {
+func (s *CompetencyService) updateCompetency(c *gin.Context) {
 	competencyID, err := uuid.Parse(c.Param("competencyID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -190,7 +190,7 @@ func updateCompetency(c *gin.Context) {
 		return
 	}
 
-	err = UpdateCompetency(c, competencyID, coursePhaseID, req)
+	err = s.UpdateCompetency(c, competencyID, coursePhaseID, req)
 	if err != nil {
 		if errors.Is(err, assessmentSchemas.ErrSchemaNotAccessible) {
 			handleError(c, http.StatusForbidden, err)
@@ -212,7 +212,7 @@ func updateCompetency(c *gin.Context) {
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/competency/{competencyID} [delete]
-func deleteCompetency(c *gin.Context) {
+func (s *CompetencyService) deleteCompetency(c *gin.Context) {
 	competencyID, err := uuid.Parse(c.Param("competencyID"))
 	if err != nil {
 		handleError(c, http.StatusBadRequest, err)
@@ -225,7 +225,7 @@ func deleteCompetency(c *gin.Context) {
 		return
 	}
 
-	err = DeleteCompetency(c, competencyID, coursePhaseID)
+	err = s.DeleteCompetency(c, competencyID, coursePhaseID)
 	if err != nil {
 		if errors.Is(err, assessmentSchemas.ErrSchemaNotAccessible) {
 			handleError(c, http.StatusForbidden, err)

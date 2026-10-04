@@ -21,26 +21,28 @@ type InstructorNoteService struct {
 	conn    *pgxpool.Pool
 }
 
-var InstructorNoteServiceSingleton *InstructorNoteService
+func NewInstructorNoteService(queries db.Queries, conn *pgxpool.Pool) *InstructorNoteService {
+  return &InstructorNoteService{queries: queries, conn: conn}
+}
 
-func GetStudentNotes(ctx context.Context) ([]instructorNoteDTO.InstructorNote, error) {
-  instructorNotes, err := InstructorNoteServiceSingleton.queries.GetAllStudentNotes(ctx)
+func (s *InstructorNoteService) GetStudentNotes(ctx context.Context) ([]instructorNoteDTO.InstructorNote, error) {
+  instructorNotes, err := s.queries.GetAllStudentNotes(ctx)
   if err != nil {
     return nil, err
   }
   return instructorNoteDTO.InstructorNotesFromDBModelToDTO(instructorNotes)
 }
 
-func GetStudentNotesByID(ctx context.Context, id uuid.UUID) ([]instructorNoteDTO.InstructorNote, error) {
-  instructorNotes, err := InstructorNoteServiceSingleton.queries.GetStudentNotesForStudent(ctx, id)
+func (s *InstructorNoteService) GetStudentNotesByID(ctx context.Context, id uuid.UUID) ([]instructorNoteDTO.InstructorNote, error) {
+  instructorNotes, err := s.queries.GetStudentNotesForStudent(ctx, id)
   if err != nil {
     return nil, err
   }
   return instructorNoteDTO.InstructorNotesFromDBModelToDTO(instructorNotes)
 }
 
-func GetStudentNotesByIDWithoutAuthor(ctx context.Context, id uuid.UUID) ([]instructorNoteDTO.InstructorNote, error) {
-  notes, err := GetStudentNotesByID(ctx, id)
+func (s *InstructorNoteService) GetStudentNotesByIDWithoutAuthor(ctx context.Context, id uuid.UUID) ([]instructorNoteDTO.InstructorNote, error) {
+  notes, err := s.GetStudentNotesByID(ctx, id)
   if err != nil {
     return nil, err
   }
@@ -52,16 +54,16 @@ func GetStudentNotesByIDWithoutAuthor(ctx context.Context, id uuid.UUID) ([]inst
   return notes, nil
 }
 
-func GetStudentNotesForAuthor(ctx context.Context, authorID uuid.UUID) ([]instructorNoteDTO.InstructorNote, error) {
-  instructorNotes, err := InstructorNoteServiceSingleton.queries.GetStudentNotesForAuthor(ctx, authorID)
+func (s *InstructorNoteService) GetStudentNotesForAuthor(ctx context.Context, authorID uuid.UUID) ([]instructorNoteDTO.InstructorNote, error) {
+  instructorNotes, err := s.queries.GetStudentNotesForAuthor(ctx, authorID)
   if err != nil {
     return nil, err
   }
   return instructorNoteDTO.InstructorNotesFromDBModelToDTO(instructorNotes)
 }
 
-func GetStudentNotesForAuthorWithoutStudent(ctx context.Context, authorID uuid.UUID) ([]instructorNoteDTO.InstructorNote, error) {
-  notes, err := GetStudentNotesForAuthor(ctx, authorID)
+func (s *InstructorNoteService) GetStudentNotesForAuthorWithoutStudent(ctx context.Context, authorID uuid.UUID) ([]instructorNoteDTO.InstructorNote, error) {
+  notes, err := s.GetStudentNotesForAuthor(ctx, authorID)
   if err != nil {
     return nil, err
   }
@@ -72,29 +74,29 @@ func GetStudentNotesForAuthorWithoutStudent(ctx context.Context, authorID uuid.U
 }
 
 
-func GetAllTags(ctx context.Context) ([]instructorNoteDTO.NoteTag, error) {
-  tags, err := InstructorNoteServiceSingleton.queries.GetAllTags(ctx)
+func (s *InstructorNoteService) GetAllTags(ctx context.Context) ([]instructorNoteDTO.NoteTag, error) {
+  tags, err := s.queries.GetAllTags(ctx)
   if err != nil {
     return nil, err
   }
   return instructorNoteDTO.NoteTagsFromDBModels(tags), nil
 }
 
-func GetSingleNoteByID(ctx context.Context, id uuid.UUID) (db.Note, error) {
-  note, err := InstructorNoteServiceSingleton.queries.GetSingleStudentNoteByID(ctx, id)
+func (s *InstructorNoteService) GetSingleNoteByID(ctx context.Context, id uuid.UUID) (db.Note, error) {
+  note, err := s.queries.GetSingleStudentNoteByID(ctx, id)
   if err != nil {
     return db.Note{}, err
   }
   return note, nil
 }
 
-func NewStudentNote(ctx context.Context, studentID uuid.UUID, params instructorNoteDTO.CreateInstructorNote, signedInUserUUID uuid.UUID, authorName string, authorEmail string) (instructorNoteDTO.InstructorNote, error) {
-  tx, err := InstructorNoteServiceSingleton.conn.Begin(ctx)
+func (s *InstructorNoteService) NewStudentNote(ctx context.Context, studentID uuid.UUID, params instructorNoteDTO.CreateInstructorNote, signedInUserUUID uuid.UUID, authorName string, authorEmail string) (instructorNoteDTO.InstructorNote, error) {
+  tx, err := s.conn.Begin(ctx)
   if err != nil {
     return instructorNoteDTO.InstructorNote{}, err
   }
   defer promptSDK.DeferDBRollback(tx, ctx)
-  qtx := InstructorNoteServiceSingleton.queries.WithTx(tx)
+  qtx := s.queries.WithTx(tx)
 
   versionNumber := 0
   var noteID uuid.UUID
@@ -168,19 +170,19 @@ func NewStudentNote(ctx context.Context, studentID uuid.UUID, params instructorN
     return instructorNoteDTO.InstructorNote{}, fmt.Errorf("failed to commit transaction: %w", err)
   }
 
-  createdNote, err := InstructorNoteServiceSingleton.queries.GetSingleNoteWithVersionsByID(ctx, noteID)
+  createdNote, err := s.queries.GetSingleNoteWithVersionsByID(ctx, noteID)
   if err != nil {
     return instructorNoteDTO.InstructorNote{}, err
   }
   return instructorNoteDTO.GetInstructorNoteDTOFromDBModel(createdNote)
 }
 
-func CreateNoteTag(ctx context.Context, tag instructorNoteDTO.CreateNoteTag) (instructorNoteDTO.NoteTag, error) {
+func (s *InstructorNoteService) CreateNoteTag(ctx context.Context, tag instructorNoteDTO.CreateNoteTag) (instructorNoteDTO.NoteTag, error) {
   id, err := uuid.NewRandom()
   if err != nil {
     return instructorNoteDTO.NoteTag{}, err
   }
-  result, err := InstructorNoteServiceSingleton.queries.CreateTag(ctx, db.CreateTagParams{
+  result, err := s.queries.CreateTag(ctx, db.CreateTagParams{
     ID:    id,
     Name:  tag.Name,
     Color: db.NoteTagColor(tag.Color),
@@ -191,8 +193,8 @@ func CreateNoteTag(ctx context.Context, tag instructorNoteDTO.CreateNoteTag) (in
   return instructorNoteDTO.NoteTagFromDBModel(result), nil
 }
 
-func UpdateNoteTag(ctx context.Context, id uuid.UUID, tag instructorNoteDTO.UpdateNoteTag) (instructorNoteDTO.NoteTag, error) {
-  result, err := InstructorNoteServiceSingleton.queries.UpdateTag(ctx, db.UpdateTagParams{
+func (s *InstructorNoteService) UpdateNoteTag(ctx context.Context, id uuid.UUID, tag instructorNoteDTO.UpdateNoteTag) (instructorNoteDTO.NoteTag, error) {
+  result, err := s.queries.UpdateTag(ctx, db.UpdateTagParams{
     ID:    id,
     Name:  tag.Name,
     Color: db.NoteTagColor(tag.Color),
@@ -203,12 +205,12 @@ func UpdateNoteTag(ctx context.Context, id uuid.UUID, tag instructorNoteDTO.Upda
   return instructorNoteDTO.NoteTagFromDBModel(result), nil
 }
 
-func DeleteNoteTag(ctx context.Context, id uuid.UUID) error {
-  return InstructorNoteServiceSingleton.queries.DeleteTag(ctx, id)
+func (s *InstructorNoteService) DeleteNoteTag(ctx context.Context, id uuid.UUID) error {
+  return s.queries.DeleteTag(ctx, id)
 }
 
-func DeleteInstructorNote(ctx context.Context, noteID uuid.UUID, authorID uuid.UUID) (instructorNoteDTO.InstructorNote, error) {
-  _, err := InstructorNoteServiceSingleton.queries.DeleteNote(ctx, db.DeleteNoteParams{
+func (s *InstructorNoteService) DeleteInstructorNote(ctx context.Context, noteID uuid.UUID, authorID uuid.UUID) (instructorNoteDTO.InstructorNote, error) {
+  _, err := s.queries.DeleteNote(ctx, db.DeleteNoteParams{
     ID: noteID,
     DeletedBy: pgtype.UUID{ Bytes: authorID, Valid: true},
   })
@@ -217,7 +219,7 @@ func DeleteInstructorNote(ctx context.Context, noteID uuid.UUID, authorID uuid.U
   }
 
   // Fetch the deleted note with versions to return to client
-  deletedNoteWithVersions, err := InstructorNoteServiceSingleton.queries.GetSingleNoteWithVersionsByID(ctx, noteID)
+  deletedNoteWithVersions, err := s.queries.GetSingleNoteWithVersionsByID(ctx, noteID)
   if err != nil {
     return instructorNoteDTO.InstructorNote{}, err
   }

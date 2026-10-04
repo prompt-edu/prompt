@@ -35,6 +35,7 @@ func RegisterRoutes(routerGroup *gin.RouterGroup, service *AllocationService, au
 // @Param coursePhaseID path string true "Course Phase UUID"
 // @Success 200 {array} allocationDTO.AllocationWithParticipation
 // @Failure 400 {object} map[string]string
+// @Failure 403 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Security ApiKeyAuth
 // @Router /course_phase/{coursePhaseID}/allocation [get]

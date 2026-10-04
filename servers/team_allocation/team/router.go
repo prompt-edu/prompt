@@ -41,6 +41,7 @@ func RegisterRoutes(routerGroup *gin.RouterGroup, service *TeamsService, authMid
 // @Param coursePhaseID path string true "Course Phase UUID"
 // @Success 200 {object} map[string][]promptTypes.Team
 // @Failure 400 {object} map[string]string
+// @Failure 403 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Security ApiKeyAuth
 // @Router /course_phase/{coursePhaseID}/team [get]

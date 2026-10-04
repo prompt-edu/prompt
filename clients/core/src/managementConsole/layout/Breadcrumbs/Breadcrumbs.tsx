@@ -3,15 +3,21 @@ import { useStudentStore } from '@core/managementConsole/shared/store/student.st
 import { useCourseStore } from '@tumaet/prompt-shared-state'
 import {
   Breadcrumb,
+  BreadcrumbEllipsis,
   BreadcrumbItem,
   BreadcrumbLink,
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
   getStudentName,
 } from '@tumaet/prompt-ui-components'
-import React, { useMemo } from 'react'
+import React, { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { collapseBreadcrumbs } from './collapseBreadcrumbs'
 
 interface BreadcrumbProps {
   title: string
@@ -125,27 +131,110 @@ export const Breadcrumbs: React.FC = () => {
     return breadcrumbs
   }, [location.pathname, courses, studentsById, participations])
 
+  const { first, hidden, last } = collapseBreadcrumbs(breadcrumbList)
+  const canCollapse = hidden.length > 0
+
+  const containerRef = useRef<HTMLElement>(null)
+  const listRef = useRef<HTMLOListElement>(null)
+  const lastLabelRef = useRef<HTMLSpanElement>(null)
+  const fullWidthRef = useRef(0)
+  const [isCollapsed, setIsCollapsed] = useState(false)
+
+  // A new trail has not been measured yet. Forgetting the old width makes the measuring effect
+  // show it in full, measure it, and collapse it again if needed, all before paint.
+  useLayoutEffect(() => {
+    fullWidthRef.current = 0
+  }, [breadcrumbList])
+
+  // While the full trail is shown, remember the width it needs (the last crumb may already be
+  // truncated, so its untruncated width counts). Collapse whenever that width exceeds the space
+  // the header leaves, and expand again once it fits. Runs before paint, so nothing flickers.
+  useLayoutEffect(() => {
+    const container = containerRef.current
+    const list = listRef.current
+    if (!container || !list) return
+
+    const update = () => {
+      if (!isCollapsed) {
+        const lastLabel = lastLabelRef.current
+        const lastLabelOverflow = lastLabel ? lastLabel.scrollWidth - lastLabel.clientWidth : 0
+        fullWidthRef.current = list.scrollWidth + lastLabelOverflow
+      }
+      setIsCollapsed(canCollapse && fullWidthRef.current > container.clientWidth)
+    }
+    update()
+    const observer = new ResizeObserver(update)
+    observer.observe(container)
+    return () => observer.disconnect()
+  }, [isCollapsed, canCollapse, breadcrumbList])
+
   if (breadcrumbList.length === 0) {
     return null
   }
 
+  // The last crumb truncates first. Earlier crumbs are capped only in the collapsed form; in the
+  // full form they keep their real width so it can be measured, unless the trail cannot collapse
+  // at all, in which case they shrink and truncate instead.
+  const earlierCrumbClassName = isCollapsed
+    ? 'min-w-0 max-w-48 shrink-0'
+    : canCollapse
+      ? 'shrink-0'
+      : 'min-w-0'
+
+  const renderCrumb = (crumb: BreadcrumbProps, isLast: boolean) => (
+    <BreadcrumbItem className={isLast ? 'min-w-0' : earlierCrumbClassName}>
+      {isLast ? (
+        <BreadcrumbPage ref={lastLabelRef} className='block truncate' title={crumb.title}>
+          {crumb.title}
+        </BreadcrumbPage>
+      ) : (
+        <BreadcrumbLink
+          className='block truncate'
+          title={crumb.title}
+          style={{ cursor: 'pointer' }}
+          onClick={() => navigate(crumb.path)}
+        >
+          {crumb.title}
+        </BreadcrumbLink>
+      )}
+    </BreadcrumbItem>
+  )
+
   return (
-    <Breadcrumb>
-      <BreadcrumbList>
-        {breadcrumbList.map((crumb, index) => (
-          <React.Fragment key={crumb.path}>
-            {index > 0 && <BreadcrumbSeparator />}
+    <Breadcrumb ref={containerRef} className='min-w-0 flex-1'>
+      <BreadcrumbList ref={listRef} className='flex-nowrap'>
+        {isCollapsed ? (
+          <>
+            {renderCrumb(first, false)}
+            <BreadcrumbSeparator />
             <BreadcrumbItem>
-              {index === breadcrumbList.length - 1 ? (
-                <BreadcrumbPage>{crumb.title}</BreadcrumbPage>
-              ) : (
-                <BreadcrumbLink style={{ cursor: 'pointer' }} onClick={() => navigate(crumb.path)}>
-                  {crumb.title}
-                </BreadcrumbLink>
-              )}
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  className='flex items-center'
+                  aria-label='Show hidden breadcrumbs'
+                >
+                  <BreadcrumbEllipsis className='h-4 w-4' />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align='start'>
+                  {hidden.map((crumb) => (
+                    <DropdownMenuItem key={crumb.path} onClick={() => navigate(crumb.path)}>
+                      {crumb.title}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </BreadcrumbItem>
-          </React.Fragment>
-        ))}
+            <BreadcrumbSeparator />
+            {renderCrumb(last, true)}
+          </>
+        ) : (
+          breadcrumbList.map((crumb, index) => (
+            <React.Fragment key={crumb.path}>
+              {index > 0 && <BreadcrumbSeparator />}
+              {renderCrumb(crumb, index === breadcrumbList.length - 1)}
+            </React.Fragment>
+          ))
+        )}
       </BreadcrumbList>
     </Breadcrumb>
   )

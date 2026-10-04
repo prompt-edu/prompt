@@ -72,3 +72,6 @@ CLAUDE.local.md
 # Local Tooling (not shared)
 # =============================================================================
 justfile
+
+# Playwright MCP scratch output (screenshots, console logs) from `verify`.
+.playwright-mcp/

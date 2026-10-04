@@ -48,6 +48,9 @@ func (s *PrivacyService) DataExportHandler(c *gin.Context, exp *utils.Export, su
 	exp.AddJSON("Feedback Items", "student/feedback_item.json", func() (any, error) {
 		return q.GetAllFeedbackItemsByCourseParticipationIDs(c, ids)
 	})
+	exp.AddJSON("Results Released Mails", "student/results_released_mail.json", func() (any, error) {
+		return q.GetAllResultsReleasedMailsByCourseParticipationIDs(c, ids)
+	})
 
 	return nil
 }
@@ -85,6 +88,9 @@ func (s *PrivacyService) DataDeletionHandler(c *gin.Context, subject sdkAuth.Sub
 	}
 	if err := qtx.DeleteFeedbackItemsByRecipientOrAuthorIDs(ctx, ids); err != nil {
 		return fmt.Errorf("failed to delete feedback items: %w", err)
+	}
+	if err := qtx.DeleteResultsReleasedMailsByCourseParticipationIDs(ctx, ids); err != nil {
+		return fmt.Errorf("failed to delete results released mails: %w", err)
 	}
 
 	if err := tx.Commit(ctx); err != nil {

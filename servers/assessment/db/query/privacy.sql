@@ -42,6 +42,11 @@ SELECT id, feedback_type, feedback_text, course_participation_id, course_phase_i
 FROM feedback_items
 WHERE course_participation_id = ANY($1::uuid[]);
 
+-- name: GetAllResultsReleasedMailsByCourseParticipationIDs :many
+SELECT course_phase_id, course_participation_id, sent_at
+FROM results_released_mail
+WHERE course_participation_id = ANY($1::uuid[]);
+
 -- name: DeleteAssessmentsByCourseParticipationIDs :exec
 DELETE FROM assessment
 WHERE course_participation_id = ANY($1::uuid[]);
@@ -72,3 +77,7 @@ WHERE course_participation_id = ANY($1::uuid[]);
 DELETE FROM feedback_items
 WHERE course_participation_id = ANY($1::uuid[])
    OR author_course_participation_id = ANY($1::uuid[]);
+
+-- name: DeleteResultsReleasedMailsByCourseParticipationIDs :exec
+DELETE FROM results_released_mail
+WHERE course_participation_id = ANY($1::uuid[]);

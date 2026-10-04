@@ -173,6 +173,13 @@ CREATE TABLE public.action_item (
     author text NOT NULL
 );
 
+CREATE TABLE public.results_released_mail (
+    course_phase_id uuid NOT NULL,
+    course_participation_id uuid NOT NULL,
+    sent_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    PRIMARY KEY (course_phase_id, course_participation_id)
+);
+
 --
 -- PostgreSQL database dump complete
 --

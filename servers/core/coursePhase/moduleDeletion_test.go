@@ -314,6 +314,55 @@ func (suite *ModuleDeletionTestSuite) TestKeepsThePhaseWhenTheBaseURLWouldLeakCr
 	assert.True(suite.T(), suite.phaseExists(phaseID))
 }
 
+// enableAI points core at a fake AI server, which serves the module contract below /ai/api.
+func (suite *ModuleDeletionTestSuite) enableAI(module *fakeModule) {
+	aiServer := httptest.NewServer(http.StripPrefix("/ai/api", module.server.Config.Handler))
+	suite.T().Cleanup(aiServer.Close)
+	suite.T().Setenv("AI_ENABLED", "true")
+	suite.T().Setenv("ENVIRONMENT", "production")
+	suite.T().Setenv("CORE_HOST", aiServer.URL)
+}
+
+func (suite *ModuleDeletionTestSuite) TestAsksTheAIServerForEveryPhase() {
+	aiServer := newFakeModule(supportsDeletion, http.StatusOK)
+	defer aiServer.server.Close()
+	suite.enableAI(aiServer)
+	courseID := uuid.New()
+	corePhaseID := suite.newPhase(suite.newPhaseType("core"), courseID)
+	secondPhaseID := suite.newPhase(suite.newPhaseType("core"), courseID)
+
+	deleted, err := suite.service.DeleteModuleDataForCourse(suite.ctx, testAuthHeader, courseID)
+
+	assert.NoError(suite.T(), err)
+	assert.ElementsMatch(suite.T(), []uuid.UUID{corePhaseID, secondPhaseID}, deleted)
+	assert.ElementsMatch(suite.T(), []string{corePhaseID.String(), secondPhaseID.String()}, aiServer.deletedIDs,
+		"the AI server holds a key for phases of every type, core implemented ones included")
+	assert.Equal(suite.T(), []string{testAuthHeader, testAuthHeader}, aiServer.authHeaders)
+}
+
+func (suite *ModuleDeletionTestSuite) TestKeepsThePhaseWhenTheAIServerFails() {
+	aiServer := newFakeModule(supportsDeletion, http.StatusInternalServerError)
+	defer aiServer.server.Close()
+	suite.enableAI(aiServer)
+	phaseID := suite.newPhase(suite.newPhaseType("core"), uuid.New())
+
+	err := suite.service.DeleteCoursePhase(suite.ctx, testAuthHeader, phaseID)
+
+	assert.ErrorIs(suite.T(), err, ErrModuleDeletionFailed)
+	assert.True(suite.T(), suite.phaseExists(phaseID), "the phase must not outlive its key")
+}
+
+func (suite *ModuleDeletionTestSuite) TestLeavesTheAIServerAloneWhenAIIsOff() {
+	aiServer := newFakeModule(supportsDeletion, http.StatusOK)
+	defer aiServer.server.Close()
+	suite.enableAI(aiServer)
+	suite.T().Setenv("AI_ENABLED", "false")
+	phaseID := suite.newPhase(suite.newPhaseType("core"), uuid.New())
+
+	assert.NoError(suite.T(), suite.service.DeleteCoursePhase(suite.ctx, testAuthHeader, phaseID))
+	assert.Zero(suite.T(), aiServer.infoCalls)
+}
+
 func TestMayCarryCredentials(t *testing.T) {
 	for rawURL, want := range map[string]bool{
 		"https://prompt.aet.cit.tum.de/assessment/api": true,

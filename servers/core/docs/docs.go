@@ -15,6 +15,31 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/ai/status": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Reports whether the AI features are enabled for this deployment.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ai"
+                ],
+                "summary": "AI status",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/ai.Status"
+                        }
+                    }
+                }
+            }
+        },
         "/applications/{coursePhaseID}": {
             "post": {
                 "description": "Post an application for a student (manual, authenticated)",
@@ -5543,6 +5568,14 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "ai.Status": {
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean"
+                }
+            }
+        },
         "applicationAdministration.applicationCompleteUploadRequest": {
             "type": "object",
             "properties": {

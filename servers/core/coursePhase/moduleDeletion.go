@@ -15,6 +15,7 @@ import (
 
 	"github.com/google/uuid"
 	sdkTypes "github.com/prompt-edu/prompt-sdk/promptTypes"
+	"github.com/prompt-edu/prompt/servers/core/ai"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	log "github.com/sirupsen/logrus"
 )
@@ -56,16 +57,24 @@ func (s *CoursePhaseService) deleteModuleData(ctx context.Context, authHeader st
 		if target.BaseUrl == coreBaseURL {
 			continue
 		}
-
 		baseURL := s.resolutions.ResolveBaseURL(target.BaseUrl)
+		byBaseURL[baseURL] = append(byBaseURL[baseURL], target)
+	}
+	if aiURL := ai.ServerURL(); aiURL != "" {
+		for _, id := range coursePhaseIDs {
+			byBaseURL[aiURL] = append(byBaseURL[aiURL], db.GetCoursePhaseDeletionTargetsRow{ID: id, CoursePhaseTypeName: ai.ServiceName})
+		}
+	}
+
+	for baseURL, moduleTargets := range byBaseURL {
+		name := moduleTargets[0].CoursePhaseTypeName
 		parsed, err := url.ParseRequestURI(baseURL)
 		if err != nil {
-			return fmt.Errorf("course phase type %q has an unusable base url %q: %w", target.CoursePhaseTypeName, baseURL, err)
+			return fmt.Errorf("course phase type %q has an unusable base url %q: %w", name, baseURL, err)
 		}
 		if !mayCarryCredentials(parsed) {
-			return fmt.Errorf("course phase type %q has base url %q, which would send the caller's credentials unencrypted", target.CoursePhaseTypeName, baseURL)
+			return fmt.Errorf("course phase type %q has base url %q, which would send the caller's credentials unencrypted", name, baseURL)
 		}
-		byBaseURL[baseURL] = append(byBaseURL[baseURL], target)
 	}
 
 	var mu sync.Mutex

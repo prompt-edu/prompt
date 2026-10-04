@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	sdk "github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	sdkTypes "github.com/prompt-edu/prompt-sdk/promptTypes"
+	"github.com/prompt-edu/prompt/servers/core/ai"
 	"github.com/prompt-edu/prompt/servers/core/privacy/privacyDTO"
 	log "github.com/sirupsen/logrus"
 )
@@ -63,6 +64,13 @@ func (s *PrivacyService) PrepareDataExport(c *gin.Context) (Export, error) {
 			continue
 		}
 		externalExportDocs = append(externalExportDocs, comparedoc)
+	}
+	if aiURL := ai.ServerURL(); aiURL != "" {
+		aiDoc, err := s.PrepareExportRecordDoc(c, exportRecord.ID, ai.ServiceName, aiURL+sdkTypes.PrivacyRouteDataExport)
+		if err != nil {
+			return Export{}, err
+		}
+		externalExportDocs = append(externalExportDocs, aiDoc)
 	}
 
 	return Export{

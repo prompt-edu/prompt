@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	sdk "github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	sdkTypes "github.com/prompt-edu/prompt-sdk/promptTypes"
+	"github.com/prompt-edu/prompt/servers/core/ai"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/core/privacy/privacyDTO"
 	log "github.com/sirupsen/logrus"
@@ -58,6 +59,13 @@ func (s *PrivacyService) PrepareDataDeletion(c context.Context, record privacyDT
 			continue
 		}
 		sub, err := CreateDeletionSubrequest(c, txQueries, record.ID, cpt.Name, cpt.BaseUrl+sdkTypes.PrivacyRouteDataDeletion)
+		if err != nil {
+			return Deletion{}, err
+		}
+		externalDeletions = append(externalDeletions, sub)
+	}
+	if aiURL := ai.ServerURL(); aiURL != "" {
+		sub, err := CreateDeletionSubrequest(c, txQueries, record.ID, ai.ServiceName, aiURL+sdkTypes.PrivacyRouteDataDeletion)
 		if err != nil {
 			return Deletion{}, err
 		}

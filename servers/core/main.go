@@ -13,6 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
+	"github.com/prompt-edu/prompt/servers/core/ai"
 	"github.com/prompt-edu/prompt/servers/core/applicationAdministration"
 	"github.com/prompt-edu/prompt/servers/core/auditLog"
 	"github.com/prompt-edu/prompt/servers/core/auth"
@@ -193,6 +194,7 @@ func main() {
 	tokenVerifier, keycloakRealmService := initKeycloak(api, *query, validationService.CheckCoursePermission)
 
 	auditLog.RegisterRoutes(api, auditLogService, tokenVerifier.KeycloakMiddleware, validationService.CheckCoursePermission)
+	ai.RegisterRoutes(api, tokenVerifier.KeycloakMiddleware)
 
 	// this initializes also all available course phase types
 	environment := sdkUtils.GetEnv("ENVIRONMENT", "development")

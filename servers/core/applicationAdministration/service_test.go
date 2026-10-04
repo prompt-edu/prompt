@@ -381,7 +381,7 @@ func (suite *ApplicationAdminServiceTestSuite) TestPostApplicationAuthenticatedS
 		},
 	}
 
-	_, err := suite.applicationAdminService.PostApplicationAuthenticatedStudent(suite.ctx, coursePhaseID, pgtype.Text{}, application)
+	_, err := suite.applicationAdminService.PostApplicationAuthenticatedStudent(suite.ctx, coursePhaseID, anyUploaderInPhase(), application)
 	assert.NoError(suite.T(), err)
 }
 
@@ -404,7 +404,7 @@ func (suite *ApplicationAdminServiceTestSuite) TestPostApplicationAuthenticatedS
 	}
 
 	// Apply with existing email but updated details
-	_, err := suite.applicationAdminService.PostApplicationAuthenticatedStudent(suite.ctx, coursePhaseID, pgtype.Text{}, application)
+	_, err := suite.applicationAdminService.PostApplicationAuthenticatedStudent(suite.ctx, coursePhaseID, anyUploaderInPhase(), application)
 	assert.NoError(suite.T(), err)
 }
 
@@ -609,6 +609,22 @@ func (suite *ApplicationAdminServiceTestSuite) TestGetExportedApplicationAnswers
 	assert.False(suite.T(), hasDup2)
 	_, hasNonExportedAnswer := answersByQuestion[qTextNonExported]
 	assert.False(suite.T(), hasNonExportedAnswer)
+}
+
+func (suite *ApplicationAdminServiceTestSuite) TestUpsertFileUploadAnswer_ZeroUploaderMatchesNoFile() {
+	coursePhaseID := uuid.MustParse("4179d58a-d00d-4fa7-94a5-397bc69fab02")
+	courseParticipationID := uuid.MustParse("32aa070e-67c3-4a69-852a-ba3b5e849a4d")
+	answer := applicationDTO.CreateAnswerFileUpload{
+		ApplicationQuestionID: uuid.MustParse("c2c04042-95d1-4765-8592-caf9560c8c3e"),
+		FileID:                seededUploadFileID,
+	}
+	queries := &suite.applicationAdminService.queries
+
+	_, err := upsertFileUploadAnswer(suite.ctx, queries, coursePhaseID, fileUploader{}, answer, courseParticipationID)
+	assert.ErrorIs(suite.T(), err, ErrFileNotInApplication)
+
+	_, err = upsertFileUploadAnswer(suite.ctx, queries, coursePhaseID, uploadedBy("external"), answer, courseParticipationID)
+	assert.NoError(suite.T(), err)
 }
 
 func TestApplicationAdminServiceTestSuite(t *testing.T) {

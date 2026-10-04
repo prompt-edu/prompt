@@ -143,9 +143,22 @@ func (s *ApplicationService) buildFileUploadAnswerDTOs(ctx context.Context, answ
 
 var ErrFileNotInApplication = errors.New("file was not uploaded for this application")
 
+// fileUploader limits which uploader's files an answer may reference; its zero value matches no file.
+type fileUploader struct {
+	userID     string
+	anyInPhase bool
+}
+
+func uploadedBy(userID string) fileUploader {
+	return fileUploader{userID: userID}
+}
+
+func anyUploaderInPhase() fileUploader {
+	return fileUploader{anyInPhase: true}
+}
+
 // upsertFileUploadAnswer creates or updates a file upload answer and returns a stale file id for cleanup after commit.
-// An invalid fileUploaderID accepts files of any uploader in the course phase.
-func upsertFileUploadAnswer(ctx context.Context, qtx *db.Queries, coursePhaseID uuid.UUID, fileUploaderID pgtype.Text, answer applicationDTO.CreateAnswerFileUpload, courseParticipationID uuid.UUID) (*uuid.UUID, error) {
+func upsertFileUploadAnswer(ctx context.Context, qtx *db.Queries, coursePhaseID uuid.UUID, uploader fileUploader, answer applicationDTO.CreateAnswerFileUpload, courseParticipationID uuid.UUID) (*uuid.UUID, error) {
 	if answer.FileID == uuid.Nil {
 		return nil, nil
 	}
@@ -175,7 +188,7 @@ func upsertFileUploadAnswer(ctx context.Context, qtx *db.Queries, coursePhaseID 
 		FileID:                answer.FileID,
 		ApplicationQuestionID: answer.ApplicationQuestionID,
 		CoursePhaseID:         coursePhaseID,
-		UploadedByUserID:      fileUploaderID,
+		UploadedByUserID:      pgtype.Text{String: uploader.userID, Valid: !uploader.anyInPhase},
 	})
 	if err != nil {
 		return nil, err
@@ -495,7 +508,7 @@ func (s *ApplicationService) PostApplicationExtern(ctx context.Context, coursePh
 	replacedFileIDs := make([]uuid.UUID, 0, len(application.AnswersFileUpload))
 	for _, answer := range application.AnswersFileUpload {
 		var oldFileID *uuid.UUID
-		oldFileID, err = upsertFileUploadAnswer(ctx, qtx, coursePhaseID, pgtype.Text{String: externalUploaderID, Valid: true}, answer, cPhaseParticipation.CourseParticipationID)
+		oldFileID, err = upsertFileUploadAnswer(ctx, qtx, coursePhaseID, anyUploaderInPhase(), answer, cPhaseParticipation.CourseParticipationID)
 		if errors.Is(err, ErrFileNotInApplication) {
 			return uuid.Nil, err
 		}
@@ -627,7 +640,7 @@ func (s *ApplicationService) GetApplicationAuthenticatedByMatriculationNumberAnd
 
 }
 
-func (s *ApplicationService) PostApplicationAuthenticatedStudent(ctx context.Context, coursePhaseID uuid.UUID, fileUploaderID pgtype.Text, application applicationDTO.PostApplication) (uuid.UUID, error) {
+func (s *ApplicationService) PostApplicationAuthenticatedStudent(ctx context.Context, coursePhaseID uuid.UUID, uploader fileUploader, application applicationDTO.PostApplication) (uuid.UUID, error) {
 	tx, err := s.conn.Begin(ctx)
 	if err != nil {
 		return uuid.Nil, err
@@ -691,7 +704,7 @@ func (s *ApplicationService) PostApplicationAuthenticatedStudent(ctx context.Con
 	replacedFileIDs := make([]uuid.UUID, 0, len(application.AnswersFileUpload))
 	for _, answer := range application.AnswersFileUpload {
 		var oldFileID *uuid.UUID
-		oldFileID, err = upsertFileUploadAnswer(ctx, qtx, coursePhaseID, fileUploaderID, answer, cPhaseParticipation.CourseParticipationID)
+		oldFileID, err = upsertFileUploadAnswer(ctx, qtx, coursePhaseID, uploader, answer, cPhaseParticipation.CourseParticipationID)
 		if errors.Is(err, ErrFileNotInApplication) {
 			return uuid.Nil, err
 		}

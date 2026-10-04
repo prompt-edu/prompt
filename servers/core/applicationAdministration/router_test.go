@@ -43,6 +43,7 @@ var (
 	seededUploadFileID           = uuid.MustParse("d3d04042-95d1-4765-8592-caf9560c8c3f")
 	applicantUploadFileID        = uuid.MustParse("d3d04042-95d1-4765-8592-caf9560c8c40")
 	otherPhaseUploadFileID       = uuid.MustParse("d3d04042-95d1-4765-8592-caf9560c8c41")
+	deletedApplicantUploadFileID = uuid.MustParse("d3d04042-95d1-4765-8592-caf9560c8c42")
 )
 
 func (suite *ApplicationAdminRouterTestSuite) SetupSuite() {
@@ -410,12 +411,20 @@ func (suite *ApplicationAdminRouterTestSuite) TestPostApplicationAuthenticatedEn
 	assert.Equal(suite.T(), http.StatusBadRequest, code)
 }
 
-func (suite *ApplicationAdminRouterTestSuite) TestPostApplicationExternEndpoint_RejectsFileOfOtherPhase() {
-	application := applicationDTO.PostApplication{
+func (suite *ApplicationAdminRouterTestSuite) TestPostApplicationAuthenticatedEndpoint_RejectsDeletedFile() {
+	application := authApplicationWithEmail("existingstudent@example.com")
+	application.AnswersFileUpload[0].FileID = deletedApplicantUploadFileID
+
+	code := suite.postApplication("/api/apply/authenticated/4179d58a-d00d-4fa7-94a5-397bc69fab02", application)
+	assert.Equal(suite.T(), http.StatusBadRequest, code)
+}
+
+func externApplicationWithFile(email string, fileID uuid.UUID) applicationDTO.PostApplication {
+	return applicationDTO.PostApplication{
 		Student: studentDTO.CreateStudent{
-			FirstName:       "Other",
-			LastName:        "Phase",
-			Email:           "otherphasefile@example.com",
+			FirstName:       "External",
+			LastName:        "Applicant",
+			Email:           email,
 			Gender:          db.GenderDiverse,
 			Nationality:     "DE",
 			CurrentSemester: pgtype.Int4{Valid: true, Int32: 1},
@@ -429,12 +438,23 @@ func (suite *ApplicationAdminRouterTestSuite) TestPostApplicationExternEndpoint_
 			{ApplicationQuestionID: uuid.MustParse("383a9590-fba2-4e6b-a32b-88895d55fb9b"), Answer: []string{"MacBook"}},
 		},
 		AnswersFileUpload: []applicationDTO.CreateAnswerFileUpload{
-			{ApplicationQuestionID: requiredFileUploadQuestionID, FileID: otherPhaseUploadFileID},
+			{ApplicationQuestionID: requiredFileUploadQuestionID, FileID: fileID},
 		},
 	}
+}
+
+func (suite *ApplicationAdminRouterTestSuite) TestPostApplicationExternEndpoint_RejectsFileOfOtherPhase() {
+	application := externApplicationWithFile("otherphasefile@example.com", otherPhaseUploadFileID)
 
 	code := suite.postApplication("/api/apply/4179d58a-d00d-4fa7-94a5-397bc69fab02", application)
 	assert.Equal(suite.T(), http.StatusBadRequest, code)
+}
+
+func (suite *ApplicationAdminRouterTestSuite) TestPostApplicationExternEndpoint_AcceptsFileOfLoggedInUploader() {
+	application := externApplicationWithFile("loggedinuploader@example.com", applicantUploadFileID)
+
+	code := suite.postApplication("/api/apply/4179d58a-d00d-4fa7-94a5-397bc69fab02", application)
+	assert.Equal(suite.T(), http.StatusCreated, code)
 }
 
 func (suite *ApplicationAdminRouterTestSuite) TestPostApplicationManualEndpoint_RejectsFileOfOtherPhase() {

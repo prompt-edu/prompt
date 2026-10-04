@@ -627,6 +627,36 @@ INSERT INTO files (
     '{application,resume}'
 );
 
+INSERT INTO files (
+    id,
+    filename,
+    original_filename,
+    content_type,
+    size_bytes,
+    storage_key,
+    storage_provider,
+    uploaded_by_user_id,
+    uploaded_by_email,
+    course_phase_id,
+    description,
+    tags,
+    deleted_at
+) VALUES (
+    'd3d04042-95d1-4765-8592-caf9560c8c42',
+    'resume_deleted.pdf',
+    'resume.pdf',
+    'application/pdf',
+    1024,
+    'course-phase/4179d58a-d00d-4fa7-94a5-397bc69fab02/resume_deleted.pdf',
+    'seaweedfs',
+    'applicant-user-id',
+    'existingstudent@example.com',
+    '4179d58a-d00d-4fa7-94a5-397bc69fab02',
+    'Soft-deleted seed file of the authenticated test applicant',
+    '{application,resume}',
+    CURRENT_TIMESTAMP
+);
+
 -- Add application_question_file_upload table for file upload questions
 CREATE TABLE IF NOT EXISTS application_question_file_upload (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

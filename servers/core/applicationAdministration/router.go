@@ -6,7 +6,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/core/applicationAdministration/applicationDTO"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase/coursePhaseParticipation/coursePhaseParticipationDTO"
@@ -286,7 +285,7 @@ func (s *ApplicationService) postApplicationManual(c *gin.Context) {
 		return
 	}
 
-	courseParticipationID, err := s.PostApplicationAuthenticatedStudent(c, coursePhaseId, pgtype.Text{}, application)
+	courseParticipationID, err := s.PostApplicationAuthenticatedStudent(c, coursePhaseId, anyUploaderInPhase(), application)
 	if err != nil {
 		log.Error(err)
 		if errors.Is(err, ErrAlreadyApplied) {
@@ -438,7 +437,7 @@ func (s *ApplicationService) postApplicationAuthenticated(c *gin.Context) {
 		application.Student.LastName = lastName
 	}
 
-	courseParticipationID, err := s.PostApplicationAuthenticatedStudent(c, coursePhaseId, pgtype.Text{String: userID, Valid: true}, application)
+	courseParticipationID, err := s.PostApplicationAuthenticatedStudent(c, coursePhaseId, uploadedBy(userID), application)
 	if err != nil {
 		log.Error(err)
 		if errors.Is(err, ErrEmailAlreadyInUse) {

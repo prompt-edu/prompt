@@ -19,6 +19,7 @@ import {
 import { Award, BookOpen, Loader2, RefreshCw } from 'lucide-react'
 import { useParams } from 'react-router-dom'
 import type { TeaseStudent } from '../../../interfaces/tease/student'
+import { teamAllocationKeys } from '../../../network/cache'
 import { getAllSkills } from '../../../network/queries/getAllSkills'
 import { getAllTeams } from '../../../network/queries/getAllTeams'
 import { getLevelConfig } from './ProficiencyBadge'
@@ -33,12 +34,12 @@ export function StudentDetailDialog({ student, open, onOpenChange }: StudentDeta
   const { phaseId } = useParams<{ phaseId: string }>()
 
   const teamsQuery = useQuery<Team[]>({
-    queryKey: ['tease_teams', phaseId],
+    queryKey: teamAllocationKeys.tease.teams(phaseId),
     queryFn: () => getAllTeams(phaseId ?? ''),
   })
 
   const skillsQuery = useQuery({
-    queryKey: ['tease_skills', phaseId],
+    queryKey: teamAllocationKeys.tease.skills(phaseId),
     queryFn: () => getAllSkills(phaseId ?? ''),
   })
 

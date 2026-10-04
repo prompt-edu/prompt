@@ -12,6 +12,7 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import type { Skill } from '../../interfaces/skill'
 import type { SurveyTimeframe } from '../../interfaces/timeframe'
+import { teamAllocationKeys } from '../../network/cache'
 import { getAllSkills } from '../../network/queries/getAllSkills'
 import { getAllTeams } from '../../network/queries/getAllTeams'
 import { getConfig } from '../../network/queries/getConfig'
@@ -25,22 +26,22 @@ export const SurveySettingsPage = () => {
   const { phaseId } = useParams<{ phaseId: string }>()
 
   const skillsQuery = useQuery<Skill[]>({
-    queryKey: ['team_allocation_skill', phaseId],
+    queryKey: teamAllocationKeys.skills(phaseId),
     queryFn: () => getAllSkills(phaseId ?? ''),
   })
 
   const teamsQuery = useQuery<Team[]>({
-    queryKey: ['team_allocation_team', phaseId],
+    queryKey: teamAllocationKeys.teams(phaseId),
     queryFn: () => getAllTeams(phaseId ?? ''),
   })
 
   const surveyTimeframeQuery = useQuery<SurveyTimeframe>({
-    queryKey: ['team_allocation_survey_timeframe', phaseId],
+    queryKey: teamAllocationKeys.survey.timeframe(phaseId),
     queryFn: () => getSurveyTimeframe(phaseId ?? ''),
   })
 
   const configQuery = useQuery<Record<string, boolean>>({
-    queryKey: ['team_allocation_config', phaseId],
+    queryKey: teamAllocationKeys.config(phaseId),
     queryFn: () => getConfig(phaseId ?? ''),
   })
 

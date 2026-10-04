@@ -10,6 +10,7 @@ import { Loader2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import type { Timeframe } from '../../interfaces/timeframe'
+import { selfTeamAllocationKeys } from '../../network/cache'
 import { getConfig } from '../../network/queries/getConfig'
 import { getTimeframe } from '../../network/queries/getSurveyTimeframe'
 import { TeamAllocationTimeframeSettings } from './components/TeamAllocationTimeframeSettings'
@@ -17,12 +18,12 @@ import { TeamAllocationTimeframeSettings } from './components/TeamAllocationTime
 export const SettingsPage = () => {
   const { phaseId } = useParams<{ phaseId: string }>()
   const timeframeQuery = useQuery<Timeframe>({
-    queryKey: ['timeframe', phaseId],
+    queryKey: selfTeamAllocationKeys.timeframe(phaseId),
     queryFn: () => getTimeframe(phaseId ?? ''),
   })
 
   const configQuery = useQuery<Record<string, boolean>>({
-    queryKey: ['team_allocation_config', phaseId],
+    queryKey: selfTeamAllocationKeys.config(phaseId),
     queryFn: () => getConfig(phaseId ?? ''),
   })
 

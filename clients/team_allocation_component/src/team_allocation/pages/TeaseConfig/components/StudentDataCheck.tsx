@@ -14,6 +14,7 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import type { TeaseStudent } from '../../../interfaces/tease/student'
 import type { ValidationResult } from '../../../interfaces/validationResult'
+import { teamAllocationKeys } from '../../../network/cache'
 import { getAllTeaseStudents } from '../../../network/queries/getAllTeaseStudents'
 import { CheckItem } from './CheckItem'
 import { checksConfig } from './ChecksConfig'
@@ -26,7 +27,7 @@ export const StudentDataCheck = () => {
   const [checks, setChecks] = useState<ValidationResult[] | null>(null)
 
   const studentsQuery = useQuery<TeaseStudent[]>({
-    queryKey: ['tease_students', phaseId],
+    queryKey: teamAllocationKeys.tease.students(phaseId),
     queryFn: () => getAllTeaseStudents(phaseId ?? ''),
   })
 

@@ -14,6 +14,7 @@ import { AlertCircle, AlertTriangle, Loader2 } from 'lucide-react'
 import { useParams } from 'react-router-dom'
 import type { SurveyForm } from '../../interfaces/surveyForm'
 import type { SurveyResponse } from '../../interfaces/surveyResponse'
+import { teamAllocationKeys } from '../../network/cache'
 import { getSurveyForm } from '../../network/queries/getSurveyForm'
 import { getSurveyOwnResponse } from '../../network/queries/getSurveyOwnResponse'
 import { SurveyFormComponent } from './components/SurveyForm'
@@ -25,13 +26,13 @@ export const StudentSurveyPage = () => {
 
   // Get the survey form (teams & skills)
   const surveyFormQuery = useQuery<SurveyForm | null>({
-    queryKey: ['team_allocation_survey_form', phaseId], // TODO also update on skill / teams change
+    queryKey: teamAllocationKeys.survey.form(phaseId),
     queryFn: () => getSurveyForm(phaseId ?? ''),
   })
 
   // Get the student's saved response, if any
   const studentSurveyResponseQuery = useQuery<SurveyResponse>({
-    queryKey: ['team_allocation_student_survey_response', phaseId],
+    queryKey: teamAllocationKeys.survey.myResponse(phaseId),
     queryFn: () => getSurveyOwnResponse(phaseId ?? ''),
     enabled: isStudent,
   })

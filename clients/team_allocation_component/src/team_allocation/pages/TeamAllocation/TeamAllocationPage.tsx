@@ -23,6 +23,7 @@ import type React from 'react'
 import { useMemo } from 'react'
 import { useParams } from 'react-router-dom'
 import type { Allocation } from '../../interfaces/allocation'
+import { teamAllocationKeys } from '../../network/cache'
 import { getAllTeams } from '../../network/queries/getAllTeams'
 import { getTeamAllocations } from '../../network/queries/getTeamAllocations'
 import { AllocationSummaryCard } from './components/AllocationSummaryCard'
@@ -31,17 +32,17 @@ export const TeamAllocationPage: React.FC = () => {
   const { phaseId } = useParams<{ phaseId: string }>()
 
   const teamsQuery = useQuery<Team[]>({
-    queryKey: ['team_allocation_team', phaseId],
+    queryKey: teamAllocationKeys.teams(phaseId),
     queryFn: () => getAllTeams(phaseId ?? ''),
   })
 
   const participationsQuery = useQuery<CoursePhaseParticipationsWithResolution>({
-    queryKey: ['participants', phaseId],
+    queryKey: teamAllocationKeys.participants(phaseId),
     queryFn: () => getCoursePhaseParticipations(phaseId ?? ''),
   })
 
   const teamAllocationsQuery = useQuery<Allocation[]>({
-    queryKey: ['team_allocations', phaseId],
+    queryKey: teamAllocationKeys.allocations(phaseId),
     queryFn: () => getTeamAllocations(phaseId ?? ''),
   })
 

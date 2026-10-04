@@ -266,7 +266,6 @@ func (suite *CompetencyRouterTestSuite) TestUpdateCompetency() {
 
 	// Now update the competency
 	updateReq := competencyDTO.UpdateCompetencyRequest{
-		CategoryID:          categoryID,
 		Name:                "Updated Competency",
 		Description:         "Updated Description",
 		DescriptionVeryBad:  "Updated Very Bad Description",
@@ -287,9 +286,41 @@ func (suite *CompetencyRouterTestSuite) TestUpdateCompetency() {
 	assert.Equal(suite.T(), http.StatusOK, resp.Code)
 }
 
+func (suite *CompetencyRouterTestSuite) TestUpdateCompetencyKeepsCategory() {
+	categoryID := uuid.MustParse("25f1c984-ba31-4cf2-aa8e-5662721bf44e")
+	err := suite.competencyService.CreateCompetency(suite.ctx, uuid.MustParse(testCoursePhaseID), competencyDTO.CreateCompetencyRequest{
+		CategoryID: categoryID,
+		Name:       "Competency Keeping Its Category",
+		Weight:     1,
+	})
+	suite.Require().NoError(err)
+
+	competencies, err := suite.competencyService.ListCompetencies(suite.ctx)
+	suite.Require().NoError(err)
+	var created db.Competency
+	for _, competency := range competencies {
+		if competency.Name == "Competency Keeping Its Category" {
+			created = competency
+		}
+	}
+	suite.Require().NotEqual(uuid.Nil, created.ID)
+	competencyID := created.ID
+
+	body := `{"name": "Renamed Competency", "weight": 1, "categoryID": "815b159b-cab3-49b4-8060-c4722d59241d"}`
+	req, _ := http.NewRequest("PUT", "/api/course_phase/"+testCoursePhaseID+"/competency/"+competencyID.String(), bytes.NewBufferString(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp := httptest.NewRecorder()
+	suite.router.ServeHTTP(resp, req)
+	assert.Equal(suite.T(), http.StatusOK, resp.Code)
+
+	updated, err := suite.competencyService.GetCompetency(suite.ctx, competencyID)
+	suite.Require().NoError(err)
+	assert.Equal(suite.T(), "Renamed Competency", updated.Name)
+	assert.Equal(suite.T(), created.CategoryID, updated.CategoryID)
+}
+
 func (suite *CompetencyRouterTestSuite) TestUpdateCompetencyInvalidID() {
 	updateReq := competencyDTO.UpdateCompetencyRequest{
-		CategoryID:          uuid.New(),
 		Name:                "Updated Competency",
 		Description:         "Updated Description",
 		DescriptionVeryBad:  "Updated Very Bad Description",

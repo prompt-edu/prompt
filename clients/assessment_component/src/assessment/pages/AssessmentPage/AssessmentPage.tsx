@@ -41,7 +41,10 @@ export const AssessmentPage = () => {
   const coursePhaseConfig = coursePhaseConfigQuery.data
   const assessmentEnabled = coursePhaseConfig?.assessmentEnabled ?? false
   const independentAssessmentEnabled = coursePhaseConfig?.independentAssessmentEnabled ?? false
-  const [tab, setTab] = useState('mine')
+  const [selectedTab, setSelectedTab] = useState({ courseParticipationID, value: 'mine' })
+  const tab =
+    selectedTab.courseParticipationID === courseParticipationID ? selectedTab.value : 'mine'
+  const setTab = (value: string) => setSelectedTab({ courseParticipationID, value })
   const { data: categories } = useGetAllCategoriesWithCompetencies({ enabled: assessmentEnabled })
   const { data: participations } = useGetCoursePhaseParticipations()
   const participant = participations.find(

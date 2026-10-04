@@ -10,8 +10,15 @@ import (
 const (
 	maxNameLength      = 100
 	maxShortNameLength = 20
-	reservedName       = "Other"
 )
+
+var reservedNames = []struct {
+	name   string
+	reason string
+}{
+	{name: "Other", reason: "study programs entered as free text"},
+	{name: "Unknown", reason: "applications without a study program"},
+}
 
 func validateStudyProgram(name, shortName string) error {
 	name = strings.TrimSpace(name)
@@ -20,8 +27,10 @@ func validateStudyProgram(name, shortName string) error {
 	if name == "" {
 		return errors.New("study program name is required")
 	}
-	if strings.EqualFold(name, reservedName) {
-		return fmt.Errorf("%q is reserved for study programs entered as free text", reservedName)
+	for _, reserved := range reservedNames {
+		if strings.EqualFold(name, reserved.name) || strings.EqualFold(shortName, reserved.name) {
+			return fmt.Errorf("%q is reserved for %s", reserved.name, reserved.reason)
+		}
 	}
 	if utf8.RuneCountInString(name) > maxNameLength {
 		return fmt.Errorf("study program name must be at most %d characters", maxNameLength)

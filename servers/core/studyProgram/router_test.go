@@ -124,6 +124,9 @@ func (suite *RouterTestSuite) TestCreateInvalidStudyProgram() {
 		{Name: "  "},
 		{Name: "Other"},
 		{Name: " oTHer "},
+		{Name: "Unknown"},
+		{Name: "Computer Engineering", ShortName: "Other"},
+		{Name: "Computer Engineering", ShortName: "unknown"},
 	} {
 		w := serve(suite.adminRouter, http.MethodPost, "/api/study-programs", input)
 		assert.Equal(suite.T(), http.StatusBadRequest, w.Code, "name %q", input.Name)

@@ -24,6 +24,11 @@ func TestValidateStudyProgram(t *testing.T) {
 		{name: "blank name", program: "   ", wantError: true},
 		{name: "reserved name", program: "Other", wantError: true},
 		{name: "reserved name in other casing", program: "  oTHER ", wantError: true},
+		{name: "reserved short name", program: "Computer Science", shortName: " other ", wantError: true},
+		{name: "unknown name", program: "Unknown", wantError: true},
+		{name: "unknown name in other casing", program: " uNKNOWN  ", wantError: true},
+		{name: "unknown short name", program: "Computer Science", shortName: "Unknown", wantError: true},
+		{name: "name containing a reserved word", program: "Other Sciences", shortName: "Unknown Studies"},
 		{name: "name too long", program: strings.Repeat("a", maxNameLength+1), wantError: true},
 		{name: "short name too long", program: "Physics", shortName: strings.Repeat("a", maxShortNameLength+1), wantError: true},
 	}

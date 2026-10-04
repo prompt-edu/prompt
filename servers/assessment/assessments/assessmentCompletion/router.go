@@ -11,9 +11,9 @@ import (
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	"github.com/prompt-edu/prompt-sdk/audit"
 	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
+	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentCompletion/assessmentCompletionDTO"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
-	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -63,12 +63,12 @@ func RegisterRoutes(routerGroup *gin.RouterGroup, service *AssessmentCompletionS
 func (s *AssessmentCompletionService) getAllGrades(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 	grades, err := s.GetAllGrades(c, coursePhaseID)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 	c.JSON(http.StatusOK, grades)
@@ -88,17 +88,17 @@ func (s *AssessmentCompletionService) getAllGrades(c *gin.Context) {
 func (s *AssessmentCompletionService) getStudentGrade(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 	courseParticipationID, err := uuid.Parse(c.Param("courseParticipationID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 	grade, err := s.GetStudentGrade(c, courseParticipationID, coursePhaseID)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 	c.JSON(http.StatusOK, grade)
@@ -117,12 +117,12 @@ func (s *AssessmentCompletionService) getStudentGrade(c *gin.Context) {
 func (s *AssessmentCompletionService) listAssessmentCompletionsByCoursePhase(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 	completions, err := s.ListAssessmentCompletionsByCoursePhase(c, coursePhaseID)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 	c.JSON(http.StatusOK, assessmentCompletionDTO.GetAssessmentCompletionDTOsFromDBModels(completions))
@@ -145,12 +145,12 @@ func (s *AssessmentCompletionService) listAssessmentCompletionsByCoursePhase(c *
 func (s *AssessmentCompletionService) createOrUpdateAssessmentCompletion(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 	var req assessmentCompletionDTO.AssessmentCompletion
 	if err := c.BindJSON(&req); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 	// The authorized phase is the one in the URL; ignore any client-sent phase.
@@ -158,18 +158,18 @@ func (s *AssessmentCompletionService) createOrUpdateAssessmentCompletion(c *gin.
 	err = s.CreateOrUpdateAssessmentCompletion(c, req)
 	if err != nil {
 		if errors.Is(err, ErrInvalidGradeSuggestion) {
-			handleError(c, http.StatusBadRequest, err)
+			sdkUtils.HandleError(c, http.StatusBadRequest, err)
 			return
 		}
 		if errors.Is(err, coursePhaseConfig.ErrNotStarted) {
-			handleError(c, http.StatusForbidden, err)
+			sdkUtils.HandleError(c, http.StatusForbidden, err)
 			return
 		}
 		if errors.Is(err, ErrRemainingAssessments) {
-			handleError(c, http.StatusBadRequest, err)
+			sdkUtils.HandleError(c, http.StatusBadRequest, err)
 			return
 		}
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Assessment completion created/updated successfully"})
@@ -191,12 +191,12 @@ func (s *AssessmentCompletionService) createOrUpdateAssessmentCompletion(c *gin.
 func (s *AssessmentCompletionService) markAssessmentAsCompleted(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 	var req assessmentCompletionDTO.AssessmentCompletion
 	if err := c.BindJSON(&req); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 	// The authorized phase is the one in the URL; ignore any client-sent phase.
@@ -204,18 +204,18 @@ func (s *AssessmentCompletionService) markAssessmentAsCompleted(c *gin.Context) 
 	err = s.MarkAssessmentAsCompleted(c, req)
 	if err != nil {
 		if errors.Is(err, coursePhaseConfig.ErrNotStarted) {
-			handleError(c, http.StatusForbidden, err)
+			sdkUtils.HandleError(c, http.StatusForbidden, err)
 			return
 		}
 		if errors.Is(err, ErrRemainingAssessments) {
-			handleError(c, http.StatusBadRequest, err)
+			sdkUtils.HandleError(c, http.StatusBadRequest, err)
 			return
 		}
 		if errors.Is(err, ErrNoAssessmentCompletion) {
-			handleError(c, http.StatusNotFound, err)
+			sdkUtils.HandleError(c, http.StatusNotFound, err)
 			return
 		}
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Assessment marked as completed successfully"})
@@ -238,26 +238,26 @@ func (s *AssessmentCompletionService) markAssessmentAsCompleted(c *gin.Context) 
 func (s *AssessmentCompletionService) markAssessmentsAsCompleted(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 	var req assessmentCompletionDTO.BatchCompletionRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 	tokenUser, ok := keycloakTokenVerifier.GetTokenUser(c)
 	if !ok {
-		handleError(c, http.StatusUnauthorized, errors.New("authenticated user not found in context"))
+		sdkUtils.HandleError(c, http.StatusUnauthorized, errors.New("authenticated user not found in context"))
 		return
 	}
 	result, err := s.MarkAssessmentsAsCompleted(c, coursePhaseID, req.CourseParticipationIDs, authorName(tokenUser))
 	if err != nil {
 		if errors.Is(err, coursePhaseConfig.ErrNotStarted) {
-			handleError(c, http.StatusForbidden, err)
+			sdkUtils.HandleError(c, http.StatusForbidden, err)
 			return
 		}
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 	recordBatchAudit(c, auditMarkBatchAction, coursePhaseID, result.Marked)
@@ -280,22 +280,22 @@ func (s *AssessmentCompletionService) markAssessmentsAsCompleted(c *gin.Context)
 func (s *AssessmentCompletionService) unmarkAssessmentsAsCompleted(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 	var req assessmentCompletionDTO.BatchCompletionRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	result, err := s.UnmarkAssessmentsAsCompleted(c, coursePhaseID, req.CourseParticipationIDs)
 	if err != nil {
 		if errors.Is(err, coursePhaseConfig.ErrDeadlinePassed) {
-			handleError(c, http.StatusForbidden, err)
+			sdkUtils.HandleError(c, http.StatusForbidden, err)
 			return
 		}
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 	recordBatchAudit(c, auditUnmarkBatchAction, coursePhaseID, result.Unmarked)
@@ -315,16 +315,16 @@ func (s *AssessmentCompletionService) unmarkAssessmentsAsCompleted(c *gin.Contex
 func (s *AssessmentCompletionService) deleteAssessmentCompletion(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 	courseParticipationID, err := uuid.Parse(c.Param("courseParticipationID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 	if err := s.DeleteAssessmentCompletion(c, courseParticipationID, coursePhaseID); err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 	c.Status(http.StatusOK)
@@ -344,20 +344,20 @@ func (s *AssessmentCompletionService) deleteAssessmentCompletion(c *gin.Context)
 func (s *AssessmentCompletionService) unmarkAssessmentAsCompleted(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 	courseParticipationID, err := uuid.Parse(c.Param("courseParticipationID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 	if err := s.UnmarkAssessmentAsCompleted(c, courseParticipationID, coursePhaseID); err != nil {
 		// Check if the error is due to deadline being passed
 		if errors.Is(err, coursePhaseConfig.ErrDeadlinePassed) {
-			handleError(c, http.StatusForbidden, err)
+			sdkUtils.HandleError(c, http.StatusForbidden, err)
 		} else {
-			handleError(c, http.StatusInternalServerError, err)
+			sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		}
 		return
 	}
@@ -378,17 +378,17 @@ func (s *AssessmentCompletionService) unmarkAssessmentAsCompleted(c *gin.Context
 func (s *AssessmentCompletionService) getAssessmentCompletion(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 	courseParticipationID, err := uuid.Parse(c.Param("courseParticipationID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 	assessmentCompletion, err := s.GetAssessmentCompletion(c, courseParticipationID, coursePhaseID)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 	c.JSON(http.StatusOK, assessmentCompletion)
@@ -409,13 +409,13 @@ func (s *AssessmentCompletionService) getAssessmentCompletion(c *gin.Context) {
 func (s *AssessmentCompletionService) getMyGradeSuggestion(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	config, err := s.coursePhaseConfig.GetCoursePhaseConfig(c, coursePhaseID)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 	if !config.AssessmentEnabled {
@@ -423,13 +423,13 @@ func (s *AssessmentCompletionService) getMyGradeSuggestion(c *gin.Context) {
 		return
 	}
 	if !config.GradeSuggestionVisible {
-		handleError(c, http.StatusForbidden, fmt.Errorf("grade suggestions are not visible to students"))
+		sdkUtils.HandleError(c, http.StatusForbidden, fmt.Errorf("grade suggestions are not visible to students"))
 		return
 	}
 
 	courseParticipationID, err := keycloakTokenVerifier.GetUserCourseParticipationID(c)
 	if err != nil {
-		handleError(c, keycloakTokenVerifier.GetUserCourseParticipationIDErrorStatus(err), err)
+		sdkUtils.HandleError(c, keycloakTokenVerifier.GetUserCourseParticipationIDErrorStatus(err), err)
 		return
 	}
 
@@ -440,13 +440,13 @@ func (s *AssessmentCompletionService) getMyGradeSuggestion(c *gin.Context) {
 
 	exists, err := s.CheckAssessmentCompletionExists(c, courseParticipationID, coursePhaseID)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 	if exists {
 		completion, err := s.GetAssessmentCompletion(c, courseParticipationID, coursePhaseID)
 		if err != nil {
-			handleError(c, http.StatusInternalServerError, err)
+			sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 			return
 		}
 		if !completion.Completed {
@@ -484,9 +484,4 @@ func authorName(tokenUser keycloakTokenVerifier.TokenUser) string {
 		return login
 	}
 	return strings.TrimSpace(tokenUser.Email)
-}
-
-func handleError(c *gin.Context, statusCode int, err error) {
-	log.Error(err)
-	c.JSON(statusCode, gin.H{"error": err.Error()})
 }

@@ -344,6 +344,16 @@ func (s *AssessmentSchemaService) UpdateAssessmentAndEvaluationCompetencies(ctx 
 		return err
 	}
 
+	err = qtx.UpdateIndependentAssessmentCompetencies(ctx, db.UpdateIndependentAssessmentCompetenciesParams{
+		CoursePhaseID:  coursePhaseID,
+		CompetencyID:   oldCompetencyID,
+		CompetencyID_2: newCompetencyID,
+	})
+	if err != nil {
+		log.WithError(err).Error("Failed to update independent assessment competencies")
+		return err
+	}
+
 	err = qtx.UpdateEvaluationCompetencies(ctx, db.UpdateEvaluationCompetenciesParams{
 		CoursePhaseID:  coursePhaseID,
 		CompetencyID:   oldCompetencyID,

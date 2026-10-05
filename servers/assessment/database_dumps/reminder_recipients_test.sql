@@ -39,7 +39,8 @@ CREATE TABLE public.course_phase_config (
     results_released boolean NOT NULL DEFAULT false,
     grading_sheet_visible boolean NOT NULL DEFAULT false,
     assessment_enabled boolean NOT NULL DEFAULT true,
-    tutor_display_name text
+    tutor_display_name text,
+    independent_assessment_enabled boolean NOT NULL DEFAULT false
 );
 
 CREATE TABLE public.evaluation_completion (

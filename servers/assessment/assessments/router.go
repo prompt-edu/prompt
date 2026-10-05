@@ -1,6 +1,7 @@
 package assessments
 
 import (
+	"context"
 	"errors"
 	"net/http"
 
@@ -10,7 +11,9 @@ import (
 	"github.com/prompt-edu/prompt-sdk/audit"
 	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
+	"github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentCompletion"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentDTO"
+	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 )
 
 // RegisterRoutes sets up assessment endpoints.
@@ -20,6 +23,7 @@ import (
 // @Security BearerAuth
 type assessmentGuard interface {
 	RequireAssessmentEnabled() gin.HandlerFunc
+	RequireIndependentAssessmentEnabled() gin.HandlerFunc
 }
 
 func RegisterRoutes(routerGroup *gin.RouterGroup, service *AssessmentService, guard assessmentGuard, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
@@ -29,10 +33,12 @@ func RegisterRoutes(routerGroup *gin.RouterGroup, service *AssessmentService, gu
 	// The grading form posts on every score selection, so auditing this route would
 	// bury the log and start dropping events. Completion transitions are audited instead.
 	assessmentRouter.POST("", audit.Skip(), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), guard.RequireAssessmentEnabled(), service.createOrUpdateAssessment)
+	assessmentRouter.POST("/independent", audit.Skip(), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), guard.RequireAssessmentEnabled(), guard.RequireIndependentAssessmentEnabled(), service.createOrUpdateIndependentAssessment)
 	assessmentRouter.GET("/:courseParticipationID/export", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.exportStudentAssessment)
 	assessmentRouter.GET("/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.getStudentAssessment)
 	assessmentRouter.GET("/course-participation/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.listAssessmentsByStudentInPhase)
 	assessmentRouter.DELETE("/:assessmentID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), guard.RequireAssessmentEnabled(), service.deleteAssessment)
+	assessmentRouter.DELETE("/independent/:independentAssessmentID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), guard.RequireAssessmentEnabled(), service.deleteOwnIndependentAssessment)
 
 	assessmentRouter.GET("/my-results", authMiddleware(promptSDK.CourseStudent), service.getMyAssessmentResults)
 }
@@ -72,9 +78,32 @@ func (s *AssessmentService) listAssessmentsByCoursePhase(c *gin.Context) {
 // @Success 200 {object} map[string]string
 // @Failure 400 {object} map[string]string
 // @Failure 401 {object} map[string]string
+// @Failure 409 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/student-assessment [post]
 func (s *AssessmentService) createOrUpdateAssessment(c *gin.Context) {
+	saveScoreFromRequest(c, s.CreateOrUpdateAssessment)
+}
+
+// createOrUpdateIndependentAssessment godoc
+// @Summary Create or update independent assessment
+// @Description Create or update the caller's own score for a student, kept apart from other assessors' scores and from the final assessment. The author identity is taken from the authenticated JWT and any client-sent author fields are ignored.
+// @Tags assessments
+// @Accept json
+// @Produce json
+// @Param coursePhaseID path string true "Course phase ID"
+// @Param assessment body assessmentDTO.CreateOrUpdateAssessmentRequest true "Assessment payload"
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Failure 409 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /course_phase/{coursePhaseID}/student-assessment/independent [post]
+func (s *AssessmentService) createOrUpdateIndependentAssessment(c *gin.Context) {
+	saveScoreFromRequest(c, s.CreateOrUpdateIndependentAssessment)
+}
+
+func saveScoreFromRequest(c *gin.Context, save func(context.Context, assessmentDTO.CreateOrUpdateAssessmentRequest) error) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		sdkUtils.HandleError(c, http.StatusBadRequest, err)
@@ -97,11 +126,14 @@ func (s *AssessmentService) createOrUpdateAssessment(c *gin.Context) {
 	// The authorized phase is the one in the URL; ignore any client-sent phase.
 	req.CoursePhaseID = coursePhaseID
 
-	err = s.CreateOrUpdateAssessment(c, req)
+	err = save(c, req)
 	if err != nil {
-		if errors.Is(err, ErrInvalidScoreLevel) {
+		switch {
+		case errors.Is(err, ErrInvalidScoreLevel), errors.Is(err, ErrCompetencyNotInPhase):
 			sdkUtils.HandleError(c, http.StatusBadRequest, err)
-		} else {
+		case errors.Is(err, assessmentCompletion.ErrAssessmentCompleted), errors.Is(err, coursePhaseConfig.ErrNotStarted):
+			sdkUtils.HandleError(c, http.StatusConflict, err)
+		default:
 			sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		}
 		return
@@ -132,7 +164,13 @@ func (s *AssessmentService) getStudentAssessment(c *gin.Context) {
 		return
 	}
 
-	studentAssessment, err := s.GetStudentAssessment(c, coursePhaseID, courseParticipationID)
+	tokenUser, ok := keycloakTokenVerifier.GetTokenUser(c)
+	if !ok {
+		sdkUtils.HandleError(c, http.StatusUnauthorized, errors.New("authenticated user not found in context"))
+		return
+	}
+
+	studentAssessment, err := s.GetStudentAssessment(c, coursePhaseID, courseParticipationID, tokenUser.ID)
 	if err != nil {
 		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
@@ -275,6 +313,49 @@ func (s *AssessmentService) deleteAssessment(c *gin.Context) {
 		return
 	}
 	c.String(http.StatusOK, "OK")
+}
+
+// deleteOwnIndependentAssessment godoc
+// @Summary Delete own independent assessment
+// @Description Delete one of the caller's own independent scores. Scores of other assessors are reported as not found.
+// @Tags assessments
+// @Param coursePhaseID path string true "Course phase ID"
+// @Param independentAssessmentID path string true "Independent assessment ID"
+// @Success 204
+// @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Failure 409 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /course_phase/{coursePhaseID}/student-assessment/independent/{independentAssessmentID} [delete]
+func (s *AssessmentService) deleteOwnIndependentAssessment(c *gin.Context) {
+	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
+	if err != nil {
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
+		return
+	}
+	independentAssessmentID, err := uuid.Parse(c.Param("independentAssessmentID"))
+	if err != nil {
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
+		return
+	}
+	tokenUser, ok := keycloakTokenVerifier.GetTokenUser(c)
+	if !ok {
+		sdkUtils.HandleError(c, http.StatusUnauthorized, errors.New("authenticated user not found in context"))
+		return
+	}
+
+	err = s.DeleteOwnIndependentAssessment(c, independentAssessmentID, coursePhaseID, tokenUser.ID)
+	switch {
+	case err == nil:
+		c.Status(http.StatusNoContent)
+	case errors.Is(err, ErrAssessmentNotFound):
+		sdkUtils.HandleError(c, http.StatusNotFound, err)
+	case errors.Is(err, assessmentCompletion.ErrAssessmentCompleted), errors.Is(err, coursePhaseConfig.ErrNotStarted):
+		sdkUtils.HandleError(c, http.StatusConflict, err)
+	default:
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
+	}
 }
 
 // listAssessmentsByStudentInPhase godoc

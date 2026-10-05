@@ -16,6 +16,7 @@ import { Link } from 'react-router-dom'
 import type { ProviderType } from '../../interfaces/providerConfig'
 import type { ResourceConfig } from '../../interfaces/resourceConfig'
 import { describeTriggerSummary } from '../../interfaces/triggerSummary'
+import { infrastructureSetupCache, infrastructureSetupKeys } from '../../network/cache'
 import { triggerExecution } from '../../network/mutations/triggerExecution'
 import { getProviderConfigs } from '../../network/queries/getProviderConfigs'
 import { getProvisioningPreview } from '../../network/queries/getProvisioningPreview'
@@ -78,15 +79,15 @@ export const ReadinessCard = ({ courseId, coursePhaseID, running }: Props) => {
   const configurationPath = `/management/course/${courseId}/${coursePhaseID}/configuration`
 
   const providersQuery = useQuery({
-    queryKey: ['provider-configs', coursePhaseID],
+    queryKey: infrastructureSetupKeys.providerConfigs(coursePhaseID),
     queryFn: () => getProviderConfigs(coursePhaseID),
   })
   const resourcesQuery = useQuery({
-    queryKey: ['resource-configs', coursePhaseID],
+    queryKey: infrastructureSetupKeys.resourceConfigs(coursePhaseID),
     queryFn: () => getResourceConfigs(coursePhaseID),
   })
   const setupQuery = useQuery({
-    queryKey: ['setup-config', coursePhaseID],
+    queryKey: infrastructureSetupKeys.setupConfig(coursePhaseID),
     queryFn: () => getSetupConfig(coursePhaseID),
   })
   // The phase's own checks come from data already loaded, so they are known before the
@@ -163,7 +164,7 @@ export const ReadinessCard = ({ courseId, coursePhaseID, running }: Props) => {
   // students through core, so it also catches what the phase's own data cannot show,
   // such as a phase no teams reach. A 400 is an answer, not a failure worth retrying.
   const previewQuery = useQuery({
-    queryKey: ['provisioning-preview', coursePhaseID],
+    queryKey: infrastructureSetupKeys.provisioningPreview(coursePhaseID),
     queryFn: () => getProvisioningPreview(coursePhaseID),
     enabled: !!providersQuery.data && !!resourcesQuery.data && !!setupQuery.data && ownChecksPass,
     retry: (count, err) => !hasStatus(err, 400) && count < 2,
@@ -188,8 +189,7 @@ export const ReadinessCard = ({ courseId, coursePhaseID, running }: Props) => {
       })
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['instances', coursePhaseID] })
-      queryClient.invalidateQueries({ queryKey: ['provisioning-preview', coursePhaseID] })
+      infrastructureSetupCache.instancesChanged(queryClient, coursePhaseID)
     },
   })
 

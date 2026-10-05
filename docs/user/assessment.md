@@ -106,6 +106,30 @@ it reads **Coach Overview**. The name is shown exactly as you enter it, also in 
 sentence, so an abbreviation such as "PL" stays uppercase. Leave the field empty to go back to
 "Tutor" and **Tutor Overview**.
 
+#### Independent Assessments
+
+Turn on **Independent assessments** in the **Assessment workflow** section of the assessment
+settings when several people, for example a coach and a project lead, should each assess a student
+on their own before agreeing on the final assessment. The setting is off by default.
+
+With it on, a participant's assessment page has two tabs:
+
+- **My assessment** opens first. You score each competency on your own. Nobody else's scores and no
+  self or peer evaluation results are shown here. Comments, action items and the grade suggestion
+  are not part of it.
+- **Final assessment** is the assessment the student receives, with the same comments, grade
+  suggestion and **Mark as final** as without the setting. A purple icon above a score level shows
+  that independent assessors picked that level. Hover over it to see who.
+
+The icons follow **Show evaluation results before submission**: they appear when that switch is on
+or the assessment is marked as final. The switch is on by default, so if assessors should not see
+each other's scores before they meet, turn it off until you agree on the final assessment together.
+
+To remove one of your own scores, use the reset button next to the competency on **My assessment**.
+Nobody else's scores can be removed there. Independent scores can no longer be changed or removed once
+the final assessment is marked as final. Turning the setting off hides the tabs but keeps the scores,
+so they come back when you turn it on again.
+
 #### Evaluation-Only Phases
 
 Turning **Assessment Enabled** off keeps the self, peer and tutor evaluations but removes the

@@ -1,6 +1,5 @@
 -- Fixture data for the presentation service tests. The schema itself comes from
--- db/migration/0001_schema.up.sql, which testutils applies first, so this file only ever
--- contains rows.
+-- db/migration/, which the test setup applies first, so this file only ever contains rows.
 --
 -- Stable IDs:
 --   10000000-…-0001  course phase (individual targets, independent feedback)

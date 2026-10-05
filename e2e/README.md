@@ -441,10 +441,9 @@ as the negative fixture for the public apply endpoints.
 > `/presentation/api/info` proxy path while its full lifecycle is covered by
 > service and component tests.
 
-> Note: the repo's `servers/core/database_dumps/full_db.sql` is **not** usable
-> as a seed — it's a hand-maintained Go-test fixture whose schema is internally
-> inconsistent (some tables migrated, others not; `schema_migrations` stuck at
-> 9), so `migrate up` cannot run against it.
+> Note: `servers/core/database_dumps/*.sql` are Go-test fixtures, not the e2e
+> seed. The Go tests load them on top of the migrations, and each one only
+> carries the rows its tests need.
 
 Because the seed is data only, there is **nothing to regenerate**: add or edit
 `INSERT` blocks in `../seed/*.sql` and update `src/data/constants.ts`. A

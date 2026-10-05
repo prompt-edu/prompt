@@ -442,8 +442,8 @@ as the negative fixture for the public apply endpoints.
 > service and component tests.
 
 > Note: `servers/core/database_dumps/*.sql` are Go-test fixtures, not the e2e
-> seed. The Go tests load them on top of the migrations, and each one only
-> carries the rows its tests need.
+> seed. The Go tests load them on top of the migrations, and several suites
+> share one fixture (e.g. `full_db.sql`), so check every user before editing one.
 
 Because the seed is data only, there is **nothing to regenerate**: add or edit
 `INSERT` blocks in `../seed/*.sql` and update `src/data/constants.ts`. A

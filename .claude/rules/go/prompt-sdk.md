@@ -52,7 +52,8 @@ service-local `testutils` package.
 - `SetupTestDBWithMigrations(ctx, migrationsDir, queryFactory, seedPaths...)`: testcontainers
   Postgres built from the service's real migrations, then loaded with data-only seeds:
   `sdkTestUtils.SetupTestDBWithMigrations(ctx, "../db/migration", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) }, "../database_dumps/x.sql")`.
-  Seeds in `database_dumps/` hold only `INSERT`s, never schema.
+  Seeds in `database_dumps/` hold data only (`INSERT`, or an `UPDATE` that pins a row a migration
+  creates), never DDL.
 - `SetupTestDB(ctx, sqlDumpPath, queryFactory)` loads one file with schema and data. Use it only for
   tests that apply a migration by hand on top of an older schema (e.g. `timeframe/migration_test.go`).
 - `MockPermissionMiddleware(authRoles ...string) gin.HandlerFunc`, `MockAuthMiddleware(...)`

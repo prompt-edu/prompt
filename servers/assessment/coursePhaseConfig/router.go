@@ -111,11 +111,11 @@ func (s *CoursePhaseConfigService) createOrUpdateCoursePhaseConfig(c *gin.Contex
 
 // releaseResults godoc
 // @Summary Release assessment results
-// @Description Release assessment results for the course phase.
+// @Description Release assessment results for the course phase and mail the students who were not notified yet.
 // @Tags course_phase_config
 // @Produce json
 // @Param coursePhaseID path string true "Course phase ID"
-// @Success 200 {object} map[string]string
+// @Success 200 {object} coursePhaseConfigDTO.ReleaseResultsResponse
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/config/release [post]
@@ -134,7 +134,17 @@ func (s *CoursePhaseConfigService) releaseResults(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Results released successfully"})
+	response := coursePhaseConfigDTO.ReleaseResultsResponse{Message: "Results released successfully"}
+	response.MailReport, err = s.SendResultsReleasedMail(c, c.GetHeader("Authorization"), coursePhaseID)
+	if err != nil {
+		log.WithError(err).WithField("coursePhaseID", coursePhaseID).Error("Results were released, but sending the results mail failed")
+		response.MailError = "Results were released, but the notification mails could not be sent."
+		if errors.Is(err, errResultsMailOutcomeUnknown) {
+			response.MailError = "Results were released, but it is unknown whether the notification mails were sent. These students are not mailed again automatically."
+		}
+	}
+
+	c.JSON(http.StatusOK, response)
 }
 
 // unreleaseResults godoc

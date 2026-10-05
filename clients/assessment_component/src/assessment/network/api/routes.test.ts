@@ -192,6 +192,12 @@ const ROUTES: Route[] = [
     url: `${ASSESSMENT_BASE}/student-assessment/assessment-1`,
   },
   {
+    name: 'assessments.removeIndependent',
+    run: () => assessmentApi.assessments.removeIndependent(PHASE, 'independent-1'),
+    method: 'delete',
+    url: `${ASSESSMENT_BASE}/student-assessment/independent/independent-1`,
+  },
+  {
     name: 'completions.listInPhase',
     run: () => assessmentApi.completions.listInPhase(PHASE),
     method: 'get',

@@ -38,6 +38,7 @@ func RegisterRoutes(routerGroup *gin.RouterGroup, service *AssessmentService, gu
 	assessmentRouter.GET("/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.getStudentAssessment)
 	assessmentRouter.GET("/course-participation/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.listAssessmentsByStudentInPhase)
 	assessmentRouter.DELETE("/:assessmentID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), guard.RequireAssessmentEnabled(), service.deleteAssessment)
+	assessmentRouter.DELETE("/independent/:independentAssessmentID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), guard.RequireAssessmentEnabled(), service.deleteOwnIndependentAssessment)
 
 	assessmentRouter.GET("/my-results", authMiddleware(promptSDK.CourseStudent), service.getMyAssessmentResults)
 }
@@ -312,6 +313,49 @@ func (s *AssessmentService) deleteAssessment(c *gin.Context) {
 		return
 	}
 	c.String(http.StatusOK, "OK")
+}
+
+// deleteOwnIndependentAssessment godoc
+// @Summary Delete own independent assessment
+// @Description Delete one of the caller's own independent scores. Scores of other assessors are reported as not found.
+// @Tags assessments
+// @Param coursePhaseID path string true "Course phase ID"
+// @Param independentAssessmentID path string true "Independent assessment ID"
+// @Success 204
+// @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Failure 409 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /course_phase/{coursePhaseID}/student-assessment/independent/{independentAssessmentID} [delete]
+func (s *AssessmentService) deleteOwnIndependentAssessment(c *gin.Context) {
+	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
+	if err != nil {
+		handleError(c, http.StatusBadRequest, err)
+		return
+	}
+	independentAssessmentID, err := uuid.Parse(c.Param("independentAssessmentID"))
+	if err != nil {
+		handleError(c, http.StatusBadRequest, err)
+		return
+	}
+	tokenUser, ok := keycloakTokenVerifier.GetTokenUser(c)
+	if !ok {
+		handleError(c, http.StatusUnauthorized, errors.New("authenticated user not found in context"))
+		return
+	}
+
+	err = s.DeleteOwnIndependentAssessment(c, independentAssessmentID, coursePhaseID, tokenUser.ID)
+	switch {
+	case err == nil:
+		c.Status(http.StatusNoContent)
+	case errors.Is(err, ErrAssessmentNotFound):
+		handleError(c, http.StatusNotFound, err)
+	case errors.Is(err, assessmentCompletion.ErrAssessmentCompleted), errors.Is(err, coursePhaseConfig.ErrNotStarted):
+		handleError(c, http.StatusConflict, err)
+	default:
+		handleError(c, http.StatusInternalServerError, err)
+	}
 }
 
 // listAssessmentsByStudentInPhase godoc

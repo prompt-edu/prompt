@@ -230,6 +230,51 @@ func (suite *AssessmentServiceTestSuite) TestIndependentAssessmentsAreKeptPerAss
 		"Independent scores freeze once the final assessment is marked final")
 }
 
+func (suite *AssessmentServiceTestSuite) TestDeleteOwnIndependentAssessment() {
+	phaseID := uuid.New()
+	partID := uuid.New()
+	_, err := suite.service.conn.Exec(suite.suiteCtx,
+		`INSERT INTO course_phase_config (assessment_schema_id, course_phase_id, start, independent_assessment_enabled)
+		 VALUES ('550e8400-e29b-41d4-a716-446655440000', $1, NOW() - INTERVAL '1 day', TRUE)`, phaseID)
+	assert.NoError(suite.T(), err)
+	for _, authorID := range []string{"coach", "lecturer"} {
+		assert.NoError(suite.T(), suite.service.CreateOrUpdateIndependentAssessment(suite.suiteCtx, assessmentDTO.CreateOrUpdateAssessmentRequest{
+			CourseParticipationID: partID,
+			CoursePhaseID:         phaseID,
+			CompetencyID:          uuid.MustParse("20725c05-bfd7-45a7-a981-d092e14f98d3"),
+			ScoreLevel:            scoreLevelDTO.ScoreLevelGood,
+			Author:                "Assessor " + authorID,
+			AuthorID:              authorID,
+		}))
+	}
+	scoresOf := func(viewerID string) []assessmentDTO.Assessment {
+		studentAssessment, err := suite.service.GetStudentAssessment(suite.suiteCtx, phaseID, partID, viewerID)
+		assert.NoError(suite.T(), err)
+		return studentAssessment.MyIndependentAssessments
+	}
+	coachScoreID := scoresOf("coach")[0].ID
+	lecturerScoreID := scoresOf("lecturer")[0].ID
+
+	assert.ErrorIs(suite.T(), suite.service.DeleteOwnIndependentAssessment(suite.suiteCtx, lecturerScoreID, phaseID, "coach"), ErrAssessmentNotFound,
+		"Another assessor's score reads as not found")
+	assert.ErrorIs(suite.T(), suite.service.DeleteOwnIndependentAssessment(suite.suiteCtx, coachScoreID, uuid.New(), "coach"), ErrAssessmentNotFound,
+		"The phase in the URL scopes the delete")
+
+	_, err = suite.service.conn.Exec(suite.suiteCtx,
+		`INSERT INTO assessment_completion (course_participation_id, course_phase_id, completed_at, author, completed)
+		 VALUES ($1, $2, NOW(), 'Lecturer', TRUE)`, partID, phaseID)
+	assert.NoError(suite.T(), err)
+	assert.ErrorIs(suite.T(), suite.service.DeleteOwnIndependentAssessment(suite.suiteCtx, coachScoreID, phaseID, "coach"), assessmentCompletion.ErrAssessmentCompleted)
+	assert.Len(suite.T(), scoresOf("coach"), 1, "A rejected delete is rolled back")
+
+	_, err = suite.service.conn.Exec(suite.suiteCtx,
+		`UPDATE assessment_completion SET completed = FALSE WHERE course_participation_id = $1 AND course_phase_id = $2`, partID, phaseID)
+	assert.NoError(suite.T(), err)
+	assert.NoError(suite.T(), suite.service.DeleteOwnIndependentAssessment(suite.suiteCtx, coachScoreID, phaseID, "coach"))
+	assert.Empty(suite.T(), scoresOf("coach"))
+	assert.Len(suite.T(), scoresOf("lecturer"), 1, "Other assessors' scores stay")
+}
+
 func (suite *AssessmentServiceTestSuite) TestSaveScoreRejectsCompetencyOutsidePhaseSchema() {
 	phaseID := uuid.New()
 	_, err := suite.service.conn.Exec(suite.suiteCtx,

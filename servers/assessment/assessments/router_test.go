@@ -190,3 +190,56 @@ func (suite *AssessmentRouterTestSuite) TestCreateIndependentAssessment() {
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), http.StatusConflict, post(phaseID), "Scores freeze once the final assessment is marked final")
 }
+
+func (suite *AssessmentRouterTestSuite) TestDeleteOwnIndependentAssessment() {
+	phaseID := uuid.New()
+	partID := uuid.New()
+	competencyID := "20725c05-bfd7-45a7-a981-d092e14f98d3"
+	_, err := suite.service.conn.Exec(suite.suiteCtx,
+		`INSERT INTO course_phase_config (assessment_schema_id, course_phase_id, start, independent_assessment_enabled)
+		 VALUES ('550e8400-e29b-41d4-a716-446655440000', $1, NOW() - INTERVAL '1 day', TRUE)`, phaseID)
+	assert.NoError(suite.T(), err)
+	body, _ := json.Marshal(map[string]string{"courseParticipationID": partID.String(), "competencyID": competencyID, "scoreLevel": "good"})
+	req, _ := http.NewRequest("POST", "/api/course_phase/"+phaseID.String()+"/student-assessment/independent", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	suite.router.ServeHTTP(httptest.NewRecorder(), req)
+
+	var otherScoreID uuid.UUID
+	err = suite.service.conn.QueryRow(suite.suiteCtx,
+		`INSERT INTO independent_assessment (course_participation_id, course_phase_id, competency_id, score_level, author, author_id)
+		 VALUES ($1, $2, $3, 'bad', 'Other Coach', 'other-coach') RETURNING id`, partID, phaseID, competencyID).Scan(&otherScoreID)
+	assert.NoError(suite.T(), err)
+
+	studentAssessment := func() assessmentDTO.StudentAssessment {
+		req, _ := http.NewRequest("GET", "/api/course_phase/"+phaseID.String()+"/student-assessment/"+partID.String(), nil)
+		resp := httptest.NewRecorder()
+		suite.router.ServeHTTP(resp, req)
+		var result assessmentDTO.StudentAssessment
+		assert.NoError(suite.T(), json.Unmarshal(resp.Body.Bytes(), &result))
+		return result
+	}
+	remove := func(scoreID uuid.UUID) int {
+		req, _ := http.NewRequest("DELETE", "/api/course_phase/"+phaseID.String()+"/student-assessment/independent/"+scoreID.String(), nil)
+		resp := httptest.NewRecorder()
+		suite.router.ServeHTTP(resp, req)
+		return resp.Code
+	}
+	ownScoreID := studentAssessment().MyIndependentAssessments[0].ID
+
+	assert.Equal(suite.T(), http.StatusNotFound, remove(otherScoreID), "Another assessor's score is not deletable")
+
+	_, err = suite.service.conn.Exec(suite.suiteCtx,
+		`INSERT INTO assessment_completion (course_participation_id, course_phase_id, completed_at, author, completed)
+		 VALUES ($1, $2, NOW(), 'Lecturer', TRUE)`, partID, phaseID)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), http.StatusConflict, remove(ownScoreID), "Scores freeze once the final assessment is marked final")
+
+	_, err = suite.service.conn.Exec(suite.suiteCtx,
+		`UPDATE assessment_completion SET completed = FALSE WHERE course_participation_id = $1 AND course_phase_id = $2`, partID, phaseID)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), http.StatusNoContent, remove(ownScoreID))
+
+	result := studentAssessment()
+	assert.Empty(suite.T(), result.MyIndependentAssessments)
+	assert.Len(suite.T(), result.IndependentAssessments, 1, "Other assessors' scores stay")
+}

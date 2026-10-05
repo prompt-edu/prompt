@@ -17,3 +17,11 @@ SELECT *
 FROM independent_assessment
 WHERE course_participation_id = $1
   AND course_phase_id = $2;
+
+-- name: DeleteOwnIndependentAssessment :one
+DELETE
+FROM independent_assessment
+WHERE id = $1
+  AND course_phase_id = $2
+  AND author_id = $3
+RETURNING course_participation_id;

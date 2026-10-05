@@ -125,8 +125,10 @@ The icons follow **Show evaluation results before submission**: they appear when
 or the assessment is marked as final. The switch is on by default, so if assessors should not see
 each other's scores before they meet, turn it off until you agree on the final assessment together.
 
-Independent scores can no longer be changed once the final assessment is marked as final. Turning the
-setting off hides the tabs but keeps the scores, so they come back when you turn it on again.
+To remove one of your own scores, use the reset button next to the competency on **My assessment**.
+Nobody else's scores can be removed there. Independent scores can no longer be changed or removed once
+the final assessment is marked as final. Turning the setting off hides the tabs but keeps the scores,
+so they come back when you turn it on again.
 
 #### Evaluation-Only Phases
 

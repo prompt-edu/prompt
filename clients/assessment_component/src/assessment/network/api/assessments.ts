@@ -44,4 +44,7 @@ export const assessments = {
 
   remove: (coursePhaseID: string, assessmentID: string): Promise<void> =>
     assessmentRequest.del(`${path(coursePhaseID)}/${assessmentID}`),
+
+  removeIndependent: (coursePhaseID: string, independentAssessmentID: string): Promise<void> =>
+    assessmentRequest.del(`${path(coursePhaseID)}/independent/${independentAssessmentID}`),
 }

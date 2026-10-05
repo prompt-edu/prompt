@@ -488,3 +488,38 @@ func (s *AssessmentService) DeleteAssessment(ctx context.Context, id, coursePhas
 
 	return nil
 }
+
+func (s *AssessmentService) DeleteOwnIndependentAssessment(ctx context.Context, id, coursePhaseID uuid.UUID, authorID string) error {
+	tx, err := s.conn.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer promptSDK.DeferDBRollback(tx, ctx)
+
+	qtx := s.queries.WithTx(tx)
+
+	courseParticipationID, err := qtx.DeleteOwnIndependentAssessment(ctx, db.DeleteOwnIndependentAssessmentParams{
+		ID:            id,
+		CoursePhaseID: coursePhaseID,
+		AuthorID:      authorID,
+	})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return ErrAssessmentNotFound
+	}
+	if err != nil {
+		log.Error("could not delete independent assessment: ", err)
+		return errors.New("could not delete independent assessment")
+	}
+
+	err = s.assessmentCompletion.CheckAssessmentIsEditable(ctx, qtx, courseParticipationID, coursePhaseID)
+	if err != nil {
+		return err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		log.Error("could not commit independent assessment deletion: ", err)
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	return nil
+}

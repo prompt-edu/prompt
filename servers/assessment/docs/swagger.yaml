@@ -4085,6 +4085,57 @@ paths:
       summary: Create or update independent assessment
       tags:
       - assessments
+  /course_phase/{coursePhaseID}/student-assessment/independent/{independentAssessmentID}:
+    delete:
+      description: Delete one of the caller's own independent scores. Scores of other
+        assessors are reported as not found.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      - description: Independent assessment ID
+        in: path
+        name: independentAssessmentID
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete own independent assessment
+      tags:
+      - assessments
   /course_phase/{coursePhaseID}/student-assessment/my-results:
     get:
       description: Get assessment results for the current student.

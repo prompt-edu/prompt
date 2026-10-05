@@ -47,6 +47,28 @@ func (q *Queries) CreateOrUpdateIndependentAssessment(ctx context.Context, arg C
 	return err
 }
 
+const deleteOwnIndependentAssessment = `-- name: DeleteOwnIndependentAssessment :one
+DELETE
+FROM independent_assessment
+WHERE id = $1
+  AND course_phase_id = $2
+  AND author_id = $3
+RETURNING course_participation_id
+`
+
+type DeleteOwnIndependentAssessmentParams struct {
+	ID            uuid.UUID `json:"id"`
+	CoursePhaseID uuid.UUID `json:"course_phase_id"`
+	AuthorID      string    `json:"author_id"`
+}
+
+func (q *Queries) DeleteOwnIndependentAssessment(ctx context.Context, arg DeleteOwnIndependentAssessmentParams) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, deleteOwnIndependentAssessment, arg.ID, arg.CoursePhaseID, arg.AuthorID)
+	var course_participation_id uuid.UUID
+	err := row.Scan(&course_participation_id)
+	return course_participation_id, err
+}
+
 const listIndependentAssessmentsByStudentInPhase = `-- name: ListIndependentAssessmentsByStudentInPhase :many
 SELECT id, course_participation_id, course_phase_id, competency_id, score_level, author, author_id, assessed_at
 FROM independent_assessment

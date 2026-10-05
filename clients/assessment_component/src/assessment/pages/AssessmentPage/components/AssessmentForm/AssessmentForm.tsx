@@ -59,7 +59,7 @@ export const AssessmentForm = ({
   })
 
   const { mutate: createOrUpdateAssessment } = useCreateOrUpdateAssessment(setError, independent)
-  const deleteAssessment = useDeleteAssessment(setError)
+  const deleteAssessment = useDeleteAssessment(setError, independent)
   const selectedScore = form.watch('scoreLevel')
   const controlsDisabled = completed || disabled
 
@@ -205,7 +205,7 @@ export const AssessmentForm = ({
       <div className='space-y-4 p-4 border rounded-md'>
         <CompetencyHeader
           competency={competency}
-          competencyScore={independent ? undefined : assessment}
+          competencyScore={assessment}
           completed={controlsDisabled}
           onResetClick={() => setDeleteDialogOpen(true)}
         />

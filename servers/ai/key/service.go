@@ -2,15 +2,13 @@ package key
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"net/url"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
+	promptSDK "github.com/prompt-edu/prompt-sdk"
 	db "github.com/prompt-edu/prompt/servers/ai/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/ai/encryption"
 	"github.com/prompt-edu/prompt/servers/ai/key/keyDTO"
@@ -44,7 +42,7 @@ func (s *Service) Get(ctx context.Context, coursePhaseID uuid.UUID) (keyDTO.Stat
 }
 
 func (s *Service) Set(ctx context.Context, coursePhaseID uuid.UUID, logosKey, setBy, authHeader string) (keyDTO.Status, error) {
-	phaseType, err := s.phaseType(coursePhaseID, authHeader)
+	phaseType, err := s.phaseType(ctx, coursePhaseID, authHeader)
 	if err != nil {
 		return keyDTO.Status{}, err
 	}
@@ -89,19 +87,12 @@ func (s *Service) Resolve(ctx context.Context, coursePhaseID uuid.UUID) (PhaseKe
 	return PhaseKey{Key: string(logosKey), PhaseType: row.PhaseType}, nil
 }
 
-func (s *Service) phaseType(coursePhaseID uuid.UUID, authHeader string) (string, error) {
-	phaseURL, err := url.JoinPath(s.coreURL, "api/course_phases", coursePhaseID.String())
-	if err != nil {
-		return "", err
-	}
-	body, err := sdkUtils.FetchJSON(phaseURL, authHeader)
+func (s *Service) phaseType(ctx context.Context, coursePhaseID uuid.UUID, authHeader string) (string, error) {
+	phase, err := promptSDK.FetchCoursePhase(ctx, s.coreURL, authHeader, coursePhaseID)
 	if err != nil {
 		return "", fmt.Errorf("resolve phase type from core: %w", err)
 	}
-	var phase struct {
-		CoursePhaseTypeName string `json:"coursePhaseTypeName"`
-	}
-	if err := json.Unmarshal(body, &phase); err != nil || phase.CoursePhaseTypeName == "" {
+	if phase.CoursePhaseTypeName == "" {
 		return "", fmt.Errorf("core answered without a phase type for %s", coursePhaseID)
 	}
 	return phase.CoursePhaseTypeName, nil

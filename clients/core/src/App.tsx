@@ -25,6 +25,7 @@ import { PrivacyDataExportPage } from './managementConsole/pages/PrivacyDataExpo
 import { PrivacyOverviewPage } from './managementConsole/pages/PrivacyOverviewPage'
 import { StudentDetailPage } from './managementConsole/pages/StudentDetailPage'
 import { StudentsPage } from './managementConsole/pages/StudentsPage'
+import { StudyProgramsPage } from './managementConsole/pages/StudyProgramsPage/StudyProgramsPage'
 import { SystemStatusPage } from './managementConsole/pages/SystemStatusPage/SystemStatusPage'
 import { TemplateCoursesPage } from './managementConsole/pages/TemplateCoursesPage'
 import { PermissionRestriction } from './managementConsole/shared/components/PermissionRestriction'
@@ -171,6 +172,16 @@ export const App = () => {
                 <ManagementRoot>
                   <PermissionRestriction requiredPermissions={[Role.PROMPT_ADMIN]}>
                     <AdminPrivacyPage />
+                  </PermissionRestriction>
+                </ManagementRoot>
+              }
+            />
+            <Route
+              path='/management/admin/study-programs'
+              element={
+                <ManagementRoot>
+                  <PermissionRestriction requiredPermissions={[Role.PROMPT_ADMIN]}>
+                    <StudyProgramsPage />
                   </PermissionRestriction>
                 </ManagementRoot>
               }

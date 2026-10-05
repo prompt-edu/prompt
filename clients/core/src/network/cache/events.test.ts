@@ -300,6 +300,44 @@ describe('instructor note events', () => {
   })
 })
 
+describe('study program events', () => {
+  it('invalidates the list and the student counts when a program is added, edited or removed', () => {
+    seed(coreKeys.studyPrograms.all(), coreKeys.studyPrograms.studentCounts())
+
+    coreCache.studyProgramsChanged(queryClient)
+
+    expect(isInvalidated(coreKeys.studyPrograms.all())).toBe(true)
+    expect(isInvalidated(coreKeys.studyPrograms.studentCounts())).toBe(true)
+  })
+
+  it('leaves student data alone when no student was rewritten', () => {
+    seed(coreKeys.students.byId(STUDENT), coreKeys.applications.participations.inPhase(PHASE))
+
+    coreCache.studyProgramsChanged(queryClient)
+
+    expect(isInvalidated(coreKeys.students.byId(STUDENT))).toBe(false)
+    expect(isInvalidated(coreKeys.applications.participations.inPhase(PHASE))).toBe(false)
+  })
+
+  it('invalidates every student and application row after a rename rewrote them', () => {
+    seed(
+      coreKeys.studyPrograms.all(),
+      coreKeys.studyPrograms.studentCounts(),
+      coreKeys.students.byId(STUDENT),
+      coreKeys.applications.ofParticipation(PARTICIPATION),
+      coreKeys.applications.participations.inPhase(PHASE),
+    )
+
+    coreCache.studyProgramRenamed(queryClient)
+
+    expect(isInvalidated(coreKeys.studyPrograms.all())).toBe(true)
+    expect(isInvalidated(coreKeys.studyPrograms.studentCounts())).toBe(true)
+    expect(isInvalidated(coreKeys.students.byId(STUDENT))).toBe(true)
+    expect(isInvalidated(coreKeys.applications.ofParticipation(PARTICIPATION))).toBe(true)
+    expect(isInvalidated(coreKeys.applications.participations.inPhase(PHASE))).toBe(true)
+  })
+})
+
 describe('privacy events', () => {
   it('keeps the admin deletion and export lists apart', () => {
     seed(coreKeys.privacy.admin.deletions(), coreKeys.privacy.admin.exports())

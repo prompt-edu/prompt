@@ -1,19 +1,10 @@
 import type { GetApplication } from '@core/interfaces/application/getApplication'
 import { useApplicationStore } from '@core/managementConsole/applicationAdministration/zustand/useApplicationStore'
-import { InstructorNotes } from '@core/managementConsole/shared/components/InstructorNote/InstructorNotes'
-import { ShowForRole } from '@core/managementConsole/shared/components/ShowForRole'
-import { CourseEnrollments } from '@core/managementConsole/shared/components/StudentDetail/CourseEnrollmentList'
+import { StudentNotesAndHistory } from '@core/managementConsole/shared/components/StudentHistory/StudentNotesAndHistory'
 import { coreApi } from '@core/network/api'
 import { coreKeys } from '@core/network/cache'
 import { useQuery } from '@tanstack/react-query'
-import { Role } from '@tumaet/prompt-shared-state'
-import {
-  Button,
-  Card,
-  ErrorPage,
-  getStudentName,
-  StudentProfile,
-} from '@tumaet/prompt-ui-components'
+import { Button, ErrorPage, getStudentName, StudentProfile } from '@tumaet/prompt-ui-components'
 import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
 import { useMemo } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
@@ -199,18 +190,7 @@ export const ApplicationDetailsPage = () => {
             )}
           </>
         }
-        right={
-          <>
-            <ShowForRole roles={[Role.PROMPT_ADMIN, Role.PROMPT_LECTURER]}>
-              <Card className='p-3'>
-                {studentId ? <InstructorNotes studentId={studentId} /> : null}
-              </Card>
-            </ShowForRole>
-            <Card className='p-3'>
-              {studentId ? <CourseEnrollments studentId={studentId} /> : null}
-            </Card>
-          </>
-        }
+        right={studentId ? <StudentNotesAndHistory studentId={studentId} /> : null}
       />
     </div>
   )

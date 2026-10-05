@@ -377,6 +377,24 @@ func (suite *CoursePhaseConfigRouterTestSuite) TestSendEvaluationReminderSuccess
 	assert.Contains(suite.T(), resp.Body.String(), "alice@example.com")
 }
 
+func (suite *CoursePhaseConfigRouterTestSuite) TestGetEvaluationReminderStatus() {
+	sentAt := time.Date(2026, time.January, 12, 10, 0, 0, 0, time.UTC)
+	_, err := suite.coursePhaseConfigService.conn.Exec(suite.suiteCtx,
+		"INSERT INTO evaluation_reminder (course_phase_id, evaluation_type, last_sent_at) VALUES ($1, 'peer', $2)",
+		suite.testCoursePhaseID, sentAt)
+	suite.Require().NoError(err)
+
+	req, _ := http.NewRequest("GET", fmt.Sprintf("/api/course_phase/%s/config/reminders", suite.testCoursePhaseID.String()), nil)
+	resp := httptest.NewRecorder()
+	suite.router.ServeHTTP(resp, req)
+	assert.Equal(suite.T(), http.StatusOK, resp.Code)
+
+	var status coursePhaseConfigDTO.EvaluationReminderStatus
+	suite.Require().NoError(json.Unmarshal(resp.Body.Bytes(), &status))
+	assert.Len(suite.T(), status.LastSentAtByType, 1)
+	assert.True(suite.T(), sentAt.Equal(status.LastSentAtByType[assessmentType.Peer]))
+}
+
 func (suite *CoursePhaseConfigRouterTestSuite) stubCoreCoursePhase(err error) {
 	oldGetCoreCoursePhaseFn := getCoreCoursePhaseFn
 	suite.T().Cleanup(func() { getCoreCoursePhaseFn = oldGetCoreCoursePhaseFn })

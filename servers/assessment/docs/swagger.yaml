@@ -613,6 +613,13 @@ definitions:
           type: string
         type: array
     type: object
+  coursePhaseConfigDTO.EvaluationReminderStatus:
+    properties:
+      lastSentAtByType:
+        additionalProperties:
+          type: string
+        type: object
+    type: object
   coursePhaseConfigDTO.ReleaseResultsResponse:
     properties:
       mailError:
@@ -1987,6 +1994,37 @@ paths:
               type: string
             type: object
       summary: Release assessment results
+      tags:
+      - course_phase_config
+  /course_phase/{coursePhaseID}/config/reminders:
+    get:
+      description: Returns when a reminder was last sent for each evaluation type.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/coursePhaseConfigDTO.EvaluationReminderStatus'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get evaluation reminder status
       tags:
       - course_phase_config
   /course_phase/{coursePhaseID}/config/reminders/incomplete:

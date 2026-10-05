@@ -1,28 +1,6 @@
 -- Skills table test data
 BEGIN;
 
--- Schema for skills
-DO $$ BEGIN
-    CREATE TYPE skill_level AS ENUM ('very_bad', 'bad', 'ok', 'good', 'very_good');
-EXCEPTION
-    WHEN duplicate_object THEN null;
-END $$;
-
-CREATE TABLE IF NOT EXISTS skill (
-    id uuid NOT NULL PRIMARY KEY,
-    course_phase_id uuid NOT NULL,
-    name VARCHAR(255) NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS student_skill_response (
-    course_participation_id uuid NOT NULL,
-    skill_id uuid NOT NULL,
-    skill_level skill_level NOT NULL,
-    PRIMARY KEY (course_participation_id, skill_id),
-    FOREIGN KEY (skill_id) REFERENCES skill(id) ON DELETE CASCADE
-);
-
--- Test data
 INSERT INTO skill (id, course_phase_id, name) VALUES
 ('11111111-1111-1111-1111-111111111111', '4179d58a-d00d-4fa7-94a5-397bc69fab02', 'Java'),
 ('22222222-2222-2222-2222-222222222222', '4179d58a-d00d-4fa7-94a5-397bc69fab02', 'Python'),

@@ -558,6 +558,13 @@ func (suite *CoursePhaseConfigServiceTestSuite) TestCreateOrUpdateCoursePhaseCon
 				uuid.New(), uuid.New(), phaseID, competencyID, "good")
 			assert.NoError(suite.T(), err)
 		}},
+		{"independent assessment", func(phaseID uuid.UUID) {
+			_, err := suite.coursePhaseConfigService.conn.Exec(suite.suiteCtx,
+				`INSERT INTO independent_assessment (course_participation_id, course_phase_id, competency_id, score_level, author, author_id)
+				 VALUES ($1, $2, $3, $4, $5, $6)`,
+				uuid.New(), phaseID, competencyID, "good", "Coach", "coach-id")
+			assert.NoError(suite.T(), err)
+		}},
 		{"assessment completion", func(phaseID uuid.UUID) {
 			_, err := suite.coursePhaseConfigService.conn.Exec(suite.suiteCtx,
 				`INSERT INTO assessment_completion (course_participation_id, course_phase_id, completed_at, author)

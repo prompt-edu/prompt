@@ -20,10 +20,13 @@ const isInvalidated = (key: readonly unknown[]): boolean =>
 
 const allPhaseKeys = (phaseId: string) => [
   infrastructureSetupKeys.providerConfigs(phaseId),
+  infrastructureSetupKeys.providerAuthFields(phaseId, 'gitlab'),
+  infrastructureSetupKeys.providerResourceTypes(phaseId, 'gitlab'),
   infrastructureSetupKeys.resourceConfigs(phaseId),
   infrastructureSetupKeys.setupConfig(phaseId),
   infrastructureSetupKeys.instances(phaseId),
   infrastructureSetupKeys.provisioningPreview(phaseId),
+  infrastructureSetupKeys.myResources(phaseId),
 ]
 
 const expectInvalidatedExactly = (expected: readonly (readonly unknown[])[]): void => {

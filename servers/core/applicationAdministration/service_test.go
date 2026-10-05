@@ -647,6 +647,25 @@ func (suite *ApplicationAdminServiceTestSuite) TestUpsertFileUploadAnswer_EmptyU
 	}
 }
 
+func (suite *ApplicationAdminServiceTestSuite) TestCleanupReplacedFiles_KeepsFileReferencedByAnotherAnswer() {
+	coursePhaseID := uuid.MustParse("4179d58a-d00d-4fa7-94a5-397bc69fab02")
+	courseParticipationID := uuid.MustParse("32aa070e-67c3-4a69-852a-ba3b5e849a4d")
+	questionID := uuid.MustParse("c2c04042-95d1-4765-8592-caf9560c8c3e")
+	queries := &suite.applicationAdminService.queries
+	answer := applicationDTO.CreateAnswerFileUpload{ApplicationQuestionID: questionID, FileID: seededUploadFileID}
+	_, err := upsertFileUploadAnswer(suite.ctx, queries, coursePhaseID, uploadedBy("external"), answer, courseParticipationID)
+	assert.NoError(suite.T(), err)
+
+	suite.applicationAdminService.cleanupReplacedFiles(suite.ctx, []uuid.UUID{seededUploadFileID})
+
+	stored, err := queries.GetApplicationAnswerFileUploadByQuestionAndParticipation(suite.ctx, db.GetApplicationAnswerFileUploadByQuestionAndParticipationParams{
+		ApplicationQuestionID: questionID,
+		CourseParticipationID: courseParticipationID,
+	})
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), seededUploadFileID, stored.FileID)
+}
+
 func TestApplicationAdminServiceTestSuite(t *testing.T) {
 	suite.Run(t, new(ApplicationAdminServiceTestSuite))
 }

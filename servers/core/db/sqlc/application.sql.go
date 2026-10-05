@@ -1348,6 +1348,17 @@ func (q *Queries) GetOpenApplicationPhase(ctx context.Context, id uuid.UUID) (Ge
 	return i, err
 }
 
+const isFileReferencedByApplicationAnswer = `-- name: IsFileReferencedByApplicationAnswer :one
+SELECT EXISTS (SELECT 1 FROM application_answer_file_upload WHERE file_id = $1)
+`
+
+func (q *Queries) IsFileReferencedByApplicationAnswer(ctx context.Context, fileID uuid.UUID) (bool, error) {
+	row := q.db.QueryRow(ctx, isFileReferencedByApplicationAnswer, fileID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const storeApplicationAnswerUpdateTimestamp = `-- name: StoreApplicationAnswerUpdateTimestamp :exec
 UPDATE course_phase_participation
 SET restricted_data = jsonb_set(

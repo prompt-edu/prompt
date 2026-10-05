@@ -219,6 +219,14 @@ func (s *ApplicationService) cleanupReplacedFiles(ctx context.Context, fileIDs [
 		}
 		seenFileIDs[fileID] = struct{}{}
 
+		referenced, err := s.queries.IsFileReferencedByApplicationAnswer(ctx, fileID)
+		if err != nil {
+			log.WithError(err).WithField("fileId", fileID).Warn("Failed to check whether a replaced file is still referenced")
+			continue
+		}
+		if referenced {
+			continue
+		}
 		if err := s.files.DeleteFile(ctx, fileID, true); err != nil {
 			log.WithError(err).WithField("fileId", fileID).Warn("Failed to delete replaced file after transaction commit")
 		}

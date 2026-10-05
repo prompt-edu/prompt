@@ -359,6 +359,9 @@ WHERE aqfu.course_phase_id = $1 AND aafu.course_participation_id = $2;
 SELECT * FROM application_answer_file_upload
 WHERE application_question_id = $1 AND course_participation_id = $2;
 
+-- name: IsFileReferencedByApplicationAnswer :one
+SELECT EXISTS (SELECT 1 FROM application_answer_file_upload WHERE file_id = $1);
+
 -- name: CreateOrOverwriteApplicationAnswerFileUpload :execrows
 INSERT INTO application_answer_file_upload (id, application_question_id, course_participation_id, file_id)
 SELECT sqlc.arg(id), question.id, sqlc.arg(course_participation_id), uploaded_file.id

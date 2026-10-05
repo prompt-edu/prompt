@@ -8,6 +8,7 @@ import { AssessmentSettingsCard } from './components/AssessmentSettingsCard/Asse
 import { ReleaseResultsSection } from './components/AssessmentSettingsCard/components/ReleaseResultsSection'
 import { EvaluationSettingsCard } from './components/EvaluationSettingsCard'
 import { GradeExportCard } from './components/GradeExportCard/GradeExportCard'
+import { ResultsReleasedMailCard } from './components/ResultsReleasedMailCard/ResultsReleasedMailCard'
 
 export const SettingsPage = () => {
   const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
@@ -46,6 +47,8 @@ export const SettingsPage = () => {
           <ReleaseResultsSection isSaving={false} />
         </div>
       </Card>
+
+      <ResultsReleasedMailCard />
 
       <AssessmentReminderCard />
 

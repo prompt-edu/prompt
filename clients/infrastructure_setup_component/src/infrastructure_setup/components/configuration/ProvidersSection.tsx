@@ -4,6 +4,7 @@ import { PlusCircle } from 'lucide-react'
 import { useState } from 'react'
 import { ProviderUpsertDialog } from '../../dialogs/ProviderUpsertDialog'
 import type { ProviderConfig } from '../../interfaces/providerConfig'
+import { infrastructureSetupKeys } from '../../network/cache'
 import { getProviderConfigs } from '../../network/queries/getProviderConfigs'
 import { ProviderCard } from '../ProviderCard'
 import { SectionError } from '../SectionError'
@@ -23,7 +24,7 @@ export const ProvidersSection = ({ coursePhaseID }: Props) => {
     isError,
     refetch,
   } = useQuery({
-    queryKey: ['provider-configs', coursePhaseID],
+    queryKey: infrastructureSetupKeys.providerConfigs(coursePhaseID),
     queryFn: () => getProviderConfigs(coursePhaseID),
   })
 

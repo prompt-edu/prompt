@@ -63,6 +63,11 @@ on:
       server_ai_image_tag:
         required: true
         type: string
+      release_tag:
+        description: "Release being deployed; shown as the maintenance reason when set"
+        required: false
+        type: string
+        default: ""
 
     secrets:
       VM_SSH_PRIVATE_KEY:
@@ -83,6 +88,56 @@ jobs:
       name: ${{ inputs.environment }}
       url: "https://${{ vars.CORE_HOST }}"
     steps:
+      - name: checkout
+        uses: actions/checkout@v7
+
+      - name: Write maintenance reason
+        if: inputs.release_tag != ''
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+          RELEASE_URL: ${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ inputs.release_tag }}
+        run: |
+          jq -n --arg version "$RELEASE_TAG" --arg releaseUrl "$RELEASE_URL" \
+            '{version: $version, releaseUrl: $releaseUrl}' > maintenance/status.json
+
+      - name: Package maintenance assets
+        run: |
+          tar czf maintenance.tar.gz maintenance
+          sha256sum maintenance.tar.gz > maintenance.tar.gz.sha256
+
+      - name: Copy maintenance tarball to VM Host
+        uses: appleboy/scp-action@v1.0.0
+        with:
+          host: ${{ vars.VM_HOST }}
+          username: ${{ vars.VM_USERNAME }}
+          key: ${{ secrets.VM_SSH_PRIVATE_KEY }}
+          # Defined in the Org
+          proxy_host: ${{ vars.DEPLOYMENT_GATEWAY_HOST }}
+          proxy_username: ${{ vars.DEPLOYMENT_GATEWAY_USER }}
+          proxy_key: ${{ secrets.DEPLOYMENT_GATEWAY_SSH_KEY }}
+          proxy_port: ${{ vars.DEPLOYMENT_GATEWAY_PORT }}
+          #####################
+          source: "maintenance.tar.gz*"
+          target: /home/${{ vars.VM_USERNAME }}/
+
+      - name: Verify and extract maintenance assets on VM
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ vars.VM_HOST }}
+          username: ${{ vars.VM_USERNAME }}
+          key: ${{ secrets.VM_SSH_PRIVATE_KEY }}
+          # Defined in the Org
+          proxy_host: ${{ vars.DEPLOYMENT_GATEWAY_HOST }}
+          proxy_username: ${{ vars.DEPLOYMENT_GATEWAY_USER }}
+          proxy_key: ${{ secrets.DEPLOYMENT_GATEWAY_SSH_KEY }}
+          proxy_port: ${{ vars.DEPLOYMENT_GATEWAY_PORT }}
+          script: |
+            cd /home/${{ vars.VM_USERNAME }}
+            mkdir -p maintenance
+            sha256sum -c maintenance.tar.gz.sha256
+            rm -f maintenance/status.json
+            tar xzf maintenance.tar.gz -C /home/${{ vars.VM_USERNAME }}
+
       - name: SSH to VM and Execute Docker-Compose Down
         continue-on-error: true
         uses: appleboy/ssh-action@v1.2.5
@@ -103,14 +158,6 @@ jobs:
             # Remove stopped containers
             docker compose -f docker-compose.prod.yml --env-file=.env.prod rm -f $SERVICES
 
-      - name: checkout
-        uses: actions/checkout@v7
-
-      - name: Package maintenance assets
-        run: |
-          tar czf maintenance.tar.gz maintenance
-          sha256sum maintenance.tar.gz > maintenance.tar.gz.sha256
-
       - name: Copy file to VM Host
         uses: appleboy/scp-action@v1.0.0
         with:
@@ -125,21 +172,6 @@ jobs:
           #####################
           source: "./docker-compose.prod.yml"
           target: /home/${{ vars.VM_USERNAME }}
-
-      - name: Copy maintenance tarball to VM Host
-        uses: appleboy/scp-action@v1.0.0
-        with:
-          host: ${{ vars.VM_HOST }}
-          username: ${{ vars.VM_USERNAME }}
-          key: ${{ secrets.VM_SSH_PRIVATE_KEY }}
-          # Defined in the Org
-          proxy_host: ${{ vars.DEPLOYMENT_GATEWAY_HOST }}
-          proxy_username: ${{ vars.DEPLOYMENT_GATEWAY_USER }}
-          proxy_key: ${{ secrets.DEPLOYMENT_GATEWAY_SSH_KEY }}
-          proxy_port: ${{ vars.DEPLOYMENT_GATEWAY_PORT }}
-          #####################
-          source: "maintenance.tar.gz*"
-          target: /home/${{ vars.VM_USERNAME }}/
 
       - name: "Create main.cf and master.cf file"
         run: |
@@ -175,23 +207,6 @@ jobs:
           #####################
           source: "master.cf"
           target: /home/${{ vars.VM_USERNAME }}/postfix-config/
-
-      - name: Verify and extract maintenance assets on VM
-        uses: appleboy/ssh-action@v1.2.5
-        with:
-          host: ${{ vars.VM_HOST }}
-          username: ${{ vars.VM_USERNAME }}
-          key: ${{ secrets.VM_SSH_PRIVATE_KEY }}
-          # Defined in the Org
-          proxy_host: ${{ vars.DEPLOYMENT_GATEWAY_HOST }}
-          proxy_username: ${{ vars.DEPLOYMENT_GATEWAY_USER }}
-          proxy_key: ${{ secrets.DEPLOYMENT_GATEWAY_SSH_KEY }}
-          proxy_port: ${{ vars.DEPLOYMENT_GATEWAY_PORT }}
-          script: |
-            cd /home/${{ vars.VM_USERNAME }}
-            mkdir -p maintenance
-            sha256sum -c maintenance.tar.gz.sha256
-            tar xzf maintenance.tar.gz -C /home/${{ vars.VM_USERNAME }}
 
       - name: SSH to VM and create .env.prod file
         uses: appleboy/ssh-action@v1.2.5
@@ -340,7 +355,7 @@ jobs:
           proxy_key: ${{ secrets.DEPLOYMENT_GATEWAY_SSH_KEY }}
           proxy_port: ${{ vars.DEPLOYMENT_GATEWAY_PORT }}
           script: |
-            docker compose -f docker-compose.prod.yml --env-file=.env.prod up --pull=always -d
+            docker compose -f docker-compose.prod.yml --env-file=.env.prod up --pull=always -d && rm -f /home/${{ vars.VM_USERNAME }}/maintenance/status.json
             # Switching AI off must stop its database too, which the deploy otherwise keeps running.
             if [ "${{ vars.AI_ENABLED }}" != "true" ]; then
               docker compose -f docker-compose.prod.yml --env-file=.env.prod stop server-ai db-ai || true

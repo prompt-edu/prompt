@@ -13,6 +13,7 @@ import { useMemo } from 'react'
 import { useParams } from 'react-router-dom'
 import { ResourceStateBadge } from '../components/ResourceStateBadge'
 import type { ResourceConfig } from '../interfaces/resourceConfig'
+import { infrastructureSetupKeys } from '../network/cache'
 import { getInstances } from '../network/queries/getInstances'
 import { getResourceConfigs } from '../network/queries/getResourceConfigs'
 import { resourceLabel } from '../utils/resourceLabel'
@@ -68,7 +69,7 @@ export const ParticipantsPage = () => {
     isError: configsError,
     refetch: refetchConfigs,
   } = useQuery({
-    queryKey: ['resource-configs', phaseId],
+    queryKey: infrastructureSetupKeys.resourceConfigs(phaseId),
     queryFn: () => getResourceConfigs(phaseId ?? ''),
     enabled: !!phaseId,
   })
@@ -79,7 +80,7 @@ export const ParticipantsPage = () => {
     isError: instancesError,
     refetch: refetchInstances,
   } = useQuery({
-    queryKey: ['instances', phaseId],
+    queryKey: infrastructureSetupKeys.instances(phaseId),
     queryFn: () => getInstances(phaseId ?? ''),
     enabled: !!phaseId,
     refetchInterval: (query) =>

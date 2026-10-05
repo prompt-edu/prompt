@@ -11,6 +11,7 @@ import { AlertTriangle, CheckCircle2, Pencil, ShieldCheck, Trash2 } from 'lucide
 import { useState } from 'react'
 
 import type { ProviderConfig } from '../interfaces/providerConfig'
+import { infrastructureSetupCache } from '../network/cache'
 import { deleteProviderConfig } from '../network/mutations/deleteProviderConfig'
 import { validateProviderConfig } from '../network/mutations/validateProviderConfig'
 import { describeError } from '../utils/describeError'
@@ -46,12 +47,7 @@ export const ProviderCard = ({ coursePhaseID, provider, onEdit }: Props) => {
   const { mutate: remove, isPending: isDeleting } = useMutation({
     mutationFn: () => deleteProviderConfig(coursePhaseID, provider.providerType),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['provider-configs', coursePhaseID] })
-      // Resource configs cascade-delete when a provider is removed; refresh that list too.
-      queryClient.invalidateQueries({ queryKey: ['resource-configs', coursePhaseID] })
-      queryClient.invalidateQueries({ queryKey: ['instances', coursePhaseID] })
-      // What the next run does depends on it, and the provisioning page shows that.
-      queryClient.invalidateQueries({ queryKey: ['provisioning-preview', coursePhaseID] })
+      infrastructureSetupCache.providerRemoved(queryClient, coursePhaseID)
       toast({ title: `${provider.providerType} provider removed` })
       setConfirmOpen(false)
     },

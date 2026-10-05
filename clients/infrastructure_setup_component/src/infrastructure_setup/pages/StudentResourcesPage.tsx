@@ -20,6 +20,7 @@ import { useParams } from 'react-router-dom'
 import { ResourceStateBadge } from '../components/ResourceStateBadge'
 import type { MyResource } from '../interfaces/myResource'
 import type { ResourceConfig } from '../interfaces/resourceConfig'
+import { infrastructureSetupKeys } from '../network/cache'
 import { getMyResources } from '../network/queries/getMyResources'
 import { getResourceConfigs } from '../network/queries/getResourceConfigs'
 import { providerName, resourceLabel } from '../utils/resourceLabel'
@@ -108,7 +109,7 @@ export const StudentResourcesPage = () => {
   )
 
   const myResources = useQuery({
-    queryKey: ['my-resources', phaseId],
+    queryKey: infrastructureSetupKeys.myResources(phaseId),
     queryFn: () => getMyResources(phaseId ?? ''),
     enabled: !!phaseId && isStudent,
     // While something is being set up, the page follows it to Ready on its own.
@@ -117,7 +118,7 @@ export const StudentResourcesPage = () => {
   })
 
   const preview = useQuery({
-    queryKey: ['resource-configs', phaseId],
+    queryKey: infrastructureSetupKeys.resourceConfigs(phaseId),
     queryFn: () => getResourceConfigs(phaseId ?? ''),
     enabled: !!phaseId && !isStudent && canPreview,
   })

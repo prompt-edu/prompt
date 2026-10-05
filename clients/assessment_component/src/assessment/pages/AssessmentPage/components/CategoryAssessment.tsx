@@ -21,6 +21,8 @@ interface CategoryAssessmentProps {
   selfEvaluationResults?: AggregatedEvaluationResult[]
   hidePeerEvaluationDetails?: boolean
   disabled?: boolean
+  independent?: boolean
+  independentAssessments?: Assessment[]
 }
 
 export const CategoryAssessment = ({
@@ -32,6 +34,8 @@ export const CategoryAssessment = ({
   selfEvaluationResults,
   hidePeerEvaluationDetails = false,
   disabled = false,
+  independent = false,
+  independentAssessments,
 }: CategoryAssessmentProps) => {
   const categoryAssessment = useStudentAssessmentStore((state) =>
     state.categoryAssessments.find((ca) => ca.categoryID === category.id),
@@ -82,13 +86,15 @@ export const CategoryAssessment = ({
 
       {isExpanded && (
         <div id={`content-${category.id}`} className='space-y-5'>
-          <CategoryComment
-            categoryID={category.id}
-            courseParticipationID={courseParticipationID}
-            categoryAssessment={categoryAssessment}
-            completed={completed}
-            disabled={disabled}
-          />
+          {!independent && (
+            <CategoryComment
+              categoryID={category.id}
+              courseParticipationID={courseParticipationID}
+              categoryAssessment={categoryAssessment}
+              completed={completed}
+              disabled={disabled}
+            />
+          )}
           {category.competencies.length === 0 ? (
             <p className='text-sm text-muted-foreground italic'>
               No competencies available in this category.
@@ -117,6 +123,11 @@ export const CategoryAssessment = ({
                       peerEvaluationAverageScore={peerAverage?.averageScoreNumeric}
                       selfEvaluationAverageScore={selfAverage?.averageScoreNumeric}
                       hidePeerEvaluationDetails={hidePeerEvaluationDetails}
+                      independent={independent}
+                      independentAssessments={independentAssessments?.filter(
+                        (independentAssessment) =>
+                          independentAssessment.competencyID === competency.id,
+                      )}
                     />
                   </div>
                 )

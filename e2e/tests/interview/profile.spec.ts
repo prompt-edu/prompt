@@ -9,12 +9,12 @@ import {
 } from '../../src/data/constants'
 
 // The only uniquely-named interview participant (see lecturer-journey.spec.ts).
-const STUDENT_NAME = 'Max Mustermann'
-const STUDENT_ID = FULL_COURSE_APPLICATION_PARTICIPANTS.maxMustermann.id
+const STUDENT = FULL_COURSE_APPLICATION_PARTICIPANTS.maxMustermann
 const COURSE_ID = SEEDED_COURSES.fullCourse.id
 const COURSE_NAME = SEEDED_COURSES.fullCourse.name
 const PHASE_ID = FULL_COURSE_PHASES.interview.id
-const PROFILE_URL = `/management/course/${COURSE_ID}/${PHASE_ID}/manage/${STUDENT_ID}`
+const PARTICIPANTS_URL = `/management/course/${COURSE_ID}/${PHASE_ID}/participants`
+const PROFILE_URL = `${PARTICIPANTS_URL}/${STUDENT.id}`
 
 test.use({ role: 'course-lecturer' })
 
@@ -26,25 +26,47 @@ async function setShowStudentHistory(api: APIRequestContext, showStudentHistory:
 }
 
 test.describe('interview: profile', () => {
-  test('a lecturer opens a profile without a dead breadcrumb', async ({ page }) => {
+  test('a lecturer opens a profile from the participants table', async ({ page }) => {
     const phase = new InterviewPage(page)
-    await phase.gotoOverview(COURSE_ID, PHASE_ID)
-    await phase.expectOverviewLoaded()
+    await phase.gotoParticipants(COURSE_ID, PHASE_ID)
+    await phase.expectParticipantsLoaded()
 
-    await phase.openProfile(STUDENT_NAME)
+    await phase.openProfile(STUDENT.firstName, STUDENT.lastName)
 
     await expect(page).toHaveURL(PROFILE_URL)
-    await expect(phase.breadcrumb().getByText('Manage', { exact: true })).toBeVisible()
+    await expect(phase.breadcrumb().getByText('Participants', { exact: true })).toBeVisible()
     await expect(phase.breadcrumb().getByText('Details', { exact: true })).toHaveCount(0)
   })
 
-  test('an old details link redirects to the profile', async ({ page }) => {
+  test('Back from a profile keeps the table search', async ({ page }) => {
     const phase = new InterviewPage(page)
-    await phase.goto(COURSE_ID, PHASE_ID, `/manage/details/${STUDENT_ID}`)
+    await phase.gotoParticipants(COURSE_ID, PHASE_ID)
+    await phase.expectParticipantsLoaded()
+    await phase.searchParticipants(STUDENT.lastName)
+    await expect(page).toHaveURL(`${PARTICIPANTS_URL}?search=${STUDENT.lastName}`)
 
+    await phase.openProfile(STUDENT.firstName, STUDENT.lastName)
     await expect(page).toHaveURL(PROFILE_URL)
-    await expect(page.getByText(STUDENT_NAME, { exact: true }).first()).toBeVisible()
+    await phase.backToParticipants()
+
+    await expect(page).toHaveURL(`${PARTICIPANTS_URL}?search=${STUDENT.lastName}`)
+    await expect(
+      page.getByRole('row', { name: new RegExp(`${STUDENT.firstName} ${STUDENT.lastName}`) }),
+    ).toBeVisible()
   })
+
+  for (const { oldPath, newUrl } of [
+    { oldPath: '/manage', newUrl: PARTICIPANTS_URL },
+    { oldPath: `/manage/${STUDENT.id}`, newUrl: PROFILE_URL },
+    { oldPath: `/manage/details/${STUDENT.id}`, newUrl: PROFILE_URL },
+  ]) {
+    test(`an old ${oldPath.replace(STUDENT.id, ':studentId')} link redirects`, async ({ page }) => {
+      const phase = new InterviewPage(page)
+      await phase.goto(COURSE_ID, PHASE_ID, oldPath)
+
+      await expect(page).toHaveURL(newUrl)
+    })
+  }
 
   test.describe('with student history enabled', () => {
     let api: APIRequestContext

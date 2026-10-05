@@ -3,6 +3,7 @@ import { useCourseStore } from '@tumaet/prompt-shared-state'
 import { Button, Input, Label, Skeleton, useToast } from '@tumaet/prompt-ui-components'
 import { Save } from 'lucide-react'
 import { useState } from 'react'
+import { infrastructureSetupCache, infrastructureSetupKeys } from '../../network/cache'
 import { updateSetupConfig } from '../../network/mutations/updateSetupConfig'
 import { getSetupConfig } from '../../network/queries/getSetupConfig'
 import { describeError } from '../../utils/describeError'
@@ -26,7 +27,7 @@ export const SemesterTagSection = ({ courseId, coursePhaseID }: Props) => {
   const [editedTag, setEditedTag] = useState<string | null>(null)
 
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ['setup-config', coursePhaseID],
+    queryKey: infrastructureSetupKeys.setupConfig(coursePhaseID),
     queryFn: () => getSetupConfig(coursePhaseID),
   })
 
@@ -43,9 +44,7 @@ export const SemesterTagSection = ({ courseId, coursePhaseID }: Props) => {
     onSuccess: () => {
       // Hand the field back to the query: what it refetches is now what was saved.
       setEditedTag(null)
-      queryClient.invalidateQueries({ queryKey: ['setup-config', coursePhaseID] })
-      // What the next run does depends on it, and the provisioning page shows that.
-      queryClient.invalidateQueries({ queryKey: ['provisioning-preview', coursePhaseID] })
+      infrastructureSetupCache.setupConfigChanged(queryClient, coursePhaseID)
       toast({ title: 'Semester tag saved' })
     },
     onError: (err: unknown) => {

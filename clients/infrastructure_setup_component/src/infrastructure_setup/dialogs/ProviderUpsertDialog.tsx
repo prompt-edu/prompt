@@ -24,6 +24,7 @@ import {
   type ProviderType,
   providerTypes,
 } from '../interfaces/providerConfig'
+import { infrastructureSetupCache, infrastructureSetupKeys } from '../network/cache'
 import { upsertProviderConfig } from '../network/mutations/upsertProviderConfig'
 import { getProviderAuthFields } from '../network/queries/getProviderAuthFields'
 import { describeError } from '../utils/describeError'
@@ -73,7 +74,7 @@ export const ProviderUpsertDialog = ({
     isLoading: fieldsLoading,
     isError: fieldsError,
   } = useQuery({
-    queryKey: ['provider-auth-fields', coursePhaseID, selectedType],
+    queryKey: infrastructureSetupKeys.providerAuthFields(coursePhaseID, selectedType),
     queryFn: () => getProviderAuthFields(coursePhaseID, selectedType!),
     enabled: open && !!selectedType,
   })
@@ -85,9 +86,7 @@ export const ProviderUpsertDialog = ({
         credentials: values,
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['provider-configs', coursePhaseID] })
-      // What the next run does depends on it, and the provisioning page shows that.
-      queryClient.invalidateQueries({ queryKey: ['provisioning-preview', coursePhaseID] })
+      infrastructureSetupCache.providerSaved(queryClient, coursePhaseID)
       toast({
         title: existingProvider ? 'Provider updated' : 'Provider added',
         description: `Credentials for ${selectedType} saved.`,

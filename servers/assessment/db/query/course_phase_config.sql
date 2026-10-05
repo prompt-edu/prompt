@@ -130,7 +130,7 @@ SELECT EXISTS(
     )
 ) AS schema_used_in_other_phases;
 
--- assessment_enabled and tutor_display_name take no COALESCE like the sibling flags: an omitted
+-- assessment_enabled, tutor_display_name and independent_assessment_enabled take no COALESCE like the sibling flags: an omitted
 -- value must keep the phase's current setting rather than fall back to a constant, so Go resolves
 -- them before this runs.
 -- name: CreateOrUpdateCoursePhaseConfig :exec
@@ -156,14 +156,16 @@ INSERT INTO course_phase_config (assessment_schema_id,
                                  results_released,
                                  grading_sheet_visible,
                                  assessment_enabled,
-                                 tutor_display_name)
+                                 tutor_display_name,
+                                 independent_assessment_enabled)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17,
         COALESCE(sqlc.narg('grade_suggestion_visible')::boolean, TRUE),
         COALESCE(sqlc.narg('action_items_visible')::boolean, TRUE),
         COALESCE(sqlc.narg('results_released')::boolean, FALSE),
         COALESCE(sqlc.narg('grading_sheet_visible')::boolean, FALSE),
         sqlc.arg('assessment_enabled')::boolean,
-        sqlc.narg('tutor_display_name')::text)
+        sqlc.narg('tutor_display_name')::text,
+        sqlc.arg('independent_assessment_enabled')::boolean)
 ON CONFLICT (course_phase_id)
     DO UPDATE SET assessment_schema_id      = EXCLUDED.assessment_schema_id,
                   start                     = EXCLUDED.start,
@@ -186,7 +188,8 @@ ON CONFLICT (course_phase_id)
                   results_released          = COALESCE(EXCLUDED.results_released, FALSE),
                   grading_sheet_visible     = COALESCE(EXCLUDED.grading_sheet_visible, FALSE),
                   assessment_enabled        = EXCLUDED.assessment_enabled,
-                  tutor_display_name        = EXCLUDED.tutor_display_name;
+                  tutor_display_name        = EXCLUDED.tutor_display_name,
+                  independent_assessment_enabled = EXCLUDED.independent_assessment_enabled;
 
 -- name: UpdateCoursePhaseConfigAssessmentSchema :exec
 UPDATE course_phase_config

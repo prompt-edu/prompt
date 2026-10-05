@@ -19,7 +19,6 @@ func TestHasStatus(t *testing.T) {
 	}{
 		{"not found response", &gocloak.APIError{Code: http.StatusNotFound, Message: "404 Not Found: Group path does not exist"}, true},
 		{"wrapped not found response", fmt.Errorf("lookup: %w", notFound), true},
-		{"status text without a code", &gocloak.APIError{Message: "could not get group: 404 Not Found"}, true},
 		{"other status", &gocloak.APIError{Code: http.StatusForbidden, Message: "403 Forbidden"}, false},
 		{"transport error with 404 in the URL", &gocloak.APIError{
 			Message: `could not get group: Get "https://kc/admin/realms/prompt/group-by-path/Orgs/lab404": dial tcp: connection refused`,

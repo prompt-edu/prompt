@@ -98,7 +98,7 @@ func (s *OrgService) getOrg(c *gin.Context) {
 // @Router /orgs/ [post]
 func (s *OrgService) createOrg(c *gin.Context) {
 	var input orgDTO.CreateOrg
-	if err := c.BindJSON(&input); err != nil {
+	if err := c.ShouldBindJSON(&input); err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
@@ -112,6 +112,7 @@ func (s *OrgService) createOrg(c *gin.Context) {
 		handleServiceError(c, err, "failed to create org")
 		return
 	}
+	recordOrgAudit(c, org.ID, org.Slug)
 	c.IndentedJSON(http.StatusCreated, org)
 }
 
@@ -136,7 +137,7 @@ func (s *OrgService) updateOrg(c *gin.Context) {
 	}
 
 	var input orgDTO.UpdateOrg
-	if err := c.BindJSON(&input); err != nil {
+	if err := c.ShouldBindJSON(&input); err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
@@ -150,6 +151,7 @@ func (s *OrgService) updateOrg(c *gin.Context) {
 		handleServiceError(c, err, "failed to update org")
 		return
 	}
+	recordOrgAudit(c, org.ID, org.Slug)
 	c.IndentedJSON(http.StatusOK, org)
 }
 
@@ -174,7 +176,7 @@ func (s *OrgService) updateOrgParent(c *gin.Context) {
 	}
 
 	var input orgDTO.UpdateOrgParent
-	if err := c.BindJSON(&input); err != nil {
+	if err := c.ShouldBindJSON(&input); err != nil {
 		handleError(c, http.StatusBadRequest, err)
 		return
 	}
@@ -184,6 +186,7 @@ func (s *OrgService) updateOrgParent(c *gin.Context) {
 		handleServiceError(c, err, "failed to move org")
 		return
 	}
+	recordOrgAudit(c, org.ID, org.Slug)
 	c.IndentedJSON(http.StatusOK, org)
 }
 
@@ -209,7 +212,15 @@ func (s *OrgService) deleteOrg(c *gin.Context) {
 		handleServiceError(c, err, "failed to delete org")
 		return
 	}
+	recordOrgAudit(c, id, "")
 	c.Status(http.StatusNoContent)
+}
+
+// recordOrgAudit names the org in the request's audit entry. The automatic entry takes its
+// entity only from a "uuid" or "id" path parameter, so without this it would not say which
+// org was created, changed, or deleted. A deleted org is named by its ID only.
+func recordOrgAudit(c *gin.Context, orgID uuid.UUID, slug string) {
+	audit.Record(c, audit.Event{EntityType: "org", EntityID: orgID.String(), EntityName: slug})
 }
 
 func handleServiceError(c *gin.Context, err error, fallbackMessage string) {

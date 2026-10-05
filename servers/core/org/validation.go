@@ -70,6 +70,10 @@ func validateOrgDetails(name, school, university, website, contactEmail string) 
 	if utf8.RuneCountInString(strings.TrimSpace(university)) > maxUniversityLength {
 		return fmt.Errorf("university must be at most %d characters", maxUniversityLength)
 	}
+	// Postgres text cannot store NUL; the website and email parsers already reject it.
+	if strings.ContainsRune(name+school+university, 0) {
+		return errors.New("org name, school and university must not contain NUL characters")
+	}
 	if err := validateWebsite(strings.TrimSpace(website)); err != nil {
 		return err
 	}
@@ -83,8 +87,10 @@ func validateWebsite(website string) error {
 	if utf8.RuneCountInString(website) > maxWebsiteLength {
 		return fmt.Errorf("website must be at most %d characters", maxWebsiteLength)
 	}
-	parsed, err := url.ParseRequestURI(website)
-	if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.Host == "" {
+	// url.Parse, unlike url.ParseRequestURI, accepts a fragment directly after the host,
+	// and Hostname() rejects a host that is only a port, such as "https://:443".
+	parsed, err := url.Parse(website)
+	if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.Hostname() == "" {
 		return errors.New("website must be an absolute http or https URL")
 	}
 	return nil

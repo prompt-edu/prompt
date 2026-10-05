@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/Nerzal/gocloak/v14"
@@ -224,7 +225,7 @@ func (s *KeycloakRealmService) GetOrCreateRealmRole(ctx context.Context, accessT
 		// Role already exists
 		log.Debug("Role already exists: ", existingRole.ID)
 		return existingRole, nil
-	} else if !strings.Contains(err.Error(), "404") {
+	} else if !hasStatus(err, http.StatusNotFound) {
 		log.Error("failed to get role: ", err)
 		return nil, err
 	}

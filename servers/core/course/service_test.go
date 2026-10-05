@@ -27,6 +27,7 @@ type CourseServiceTestSuite struct {
 	router        *gin.Engine
 	ctx           context.Context
 	cleanup       func()
+	conn          *pgxpool.Pool
 	courseService *CourseService
 }
 
@@ -48,6 +49,7 @@ func (suite *CourseServiceTestSuite) SetupSuite() {
 	}
 
 	suite.cleanup = cleanup
+	suite.conn = testDB.Conn
 	coursePhaseService := coursePhase.NewCoursePhaseService(*testDB.Queries, testDB.Conn, resolution.NewResolutionService("localhost:8080"))
 	suite.courseService = NewCourseService(*testDB.Queries, testDB.Conn, coursePhaseService, mockCreateGroupsAndRoles, mockDeleteGroupsAndRoles)
 
@@ -107,6 +109,48 @@ func (suite *CourseServiceTestSuite) TestGetAllCoursesArchivedHiddenFromStudent(
 	courses, err := suite.courseService.GetAllCourses(suite.ctx, map[string]bool{"ios2425-Archived Course-Student": true})
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), 0, len(courses), "Archived course should be hidden from student-only users")
+}
+
+// Org roles (org-<slug>-Admin|Member) must not be read as course roles: the course lists
+// split every role on "-", so without the filter a course in semester "org" whose name is
+// the slug's first segment would be listed, with its restricted data, to any org member.
+// The course's own roles, including custom-group roles, keep working.
+func (suite *CourseServiceTestSuite) TestCourseListsIgnoreOrgRoles() {
+	courseID := uuid.New()
+	templateID := uuid.New()
+	_, err := suite.conn.Exec(suite.ctx, `
+		INSERT INTO course (id, name, semester_tag, course_type, start_date, end_date, restricted_data, template)
+		VALUES ($1, 'ase', 'org', 'lecture', '2025-10-01', '2026-02-01', '{"secret": true}', FALSE),
+		       ($2, 'aet', 'org', 'lecture', NULL, NULL, '{"secret": true}', TRUE)`,
+		courseID, templateID)
+	require.NoError(suite.T(), err)
+	defer func() {
+		_, err := suite.conn.Exec(suite.ctx, "DELETE FROM course WHERE id = ANY($1)", []uuid.UUID{courseID, templateID})
+		require.NoError(suite.T(), err)
+	}()
+
+	orgRoles := map[string]bool{"org-ase-Admin": true, "org-ase-lab-Member": true, "org-aet-Member": true}
+	courses, err := suite.courseService.GetAllCourses(suite.ctx, orgRoles)
+	require.NoError(suite.T(), err)
+	assert.Empty(suite.T(), courses, "org roles must not list courses")
+	templates, err := suite.courseService.GetTemplateCourses(suite.ctx, orgRoles)
+	require.NoError(suite.T(), err)
+	assert.Empty(suite.T(), templates, "org roles must not list templates")
+
+	courses, err = suite.courseService.GetAllCourses(suite.ctx, map[string]bool{"org-ase-Lecturer": true})
+	require.NoError(suite.T(), err)
+	require.Len(suite.T(), courses, 1)
+	assert.Equal(suite.T(), courseID, courses[0].ID)
+	assert.NotEmpty(suite.T(), courses[0].RestrictedData, "the course's lecturer sees its restricted data")
+
+	courses, err = suite.courseService.GetAllCourses(suite.ctx, map[string]bool{"org-ase-cg-Admin": true})
+	require.NoError(suite.T(), err)
+	require.Len(suite.T(), courses, 1, "a custom-group role of the course still lists it")
+
+	templates, err = suite.courseService.GetTemplateCourses(suite.ctx, map[string]bool{"org-aet-Editor": true})
+	require.NoError(suite.T(), err)
+	require.Len(suite.T(), templates, 1)
+	assert.Equal(suite.T(), templateID, templates[0].ID)
 }
 
 func (suite *CourseServiceTestSuite) TestGetCourseByID() {

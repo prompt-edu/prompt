@@ -147,8 +147,9 @@ func (s *OrgService) UpdateOrg(ctx context.Context, id uuid.UUID, input orgDTO.U
 	return orgDTO.GetOrgDTOFromDBModel(updated), nil
 }
 
-// UpdateOrgParent moves the org under another org, or to the top level. Hierarchy
-// changes are serialized, so the cycle check cannot be raced by a concurrent change.
+// UpdateOrgParent moves the org under another org, or to the top level. Moves under a
+// parent are serialized, so the cycle check cannot be raced by a concurrent move. A move
+// to the top level only removes an edge, cannot create a cycle, and takes no lock.
 func (s *OrgService) UpdateOrgParent(ctx context.Context, id uuid.UUID, input orgDTO.UpdateOrgParent) (orgDTO.Org, error) {
 	tx, err := s.conn.Begin(ctx)
 	if err != nil {
@@ -157,13 +158,12 @@ func (s *OrgService) UpdateOrgParent(ctx context.Context, id uuid.UUID, input or
 	defer promptSDK.DeferDBRollback(tx, ctx)
 	qtx := s.queries.WithTx(tx)
 
-	if err := qtx.LockOrgHierarchy(ctx); err != nil {
-		return orgDTO.Org{}, fmt.Errorf("failed to lock the org hierarchy: %w", err)
-	}
-
 	if input.ParentOrgID != nil {
 		if *input.ParentOrgID == id {
 			return orgDTO.Org{}, ErrOrgCycle
+		}
+		if err := qtx.LockOrgHierarchy(ctx); err != nil {
+			return orgDTO.Org{}, fmt.Errorf("failed to lock the org hierarchy: %w", err)
 		}
 		ancestorIDs, err := qtx.GetOrgAncestorIDs(ctx, *input.ParentOrgID)
 		if err != nil {
@@ -193,10 +193,10 @@ func (s *OrgService) UpdateOrgParent(ctx context.Context, id uuid.UUID, input or
 
 // DeleteOrg removes the org and then its Keycloak groups and roles. The foreign keys
 // reject the delete while child orgs or courses reference the org, before Keycloak is
-// touched; a Keycloak failure rolls the delete back and restores what the deletion had
-// already removed. If the commit fails after Keycloak succeeded, the org remains without
-// groups and roles until the delete is retried, which is safe because both steps
-// tolerate what is already gone.
+// touched; a Keycloak failure rolls the delete back and restores the roles onto the
+// surviving group (see restoreKeycloak for the cases it cannot repair). If the commit
+// fails after Keycloak succeeded, the org remains without groups and roles until the
+// delete is retried, which is safe because both steps tolerate what is already gone.
 func (s *OrgService) DeleteOrg(ctx context.Context, id uuid.UUID) error {
 	tx, err := s.conn.Begin(ctx)
 	if err != nil {
@@ -216,8 +216,11 @@ func (s *OrgService) DeleteOrg(ctx context.Context, id uuid.UUID) error {
 	keycloakCtx, cancel := context.WithTimeout(ctx, keycloakTimeout)
 	defer cancel()
 	if err := s.deleteOrgGroupsAndRoles(keycloakCtx, slug); err != nil {
-		s.restoreKeycloak(ctx, slug)
-		return fmt.Errorf("failed to delete keycloak groups and roles: %w", err)
+		deleteErr := fmt.Errorf("failed to delete keycloak groups and roles: %w", err)
+		if restoreErr := s.restoreKeycloak(ctx, slug); restoreErr != nil {
+			return errors.Join(deleteErr, fmt.Errorf("failed to restore keycloak groups and roles: %w", restoreErr))
+		}
+		return deleteErr
 	}
 
 	if err := tx.Commit(ctx); err != nil {
@@ -227,15 +230,17 @@ func (s *OrgService) DeleteOrg(ctx context.Context, id uuid.UUID) error {
 }
 
 // restoreKeycloak re-provisions what a failed deletion removed, since the rollback keeps
-// the org. The deletion removes the group last, so the group and its memberships survive
-// a partial failure and only the roles and their mappings need to come back. It gets a
-// fresh timeout for the same reason as cleanUpKeycloak, and a failure is only logged.
-func (s *OrgService) restoreKeycloak(ctx context.Context, slug string) {
+// the org. The deletion removes the group last, so after a failure part way through the
+// group and its memberships usually survive and only the roles and their mappings need to
+// come back. Two cases cannot be repaired here, and only a retried delete resolves them:
+// the restore failing as well, which leaves the org without roles, and Keycloak having
+// applied the group deletion although the call reported an error (for example a timeout),
+// in which case the group comes back without members. It gets a fresh timeout for the same
+// reason as cleanUpKeycloak.
+func (s *OrgService) restoreKeycloak(ctx context.Context, slug string) error {
 	restoreCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), keycloakTimeout)
 	defer cancel()
-	if err := s.createOrgGroupsAndRoles(restoreCtx, slug); err != nil {
-		log.Error("failed to restore keycloak groups and roles of org ", slug, ": ", err)
-	}
+	return s.createOrgGroupsAndRoles(restoreCtx, slug)
 }
 
 func optionalText(value string) pgtype.Text {

@@ -7,10 +7,13 @@ import (
 	"log"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
+	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/core/org/orgDTO"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -252,9 +255,18 @@ func (suite *OrgServiceTestSuite) TestGetAllOrgsIsSortedByName() {
 
 	require.NoError(suite.T(), err)
 	require.GreaterOrEqual(suite.T(), len(orgs), 2)
-	for i := 1; i < len(orgs); i++ {
-		assert.LessOrEqual(suite.T(), orgs[i-1].Name, orgs[i].Name)
+	// The database sorts by its collation, which is not Go's byte order (en_US ignores
+	// hyphens at first, so "Org deleted" sorts before "Org delete-fails"), so the expected
+	// order comes from the database itself.
+	rows, err := suite.conn.Query(suite.ctx, "SELECT id FROM org ORDER BY name, slug")
+	require.NoError(suite.T(), err)
+	expected, err := pgx.CollectRows(rows, pgx.RowTo[uuid.UUID])
+	require.NoError(suite.T(), err)
+	actual := make([]uuid.UUID, 0, len(orgs))
+	for _, org := range orgs {
+		actual = append(actual, org.ID)
 	}
+	assert.Equal(suite.T(), expected, actual)
 }
 
 func (suite *OrgServiceTestSuite) TestUpdateOrgReplacesNameAndOptionalFields() {
@@ -329,6 +341,24 @@ func (suite *OrgServiceTestSuite) TestUpdateOrgParentNotFound() {
 	_, err := suite.service.UpdateOrgParent(suite.ctx, uuid.New(), orgDTO.UpdateOrgParent{ParentOrgID: nil})
 
 	assert.ErrorIs(suite.T(), err, ErrOrgNotFound)
+}
+
+// A move to the top level only removes an edge, so it must not wait for a concurrent move
+// that holds the hierarchy lock.
+func (suite *OrgServiceTestSuite) TestMovingAnOrgToTheTopLevelTakesNoHierarchyLock() {
+	parent := suite.createOrg("detach-parent", nil)
+	org := suite.createOrg("detach-child", &parent.ID)
+	tx, err := suite.conn.Begin(suite.ctx)
+	require.NoError(suite.T(), err)
+	defer func() { _ = tx.Rollback(suite.ctx) }()
+	require.NoError(suite.T(), db.New(tx).LockOrgHierarchy(suite.ctx))
+
+	ctx, cancel := context.WithTimeout(suite.ctx, 5*time.Second)
+	defer cancel()
+	detached, err := suite.service.UpdateOrgParent(ctx, org.ID, orgDTO.UpdateOrgParent{ParentOrgID: nil})
+
+	require.NoError(suite.T(), err)
+	assert.Nil(suite.T(), detached.ParentOrgID)
 }
 
 // Without the hierarchy lock both updates could pass their cycle check before either
@@ -410,6 +440,18 @@ func (suite *OrgServiceTestSuite) TestDeleteOrgKeepsTheOrgWhenKeycloakFails() {
 	assert.ErrorIs(suite.T(), err, suite.keycloak.deleteErr)
 	assert.Equal(suite.T(), 1, suite.countOrgs("delete-fails"))
 	assert.Equal(suite.T(), []string{"delete-fails", "delete-fails"}, suite.keycloak.created, "the failed deletion is followed by a restore")
+}
+
+func (suite *OrgServiceTestSuite) TestDeleteOrgReportsAFailedRestore() {
+	org := suite.createOrg("restore-fails", nil)
+	suite.keycloak.deleteErr = errors.New("keycloak unavailable")
+	suite.keycloak.createErr = errors.New("restore failed")
+
+	err := suite.service.DeleteOrg(suite.ctx, org.ID)
+
+	assert.ErrorIs(suite.T(), err, suite.keycloak.deleteErr)
+	assert.ErrorIs(suite.T(), err, suite.keycloak.createErr)
+	assert.Equal(suite.T(), 1, suite.countOrgs("restore-fails"))
 }
 
 func (suite *OrgServiceTestSuite) TestDeleteOrgNotFound() {

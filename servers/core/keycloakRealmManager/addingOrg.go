@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"path"
-	"strings"
 
 	"github.com/Nerzal/gocloak/v14"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
@@ -97,15 +96,11 @@ func (s *KeycloakRealmService) findGroupAtPath(ctx context.Context, accessToken,
 	return *group.ID, true, nil
 }
 
-// hasStatus reports whether a gocloak call failed with the given HTTP status. It matches
-// the status code, or the full status text for an error without a code, never a bare
-// "404" substring: a transport error embeds the request URL, which can contain those
-// digits in a slug, the Keycloak host, or the client ID.
+// hasStatus reports whether a gocloak call failed with the given HTTP status. gocloak sets
+// the status code on every HTTP error, so the code is matched, never a "404" substring: a
+// transport error embeds the request URL, which can contain those digits in a slug, the
+// Keycloak host, or the client ID.
 func hasStatus(err error, status int) bool {
 	var apiErr *gocloak.APIError
-	if !errors.As(err, &apiErr) {
-		return false
-	}
-	return apiErr.Code == status ||
-		(apiErr.Code == 0 && strings.Contains(apiErr.Message, fmt.Sprintf("%d %s", status, http.StatusText(status))))
+	return errors.As(err, &apiErr) && apiErr.Code == status
 }

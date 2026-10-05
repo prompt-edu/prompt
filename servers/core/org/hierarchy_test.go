@@ -2,6 +2,7 @@ package org
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"testing"
 	"time"
@@ -63,7 +64,7 @@ func (suite *OrgHierarchyTestSuite) SetupSuite() {
 	if err != nil {
 		log.Fatalf("Failed to read the chain root: %v", err)
 	}
-	err = suite.conn.QueryRow(suite.ctx, "SELECT id FROM org WHERE slug = $1", "chain-10000").Scan(&suite.leafID)
+	err = suite.conn.QueryRow(suite.ctx, "SELECT id FROM org WHERE slug = $1", fmt.Sprintf("chain-%d", chainDepth)).Scan(&suite.leafID)
 	if err != nil {
 		log.Fatalf("Failed to read the chain leaf: %v", err)
 	}

@@ -15,7 +15,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.11.0
 	github.com/pkg/errors v0.9.1
-	github.com/prompt-edu/prompt-sdk v1.4.1
+	github.com/prompt-edu/prompt-sdk v1.4.2-0.20261005080213-fe977386967c
 	github.com/sirupsen/logrus v1.10.2
 	github.com/stretchr/testify v1.12.1
 	github.com/swaggo/swag v1.16.6
@@ -134,5 +134,4 @@ require (
 	golang.org/x/text v0.42.0 // indirect
 	golang.org/x/tools v0.49.0 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

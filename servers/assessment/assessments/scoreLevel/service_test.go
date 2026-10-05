@@ -23,7 +23,7 @@ type ScoreLevelServiceTestSuite struct {
 
 func (suite *ScoreLevelServiceTestSuite) SetupSuite() {
 	suite.suiteCtx = context.Background()
-	testDB, cleanup, err := sdkTestUtils.SetupTestDB(suite.suiteCtx, "../../database_dumps/assessments.sql", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) })
+	testDB, cleanup, err := sdkTestUtils.SetupTestDBWithMigrations(suite.suiteCtx, "../../db/migration", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) }, "../../database_dumps/assessments.sql")
 	if err != nil {
 		suite.T().Fatalf("Failed to set up test database: %v", err)
 	}
@@ -53,7 +53,8 @@ func (suite *ScoreLevelServiceTestSuite) TestGetScoreLevelByCourseParticipationI
 	partID := uuid.MustParse("ca42e447-60f9-4fe0-b297-2dae3f924fd7")
 	lvl, err := suite.service.GetScoreLevelByCourseParticipationID(suite.suiteCtx, partID, phaseID)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), db.ScoreLevelVeryBad, lvl, "Expected very bad level")
+	// The seeded scores weigh in at 3.44, which the score view maps to ok.
+	assert.Equal(suite.T(), db.ScoreLevelOk, lvl, "Expected ok level")
 }
 
 func (suite *ScoreLevelServiceTestSuite) TestGetScoreLevelByCourseParticipationIDNotFound() {
@@ -68,7 +69,8 @@ func (suite *ScoreLevelServiceTestSuite) TestGetStudentScore() {
 	partID := uuid.MustParse("e482ab63-c1c0-4943-9221-989b0c257559")
 	score, err := suite.service.GetStudentScore(suite.suiteCtx, partID, phaseID)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), scoreLevelDTO.ScoreLevelBad, score.ScoreLevel, "Expected bad level")
+	// The seeded scores weigh in at 2.50, which the score view maps to good.
+	assert.Equal(suite.T(), scoreLevelDTO.ScoreLevelGood, score.ScoreLevel, "Expected good level")
 	assert.GreaterOrEqual(suite.T(), score.ScoreNumeric.Float64, float64(1), "Score should be >= 1")
 	assert.LessOrEqual(suite.T(), score.ScoreNumeric.Float64, float64(5), "Score should be <= 5")
 }

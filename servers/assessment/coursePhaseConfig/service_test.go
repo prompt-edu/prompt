@@ -67,7 +67,7 @@ func (suite *CoursePhaseConfigServiceTestSuite) SetupSuite() {
 	}()
 
 	suite.suiteCtx = context.Background()
-	testDB, cleanup, err := sdkTestUtils.SetupTestDB(suite.suiteCtx, "../database_dumps/coursePhaseConfig.sql", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) })
+	testDB, cleanup, err := sdkTestUtils.SetupTestDBWithMigrations(suite.suiteCtx, "../db/migration", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) }, "../database_dumps/coursePhaseConfig.sql")
 	if err != nil {
 		suite.T().Skipf("skipping db-backed course phase config service tests: %v", err)
 	}
@@ -526,13 +526,15 @@ func (suite *CoursePhaseConfigServiceTestSuite) TestRequireIndependentAssessment
 }
 
 // seedAssessmentCompetency creates the category/competency pair assessment rows need.
+// Category names are unique per schema and the suite shares one database, so each call
+// gets its own name.
 func (suite *CoursePhaseConfigServiceTestSuite) seedAssessmentCompetency(schemaID uuid.UUID) uuid.UUID {
 	categoryID := uuid.New()
 	competencyID := uuid.New()
 
 	_, err := suite.coursePhaseConfigService.conn.Exec(suite.suiteCtx,
 		`INSERT INTO category (id, name, assessment_schema_id) VALUES ($1, $2, $3)`,
-		categoryID, "Disable Guard Category", schemaID)
+		categoryID, "Disable Guard Category "+categoryID.String(), schemaID)
 	assert.NoError(suite.T(), err)
 
 	_, err = suite.coursePhaseConfigService.conn.Exec(suite.suiteCtx,

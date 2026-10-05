@@ -36,7 +36,7 @@ const testCoursePhaseID = "4179d58a-d00d-4fa7-94a5-397bc69fab02"
 func (suite *CompetencyRouterTestSuite) SetupTest() {
 	suite.ctx = context.Background()
 
-	testDB, cleanup, err := sdkTestUtils.SetupTestDB(suite.ctx, "../database_dumps/categories.sql", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) })
+	testDB, cleanup, err := sdkTestUtils.SetupTestDBWithMigrations(suite.ctx, "../db/migration", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) }, "../database_dumps/categories.sql")
 	if err != nil {
 		suite.T().Fatalf("Failed to set up test database: %v", err)
 	}

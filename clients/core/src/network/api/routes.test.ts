@@ -66,12 +66,6 @@ const studyProgramsPath = `${CORE}/api/study-programs`
 
 const ROUTES: Route[] = [
   {
-    name: 'ai.status',
-    run: () => coreApi.ai.status(),
-    method: 'get',
-    url: `${CORE}/api/ai/status`,
-  },
-  {
     name: 'ai.info',
     run: () => coreApi.ai.info(),
     method: 'get',

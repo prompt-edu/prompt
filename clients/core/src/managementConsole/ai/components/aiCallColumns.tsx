@@ -1,5 +1,5 @@
-import type { AICall } from '@core/interfaces/ai'
 import { Badge, Button, type PromptTableColumnDef } from '@tumaet/prompt-ui-components'
+import { type AICall, AICallOutcome } from '../interfaces/aiCall'
 
 const tokens = (call: AICall): string =>
   call.promptTokens === null ? '-' : `${call.promptTokens} / ${call.completionTokens ?? '-'}`
@@ -29,7 +29,7 @@ export const getAICallColumns = (
     accessorKey: 'outcome',
     header: 'Outcome',
     cell: ({ row }) => (
-      <Badge variant={row.original.outcome === 'success' ? 'secondary' : 'destructive'}>
+      <Badge variant={row.original.outcome === AICallOutcome.SUCCESS ? 'secondary' : 'destructive'}>
         {row.original.outcome}
       </Badge>
     ),

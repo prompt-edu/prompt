@@ -1,4 +1,3 @@
-import type { PhaseKeyStatus } from '@core/interfaces/ai'
 import { coreApi } from '@core/network/api'
 import { coreCache, coreKeys } from '@core/network/cache'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -16,6 +15,7 @@ import {
   useToast,
 } from '@tumaet/prompt-ui-components'
 import { type FormEvent, useState } from 'react'
+import type { PhaseKeyStatus } from '../interfaces/phaseKeyStatus'
 
 interface PhaseKeyRowProps {
   phaseId: string

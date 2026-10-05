@@ -1,4 +1,3 @@
-import type { AICallDetail } from '@core/interfaces/ai'
 import { coreApi } from '@core/network/api'
 import { coreKeys } from '@core/network/cache'
 import { useQuery } from '@tanstack/react-query'
@@ -12,6 +11,7 @@ import {
   ErrorPage,
   LoadingPage,
 } from '@tumaet/prompt-ui-components'
+import { AICallContentState } from '../interfaces/aiCallDetail'
 
 interface AICallDetailDialogProps {
   phaseId: string
@@ -19,11 +19,12 @@ interface AICallDetailDialogProps {
   onClose: () => void
 }
 
-const CONTENT_NOTICE: Record<AICallDetail['contentState'], string> = {
-  available: '',
-  restricted:
+const CONTENT_NOTICE: Record<AICallContentState, string> = {
+  [AICallContentState.AVAILABLE]: '',
+  [AICallContentState.RESTRICTED]:
     'The content is restricted after an erasure request and stays hidden until it is purged.',
-  unavailable: 'No content is stored: it was purged after its retention, or the call was denied.',
+  [AICallContentState.UNAVAILABLE]:
+    'No content is stored: it was purged after its retention, or the call was denied.',
 }
 
 const Field = ({ label, value }: { label: string; value: string | number | null | undefined }) => (

@@ -1,21 +1,15 @@
-import { apiContextFor } from '../../src/fixtures/api'
-import { test, expect } from '../../src/fixtures/auth'
 import { SEEDED_COURSES } from '../../src/data/constants'
+import { BASE_URL } from '../../src/env'
+import { expect, test } from '../../src/fixtures/auth'
 import { CourseSettingsPage } from '../../src/pages/CourseSettingsPage'
 
 // Runs in the core shard, whose stack keeps AI_ENABLED off and has no AI server.
 test.describe('AI switched off', () => {
   test.use({ role: 'admin' })
 
-  test('core reports AI as disabled', async () => {
-    const admin = await apiContextFor('admin')
-    try {
-      const res = await admin.get('/api/ai/status')
-      expect(res.status()).toBe(200)
-      expect(await res.json()).toEqual({ enabled: false })
-    } finally {
-      await admin.dispose()
-    }
+  test('no AI server answers', async ({ request }) => {
+    const res = await request.get(`${BASE_URL}/ai/api/info`)
+    expect(res.ok()).toBe(false)
   })
 
   test('no AI surface is shown', async ({ page }) => {

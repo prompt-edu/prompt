@@ -14,6 +14,9 @@ export const API_PREFIX = '/api'
 
 export const NO_CONTENT = 204
 
+/** Stands for a request that got no answer at all, such as a refused connection, in `quietStatuses`. */
+export const NO_ANSWER = 0
+
 /**
  * Every write announces plain JSON. The 41 write modules this replaces were split between
  * `application/json-path+json`, `application/json` and nothing at all, and three reads sent a
@@ -49,7 +52,7 @@ const send = async <T>(
     return await instance.request<T>(config)
   } catch (error) {
     const failure = describeError(error)
-    if (failure.status === undefined || !quietStatuses.includes(failure.status)) {
+    if (!quietStatuses.includes(failure.status ?? NO_ANSWER)) {
       console.error(`${description} request failed`, failure)
     }
     throw error

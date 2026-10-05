@@ -124,7 +124,6 @@ export const coreKeys = {
   },
 
   ai: {
-    status: () => ['aiStatus'] as const,
     info: () => ['aiInfo'] as const,
     key: (phaseId: Id) => ['aiKey', phaseId] as const,
     calls: (phaseId: Id, limit: number, cursor: unknown) =>

@@ -1,4 +1,3 @@
-import type { AICallCursor } from '@core/interfaces/ai'
 import { coreApi } from '@core/network/api'
 import { coreKeys } from '@core/network/cache'
 import { useAIStatus } from '@core/network/hooks/useAIEnabled'
@@ -28,6 +27,7 @@ import {
 import { AICallDetailDialog } from './components/AICallDetailDialog'
 import { getAICallColumns } from './components/aiCallColumns'
 import { useCoursePhases } from './hooks/useCoursePhases'
+import type { AICallCursor } from './interfaces/aiCallPage'
 
 const PAGE_SIZE = 50
 

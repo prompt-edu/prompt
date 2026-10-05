@@ -98,7 +98,7 @@ func (s *ActionItemService) getStudentActionItemsForCoursePhaseCommunication(c *
 
 // createActionItem godoc
 // @Summary Create action item
-// @Description Create a new action item.
+// @Description Create a new action item. The author is taken from the authenticated JWT.
 // @Tags action_items
 // @Accept json
 // @Produce json
@@ -106,6 +106,7 @@ func (s *ActionItemService) getStudentActionItemsForCoursePhaseCommunication(c *
 // @Param actionItem body actionItemDTO.CreateActionItemRequest true "Action item payload"
 // @Success 201 {object} map[string]string
 // @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
 // @Failure 403 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/student-assessment/action-item [post]
@@ -122,6 +123,12 @@ func (s *ActionItemService) createActionItem(c *gin.Context) {
 		return
 	}
 
+	author, ok := tokenAuthor(c)
+	if !ok {
+		return
+	}
+	req.Author = author
+
 	err = s.CreateActionItem(c, coursePhaseID, req)
 	if err != nil {
 		handleError(c, actionItemErrorStatus(err), err)
@@ -132,7 +139,7 @@ func (s *ActionItemService) createActionItem(c *gin.Context) {
 
 // updateActionItem godoc
 // @Summary Update action item
-// @Description Update an action item.
+// @Description Update an action item. The author is taken from the authenticated JWT.
 // @Tags action_items
 // @Accept json
 // @Produce json
@@ -141,6 +148,7 @@ func (s *ActionItemService) createActionItem(c *gin.Context) {
 // @Param actionItem body actionItemDTO.UpdateActionItemRequest true "Action item payload"
 // @Success 200 {object} map[string]string
 // @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
 // @Failure 403 {object} map[string]string
 // @Failure 404 {object} map[string]string
 // @Failure 500 {object} map[string]string
@@ -165,6 +173,12 @@ func (s *ActionItemService) updateActionItem(c *gin.Context) {
 
 	// Ensure the ID from URL matches the one in the request
 	req.ID = actionItemID
+
+	author, ok := tokenAuthor(c)
+	if !ok {
+		return
+	}
+	req.Author = author
 
 	err = s.UpdateActionItem(c, coursePhaseID, req)
 	if err != nil {
@@ -300,6 +314,17 @@ func (s *ActionItemService) getMyActionItems(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, actionItems)
+}
+
+// tokenAuthor returns the display name of the authenticated user. The server is
+// the source of truth for author identity; anything the client supplied is ignored.
+func tokenAuthor(c *gin.Context) (string, bool) {
+	tokenUser, ok := keycloakTokenVerifier.GetTokenUser(c)
+	if !ok {
+		handleError(c, http.StatusUnauthorized, errors.New("authenticated user not found in context"))
+		return "", false
+	}
+	return tokenUser.FirstName + " " + tokenUser.LastName, true
 }
 
 func actionItemErrorStatus(err error) int {

@@ -52,10 +52,11 @@ func (suite *StatusMailServiceTestSuite) SetupSuite() {
 	suite.failed = uuid.MustParse(failedParticipation)
 	suite.notAssessed = uuid.MustParse(notAssessedParticipation)
 
-	testDB, cleanup, err := testutils.SetupTestDB(
+	testDB, cleanup, err := testutils.SetupTestDBWithMigrations(
 		suite.ctx,
-		"../database_dumps/mailing_test.sql",
+		"../db/migration",
 		func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) },
+		"../database_dumps/mailing_test.sql",
 	)
 	if err != nil {
 		suite.T().Skipf("skipping db-backed status mail tests: %v", err)

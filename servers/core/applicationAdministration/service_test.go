@@ -38,7 +38,7 @@ func (suite *ApplicationAdminServiceTestSuite) SetupSuite() {
 	suite.ctx = context.Background()
 
 	// Set up PostgreSQL container
-	testDB, cleanup, err := sdkTestUtils.SetupTestDB(suite.ctx, "../database_dumps/application_administration.sql", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) })
+	testDB, cleanup, err := sdkTestUtils.SetupTestDBWithMigrations(suite.ctx, "../db/migration", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) }, "../database_dumps/application_administration.sql")
 	if err != nil {
 		log.Fatalf("Failed to set up test database: %v", err)
 	}
@@ -489,12 +489,33 @@ func (suite *ApplicationAdminServiceTestSuite) TestUploadAdditionalScore_Success
 
 func (suite *ApplicationAdminServiceTestSuite) TestDeleteApplication_Success() {
 	coursePhaseID := uuid.MustParse("4179d58a-d00d-4fa7-94a5-397bc69fab02")
-	courseParticipationID := uuid.MustParse("82d7efae-d545-4cc5-9b94-5d0ee1e50d25")
+	// Delete an application of its own: deleting a course participation cascades to its phase
+	// participations, which the other tests in this suite still rely on.
+	courseParticipationID, err := suite.applicationAdminService.PostApplicationExtern(suite.ctx, coursePhaseID, applicationDTO.PostApplication{
+		Student: studentDTO.CreateStudent{
+			FirstName:            "To Be",
+			LastName:             "Deleted",
+			Email:                "to-be-deleted@example.com",
+			HasUniversityAccount: false,
+			Gender:               db.GenderDiverse,
+			Nationality:          "DE",
+			CurrentSemester:      pgtype.Int4{Valid: true, Int32: 1},
+			StudyProgram:         "Computer Science",
+			StudyDegree:          "bachelor",
+		},
+	})
+	assert.NoError(suite.T(), err)
 
 	toBeDeletedUUIDs := []uuid.UUID{courseParticipationID}
 
-	err := suite.applicationAdminService.DeleteApplications(suite.ctx, coursePhaseID, toBeDeletedUUIDs)
+	err = suite.applicationAdminService.DeleteApplications(suite.ctx, coursePhaseID, toBeDeletedUUIDs)
 	assert.NoError(suite.T(), err)
+
+	participations, err := suite.applicationAdminService.GetAllApplicationParticipations(suite.ctx, coursePhaseID)
+	assert.NoError(suite.T(), err)
+	for _, participation := range participations {
+		assert.NotEqual(suite.T(), courseParticipationID, participation.CourseParticipationID, "the deleted application should be gone")
+	}
 }
 
 func (suite *ApplicationAdminServiceTestSuite) TestGetExportedApplicationAnswers_Success() {

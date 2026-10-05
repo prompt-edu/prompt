@@ -102,6 +102,7 @@ func (s *AllocationService) UpsertAllocation(ctx context.Context, authHeader str
 		if errors.Is(err, pgx.ErrNoRows) {
 			return ErrInvalidTeamForPhase
 		}
+		log.Error("could not verify the team of the course phase: ", err)
 		return fmt.Errorf("could not verify the team of the course phase: %w", err)
 	}
 
@@ -119,6 +120,7 @@ func (s *AllocationService) UpsertAllocation(ctx context.Context, authHeader str
 		if errors.As(err, &pgErr) && pgErr.Code == foreignKeyViolationCode {
 			return ErrInvalidTeamForPhase
 		}
+		log.Error("could not store the allocation: ", err)
 		return fmt.Errorf("could not store the allocation: %w", err)
 	}
 	if rows == 0 {
@@ -136,6 +138,7 @@ func (s *AllocationService) DeleteAllocation(ctx context.Context, coursePhaseID,
 		ExpectedTeamID:        expectedTeamID,
 	})
 	if err != nil {
+		log.Error("could not delete the allocation: ", err)
 		return fmt.Errorf("could not delete the allocation: %w", err)
 	}
 	if rows == 0 {

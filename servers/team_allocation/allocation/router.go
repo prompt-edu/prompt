@@ -13,6 +13,7 @@ import (
 	"github.com/prompt-edu/prompt-sdk/tutorscope"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/team_allocation/allocation/allocationDTO"
+	log "github.com/sirupsen/logrus"
 )
 
 const maxAllocationBodyBytes = 4 << 10
@@ -239,6 +240,7 @@ func authorizeWrite(c *gin.Context) (tutorscope.Access, bool) {
 	case errors.Is(err, tutorscope.ErrWriteDenied):
 		denyAllocationWrite(c)
 	default:
+		log.Error("could not authorize the allocation write: ", err)
 		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 	}
 	return tutorscope.Access{}, false

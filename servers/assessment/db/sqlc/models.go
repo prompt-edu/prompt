@@ -298,6 +298,12 @@ type IndependentAssessment struct {
 	AssessedAt            pgtype.Timestamptz `json:"assessed_at"`
 }
 
+type ResultsReleasedMail struct {
+	CoursePhaseID         uuid.UUID          `json:"course_phase_id"`
+	CourseParticipationID uuid.UUID          `json:"course_participation_id"`
+	SentAt                pgtype.Timestamptz `json:"sent_at"`
+}
+
 type WeightedParticipantScore struct {
 	CoursePhaseID         uuid.UUID      `json:"course_phase_id"`
 	CourseParticipationID uuid.UUID      `json:"course_participation_id"`

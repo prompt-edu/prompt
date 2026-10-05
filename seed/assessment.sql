@@ -13,6 +13,7 @@
 -- course_phase_config references the schemas with ON DELETE RESTRICT, so it is
 -- deleted before them.
 
+DELETE FROM results_released_mail WHERE course_phase_id = 'f0000005-0000-0000-0000-000000000005';
 DELETE FROM action_item WHERE course_phase_id = 'f0000005-0000-0000-0000-000000000005';
 DELETE FROM feedback_items WHERE course_phase_id = 'f0000005-0000-0000-0000-000000000005';
 DELETE FROM evaluation_completion WHERE course_phase_id = 'f0000005-0000-0000-0000-000000000005';

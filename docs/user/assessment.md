@@ -130,6 +130,23 @@ Nobody else's scores can be removed there. Independent scores can no longer be c
 the final assessment is marked as final. Turning the setting off hides the tabs but keeps the scores,
 so they come back when you turn it on again.
 
+#### Notifying Students About Released Results
+
+The **Results Released Mailing** card on the **Settings** page holds a mail that is sent when you
+release the results. Write the subject and content, turn on **Notify Students on Release** and save.
+The switch stays disabled until the course has a reply-to address in its mailing settings and the
+mail has a subject and content.
+
+- Only students who can see their results receive the mail: those whose assessment is marked as final,
+  or every participant in an evaluation-only phase
+- Each student receives the mail once. If you unrelease and release the results again, only students
+  who were not notified before are mailed
+- A student whose mail could not be delivered is mailed again when you unrelease and release the
+  results again
+- If sending times out, PROMPT cannot tell who received the mail, so the students of that release
+  are not mailed again automatically
+- Besides the usual student placeholders, `{{coursePhaseName}}` and `{{coursePhaseLink}}` are available
+
 #### Evaluation-Only Phases
 
 Turning **Assessment Enabled** off keeps the self, peer and tutor evaluations but removes the

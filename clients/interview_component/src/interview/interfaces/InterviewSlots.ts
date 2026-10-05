@@ -4,6 +4,7 @@ export interface InterviewSlot {
   index?: number
   startTime?: string
   endTime?: string
+  location?: string | null
   courseParticipationID?: string
 }
 

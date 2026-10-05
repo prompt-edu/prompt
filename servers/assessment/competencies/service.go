@@ -211,7 +211,6 @@ func (s *CompetencyService) UpdateCompetency(ctx context.Context, id uuid.UUID, 
 
 	err = s.queries.UpdateCompetency(ctx, db.UpdateCompetencyParams{
 		ID:                  result.TargetEntityID,
-		CategoryID:          req.CategoryID,
 		Name:                req.Name,
 		ShortName:           pgtype.Text{String: req.ShortName, Valid: true},
 		Description:         pgtype.Text{String: req.Description, Valid: true},

@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation } from '@tanstack/react-query'
 import {
   Badge,
   Button,
@@ -29,8 +29,7 @@ interface EntitySettingsProps<T extends Entity> {
   createFn: (names: string[]) => Promise<any>
   updateFn: (id: string, newName: string) => Promise<any>
   deleteFn: (id: string) => Promise<any>
-  // used to invalidate the cache for this entity type
-  queryKey: any[]
+  onChanged: () => void
   // display texts and icons
   title: string
   description: string
@@ -45,7 +44,7 @@ export const EntitySettings = <T extends Entity>({
   createFn,
   updateFn,
   deleteFn,
-  queryKey,
+  onChanged,
   title,
   description,
   icon,
@@ -53,16 +52,10 @@ export const EntitySettings = <T extends Entity>({
   emptyMessage,
   emptySubtext,
 }: EntitySettingsProps<T>) => {
-  const queryClient = useQueryClient()
-
-  const invalidateCache = () => {
-    queryClient.invalidateQueries({ queryKey })
-  }
-
   const createMutation = useMutation({
     mutationFn: (names: string[]) => createFn(names),
     onSuccess: () => {
-      invalidateCache()
+      onChanged()
       setCreateError(null)
     },
     onError: () => {
@@ -73,7 +66,7 @@ export const EntitySettings = <T extends Entity>({
   const updateMutation = useMutation({
     mutationFn: ({ id, newName: name }: { id: string; newName: string }) => updateFn(id, name),
     onSuccess: () => {
-      invalidateCache()
+      onChanged()
       setUpdateError(null)
     },
     onError: () => {
@@ -84,7 +77,7 @@ export const EntitySettings = <T extends Entity>({
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteFn(id),
     onSuccess: () => {
-      invalidateCache()
+      onChanged()
       setDeleteError(null)
     },
     onError: () => {

@@ -13,7 +13,7 @@ Mailpit 18025.
 
 `e2e/docker-compose.browser.yml` overlays it for **host-browser mode**, and
 `make verify-up` boots that combination. Drive it with the **Playwright MCP** browser
-(`mcp__playwright__*`), the same way changes are verified in FASTLANE.
+(`mcp__playwright__*`), which the repo's `.mcp.json` registers.
 
 ## 1. Boot the stack
 

@@ -116,6 +116,17 @@ export const coreCache = {
   instructorNotesChanged: (queryClient: QueryClient, studentId: Id): void =>
     invalidate(queryClient, [coreKeys.instructorNotes.ofStudent(studentId)]),
 
+  studyProgramsChanged: (queryClient: QueryClient): void =>
+    invalidate(queryClient, [coreKeys.studyPrograms.all()]),
+
+  studyProgramRenamed: (queryClient: QueryClient): void =>
+    invalidate(queryClient, [
+      coreKeys.studyPrograms.all(),
+      coreKeys.students.all(),
+      coreKeys.applications.all(),
+      coreKeys.applications.participations.all(),
+    ]),
+
   privacyDeletionsChanged: (queryClient: QueryClient): void =>
     invalidate(queryClient, [coreKeys.privacy.admin.deletions()]),
 

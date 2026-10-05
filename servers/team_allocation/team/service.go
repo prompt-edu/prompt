@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	"github.com/prompt-edu/prompt-sdk/promptTypes"
+	"github.com/prompt-edu/prompt-sdk/tutorscope"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	db "github.com/prompt-edu/prompt/servers/team_allocation/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/team_allocation/team/teamDTO"
@@ -112,7 +113,7 @@ func (s *TeamsService) DeleteTeam(ctx context.Context, coursePhaseID, teamID uui
 	return nil
 }
 
-func (s *TeamsService) AddStudentNamesToAllocations(ctx context.Context, req teamDTO.StudentNameUpdateRequest) error {
+func (s *TeamsService) AddStudentNamesToAllocations(ctx context.Context, coursePhaseID uuid.UUID, req teamDTO.StudentNameUpdateRequest) error {
 	tx, err := s.conn.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
@@ -125,7 +126,7 @@ func (s *TeamsService) AddStudentNamesToAllocations(ctx context.Context, req tea
 			StudentFirstName:      name.FirstName,
 			StudentLastName:       name.LastName,
 			CourseParticipationID: participationID,
-			CoursePhaseID:         req.CoursePhaseID,
+			CoursePhaseID:         coursePhaseID,
 		})
 		if err != nil {
 			return fmt.Errorf("failed to update name for participation ID %s: %w", participationID, err)
@@ -148,7 +149,7 @@ func (s *TeamsService) ImportTutors(ctx context.Context, coursePhaseID uuid.UUID
 	qtx := s.queries.WithTx(tx)
 
 	for _, tutor := range tutors {
-		normalizedLogin := teamDTO.NormalizeUniversityLogin(tutor.UniversityLogin)
+		normalizedLogin := tutorscope.NormalizeLogin(tutor.UniversityLogin)
 		err := qtx.UpsertTutor(ctx, db.UpsertTutorParams{
 			CoursePhaseID:         coursePhaseID,
 			CourseParticipationID: tutor.CourseParticipationID,

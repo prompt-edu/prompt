@@ -60,16 +60,15 @@ WHERE category_id = $1;
 
 -- name: UpdateCompetency :exec
 UPDATE competency
-SET category_id           = $2,
-    name                  = $3,
-    short_name            = $4,
-    description           = $5,
-    description_very_bad  = $6,
-    description_bad       = $7,
-    description_ok        = $8,
-    description_good      = $9,
-    description_very_good = $10,
-    weight                = $11
+SET name                  = $2,
+    short_name            = $3,
+    description           = $4,
+    description_very_bad  = $5,
+    description_bad       = $6,
+    description_ok        = $7,
+    description_good      = $8,
+    description_very_good = $9,
+    weight                = $10
 WHERE id = $1;
 
 -- name: DeleteCompetency :exec

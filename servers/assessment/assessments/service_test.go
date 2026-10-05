@@ -20,6 +20,7 @@ import (
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentDTO"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/categoryAssessment"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/scoreLevel"
+	"github.com/prompt-edu/prompt/servers/assessment/assessments/scoreLevel/scoreLevelDTO"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/assessment/evaluations"
@@ -189,4 +190,109 @@ func (suite *AssessmentServiceTestSuite) TestExportStudentAssessmentUnsupportedF
 
 func TestAssessmentServiceTestSuite(t *testing.T) {
 	suite.Run(t, new(AssessmentServiceTestSuite))
+}
+
+func (suite *AssessmentServiceTestSuite) TestIndependentAssessmentsAreKeptPerAssessor() {
+	phaseID := uuid.New()
+	partID := uuid.New()
+	competencyID := uuid.MustParse("20725c05-bfd7-45a7-a981-d092e14f98d3")
+	_, err := suite.service.conn.Exec(suite.suiteCtx,
+		`INSERT INTO course_phase_config (assessment_schema_id, course_phase_id, start, independent_assessment_enabled)
+		 VALUES ('550e8400-e29b-41d4-a716-446655440000', $1, NOW() - INTERVAL '1 day', TRUE)`, phaseID)
+	assert.NoError(suite.T(), err)
+
+	save := func(authorID string, scoreLevel scoreLevelDTO.ScoreLevel) error {
+		return suite.service.CreateOrUpdateIndependentAssessment(suite.suiteCtx, assessmentDTO.CreateOrUpdateAssessmentRequest{
+			CourseParticipationID: partID,
+			CoursePhaseID:         phaseID,
+			CompetencyID:          competencyID,
+			ScoreLevel:            scoreLevel,
+			Author:                "Assessor " + authorID,
+			AuthorID:              authorID,
+		})
+	}
+	assert.NoError(suite.T(), save("coach", scoreLevelDTO.ScoreLevelGood))
+	assert.NoError(suite.T(), save("lecturer", scoreLevelDTO.ScoreLevelOk))
+	assert.NoError(suite.T(), save("coach", scoreLevelDTO.ScoreLevelVeryGood))
+
+	studentAssessment, err := suite.service.GetStudentAssessment(suite.suiteCtx, phaseID, partID, "coach")
+	assert.NoError(suite.T(), err)
+	assert.Len(suite.T(), studentAssessment.IndependentAssessments, 2, "Each assessor keeps one row per competency")
+	assert.Len(suite.T(), studentAssessment.MyIndependentAssessments, 1)
+	assert.Equal(suite.T(), scoreLevelDTO.ScoreLevelVeryGood, studentAssessment.MyIndependentAssessments[0].ScoreLevel)
+	assert.Empty(suite.T(), studentAssessment.Assessments, "Independent scores must not touch the final assessment")
+
+	_, err = suite.service.conn.Exec(suite.suiteCtx,
+		`INSERT INTO assessment_completion (course_participation_id, course_phase_id, completed_at, author, completed)
+		 VALUES ($1, $2, NOW(), 'Lecturer', TRUE)`, partID, phaseID)
+	assert.NoError(suite.T(), err)
+	assert.ErrorIs(suite.T(), save("coach", scoreLevelDTO.ScoreLevelBad), assessmentCompletion.ErrAssessmentCompleted,
+		"Independent scores freeze once the final assessment is marked final")
+}
+
+func (suite *AssessmentServiceTestSuite) TestDeleteOwnIndependentAssessment() {
+	phaseID := uuid.New()
+	partID := uuid.New()
+	_, err := suite.service.conn.Exec(suite.suiteCtx,
+		`INSERT INTO course_phase_config (assessment_schema_id, course_phase_id, start, independent_assessment_enabled)
+		 VALUES ('550e8400-e29b-41d4-a716-446655440000', $1, NOW() - INTERVAL '1 day', TRUE)`, phaseID)
+	assert.NoError(suite.T(), err)
+	for _, authorID := range []string{"coach", "lecturer"} {
+		assert.NoError(suite.T(), suite.service.CreateOrUpdateIndependentAssessment(suite.suiteCtx, assessmentDTO.CreateOrUpdateAssessmentRequest{
+			CourseParticipationID: partID,
+			CoursePhaseID:         phaseID,
+			CompetencyID:          uuid.MustParse("20725c05-bfd7-45a7-a981-d092e14f98d3"),
+			ScoreLevel:            scoreLevelDTO.ScoreLevelGood,
+			Author:                "Assessor " + authorID,
+			AuthorID:              authorID,
+		}))
+	}
+	scoresOf := func(viewerID string) []assessmentDTO.Assessment {
+		studentAssessment, err := suite.service.GetStudentAssessment(suite.suiteCtx, phaseID, partID, viewerID)
+		assert.NoError(suite.T(), err)
+		return studentAssessment.MyIndependentAssessments
+	}
+	coachScoreID := scoresOf("coach")[0].ID
+	lecturerScoreID := scoresOf("lecturer")[0].ID
+
+	assert.ErrorIs(suite.T(), suite.service.DeleteOwnIndependentAssessment(suite.suiteCtx, lecturerScoreID, phaseID, "coach"), ErrAssessmentNotFound,
+		"Another assessor's score reads as not found")
+	assert.ErrorIs(suite.T(), suite.service.DeleteOwnIndependentAssessment(suite.suiteCtx, coachScoreID, uuid.New(), "coach"), ErrAssessmentNotFound,
+		"The phase in the URL scopes the delete")
+
+	_, err = suite.service.conn.Exec(suite.suiteCtx,
+		`INSERT INTO assessment_completion (course_participation_id, course_phase_id, completed_at, author, completed)
+		 VALUES ($1, $2, NOW(), 'Lecturer', TRUE)`, partID, phaseID)
+	assert.NoError(suite.T(), err)
+	assert.ErrorIs(suite.T(), suite.service.DeleteOwnIndependentAssessment(suite.suiteCtx, coachScoreID, phaseID, "coach"), assessmentCompletion.ErrAssessmentCompleted)
+	assert.Len(suite.T(), scoresOf("coach"), 1, "A rejected delete is rolled back")
+
+	_, err = suite.service.conn.Exec(suite.suiteCtx,
+		`UPDATE assessment_completion SET completed = FALSE WHERE course_participation_id = $1 AND course_phase_id = $2`, partID, phaseID)
+	assert.NoError(suite.T(), err)
+	assert.NoError(suite.T(), suite.service.DeleteOwnIndependentAssessment(suite.suiteCtx, coachScoreID, phaseID, "coach"))
+	assert.Empty(suite.T(), scoresOf("coach"))
+	assert.Len(suite.T(), scoresOf("lecturer"), 1, "Other assessors' scores stay")
+}
+
+func (suite *AssessmentServiceTestSuite) TestSaveScoreRejectsCompetencyOutsidePhaseSchema() {
+	phaseID := uuid.New()
+	_, err := suite.service.conn.Exec(suite.suiteCtx,
+		`INSERT INTO course_phase_config (assessment_schema_id, course_phase_id, start, independent_assessment_enabled)
+		 VALUES ('550e8400-e29b-41d4-a716-446655440001', $1, NOW() - INTERVAL '1 day', TRUE)`, phaseID)
+	assert.NoError(suite.T(), err)
+
+	req := assessmentDTO.CreateOrUpdateAssessmentRequest{
+		CourseParticipationID: uuid.New(),
+		CoursePhaseID:         phaseID,
+		CompetencyID:          uuid.MustParse("20725c05-bfd7-45a7-a981-d092e14f98d3"),
+		ScoreLevel:            scoreLevelDTO.ScoreLevelGood,
+		Author:                "Lecturer",
+		AuthorID:              "lecturer",
+	}
+	assert.ErrorIs(suite.T(), suite.service.CreateOrUpdateAssessment(suite.suiteCtx, req), ErrCompetencyNotInPhase)
+	assert.ErrorIs(suite.T(), suite.service.CreateOrUpdateIndependentAssessment(suite.suiteCtx, req), ErrCompetencyNotInPhase)
+
+	req.CompetencyID = uuid.New()
+	assert.ErrorIs(suite.T(), suite.service.CreateOrUpdateAssessment(suite.suiteCtx, req), ErrCompetencyNotInPhase)
 }

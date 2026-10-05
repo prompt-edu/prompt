@@ -2,15 +2,19 @@ import { type ExtendedRouteObject, LECTURER_ROLES, Role } from '@tumaet/prompt-s
 import { Navigate, useParams } from 'react-router-dom'
 import { InterviewDataShell } from '../src/interview/pages/InterviewDataShell'
 import { InterviewParticipantsPage } from '../src/interview/pages/InterviewParticipantsPage/InterviewParticipantsPage'
-import OverviewPage from '../src/interview/pages/Overview/OverviewPage'
 import { ProfileDetailPage } from '../src/interview/pages/ProfileDetail/ProfileDetailPage'
 import { InterviewScheduleManagement } from '../src/interview/pages/ScheduleManagement/InterviewScheduleManagement'
 import { SettingsPage } from '../src/interview/pages/Settings/SettingsPage'
 import { StudentInterviewPage } from '../src/interview/pages/StudentInterview/StudentInterviewPage'
 
-const LegacyProfileDetailRedirect = () => {
-  const { studentId } = useParams<{ studentId: string }>()
-  return <Navigate to={`../../${studentId}`} relative='path' replace />
+const LegacyManageRedirect = () => {
+  const { courseId, phaseId, studentId } = useParams<{
+    courseId: string
+    phaseId: string
+    studentId?: string
+  }>()
+  const participantsPath = `/management/course/${courseId}/${phaseId}/participants`
+  return <Navigate to={studentId ? `${participantsPath}/${studentId}` : participantsPath} replace />
 }
 
 const interviewRoutes: ExtendedRouteObject[] = [
@@ -25,16 +29,16 @@ const interviewRoutes: ExtendedRouteObject[] = [
     ],
   },
   {
-    path: '/manage',
+    path: '/participants',
     element: (
       <InterviewDataShell>
-        <OverviewPage />
+        <InterviewParticipantsPage />
       </InterviewDataShell>
     ),
     requiredPermissions: LECTURER_ROLES,
   },
   {
-    path: '/manage/:studentId',
+    path: '/participants/:studentId',
     element: (
       <InterviewDataShell>
         <ProfileDetailPage />
@@ -43,13 +47,18 @@ const interviewRoutes: ExtendedRouteObject[] = [
     requiredPermissions: LECTURER_ROLES,
   },
   {
-    path: '/manage/details/:studentId',
-    element: <LegacyProfileDetailRedirect />,
+    path: '/manage',
+    element: <LegacyManageRedirect />,
     requiredPermissions: LECTURER_ROLES,
   },
   {
-    path: '/participants',
-    element: <InterviewParticipantsPage />,
+    path: '/manage/:studentId',
+    element: <LegacyManageRedirect />,
+    requiredPermissions: LECTURER_ROLES,
+  },
+  {
+    path: '/manage/details/:studentId',
+    element: <LegacyManageRedirect />,
     requiredPermissions: LECTURER_ROLES,
   },
   {

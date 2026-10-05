@@ -57,6 +57,7 @@ CREATE TABLE public.course_phase_config (
     grading_sheet_visible boolean NOT NULL DEFAULT false,
     assessment_enabled boolean NOT NULL DEFAULT true,
     tutor_display_name text,
+    independent_assessment_enabled boolean NOT NULL DEFAULT false,
     FOREIGN KEY (assessment_schema_id) REFERENCES assessment_schema (id) ON DELETE CASCADE,
     FOREIGN KEY (self_evaluation_schema) REFERENCES assessment_schema (id) ON DELETE RESTRICT,
     FOREIGN KEY (peer_evaluation_schema) REFERENCES assessment_schema (id) ON DELETE RESTRICT,
@@ -173,6 +174,25 @@ CREATE TABLE public.action_item (
     author text NOT NULL
 );
 
+CREATE TABLE public.results_released_mail (
+    course_phase_id uuid NOT NULL,
+    course_participation_id uuid NOT NULL,
+    sent_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    PRIMARY KEY (course_phase_id, course_participation_id)
+);
+
 --
 -- PostgreSQL database dump complete
 --
+
+CREATE TABLE public.independent_assessment (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    course_participation_id uuid NOT NULL,
+    course_phase_id uuid NOT NULL,
+    competency_id uuid NOT NULL REFERENCES public.competency (id) ON DELETE CASCADE,
+    score_level public.score_level NOT NULL,
+    author text NOT NULL,
+    author_id text NOT NULL,
+    assessed_at timestamp WITH time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    UNIQUE (course_participation_id, course_phase_id, competency_id, author_id)
+);

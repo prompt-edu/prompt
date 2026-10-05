@@ -15,6 +15,7 @@ export const useCourseForm = (courseId: string, setCurrentStep: (step: DialogSte
     defaultValues: {
       name: course?.name,
       semesterTag: '',
+      courseType: course?.courseType ?? '',
       dateRange: {
         from: undefined,
         to: undefined,

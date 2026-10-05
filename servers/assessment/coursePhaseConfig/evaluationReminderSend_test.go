@@ -22,11 +22,11 @@ func newReminderSendTestService(recipients reminderRecipientsResolver) *CoursePh
 
 func TestSendEvaluationReminderManualTriggerHappyPath(t *testing.T) {
 	oldGetCoreCoursePhaseFn := getCoreCoursePhaseFn
-	oldSendManualReminderMailFn := sendManualReminderMailFn
+	oldSendManualMailFn := sendManualMailFn
 	oldUpdateCoreCoursePhaseFn := updateCoreCoursePhaseFn
 	t.Cleanup(func() {
 		getCoreCoursePhaseFn = oldGetCoreCoursePhaseFn
-		sendManualReminderMailFn = oldSendManualReminderMailFn
+		sendManualMailFn = oldSendManualMailFn
 		updateCoreCoursePhaseFn = oldUpdateCoreCoursePhaseFn
 	})
 
@@ -74,7 +74,7 @@ func TestSendEvaluationReminderManualTriggerHappyPath(t *testing.T) {
 	}
 
 	var capturedMailRequest coreManualMailRequest
-	sendManualReminderMailFn = func(
+	sendManualMailFn = func(
 		ctx context.Context,
 		authHeader string,
 		coursePhaseID uuid.UUID,
@@ -169,11 +169,11 @@ func TestSendEvaluationReminderManualTriggerTemplateIncomplete(t *testing.T) {
 
 func TestSendEvaluationReminderManualTriggerUpdateFailureStillSucceeds(t *testing.T) {
 	oldGetCoreCoursePhaseFn := getCoreCoursePhaseFn
-	oldSendManualReminderMailFn := sendManualReminderMailFn
+	oldSendManualMailFn := sendManualMailFn
 	oldUpdateCoreCoursePhaseFn := updateCoreCoursePhaseFn
 	t.Cleanup(func() {
 		getCoreCoursePhaseFn = oldGetCoreCoursePhaseFn
-		sendManualReminderMailFn = oldSendManualReminderMailFn
+		sendManualMailFn = oldSendManualMailFn
 		updateCoreCoursePhaseFn = oldUpdateCoreCoursePhaseFn
 	})
 
@@ -216,7 +216,7 @@ func TestSendEvaluationReminderManualTriggerUpdateFailureStillSucceeds(t *testin
 		}, nil
 	}
 
-	sendManualReminderMailFn = func(
+	sendManualMailFn = func(
 		ctx context.Context,
 		authHeader string,
 		coursePhaseID uuid.UUID,

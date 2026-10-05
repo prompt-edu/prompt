@@ -54,6 +54,7 @@ import { useNavigate } from 'react-router-dom'
 import { useCoursePhaseId } from '../hooks'
 import type { CreateSlotRequest, PresentationSlot, PresentationTarget } from '../interfaces'
 import { presentationApi } from '../network'
+import { presentationCache, presentationKeys } from '../network/cache'
 import {
   buildSlotTimes,
   EMPTY_SERIES,
@@ -156,12 +157,12 @@ const SchedulePage = () => {
   const [formData, setFormData] = useState<SlotFormData>(emptySlotForm)
 
   const slotsQuery = useQuery({
-    queryKey: ['presentation-slots', coursePhaseId],
+    queryKey: presentationKeys.slots(coursePhaseId),
     queryFn: () => presentationApi.getSlots(coursePhaseId),
     enabled: Boolean(coursePhaseId),
   })
   const targetsQuery = useQuery({
-    queryKey: ['presentation-targets', coursePhaseId],
+    queryKey: presentationKeys.targets(coursePhaseId),
     queryFn: () => presentationApi.getTargets(coursePhaseId),
     enabled: Boolean(coursePhaseId),
   })
@@ -171,12 +172,6 @@ const SchedulePage = () => {
   const unassignedTargets = targets.filter(
     (target) => !target.assigned && !target.assignedPresentationId,
   )
-
-  const invalidateSchedule = () => {
-    void queryClient.invalidateQueries({ queryKey: ['presentation-slots', coursePhaseId] })
-    void queryClient.invalidateQueries({ queryKey: ['presentation-targets', coursePhaseId] })
-    void queryClient.invalidateQueries({ queryKey: ['presentations', coursePhaseId] })
-  }
 
   const resetForm = () => {
     setCreateMultipleSlots(false)
@@ -207,7 +202,7 @@ const SchedulePage = () => {
       return presentationApi.unassignTarget(coursePhaseId, action.slotId)
     },
     onSuccess: (result, action) => {
-      invalidateSchedule()
+      presentationCache.scheduleChanged(queryClient, coursePhaseId)
       if (action.type === 'create' || action.type === 'create-series') {
         setIsCreateDialogOpen(false)
         resetForm()

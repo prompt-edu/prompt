@@ -93,8 +93,14 @@ export const coreKeys = {
   },
 
   students: {
+    all: () => ['student'] as const,
     byId: (studentId: Id) => ['student', studentId] as const,
     enrollments: (studentId: Id) => ['studentEnrollments', studentId] as const,
+  },
+
+  studyPrograms: {
+    all: () => ['studyPrograms'] as const,
+    studentCounts: () => ['studyPrograms', 'studentCounts'] as const,
   },
 
   privacy: {

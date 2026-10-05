@@ -6,6 +6,7 @@ import type { PostApplication } from '@core/interfaces/application/postApplicati
 import { useKeycloak } from '@core/keycloak/useKeycloak'
 import { coreApi } from '@core/network/api'
 import { coreKeys } from '@core/network/cache'
+import { useStudyPrograms } from '@core/network/hooks/useStudyPrograms'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import type { Student } from '@tumaet/prompt-shared-state'
 import { useState } from 'react'
@@ -36,6 +37,7 @@ export const ApplicationLoginPage = () => {
     queryKey: coreKeys.apply.form(phaseId),
     queryFn: () => coreApi.apply.form(phaseId ?? ''),
   })
+  const studyPrograms = useStudyPrograms()
 
   const { mutate: mutateSendApplication, error: mutateError } = useMutation({
     mutationFn: (application: PostApplication) => {
@@ -71,7 +73,7 @@ export const ApplicationLoginPage = () => {
     setShowDialog(null)
   }
 
-  if (isPending || !isInitialized) {
+  if (isPending || studyPrograms.isPending || !isInitialized) {
     return (
       <NonAuthenticatedPageWrapper withLoginButton={false}>
         <LoadingState />

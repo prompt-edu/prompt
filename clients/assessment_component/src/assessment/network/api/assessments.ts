@@ -34,6 +34,17 @@ export const assessments = {
   save: (coursePhaseID: string, assessment: CreateOrUpdateAssessmentRequest): Promise<void> =>
     assessmentRequest.post(path(coursePhaseID), assessment, { timeoutMs: WRITE_TIMEOUT_MS }),
 
+  saveIndependent: (
+    coursePhaseID: string,
+    assessment: CreateOrUpdateAssessmentRequest,
+  ): Promise<void> =>
+    assessmentRequest.post(`${path(coursePhaseID)}/independent`, assessment, {
+      timeoutMs: WRITE_TIMEOUT_MS,
+    }),
+
   remove: (coursePhaseID: string, assessmentID: string): Promise<void> =>
     assessmentRequest.del(`${path(coursePhaseID)}/${assessmentID}`),
+
+  removeIndependent: (coursePhaseID: string, independentAssessmentID: string): Promise<void> =>
+    assessmentRequest.del(`${path(coursePhaseID)}/independent/${independentAssessmentID}`),
 }

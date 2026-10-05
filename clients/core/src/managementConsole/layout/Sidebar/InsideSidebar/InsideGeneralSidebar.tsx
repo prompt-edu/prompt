@@ -7,6 +7,7 @@ import {
   Archive,
   File,
   FileText,
+  GraduationCap,
   Megaphone,
   ScrollText,
   Shield,
@@ -79,6 +80,11 @@ export const InsideGeneralSidebar = () => {
                 icon={<Megaphone />}
                 goToPath={'/management/admin/announcements'}
                 title='Announcements'
+              />
+              <InsideSidebarMenuItem
+                icon={<GraduationCap />}
+                goToPath={'/management/admin/study-programs'}
+                title='Study Programs'
               />
               {auditLogEnabled && (
                 <InsideSidebarMenuItem

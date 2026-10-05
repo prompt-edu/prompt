@@ -23,11 +23,16 @@ func copyCoursePhaseGraph(c *gin.Context, qtx *db.Queries, sourceID, targetID uu
 		if !ok1 || !ok2 {
 			return fmt.Errorf("missing phase mapping for graph edge from %s to %s", item.FromCoursePhaseID, item.ToCoursePhaseID)
 		}
-		if err := qtx.CreateCourseGraphConnection(c, db.CreateCourseGraphConnectionParams{
+		rows, err := qtx.CreateCourseGraphConnection(c, db.CreateCourseGraphConnectionParams{
 			FromCoursePhaseID: fromID,
 			ToCoursePhaseID:   toID,
-		}); err != nil {
+			CourseID:          targetID,
+		})
+		if err != nil {
 			return fmt.Errorf("failed to create course graph connection: %w", err)
+		}
+		if rows == 0 {
+			return fmt.Errorf("graph edge from %s to %s is not inside the target course", fromID, toID)
 		}
 	}
 	return nil

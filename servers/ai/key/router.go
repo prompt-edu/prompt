@@ -9,14 +9,11 @@ import (
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
+	"github.com/prompt-edu/prompt/servers/ai/key/keyDTO"
 	log "github.com/sirupsen/logrus"
 )
 
 const minKeyLength = 8
-
-type setKeyRequest struct {
-	Key string `json:"key" binding:"required,max=512"`
-}
 
 // PromptLecturer is never allowed: the SDK admits it for every course phase.
 func RegisterRoutes(coursePhaseAPI *gin.RouterGroup, service *Service) {
@@ -47,7 +44,7 @@ func (s *Service) setKey(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, sdkUtils.ErrorResponse{Error: "invalid course phase id"})
 		return
 	}
-	var request setKeyRequest
+	var request keyDTO.SetKeyRequest
 	if err := c.ShouldBindJSON(&request); err != nil {
 		c.JSON(http.StatusBadRequest, sdkUtils.ErrorResponse{Error: "a key of at most 512 characters is required"})
 		return

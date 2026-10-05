@@ -17,6 +17,7 @@ import (
 	"github.com/google/uuid"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	"github.com/prompt-edu/prompt/servers/ai/calls"
+	"github.com/prompt-edu/prompt/servers/ai/calls/callDTO"
 	"github.com/prompt-edu/prompt/servers/ai/gateway"
 	"github.com/prompt-edu/prompt/servers/ai/testutils"
 	"github.com/stretchr/testify/suite"
@@ -345,7 +346,7 @@ func (s *AIServerSuite) TestCallerDisconnectStillCompletesTheCall() {
 	s.Equal("caller_disconnected", *row.ErrorCode)
 
 	_, body := s.send(http.MethodGet, phasePath(coursePhaseID)+"/calls/"+callID, s.admin(), nil, nil)
-	var detail calls.Detail
+	var detail callDTO.Detail
 	s.Require().NoError(json.Unmarshal(body, &detail))
 	s.Require().NotNil(detail.Content)
 	s.NotEmpty(detail.Content.ResponseText, "the partial output is kept")
@@ -461,14 +462,14 @@ func (s *AIServerSuite) TestAuditReadsAndEvents() {
 	}
 
 	_, body := s.send(http.MethodGet, phasePath(coursePhaseID)+"/calls?limit=2", s.admin(), nil, nil)
-	var page calls.Page
+	var page callDTO.Page
 	s.Require().NoError(json.Unmarshal(body, &page))
 	s.Require().Len(page.Calls, 2)
 	s.Require().NotNil(page.NextCursor)
 	s.Equal(callIDs[2], page.Calls[0].ID.String(), "newest first")
 	_, body = s.send(http.MethodGet, phasePath(coursePhaseID)+"/calls?limit=2&cursorRequestedAt="+
 		url.QueryEscape(page.NextCursor.RequestedAt.Format(time.RFC3339Nano))+"&cursorId="+page.NextCursor.ID.String(), s.admin(), nil, nil)
-	var secondPage calls.Page
+	var secondPage callDTO.Page
 	s.Require().NoError(json.Unmarshal(body, &secondPage))
 	s.Require().Len(secondPage.Calls, 1)
 	s.Equal(callIDs[0], secondPage.Calls[0].ID.String())
@@ -503,9 +504,9 @@ func (s *AIServerSuite) TestAuditReadsAndEvents() {
 	response, body = s.send(http.MethodGet, callPath, s.admin(), nil, nil)
 	s.Require().Equal(http.StatusOK, response.StatusCode)
 	s.Contains(string(body), `"subjects":[]`, "a call without subjects lists none rather than null")
-	var detail calls.Detail
+	var detail callDTO.Detail
 	s.Require().NoError(json.Unmarshal(body, &detail))
-	s.Equal(calls.ContentAvailable, detail.ContentState)
+	s.Equal(callDTO.ContentAvailable, detail.ContentState)
 	s.Equal(summaryAnswer, detail.Content.ResponseText)
 	s.Contains(string(detail.Content.Request), summaryPrompt)
 	s.Require().Len(detail.Events, 3)

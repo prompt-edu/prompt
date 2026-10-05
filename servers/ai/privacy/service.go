@@ -2,9 +2,7 @@ package privacy
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -13,13 +11,12 @@ import (
 	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/ai/calls"
+	"github.com/prompt-edu/prompt/servers/ai/calls/callDTO"
 	db "github.com/prompt-edu/prompt/servers/ai/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/ai/encryption"
 	"github.com/prompt-edu/prompt/servers/ai/feature"
+	"github.com/prompt-edu/prompt/servers/ai/privacy/privacyDTO"
 )
-
-// GDPR Art. 15(4): content that also concerns other people is not handed out.
-const contentWithheld = "withheld"
 
 type Service struct {
 	queries  *db.Queries
@@ -29,35 +26,6 @@ type Service struct {
 
 func NewService(queries *db.Queries, conn *pgxpool.Pool) *Service {
 	return &Service{queries: queries, conn: conn, policyOf: feature.PolicyOf}
-}
-
-type exportedCall struct {
-	ID               uuid.UUID       `json:"id"`
-	CoursePhaseID    uuid.UUID       `json:"coursePhaseId"`
-	MadeBySubject    bool            `json:"madeBySubject"`
-	ActorRole        string          `json:"actorRole"`
-	Feature          string          `json:"feature"`
-	Template         *string         `json:"template"`
-	TemplateVersion  *string         `json:"templateVersion"`
-	RequestedModel   *string         `json:"requestedModel"`
-	ServedModel      *string         `json:"servedModel"`
-	Outcome          string          `json:"outcome"`
-	FinishReason     *string         `json:"finishReason"`
-	PromptTokens     *int32          `json:"promptTokens"`
-	CompletionTokens *int32          `json:"completionTokens"`
-	RequestedAt      time.Time       `json:"requestedAt"`
-	CompletedAt      *time.Time      `json:"completedAt"`
-	ContentState     string          `json:"contentState"`
-	Request          json.RawMessage `json:"request,omitempty"`
-	Response         string          `json:"response,omitempty"`
-	Events           []exportedEvent `json:"events"`
-}
-
-type exportedEvent struct {
-	Type          string          `json:"type"`
-	Data          json.RawMessage `json:"data"`
-	MadeBySubject bool            `json:"madeBySubject"`
-	CreatedAt     time.Time       `json:"createdAt"`
 }
 
 func (s *Service) Export(c *gin.Context, export *sdkUtils.Export, subject keycloakTokenVerifier.SubjectIdentifiers) error {
@@ -71,12 +39,12 @@ func (s *Service) Export(c *gin.Context, export *sdkUtils.Export, subject keyclo
 	return export.Err()
 }
 
-func (s *Service) exportCalls(ctx context.Context, actorID string, participationIDs []uuid.UUID) ([]exportedCall, error) {
+func (s *Service) exportCalls(ctx context.Context, actorID string, participationIDs []uuid.UUID) ([]privacyDTO.ExportedCall, error) {
 	rows, err := s.queries.ListPrivacyCalls(ctx, db.ListPrivacyCallsParams{ActorID: actorID, CourseParticipationIds: participationIDs})
 	if err != nil {
 		return nil, fmt.Errorf("list calls: %w", err)
 	}
-	exported := make([]exportedCall, 0, len(rows))
+	exported := make([]privacyDTO.ExportedCall, 0, len(rows))
 	callIDs := make([]uuid.UUID, 0, len(rows))
 	byID := map[uuid.UUID]int{}
 	for _, row := range rows {
@@ -95,15 +63,15 @@ func (s *Service) exportCalls(ctx context.Context, actorID string, participation
 	}
 	for _, event := range events {
 		call := &exported[byID[event.CallID]]
-		call.Events = append(call.Events, exportedEvent{
+		call.Events = append(call.Events, privacyDTO.ExportedEvent{
 			Type: event.Type, Data: event.Data, MadeBySubject: event.IsActor, CreatedAt: event.CreatedAt.Time,
 		})
 	}
 	return exported, nil
 }
 
-func exportedCallOf(row db.ListPrivacyCallsRow) (exportedCall, error) {
-	call := exportedCall{
+func exportedCallOf(row db.ListPrivacyCallsRow) (privacyDTO.ExportedCall, error) {
+	call := privacyDTO.ExportedCall{
 		ID:              row.ID,
 		CoursePhaseID:   row.CoursePhaseID,
 		MadeBySubject:   row.IsActor,
@@ -116,8 +84,8 @@ func exportedCallOf(row db.ListPrivacyCallsRow) (exportedCall, error) {
 		Outcome:         row.Outcome,
 		FinishReason:    textOf(row.FinishReason.String, row.FinishReason.Valid),
 		RequestedAt:     row.RequestedAt.Time,
-		ContentState:    calls.ContentUnavailable,
-		Events:          []exportedEvent{},
+		ContentState:    callDTO.ContentUnavailable,
+		Events:          []privacyDTO.ExportedEvent{},
 	}
 	if row.PromptTokens.Valid {
 		call.PromptTokens = &row.PromptTokens.Int32
@@ -131,19 +99,19 @@ func exportedCallOf(row db.ListPrivacyCallsRow) (exportedCall, error) {
 
 	switch {
 	case row.Restricted:
-		call.ContentState = calls.ContentRestricted
+		call.ContentState = callDTO.ContentRestricted
 	case row.Request != nil && (!row.IsSubject || row.HasOtherSubjects):
-		call.ContentState = contentWithheld
+		call.ContentState = privacyDTO.ContentWithheld
 	case row.Request != nil:
 		request, err := encryption.Decrypt(row.Request)
 		if err != nil {
-			return exportedCall{}, fmt.Errorf("decrypt request of call %s: %w", row.ID, err)
+			return privacyDTO.ExportedCall{}, fmt.Errorf("decrypt request of call %s: %w", row.ID, err)
 		}
-		call.ContentState, call.Request = calls.ContentAvailable, request
+		call.ContentState, call.Request = callDTO.ContentAvailable, request
 		if row.Response != nil {
 			response, err := encryption.Decrypt(row.Response)
 			if err != nil {
-				return exportedCall{}, fmt.Errorf("decrypt response of call %s: %w", row.ID, err)
+				return privacyDTO.ExportedCall{}, fmt.Errorf("decrypt response of call %s: %w", row.ID, err)
 			}
 			call.Response = calls.Summarize(response, row.Streamed).Text
 		}

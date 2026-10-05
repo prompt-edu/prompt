@@ -10,7 +10,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt/servers/ai/calls"
+	"github.com/prompt-edu/prompt/servers/ai/calls/callDTO"
 	"github.com/prompt-edu/prompt/servers/ai/feature"
+	"github.com/prompt-edu/prompt/servers/ai/privacy/privacyDTO"
 	"github.com/prompt-edu/prompt/servers/ai/testutils"
 	"github.com/stretchr/testify/suite"
 )
@@ -90,18 +92,18 @@ func (s *PrivacySuite) TestExportCoversSubjectAndActor() {
 	s.Require().Len(asStudent, 2)
 	s.Equal(aboutStudent, asStudent[0].ID)
 	s.False(asStudent[0].MadeBySubject)
-	s.Equal(calls.ContentAvailable, asStudent[0].ContentState)
+	s.Equal(callDTO.ContentAvailable, asStudent[0].ContentState)
 	s.Contains(string(asStudent[0].Request), "About the student")
 	s.Equal("Suggestion", asStudent[0].Response)
 	s.Equal(aboutBoth, asStudent[1].ID)
-	s.Equal(contentWithheld, asStudent[1].ContentState, "content about other people stays out of the export")
+	s.Equal(privacyDTO.ContentWithheld, asStudent[1].ContentState, "content about other people stays out of the export")
 	s.Nil(asStudent[1].Request)
 
 	asLecturer, err := s.service.exportCalls(s.ctx, s.lecturer.String(), nil)
 	s.Require().NoError(err)
 	s.Len(asLecturer, 2, "the actor gets every call they made")
 	s.True(asLecturer[0].MadeBySubject)
-	s.Equal(contentWithheld, asLecturer[0].ContentState, "the actor's prompt is about students")
+	s.Equal(privacyDTO.ContentWithheld, asLecturer[0].ContentState, "the actor's prompt is about students")
 
 	nobody, err := s.service.exportCalls(s.ctx, "", []uuid.UUID{uuid.New()})
 	s.Require().NoError(err)
@@ -128,10 +130,10 @@ func (s *PrivacySuite) TestErasureRestrictsHighRiskAndDeletesTheRest() {
 	exported, err := s.service.exportCalls(s.ctx, "", []uuid.UUID{s.other})
 	s.Require().NoError(err)
 	s.Require().Len(exported, 3)
-	s.Equal(calls.ContentRestricted, exported[0].ContentState)
+	s.Equal(callDTO.ContentRestricted, exported[0].ContentState)
 	s.Nil(exported[0].Request, "restricted content is not handed out")
-	s.Equal(calls.ContentUnavailable, exported[1].ContentState)
-	s.Equal(calls.ContentAvailable, exported[2].ContentState)
+	s.Equal(callDTO.ContentUnavailable, exported[1].ContentState)
+	s.Equal(callDTO.ContentAvailable, exported[2].ContentState)
 
 	s.Require().NoError(s.service.Delete(s.ginContext(), keycloakTokenVerifier.SubjectIdentifiers{
 		UserID: uuid.New(), CourseParticipationIDs: []uuid.UUID{s.student},

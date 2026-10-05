@@ -14,6 +14,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt/servers/ai/calls/callDTO"
 	db "github.com/prompt-edu/prompt/servers/ai/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/ai/encryption"
 )
@@ -165,17 +166,7 @@ func (s *Service) callParams(request Request, outcome string) db.CreateCallParam
 	}
 }
 
-type Cursor struct {
-	RequestedAt time.Time `json:"requestedAt"`
-	ID          uuid.UUID `json:"id"`
-}
-
-type Page struct {
-	Calls      []Call  `json:"calls"`
-	NextCursor *Cursor `json:"nextCursor"`
-}
-
-func (s *Service) List(ctx context.Context, coursePhaseID uuid.UUID, cursor *Cursor, limit int32) (Page, error) {
+func (s *Service) List(ctx context.Context, coursePhaseID uuid.UUID, cursor *callDTO.Cursor, limit int32) (callDTO.Page, error) {
 	params := db.ListCallsParams{CoursePhaseID: coursePhaseID, PageSize: limit + 1}
 	if cursor != nil {
 		params.CursorRequestedAt = pgtype.Timestamptz{Time: cursor.RequestedAt, Valid: true}
@@ -183,77 +174,77 @@ func (s *Service) List(ctx context.Context, coursePhaseID uuid.UUID, cursor *Cur
 	}
 	rows, err := s.queries.ListCalls(ctx, params)
 	if err != nil {
-		return Page{}, fmt.Errorf("list calls: %w", err)
+		return callDTO.Page{}, fmt.Errorf("list calls: %w", err)
 	}
-	page := Page{Calls: make([]Call, 0, len(rows))}
+	page := callDTO.Page{Calls: make([]callDTO.Call, 0, len(rows))}
 	if len(rows) > int(limit) {
 		rows = rows[:limit]
 		last := rows[len(rows)-1]
-		page.NextCursor = &Cursor{RequestedAt: last.RequestedAt.Time, ID: last.ID}
+		page.NextCursor = &callDTO.Cursor{RequestedAt: last.RequestedAt.Time, ID: last.ID}
 	}
 	for _, row := range rows {
-		page.Calls = append(page.Calls, callOf(row))
+		page.Calls = append(page.Calls, callDTO.GetCallDTOFromDBModel(row))
 	}
 	return page, nil
 }
 
 // Get returns the content only once its content_viewed event is recorded.
-func (s *Service) Get(ctx context.Context, coursePhaseID, callID uuid.UUID, viewerID string) (Detail, error) {
+func (s *Service) Get(ctx context.Context, coursePhaseID, callID uuid.UUID, viewerID string) (callDTO.Detail, error) {
 	row, err := s.queries.GetCall(ctx, db.GetCallParams{ID: callID, CoursePhaseID: coursePhaseID})
 	if errors.Is(err, pgx.ErrNoRows) {
-		return Detail{}, ErrNotFound
+		return callDTO.Detail{}, ErrNotFound
 	}
 	if err != nil {
-		return Detail{}, fmt.Errorf("load call: %w", err)
+		return callDTO.Detail{}, fmt.Errorf("load call: %w", err)
 	}
-	detail := Detail{Call: callOf(row.AiCall), ContentState: ContentUnavailable, Subjects: []uuid.UUID{}}
+	detail := callDTO.Detail{Call: callDTO.GetCallDTOFromDBModel(row.AiCall), ContentState: callDTO.ContentUnavailable, Subjects: []uuid.UUID{}}
 
 	switch {
 	case row.Restricted:
-		detail.ContentState = ContentRestricted
+		detail.ContentState = callDTO.ContentRestricted
 	case row.Request != nil:
 		content, err := decryptContent(row.Request, row.Response, row.AiCall.Streamed)
 		if err != nil {
-			return Detail{}, err
+			return callDTO.Detail{}, err
 		}
-		if _, err := s.recordEvent(ctx, coursePhaseID, callID, viewerID, true, EventContentViewed, nil); err != nil {
-			return Detail{}, fmt.Errorf("record content view: %w", err)
+		if _, err := s.recordEvent(ctx, coursePhaseID, callID, viewerID, true, callDTO.EventContentViewed, nil); err != nil {
+			return callDTO.Detail{}, fmt.Errorf("record content view: %w", err)
 		}
-		detail.ContentState = ContentAvailable
+		detail.ContentState = callDTO.ContentAvailable
 		detail.Content = &content
 	}
 
 	if !row.Restricted {
 		subjects, err := s.queries.ListCallSubjects(ctx, callID)
 		if err != nil {
-			return Detail{}, fmt.Errorf("list call subjects: %w", err)
+			return callDTO.Detail{}, fmt.Errorf("list call subjects: %w", err)
 		}
 		detail.Subjects = append(detail.Subjects, subjects...)
 	}
 	events, err := s.queries.ListCallEvents(ctx, callID)
 	if err != nil {
-		return Detail{}, fmt.Errorf("list call events: %w", err)
+		return callDTO.Detail{}, fmt.Errorf("list call events: %w", err)
 	}
-	detail.Events = make([]Event, 0, len(events))
+	detail.Events = make([]callDTO.Event, 0, len(events))
 	for _, event := range events {
-		detail.Events = append(detail.Events, eventOf(event))
+		detail.Events = append(detail.Events, callDTO.GetEventDTOFromDBModel(event))
 	}
 	return detail, nil
 }
 
 // Only an admin may report events on a call someone else made.
-func (s *Service) AddEvent(ctx context.Context, coursePhaseID, callID uuid.UUID, actorID string, byAdmin bool, request EventRequest) (Event, error) {
-	if request.Type == EventEdited && request.EditDistance == nil {
-		return Event{}, ErrInvalidEvent
+func (s *Service) AddEvent(ctx context.Context, coursePhaseID, callID uuid.UUID, actorID string, byAdmin bool, request callDTO.EventRequest) (callDTO.Event, error) {
+	if request.Type == callDTO.EventEdited && request.EditDistance == nil {
+		return callDTO.Event{}, ErrInvalidEvent
 	}
-	data, err := json.Marshal(request.data())
+	data, err := json.Marshal(request.Data())
 	if err != nil {
-		return Event{}, err
+		return callDTO.Event{}, err
 	}
 	return s.recordEvent(ctx, coursePhaseID, callID, actorID, byAdmin, request.Type, data)
 }
 
-func (s *Service) recordEvent(ctx context.Context, coursePhaseID, callID uuid.UUID, actorID string, byAdmin bool, eventType string, data []byte) (Event, error) {
+func (s *Service) recordEvent(ctx context.Context, coursePhaseID, callID uuid.UUID, actorID string, byAdmin bool, eventType string, data []byte) (callDTO.Event, error) {
 	if data == nil {
 		data = []byte("{}")
 	}
@@ -266,24 +257,24 @@ func (s *Service) recordEvent(ctx context.Context, coursePhaseID, callID uuid.UU
 		ByAdmin:       byAdmin,
 	})
 	if errors.Is(err, pgx.ErrNoRows) {
-		return Event{}, ErrNotFound
+		return callDTO.Event{}, ErrNotFound
 	}
 	if err != nil {
-		return Event{}, err
+		return callDTO.Event{}, err
 	}
-	return eventOf(row), nil
+	return callDTO.GetEventDTOFromDBModel(row), nil
 }
 
-func decryptContent(encryptedRequest, encryptedResponse []byte, streamed bool) (Content, error) {
+func decryptContent(encryptedRequest, encryptedResponse []byte, streamed bool) (callDTO.Content, error) {
 	request, err := encryption.Decrypt(encryptedRequest)
 	if err != nil {
-		return Content{}, fmt.Errorf("decrypt request: %w", err)
+		return callDTO.Content{}, fmt.Errorf("decrypt request: %w", err)
 	}
-	content := Content{Request: request}
+	content := callDTO.Content{Request: request}
 	if encryptedResponse != nil {
 		response, err := encryption.Decrypt(encryptedResponse)
 		if err != nil {
-			return Content{}, fmt.Errorf("decrypt response: %w", err)
+			return callDTO.Content{}, fmt.Errorf("decrypt response: %w", err)
 		}
 		content.ResponseText = Summarize(response, streamed).Text
 	}

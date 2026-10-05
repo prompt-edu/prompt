@@ -1,24 +1,11 @@
-package calls
+package callDTO
 
 import (
 	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 	db "github.com/prompt-edu/prompt/servers/ai/db/sqlc"
-)
-
-const (
-	EventShown         = "shown"
-	EventAccepted      = "accepted"
-	EventEdited        = "edited"
-	EventRejected      = "rejected"
-	EventContentViewed = "content_viewed"
-
-	ContentAvailable   = "available"
-	ContentRestricted  = "restricted"
-	ContentUnavailable = "unavailable"
 )
 
 // Call is the audit metadata of one model call.
@@ -48,41 +35,7 @@ type Call struct {
 	CompletedAt      *time.Time      `json:"completedAt"`
 }
 
-type Content struct {
-	Request      json.RawMessage `json:"request"`
-	ResponseText string          `json:"responseText"`
-}
-
-type Detail struct {
-	Call
-	ContentState string      `json:"contentState"`
-	Content      *Content    `json:"content,omitempty"`
-	Subjects     []uuid.UUID `json:"subjects"`
-	Events       []Event     `json:"events"`
-}
-
-type Event struct {
-	ID        uuid.UUID       `json:"id"`
-	ActorID   string          `json:"actorId"`
-	Type      string          `json:"type"`
-	Data      json.RawMessage `json:"data"`
-	CreatedAt time.Time       `json:"createdAt"`
-}
-
-type EventRequest struct {
-	Type         string     `json:"type" binding:"required,oneof=shown accepted edited rejected"`
-	EditDistance *int       `json:"editDistance" binding:"omitempty,min=0"`
-	ActionItemID *uuid.UUID `json:"actionItemId"`
-}
-
-func (r EventRequest) data() any {
-	return struct {
-		EditDistance *int       `json:"editDistance,omitempty"`
-		ActionItemID *uuid.UUID `json:"actionItemId,omitempty"`
-	}{r.EditDistance, r.ActionItemID}
-}
-
-func callOf(row db.AiCall) Call {
+func GetCallDTOFromDBModel(row db.AiCall) Call {
 	return Call{
 		ID:               row.ID,
 		ActorID:          row.ActorID,
@@ -108,29 +61,4 @@ func callOf(row db.AiCall) Call {
 		FirstTokenAt:     timeOf(row.FirstTokenAt),
 		CompletedAt:      timeOf(row.CompletedAt),
 	}
-}
-
-func eventOf(row db.AiCallEvent) Event {
-	return Event{ID: row.ID, ActorID: row.ActorID, Type: row.Type, Data: row.Data, CreatedAt: row.CreatedAt.Time}
-}
-
-func textOf(value pgtype.Text) *string {
-	if !value.Valid {
-		return nil
-	}
-	return &value.String
-}
-
-func intOf(value pgtype.Int4) *int32 {
-	if !value.Valid {
-		return nil
-	}
-	return &value.Int32
-}
-
-func timeOf(value pgtype.Timestamptz) *time.Time {
-	if !value.Valid {
-		return nil
-	}
-	return &value.Time
 }

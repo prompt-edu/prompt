@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -14,6 +13,7 @@ import (
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	db "github.com/prompt-edu/prompt/servers/ai/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/ai/encryption"
+	"github.com/prompt-edu/prompt/servers/ai/key/keyDTO"
 )
 
 var ErrNotConfigured = errors.New("AI not configured")
@@ -27,42 +27,30 @@ func NewService(queries *db.Queries, coreURL string) *Service {
 	return &Service{queries: queries, coreURL: coreURL}
 }
 
-type Status struct {
-	Configured bool       `json:"configured"`
-	Last4      string     `json:"last4,omitempty"`
-	SetBy      string     `json:"setBy,omitempty"`
-	SetAt      *time.Time `json:"setAt,omitempty"`
-}
-
 type PhaseKey struct {
 	Key       string
 	PhaseType string
 }
 
-func statusOf(row db.AiPhaseKey) Status {
-	setAt := row.SetAt.Time
-	return Status{Configured: true, Last4: row.Last4, SetBy: row.SetBy, SetAt: &setAt}
-}
-
-func (s *Service) Get(ctx context.Context, coursePhaseID uuid.UUID) (Status, error) {
+func (s *Service) Get(ctx context.Context, coursePhaseID uuid.UUID) (keyDTO.Status, error) {
 	row, err := s.queries.GetPhaseKey(ctx, coursePhaseID)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return Status{}, nil
+		return keyDTO.Status{}, nil
 	}
 	if err != nil {
-		return Status{}, fmt.Errorf("load phase key: %w", err)
+		return keyDTO.Status{}, fmt.Errorf("load phase key: %w", err)
 	}
-	return statusOf(row), nil
+	return keyDTO.GetStatusDTOFromDBModel(row), nil
 }
 
-func (s *Service) Set(ctx context.Context, coursePhaseID uuid.UUID, logosKey, setBy, authHeader string) (Status, error) {
+func (s *Service) Set(ctx context.Context, coursePhaseID uuid.UUID, logosKey, setBy, authHeader string) (keyDTO.Status, error) {
 	phaseType, err := s.phaseType(coursePhaseID, authHeader)
 	if err != nil {
-		return Status{}, err
+		return keyDTO.Status{}, err
 	}
 	encrypted, err := encryption.Encrypt([]byte(logosKey))
 	if err != nil {
-		return Status{}, fmt.Errorf("encrypt phase key: %w", err)
+		return keyDTO.Status{}, fmt.Errorf("encrypt phase key: %w", err)
 	}
 	row, err := s.queries.UpsertPhaseKey(ctx, db.UpsertPhaseKeyParams{
 		CoursePhaseID: coursePhaseID,
@@ -72,9 +60,9 @@ func (s *Service) Set(ctx context.Context, coursePhaseID uuid.UUID, logosKey, se
 		SetBy:         setBy,
 	})
 	if err != nil {
-		return Status{}, fmt.Errorf("store phase key: %w", err)
+		return keyDTO.Status{}, fmt.Errorf("store phase key: %w", err)
 	}
-	return statusOf(row), nil
+	return keyDTO.GetStatusDTOFromDBModel(row), nil
 }
 
 func (s *Service) Delete(ctx context.Context, coursePhaseID uuid.UUID) error {

@@ -11,6 +11,7 @@ import (
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
+	"github.com/prompt-edu/prompt/servers/ai/calls/callDTO"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -73,7 +74,7 @@ func (s *Service) addEvent(c *gin.Context) {
 	if !ok {
 		return
 	}
-	var request EventRequest
+	var request callDTO.EventRequest
 	if err := c.ShouldBindJSON(&request); err != nil {
 		c.JSON(http.StatusBadRequest, sdkUtils.ErrorResponse{Error: "type must be shown, accepted, edited or rejected"})
 		return
@@ -107,7 +108,7 @@ func parseIDs(c *gin.Context) (uuid.UUID, uuid.UUID, bool) {
 	return coursePhaseID, callID, true
 }
 
-func parsePaging(c *gin.Context) (int32, *Cursor, error) {
+func parsePaging(c *gin.Context) (int32, *callDTO.Cursor, error) {
 	limit := defaultPageSize
 	if raw := c.Query("limit"); raw != "" {
 		parsed, err := strconv.Atoi(raw)
@@ -125,5 +126,5 @@ func parsePaging(c *gin.Context) (int32, *Cursor, error) {
 	if timeErr != nil || idErr != nil {
 		return 0, nil, errors.New("cursorRequestedAt and cursorId must be given together")
 	}
-	return int32(limit), &Cursor{RequestedAt: requestedAt, ID: id}, nil
+	return int32(limit), &callDTO.Cursor{RequestedAt: requestedAt, ID: id}, nil
 }

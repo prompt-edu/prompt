@@ -56,15 +56,15 @@ export const AssessmentReminderCard = () => {
     isPending: isCoursePhasePending,
     isError: isCoursePhaseError,
   } = useGetCoursePhaseMetaData()
-  const { data: reminderStatus } = useGetEvaluationReminderStatus()
+  const {
+    data: reminderStatus,
+    isPending: isReminderStatusPending,
+    isError: isReminderStatusError,
+  } = useGetEvaluationReminderStatus()
 
   const { mutate: updateCoursePhase, isPending: isSavingTemplate } = useModifyCoursePhase(
     () => {
-      setInitialMetaData({
-        subject,
-        content,
-        lastSentAtByType: currentReminderMetaData.lastSentAtByType ?? {},
-      })
+      setInitialMetaData((previous) => ({ ...previous, subject, content }))
       toast({ title: 'Assessment reminder template updated' })
       assessmentCache.coursePhaseMetaDataChanged(queryClient, phaseId)
     },
@@ -145,10 +145,7 @@ export const AssessmentReminderCard = () => {
 
     updateCoursePhase({
       id: coursePhase.id,
-      name: coursePhase.name,
-      studentReadableData: coursePhase.studentReadableData ?? {},
       restrictedData: {
-        ...coursePhase.restrictedData,
         mailingSettings: {
           ...mailingSettings,
           assessmentReminder: { ...reminder, subject, content },
@@ -178,6 +175,8 @@ export const AssessmentReminderCard = () => {
     if (isModified) return 'Save template changes before sending reminders.'
     if (!courseMailingIsConfigured) return 'Configure course mailing reply-to settings first.'
     if (!templateComplete) return 'Reminder subject and content are required.'
+    if (isReminderStatusError) return 'Previous reminder sends could not be loaded.'
+    if (isReminderStatusPending) return 'Loading previous reminder sends.'
     if (!deadlinePassed(reminderType.deadline))
       return `${reminderType.label} deadline must pass first (${formatDeadline(reminderType.deadline)}).`
     return undefined
@@ -228,6 +227,15 @@ export const AssessmentReminderCard = () => {
           <Alert variant='destructive'>
             <AlertTitle>Failed to load phase metadata</AlertTitle>
             <AlertDescription>Cannot load existing reminder template settings.</AlertDescription>
+          </Alert>
+        )}
+
+        {isReminderStatusError && (
+          <Alert variant='destructive'>
+            <AlertTitle>Failed to load previous reminders</AlertTitle>
+            <AlertDescription>
+              Reminders cannot be sent until it is known when they were last sent.
+            </AlertDescription>
           </Alert>
         )}
 

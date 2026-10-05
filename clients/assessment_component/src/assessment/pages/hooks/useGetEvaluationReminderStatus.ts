@@ -10,5 +10,6 @@ export const useGetEvaluationReminderStatus = () => {
   return useQuery<EvaluationReminderStatus>({
     queryKey: assessmentKeys.evaluationReminderStatus(phaseId),
     queryFn: () => assessmentApi.config.reminderStatus(phaseId ?? ''),
+    enabled: !!phaseId,
   })
 }

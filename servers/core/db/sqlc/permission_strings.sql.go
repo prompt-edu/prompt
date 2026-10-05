@@ -32,6 +32,17 @@ func (q *Queries) GetCoursePhaseAuthRoleMapping(ctx context.Context, id uuid.UUI
 	return i, err
 }
 
+const getOrgSlugByID = `-- name: GetOrgSlugByID :one
+SELECT slug FROM org WHERE id = $1
+`
+
+func (q *Queries) GetOrgSlugByID(ctx context.Context, id uuid.UUID) (string, error) {
+	row := q.db.QueryRow(ctx, getOrgSlugByID, id)
+	var slug string
+	err := row.Scan(&slug)
+	return slug, err
+}
+
 const getPermissionStringByCourseID = `-- name: GetPermissionStringByCourseID :one
 SELECT CONCAT(semester_tag, '-', name) AS course_identifier
 FROM course

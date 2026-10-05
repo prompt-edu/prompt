@@ -32,6 +32,7 @@ ORDER BY c.template,
             c.long_description,
             c.archived,
             c.archived_on,
+            c.org_id,
             pr.user_role
           FROM course c
             INNER JOIN
@@ -54,7 +55,8 @@ SELECT ucr.id,
        ucr.short_description,
        ucr.long_description,
        ucr.archived,
-       ucr.archived_on
+       ucr.archived_on,
+       ucr.org_id
 FROM user_course_roles ucr
 GROUP BY ucr.id,
          ucr.name,
@@ -69,7 +71,8 @@ GROUP BY ucr.id,
          ucr.short_description,
          ucr.long_description,
          ucr.archived,
-         ucr.archived_on
+         ucr.archived_on,
+         ucr.org_id
 HAVING NOT (
            ucr.archived
            AND COUNT(ucr.user_role) = 1

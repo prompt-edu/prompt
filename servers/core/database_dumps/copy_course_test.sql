@@ -230,6 +230,7 @@ CREATE TABLE course (
     long_description text,
     archived boolean NOT NULL DEFAULT FALSE,
     archived_on timestamp with time zone,
+    org_id uuid,
     CONSTRAINT check_end_date_after_start_date CHECK (
         template = true
             OR end_date > start_date

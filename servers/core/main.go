@@ -30,6 +30,7 @@ import (
 	"github.com/prompt-edu/prompt/servers/core/keycloakRealmManager"
 	"github.com/prompt-edu/prompt/servers/core/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt/servers/core/mailing"
+	"github.com/prompt-edu/prompt/servers/core/org"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 	"github.com/prompt-edu/prompt/servers/core/privacy"
 	"github.com/prompt-edu/prompt/servers/core/privacy/service"
@@ -241,6 +242,8 @@ func main() {
 	instructorNote.RegisterRoutes(api, instructorNoteService, tokenVerifier.KeycloakMiddleware)
 	studyProgramService := studyProgram.NewStudyProgramService(*query, conn)
 	studyProgram.RegisterRoutes(api, studyProgramService, tokenVerifier.KeycloakMiddleware)
+	orgService := org.NewOrgService(*query, conn, keycloakRealmService.CreateOrgGroupsAndRoles, keycloakRealmService.DeleteOrgGroupsAndRoles)
+	org.RegisterRoutes(api, orgService, tokenVerifier.KeycloakMiddleware, validationService.CheckOrgPermission)
 
 	exportStorage, err := privacyexport.NewExportStorageFromEnv()
 	if err != nil {

@@ -1628,6 +1628,62 @@ definitions:
   meta.MetaData:
     additionalProperties: true
     type: object
+  orgDTO.CreateOrg:
+    properties:
+      contactEmail:
+        type: string
+      name:
+        type: string
+      parentOrgID:
+        type: string
+      school:
+        type: string
+      slug:
+        type: string
+      university:
+        type: string
+      website:
+        type: string
+    type: object
+  orgDTO.Org:
+    properties:
+      contactEmail:
+        type: string
+      createdAt:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      parentOrgID:
+        type: string
+      school:
+        type: string
+      slug:
+        type: string
+      university:
+        type: string
+      website:
+        type: string
+    type: object
+  orgDTO.UpdateOrg:
+    properties:
+      contactEmail:
+        type: string
+      name:
+        type: string
+      school:
+        type: string
+      university:
+        type: string
+      website:
+        type: string
+    type: object
+  orgDTO.UpdateOrgParent:
+    properties:
+      parentOrgID:
+        type: string
+    type: object
   pgtype.Text:
     properties:
       string:
@@ -5144,6 +5200,200 @@ paths:
       summary: Manually trigger custom mails for a selected recipient list
       tags:
       - mailing
+  /orgs/:
+    get:
+      description: Get every org as a flat list; the hierarchy is given by parentOrgID
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/orgDTO.Org'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: Get all orgs
+      tags:
+      - orgs
+    post:
+      consumes:
+      - application/json
+      description: Create an org, optionally under a parent org, and provision its
+        Keycloak groups and roles
+      parameters:
+      - description: Org to create
+        in: body
+        name: org
+        required: true
+        schema:
+          $ref: '#/definitions/orgDTO.CreateOrg'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/orgDTO.Org'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: Create an org
+      tags:
+      - orgs
+  /orgs/{orgID}:
+    delete:
+      description: Delete an org without child orgs or courses, together with its
+        Keycloak groups and roles
+      parameters:
+      - description: Org UUID
+        in: path
+        name: orgID
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: Delete an org
+      tags:
+      - orgs
+    get:
+      description: Get an org by ID
+      parameters:
+      - description: Org UUID
+        in: path
+        name: orgID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/orgDTO.Org'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: Get an org
+      tags:
+      - orgs
+    put:
+      consumes:
+      - application/json
+      description: Replace the name and the optional fields of an org; an empty optional
+        field clears it. The slug and the parent org cannot be changed here.
+      parameters:
+      - description: Org UUID
+        in: path
+        name: orgID
+        required: true
+        type: string
+      - description: Updated org
+        in: body
+        name: org
+        required: true
+        schema:
+          $ref: '#/definitions/orgDTO.UpdateOrg'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/orgDTO.Org'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: Update an org
+      tags:
+      - orgs
+  /orgs/{orgID}/parent:
+    put:
+      consumes:
+      - application/json
+      description: Place an org under another org, or at the top level when parentOrgID
+        is null. An org cannot be placed under itself or one of its descendants.
+      parameters:
+      - description: Org UUID
+        in: path
+        name: orgID
+        required: true
+        type: string
+      - description: New parent org
+        in: body
+        name: parent
+        required: true
+        schema:
+          $ref: '#/definitions/orgDTO.UpdateOrgParent'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/orgDTO.Org'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: Move an org
+      tags:
+      - orgs
   /privacy/admin/data-deletions:
     get:
       produces:

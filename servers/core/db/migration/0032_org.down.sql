@@ -1,0 +1,7 @@
+BEGIN;
+
+ALTER TABLE course DROP COLUMN org_id;
+
+DROP TABLE org;
+
+COMMIT;

@@ -324,7 +324,7 @@ func tokenAuthor(c *gin.Context) (string, bool) {
 		handleError(c, http.StatusUnauthorized, errors.New("authenticated user not found in context"))
 		return "", false
 	}
-	return tokenUser.FirstName + " " + tokenUser.LastName, true
+	return assessmentCompletion.AuthorName(tokenUser), true
 }
 
 func actionItemErrorStatus(err error) int {

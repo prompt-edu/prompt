@@ -47,7 +47,7 @@ func (suite *ResultsReleasedMailTestSuite) SetupSuite() {
 	suite.ctx = context.Background()
 	testDB, cleanup, err := sdkTestUtils.SetupTestDBWithMigrations(suite.ctx, "../db/migration", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) }, "../database_dumps/coursePhaseConfig.sql")
 	if err != nil {
-		suite.T().Skipf("skipping db-backed results released mail tests: %v", err)
+		suite.T().Fatalf("Failed to set up test database: %v", err)
 	}
 	suite.cleanup = cleanup
 	suite.service = NewCoursePhaseConfigService(*testDB.Queries, testDB.Conn, nil)

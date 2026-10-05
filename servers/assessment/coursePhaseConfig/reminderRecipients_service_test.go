@@ -65,7 +65,7 @@ func (suite *ReminderRecipientsServiceTestSuite) SetupSuite() {
 		"../database_dumps/reminder_recipients_test.sql",
 	)
 	if err != nil {
-		suite.T().Skipf("skipping db-backed reminder recipient tests: %v", err)
+		suite.T().Fatalf("Failed to set up test database: %v", err)
 	}
 	suite.cleanup = cleanup
 

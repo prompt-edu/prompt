@@ -72,7 +72,7 @@ func (suite *CourseMailingServiceTestSuite) SetupSuite() {
 		"../database_dumps/course_mail_campaign_test.sql",
 	)
 	if err != nil {
-		suite.T().Skipf("skipping db-backed course mailing tests: %v", err)
+		suite.T().Fatalf("Failed to set up test database: %v", err)
 	}
 	suite.cleanup = cleanup
 

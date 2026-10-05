@@ -24,6 +24,7 @@ import (
 	"github.com/prompt-edu/prompt/servers/core/student"
 	"github.com/prompt-edu/prompt/servers/core/student/studentDTO"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -504,7 +505,7 @@ func (suite *ApplicationAdminServiceTestSuite) TestDeleteApplication_Success() {
 			StudyDegree:          "bachelor",
 		},
 	})
-	assert.NoError(suite.T(), err)
+	require.NoError(suite.T(), err)
 
 	toBeDeletedUUIDs := []uuid.UUID{courseParticipationID}
 

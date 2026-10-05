@@ -67,7 +67,7 @@ func (suite *ManualMailServiceTestSuite) SetupSuite() {
 		"../database_dumps/mailing_test.sql",
 	)
 	if err != nil {
-		suite.T().Skipf("skipping db-backed manual mail tests: %v", err)
+		suite.T().Fatalf("Failed to set up test database: %v", err)
 	}
 
 	suite.cleanup = cleanup

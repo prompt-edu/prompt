@@ -49,8 +49,12 @@ import sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 Import as `sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"`. Never fork these into a
 service-local `testutils` package.
 
-- `SetupTestDB(ctx, sqlDumpPath, queryFactory)` — testcontainers Postgres seeded from a dump:
-  `sdkTestUtils.SetupTestDB(ctx, "../database_dumps/x.sql", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) })`
+- `SetupTestDBWithMigrations(ctx, migrationsDir, queryFactory, seedPaths...)`: testcontainers
+  Postgres built from the service's real migrations, then loaded with data-only seeds:
+  `sdkTestUtils.SetupTestDBWithMigrations(ctx, "../db/migration", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) }, "../database_dumps/x.sql")`.
+  Seeds in `database_dumps/` hold only `INSERT`s, never schema.
+- `SetupTestDB(ctx, sqlDumpPath, queryFactory)` loads one file with schema and data. Use it only for
+  tests that apply a migration by hand on top of an older schema (e.g. `timeframe/migration_test.go`).
 - `MockPermissionMiddleware(authRoles ...string) gin.HandlerFunc`, `MockAuthMiddleware(...)`
 
 ## Validation (`utils` subpackage)

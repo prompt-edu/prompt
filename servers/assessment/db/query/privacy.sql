@@ -5,6 +5,11 @@ SELECT id, course_participation_id, course_phase_id, competency_id, assessed_at,
 FROM assessment
 WHERE course_participation_id = ANY($1::uuid[]);
 
+-- name: GetAllIndependentAssessmentsByCourseParticipationIDs :many
+SELECT id, course_participation_id, course_phase_id, competency_id, assessed_at, score_level
+FROM independent_assessment
+WHERE course_participation_id = ANY($1::uuid[]);
+
 -- name: GetAllAssessmentCompletionsByCourseParticipationIDs :many
 SELECT course_participation_id, course_phase_id, completed_at, comment, grade_suggestion, completed
 FROM assessment_completion
@@ -44,6 +49,10 @@ WHERE course_participation_id = ANY($1::uuid[]);
 
 -- name: DeleteAssessmentsByCourseParticipationIDs :exec
 DELETE FROM assessment
+WHERE course_participation_id = ANY($1::uuid[]);
+
+-- name: DeleteIndependentAssessmentsByCourseParticipationIDs :exec
+DELETE FROM independent_assessment
 WHERE course_participation_id = ANY($1::uuid[]);
 
 -- name: DeleteAssessmentCompletionsByCourseParticipationIDs :exec

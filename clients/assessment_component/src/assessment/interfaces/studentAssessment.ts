@@ -11,4 +11,6 @@ export interface StudentAssessment {
   assessmentCompletion: AssessmentCompletion
   studentScore?: StudentScore
   evaluations: Evaluation[]
+  independentAssessments: Assessment[]
+  myIndependentAssessments: Assessment[]
 }

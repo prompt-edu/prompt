@@ -9,10 +9,12 @@ import (
 )
 
 type StudentAssessment struct {
-	CourseParticipationID uuid.UUID                                    `json:"courseParticipationID"`
-	Assessments           []Assessment                                 `json:"assessments"`
-	CategoryAssessments   []categoryAssessmentDTO.CategoryAssessment   `json:"categoryAssessments"`
-	AssessmentCompletion  assessmentCompletionDTO.AssessmentCompletion `json:"assessmentCompletion"`
-	StudentScore          scoreLevelDTO.StudentScore                   `json:"studentScore"`
-	Evaluations           []evaluationDTO.Evaluation                   `json:"evaluations"`
+	CourseParticipationID    uuid.UUID                                    `json:"courseParticipationID"`
+	Assessments              []Assessment                                 `json:"assessments"`
+	CategoryAssessments      []categoryAssessmentDTO.CategoryAssessment   `json:"categoryAssessments"`
+	AssessmentCompletion     assessmentCompletionDTO.AssessmentCompletion `json:"assessmentCompletion"`
+	StudentScore             scoreLevelDTO.StudentScore                   `json:"studentScore"`
+	Evaluations              []evaluationDTO.Evaluation                   `json:"evaluations"`
+	IndependentAssessments   []Assessment                                 `json:"independentAssessments"`
+	MyIndependentAssessments []Assessment                                 `json:"myIndependentAssessments"`
 }

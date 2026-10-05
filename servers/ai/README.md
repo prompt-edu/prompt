@@ -20,7 +20,7 @@ All course data routes are below:
 | `GET /calls`, `GET /calls/:callID` | PromptAdmin | Audit metadata, and one call's content (recorded as `content_viewed`) |
 
 `PromptLecturer` is never allowed: the SDK lets it pass for every course phase, so it could spend
-every phase's key. The service also implements the SDK privacy export and deletion contracts and
+every phase's key. A course-scoped way to admit it is tracked in prompt-edu/prompt-sdk#136. The service also implements the SDK privacy export and deletion contracts and
 `phase.deletion` (`DELETE /ai/api/course_phase/:coursePhaseID`, which deletes only the key).
 
 A stock OpenAI SDK works with `baseURL = <host>/ai/api/course_phase/<id>/v1` and the Keycloak token

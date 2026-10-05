@@ -50,14 +50,16 @@ Everything AI is behind one switch, `AI_ENABLED`, which is off by default.
 7. **Human oversight.** Events API for `shown`, `accepted`, `edited` (edit distance) and
    `rejected`, reported by the user who made the call. Audit reads are admin-only, under the course phase routes, and every content read
    is itself recorded. Admin page per course in core.
-8. **Privacy.** Core adds the AI server as an extra target to the privacy export, per-student
-   deletion and phase deletion fan-outs when AI is enabled. High-risk content under erasure is
+8. **Privacy.** Core asks the AI server as a standalone module (`servers/core/standaloneModule`,
+   a service that is not a phase type but keeps data per phase or per person) in the privacy
+   export, per-student deletion and phase deletion fan-outs when AI is enabled. High-risk content under erasure is
    access-restricted until its retention ends (GDPR Art. 17(3)(b)); other content is deleted
    immediately. Students are informed through the privacy policy (AI Act Art. 26(11));
    lecturer-facing output is labeled AI-generated (Art. 50(1)).
 9. **Switch and failure behavior.** One GitHub variable, `AI_ENABLED`, off by default. The
    deployment derives the compose profile `ai` from it (AI server and database), and it is passed
-   to core and to the phase servers that use AI. Disabled, unreachable or unconfigured all mean
+   to core and to the phase servers that use AI. The core client shows its AI surfaces only while
+   the AI server answers healthy on `/ai/api/info`. Disabled, unreachable or unconfigured all mean
    the AI surfaces are hidden and the workflow is untouched.
 10. **Regulatory stance.** Treated as high-risk under the EU AI Act (Annex III 3(b), steering the
     learning process; the Art. 6(3) exemption does not apply because condensing feedback about one
@@ -128,7 +130,7 @@ retention is longer than the longest content retention.
 - **Phase and course deletion:** the AI server deletes the phase's key at once; its audit records
   stay until their retention ends.
 
-Core treats the AI server like a phase module in these fan-outs: if it is unreachable, the phase
+Core asks the AI server like a phase module in these fan-outs, for every phase whatever its type: if it is unreachable, the phase
 deletion fails and can be retried, and the privacy request reports the AI part as failed.
 
 ## Configuration

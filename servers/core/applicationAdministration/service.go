@@ -162,6 +162,10 @@ func upsertFileUploadAnswer(ctx context.Context, qtx *db.Queries, coursePhaseID 
 	if answer.FileID == uuid.Nil {
 		return nil, nil
 	}
+	// Privacy deletion anonymizes files to an empty uploader, so an empty uploader must not match them.
+	if !uploader.anyInPhase && uploader.userID == "" {
+		return nil, ErrFileNotInApplication
+	}
 
 	// Check if there's an existing file upload answer for this question
 	existingAnswer, err := qtx.GetApplicationAnswerFileUploadByQuestionAndParticipation(ctx, db.GetApplicationAnswerFileUploadByQuestionAndParticipationParams{

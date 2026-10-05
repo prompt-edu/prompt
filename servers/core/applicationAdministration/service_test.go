@@ -627,6 +627,26 @@ func (suite *ApplicationAdminServiceTestSuite) TestUpsertFileUploadAnswer_ZeroUp
 	assert.NoError(suite.T(), err)
 }
 
+func (suite *ApplicationAdminServiceTestSuite) TestUpsertFileUploadAnswer_EmptyUploaderRejectsAnonymizedFile() {
+	tx, err := suite.applicationAdminService.conn.Begin(suite.ctx)
+	assert.NoError(suite.T(), err)
+	defer func() { _ = tx.Rollback(suite.ctx) }()
+	queries := suite.applicationAdminService.queries.WithTx(tx)
+	assert.NoError(suite.T(), queries.AnonymizeFilesByUploader(suite.ctx, "external"))
+
+	coursePhaseID := uuid.MustParse("4179d58a-d00d-4fa7-94a5-397bc69fab02")
+	courseParticipationID := uuid.MustParse("32aa070e-67c3-4a69-852a-ba3b5e849a4d")
+	answer := applicationDTO.CreateAnswerFileUpload{
+		ApplicationQuestionID: uuid.MustParse("c2c04042-95d1-4765-8592-caf9560c8c3e"),
+		FileID:                seededUploadFileID,
+	}
+
+	for _, uploader := range []fileUploader{{}, uploadedBy("")} {
+		_, err = upsertFileUploadAnswer(suite.ctx, queries, coursePhaseID, uploader, answer, courseParticipationID)
+		assert.ErrorIs(suite.T(), err, ErrFileNotInApplication)
+	}
+}
+
 func TestApplicationAdminServiceTestSuite(t *testing.T) {
 	suite.Run(t, new(ApplicationAdminServiceTestSuite))
 }

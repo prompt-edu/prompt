@@ -117,7 +117,8 @@ mail has a subject and content.
   or every participant in an evaluation-only phase
 - Each student receives the mail once. If you unrelease and release the results again, only students
   who were not notified before are mailed
-- A student whose mail could not be delivered is mailed again on the next release
+- A student whose mail could not be delivered is mailed again when you unrelease and release the
+  results again
 - If sending times out, PROMPT cannot tell who received the mail, so the students of that release
   are not mailed again automatically
 - Besides the usual student placeholders, `{{coursePhaseName}}` and `{{coursePhaseLink}}` are available

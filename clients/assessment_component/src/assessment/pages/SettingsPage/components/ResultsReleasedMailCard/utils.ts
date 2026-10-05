@@ -35,5 +35,7 @@ export const describeMailReport = ({
   const sent = `${successfulEmails.length} notification ${
     successfulEmails.length === 1 ? 'mail was' : 'mails were'
   } sent.`
-  return failedEmails.length > 0 ? `${sent} ${failedEmails.length} could not be delivered.` : sent
+  return failedEmails.length > 0
+    ? `${sent} ${failedEmails.length} could not be delivered. To retry, unrelease and release the results again.`
+    : sent
 }

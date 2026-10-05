@@ -54,7 +54,9 @@ describe('describeMailReport', () => {
         failedEmails: ['c@example.com'],
         requestedRecipients: 3,
       }),
-    ).toBe('2 notification mails were sent. 1 could not be delivered.')
+    ).toBe(
+      '2 notification mails were sent. 1 could not be delivered. To retry, unrelease and release the results again.',
+    )
   })
 
   it('says when nobody was left to notify', () => {

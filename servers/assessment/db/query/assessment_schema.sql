@@ -199,6 +199,14 @@ SELECT EXISTS(
         WHERE cat.assessment_schema_id = $2
     )
 ) OR EXISTS(
+    SELECT 1 FROM independent_assessment ia
+    WHERE ia.course_phase_id = $1
+    AND ia.competency_id IN (
+        SELECT co.id FROM competency co
+        JOIN category cat ON co.category_id = cat.id
+        WHERE cat.assessment_schema_id = $2
+    )
+) OR EXISTS(
     SELECT 1 FROM evaluation e
     WHERE e.course_phase_id = $1
     AND e.competency_id IN (
@@ -210,6 +218,12 @@ SELECT EXISTS(
 
 -- name: UpdateAssessmentCompetencies :exec
 UPDATE assessment
+SET competency_id = $3
+WHERE course_phase_id = $1
+AND competency_id = $2;
+
+-- name: UpdateIndependentAssessmentCompetencies :exec
+UPDATE independent_assessment
 SET competency_id = $3
 WHERE course_phase_id = $1
 AND competency_id = $2;

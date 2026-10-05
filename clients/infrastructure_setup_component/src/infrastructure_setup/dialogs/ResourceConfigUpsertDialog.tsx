@@ -29,6 +29,7 @@ import type {
   Scope,
   UpdateResourceConfigRequest,
 } from '../interfaces/resourceConfig'
+import { infrastructureSetupCache, infrastructureSetupKeys } from '../network/cache'
 import { createResourceConfig } from '../network/mutations/createResourceConfig'
 import { updateResourceConfig } from '../network/mutations/updateResourceConfig'
 import { getProviderResourceTypes } from '../network/queries/getProviderResourceTypes'
@@ -107,7 +108,7 @@ export const ResourceConfigUpsertDialog = ({
   const [extraConfigError, setExtraConfigError] = useState<string | null>(null)
 
   const { data: resourceTypes = [] } = useQuery({
-    queryKey: ['provider-resource-types', coursePhaseID, providerType],
+    queryKey: infrastructureSetupKeys.providerResourceTypes(coursePhaseID, providerType),
     queryFn: () => getProviderResourceTypes(coursePhaseID, providerType as ProviderType),
     enabled: open && !!providerType,
   })
@@ -182,15 +183,15 @@ export const ResourceConfigUpsertDialog = ({
       return createResourceConfig(coursePhaseID, req)
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['resource-configs', coursePhaseID] })
+      infrastructureSetupCache.resourceConfigsChanged(queryClient, coursePhaseID)
       toast({
-        title: existing ? 'Resource config updated' : 'Resource config created',
+        title: existing ? 'Resource updated' : 'Resource added',
       })
       onOpenChange(false)
     },
     onError: (err: unknown) => {
       toast({
-        title: 'Failed to save resource config',
+        title: 'Failed to save the resource',
         description: describeError(err),
         variant: 'destructive',
       })
@@ -206,7 +207,9 @@ export const ResourceConfigUpsertDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className='max-w-2xl'>
+      {/* The form is taller than a laptop screen, so it scrolls inside the viewport
+          rather than pushing the Save button out of reach. */}
+      <DialogContent className='max-h-[90vh] max-w-2xl overflow-y-auto'>
         <form
           onSubmit={(e) => {
             e.preventDefault()
@@ -215,12 +218,9 @@ export const ResourceConfigUpsertDialog = ({
           }}
         >
           <DialogHeader>
-            <DialogTitle>
-              {existing ? 'Edit resource configuration' : 'New resource configuration'}
-            </DialogTitle>
+            <DialogTitle>{existing ? 'Edit resource' : 'Add resource'}</DialogTitle>
             <DialogDescription>
-              Resource configurations describe what to provision per team or per student during
-              execution.
+              Describes what to create for every team or every student when you provision.
             </DialogDescription>
           </DialogHeader>
 
@@ -240,7 +240,7 @@ export const ResourceConfigUpsertDialog = ({
                 <Input id='providerType' value={existing.providerType} disabled />
               ) : availableProviderTypes.length === 0 ? (
                 <p className='text-sm text-red-600'>
-                  No providers configured yet. Add a provider before creating a resource config.
+                  No providers configured yet. Add a provider before adding a resource.
                 </p>
               ) : (
                 <Select

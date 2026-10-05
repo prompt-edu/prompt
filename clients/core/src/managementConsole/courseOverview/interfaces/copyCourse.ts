@@ -3,6 +3,8 @@ export interface CopyCourse {
   semesterTag: string
   startDate: Date
   endDate: Date
+  courseType?: string
+  ects?: number
   template: boolean
   shortDescription?: string
   longDescription?: string

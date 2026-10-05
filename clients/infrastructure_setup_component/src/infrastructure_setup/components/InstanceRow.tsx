@@ -12,6 +12,7 @@ import { ChevronDown, ChevronRight, ExternalLink, RotateCcw, Trash2 } from 'luci
 import { useState } from 'react'
 
 import type { ResourceInstance } from '../interfaces/resourceInstance'
+import { infrastructureSetupCache } from '../network/cache'
 import { deleteInstance } from '../network/mutations/deleteInstance'
 import { retryInstance } from '../network/mutations/retryInstance'
 import { describeError } from '../utils/describeError'
@@ -39,7 +40,7 @@ export const InstanceRow = ({ coursePhaseID, instance }: Props) => {
   const { mutate: retry, isPending: isRetrying } = useMutation({
     mutationFn: () => retryInstance(coursePhaseID, instance.id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['instances', coursePhaseID] })
+      infrastructureSetupCache.instancesChanged(queryClient, coursePhaseID)
       toast({ title: 'Retry started' })
     },
     onError: onMutationError('retry'),
@@ -48,7 +49,7 @@ export const InstanceRow = ({ coursePhaseID, instance }: Props) => {
   const { mutate: remove, isPending: isDeleting } = useMutation({
     mutationFn: () => deleteInstance(coursePhaseID, instance.id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['instances', coursePhaseID] })
+      infrastructureSetupCache.instancesChanged(queryClient, coursePhaseID)
       toast({ title: 'Instance deleted' })
       setConfirmOpen(false)
     },

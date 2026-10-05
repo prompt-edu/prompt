@@ -1,8 +1,6 @@
 package teamDTO
 
 import (
-	"strings"
-
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	db "github.com/prompt-edu/prompt/servers/team_allocation/db/sqlc"
@@ -30,10 +28,6 @@ func GetTutorDTOFromDBModel(dbTutor db.Tutor) Tutor {
 		TeamID:                dbTutor.TeamID,
 		UniversityLogin:       dbTutor.UniversityLogin.String,
 	}
-}
-
-func NormalizeUniversityLogin(login string) string {
-	return strings.TrimSpace(strings.ToLower(login))
 }
 
 func UniversityLoginParam(login string) pgtype.Text {

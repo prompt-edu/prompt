@@ -32,6 +32,7 @@ interface AssessmentStateSnapshot {
   gradeSuggestionVisible: boolean
   actionItemsVisible: boolean
   gradingSheetVisible: boolean
+  independentAssessmentEnabled: boolean
 }
 
 const toDate = (value?: Date | string): Date | undefined => {
@@ -74,6 +75,7 @@ export const buildRequestFromConfig = (
     actionItemsVisible: config?.actionItemsVisible ?? true,
     gradingSheetVisible: config?.gradingSheetVisible ?? false,
     tutorDisplayName: config?.tutorDisplayName ?? '',
+    independentAssessmentEnabled: config?.independentAssessmentEnabled ?? false,
   }
 }
 
@@ -91,7 +93,8 @@ export const hasAssessmentCardChanges = (
     current.evaluationResultsVisible !== (originalConfig.evaluationResultsVisible || false) ||
     current.gradeSuggestionVisible !== (originalConfig.gradeSuggestionVisible ?? true) ||
     current.actionItemsVisible !== (originalConfig.actionItemsVisible ?? true) ||
-    current.gradingSheetVisible !== (originalConfig.gradingSheetVisible ?? false)
+    current.gradingSheetVisible !== (originalConfig.gradingSheetVisible ?? false) ||
+    current.independentAssessmentEnabled !== (originalConfig.independentAssessmentEnabled ?? false)
   )
 }
 

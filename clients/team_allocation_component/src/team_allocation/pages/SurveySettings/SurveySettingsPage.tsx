@@ -2,16 +2,17 @@ import { useQuery } from '@tanstack/react-query'
 import type { Team } from '@tumaet/prompt-shared-state'
 import {
   ErrorPage,
-  LoadingPage,
   ManagementPageHeader,
   MissingSettings,
   type MissingSettingsItem,
+  QueryGate,
 } from '@tumaet/prompt-ui-components'
 import { Loader2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import type { Skill } from '../../interfaces/skill'
 import type { SurveyTimeframe } from '../../interfaces/timeframe'
+import { teamAllocationKeys } from '../../network/cache'
 import { getAllSkills } from '../../network/queries/getAllSkills'
 import { getAllTeams } from '../../network/queries/getAllTeams'
 import { getConfig } from '../../network/queries/getConfig'
@@ -24,56 +25,32 @@ import { TeamSettings } from './components/TeamSettings'
 export const SurveySettingsPage = () => {
   const { phaseId } = useParams<{ phaseId: string }>()
 
-  const {
-    data: fetchedSkills,
-    isPending: isSkillsPending,
-    isError: isSkillsError,
-    refetch: refetchSkills,
-  } = useQuery<Skill[]>({
-    queryKey: ['team_allocation_skill', phaseId],
+  const skillsQuery = useQuery<Skill[]>({
+    queryKey: teamAllocationKeys.skills(phaseId),
     queryFn: () => getAllSkills(phaseId ?? ''),
   })
 
-  const {
-    data: fetchedTeams,
-    isPending: isTeamsPending,
-    isError: isTeamsError,
-    refetch: refetchTeams,
-  } = useQuery<Team[]>({
-    queryKey: ['team_allocation_team', phaseId],
+  const teamsQuery = useQuery<Team[]>({
+    queryKey: teamAllocationKeys.teams(phaseId),
     queryFn: () => getAllTeams(phaseId ?? ''),
   })
 
-  const {
-    data: fetchedSurveyTimeframe,
-    isPending: isSurveyTimeframePending,
-    isError: isSurveyTimeframeError,
-    refetch: refetchTimeframe,
-  } = useQuery<SurveyTimeframe>({
-    queryKey: ['team_allocation_survey_timeframe', phaseId],
+  const surveyTimeframeQuery = useQuery<SurveyTimeframe>({
+    queryKey: teamAllocationKeys.survey.timeframe(phaseId),
     queryFn: () => getSurveyTimeframe(phaseId ?? ''),
   })
 
-  const {
-    data: fetchedConfig,
-    isPending: isConfigPending,
-    isError: isConfigError,
-    refetch: refetchConfig,
-  } = useQuery<Record<string, boolean>>({
-    queryKey: ['team_allocation_config', phaseId],
+  const configQuery = useQuery<Record<string, boolean>>({
+    queryKey: teamAllocationKeys.config(phaseId),
     queryFn: () => getConfig(phaseId ?? ''),
   })
 
-  const [missingConfigs, setMissingConfigs] = useState<MissingSettingsItem[]>([])
+  const fetchedSkills = skillsQuery.data
+  const fetchedTeams = teamsQuery.data
+  const fetchedSurveyTimeframe = surveyTimeframeQuery.data
+  const fetchedConfig = configQuery.data
 
-  const isPending = isSkillsPending || isTeamsPending || isSurveyTimeframePending || isConfigPending
-  const isError = isSkillsError || isTeamsError || isSurveyTimeframeError || isConfigError
-  const refetch = () => {
-    refetchSkills()
-    refetchTeams()
-    refetchTimeframe()
-    refetchConfig()
-  }
+  const [missingConfigs, setMissingConfigs] = useState<MissingSettingsItem[]>([])
 
   const configToReadableTitle = (key: string): string => {
     switch (key) {
@@ -116,25 +93,25 @@ export const SurveySettingsPage = () => {
     setMissingConfigs(items)
   }, [fetchedConfig])
 
-  if (isError) {
-    return <ErrorPage onRetry={refetch} />
-  }
-
-  if (isPending) {
-    return <LoadingPage />
-  }
-
   return (
-    <>
-      <ManagementPageHeader>Survey Settings</ManagementPageHeader>
-      <MissingSettings elements={missingConfigs} />
-      <SurveyLinkCard />
-      {/* 1. Set the survey timeframe, skills and teams for this phase. */}
-      <SurveyTimeframeSettings surveyTimeframe={fetchedSurveyTimeframe} />
-      {/* 2. Set up the teams */}
-      <TeamSettings teams={fetchedTeams} />
-      {/* 3. Set up the skills */}
-      <SkillSettings skills={fetchedSkills} />
-    </>
+    <QueryGate queries={[skillsQuery, teamsQuery, surveyTimeframeQuery, configQuery]}>
+      {() =>
+        !fetchedSurveyTimeframe || !fetchedTeams || !fetchedSkills ? (
+          <ErrorPage description='Could not fetch the survey settings' />
+        ) : (
+          <>
+            <ManagementPageHeader>Survey Settings</ManagementPageHeader>
+            <MissingSettings elements={missingConfigs} />
+            <SurveyLinkCard />
+            {/* 1. Set the survey timeframe, skills and teams for this phase. */}
+            <SurveyTimeframeSettings surveyTimeframe={fetchedSurveyTimeframe} />
+            {/* 2. Set up the teams */}
+            <TeamSettings teams={fetchedTeams} />
+            {/* 3. Set up the skills */}
+            <SkillSettings skills={fetchedSkills} />
+          </>
+        )
+      }
+    </QueryGate>
   )
 }

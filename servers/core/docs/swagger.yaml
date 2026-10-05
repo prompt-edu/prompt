@@ -2015,6 +2015,36 @@ definitions:
       studyProgram:
         type: string
     type: object
+  studyProgramDTO.CreateStudyProgram:
+    properties:
+      name:
+        type: string
+      shortName:
+        type: string
+    type: object
+  studyProgramDTO.StudyProgram:
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+      shortName:
+        type: string
+    type: object
+  studyProgramDTO.StudyProgramStudentCount:
+    properties:
+      studentCount:
+        type: integer
+      studyProgramID:
+        type: string
+    type: object
+  studyProgramDTO.UpdateStudyProgram:
+    properties:
+      name:
+        type: string
+      shortName:
+        type: string
+    type: object
   utils.ErrorResponse:
     properties:
       error:
@@ -5699,4 +5729,148 @@ paths:
       summary: Get all students with courses
       tags:
       - students
+  /study-programs:
+    get:
+      description: Get the study programs applicants can pick, ordered by name. No
+        authentication required.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/studyProgramDTO.StudyProgram'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: Get all study programs
+      tags:
+      - studyPrograms
+    post:
+      consumes:
+      - application/json
+      description: Add a study program to the list applicants can pick
+      parameters:
+      - description: Study program to create
+        in: body
+        name: studyProgram
+        required: true
+        schema:
+          $ref: '#/definitions/studyProgramDTO.CreateStudyProgram'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/studyProgramDTO.StudyProgram'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: Create a study program
+      tags:
+      - studyPrograms
+  /study-programs/{study-program-uuid}:
+    delete:
+      description: Remove a study program from the list. Students keep their stored
+        study program.
+      parameters:
+      - description: Study program UUID
+        in: path
+        name: study-program-uuid
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: Delete a study program
+      tags:
+      - studyPrograms
+    put:
+      consumes:
+      - application/json
+      description: Rename a study program or change its short name. A rename also
+        updates every student with the previous name.
+      parameters:
+      - description: Study program UUID
+        in: path
+        name: study-program-uuid
+        required: true
+        type: string
+      - description: Updated study program
+        in: body
+        name: studyProgram
+        required: true
+        schema:
+          $ref: '#/definitions/studyProgramDTO.UpdateStudyProgram'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/studyProgramDTO.StudyProgram'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: Update a study program
+      tags:
+      - studyPrograms
+  /study-programs/student-counts:
+    get:
+      description: Count the students whose stored study program matches each listed
+        program
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/studyProgramDTO.StudyProgramStudentCount'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: Get the number of students per study program
+      tags:
+      - studyPrograms
 swagger: "2.0"

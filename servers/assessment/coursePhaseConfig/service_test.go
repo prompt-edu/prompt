@@ -482,6 +482,49 @@ func (suite *CoursePhaseConfigServiceTestSuite) TestCreateOrUpdateCoursePhaseCon
 	assert.Equal(suite.T(), "", save(&blank), "A blank name should reset to the default")
 }
 
+func (suite *CoursePhaseConfigServiceTestSuite) TestCreateOrUpdateCoursePhaseConfig_IndependentAssessmentEnabled() {
+	testID := uuid.New()
+	schemaID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
+	save := func(independentAssessmentEnabled *bool) bool {
+		req := createTestCoursePhaseConfigRequest(schemaID, testID)
+		req.IndependentAssessmentEnabled = independentAssessmentEnabled
+		assert.NoError(suite.T(), suite.coursePhaseConfigService.CreateOrUpdateCoursePhaseConfig(suite.suiteCtx, testID, req))
+		config, err := suite.coursePhaseConfigService.GetCoursePhaseConfig(suite.suiteCtx, testID)
+		assert.NoError(suite.T(), err)
+		return config.IndependentAssessmentEnabled
+	}
+	enabled, disabled := true, false
+
+	assert.False(suite.T(), save(nil), "Independent assessment should be opt-in")
+	assert.True(suite.T(), save(&enabled))
+	assert.True(suite.T(), save(nil), "An omitted flag should preserve the stored value")
+	assert.False(suite.T(), save(&disabled))
+}
+
+func (suite *CoursePhaseConfigServiceTestSuite) TestRequireIndependentAssessmentEnabled() {
+	router := gin.New()
+	router.POST("/api/course_phase/:coursePhaseID/write", suite.coursePhaseConfigService.RequireIndependentAssessmentEnabled(), func(c *gin.Context) {
+		c.Status(http.StatusOK)
+	})
+	post := func(coursePhaseID uuid.UUID) int {
+		req := httptest.NewRequest(http.MethodPost, "/api/course_phase/"+coursePhaseID.String()+"/write", nil)
+		resp := httptest.NewRecorder()
+		router.ServeHTTP(resp, req)
+		return resp.Code
+	}
+
+	assert.Equal(suite.T(), http.StatusConflict, post(uuid.New()), "An unconfigured phase has not opted in")
+
+	schemaID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
+	enabledID := uuid.New()
+	_, err := suite.coursePhaseConfigService.conn.Exec(suite.suiteCtx,
+		`INSERT INTO course_phase_config (assessment_schema_id, course_phase_id, independent_assessment_enabled)
+		 VALUES ($1, $2, TRUE)`,
+		schemaID, enabledID)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), http.StatusOK, post(enabledID))
+}
+
 // seedAssessmentCompetency creates the category/competency pair assessment rows need.
 func (suite *CoursePhaseConfigServiceTestSuite) seedAssessmentCompetency(schemaID uuid.UUID) uuid.UUID {
 	categoryID := uuid.New()
@@ -513,6 +556,13 @@ func (suite *CoursePhaseConfigServiceTestSuite) TestCreateOrUpdateCoursePhaseCon
 				`INSERT INTO assessment (id, course_participation_id, course_phase_id, competency_id, score_level)
 				 VALUES ($1, $2, $3, $4, $5)`,
 				uuid.New(), uuid.New(), phaseID, competencyID, "good")
+			assert.NoError(suite.T(), err)
+		}},
+		{"independent assessment", func(phaseID uuid.UUID) {
+			_, err := suite.coursePhaseConfigService.conn.Exec(suite.suiteCtx,
+				`INSERT INTO independent_assessment (course_participation_id, course_phase_id, competency_id, score_level, author, author_id)
+				 VALUES ($1, $2, $3, $4, $5, $6)`,
+				uuid.New(), phaseID, competencyID, "good", "Coach", "coach-id")
 			assert.NoError(suite.T(), err)
 		}},
 		{"assessment completion", func(phaseID uuid.UUID) {

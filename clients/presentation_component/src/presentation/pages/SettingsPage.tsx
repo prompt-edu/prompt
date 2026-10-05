@@ -53,6 +53,7 @@ import type {
 } from '../interfaces'
 import { MATERIAL_TYPE_CATALOG, sortMaterialTypes } from '../materialTypes'
 import { presentationApi } from '../network'
+import { presentationCache, presentationKeys } from '../network/cache'
 import { getApiError, getErrorMessage } from '../utils'
 
 type SettingsAction = { resetExistingData?: boolean } & (
@@ -238,12 +239,12 @@ const SettingsPage = () => {
   const [resetAction, setResetAction] = useState<ResetAction>()
 
   const configQuery = useQuery({
-    queryKey: ['presentation-config', coursePhaseId],
+    queryKey: presentationKeys.config(coursePhaseId),
     queryFn: () => presentationApi.getConfig(coursePhaseId),
     enabled: Boolean(coursePhaseId),
   })
   const categoriesQuery = useQuery({
-    queryKey: ['presentation-categories', coursePhaseId],
+    queryKey: presentationKeys.categories(coursePhaseId),
     queryFn: () => presentationApi.getCategories(coursePhaseId),
     enabled: Boolean(coursePhaseId),
   })
@@ -254,14 +255,6 @@ const SettingsPage = () => {
     setFeedbackMode(configQuery.data.feedbackMode)
     setRequiredMaterialTypes(sortMaterialTypes(configQuery.data.requiredMaterialTypes ?? []))
   }, [configQuery.data])
-
-  const invalidateSettings = () => {
-    void queryClient.invalidateQueries({ queryKey: ['presentation-config', coursePhaseId] })
-    void queryClient.invalidateQueries({ queryKey: ['presentation-categories', coursePhaseId] })
-    void queryClient.invalidateQueries({ queryKey: ['presentations', coursePhaseId] })
-    void queryClient.invalidateQueries({ queryKey: ['presentation-slots', coursePhaseId] })
-    void queryClient.invalidateQueries({ queryKey: ['presentation-targets', coursePhaseId] })
-  }
 
   // The modes and the requested uploads have their own save button, so each one submits its
   // own edits together with the values already stored for the other.
@@ -295,7 +288,7 @@ const SettingsPage = () => {
       }
     },
     onSuccess: (_data, action) => {
-      invalidateSettings()
+      presentationCache.settingsChanged(queryClient, coursePhaseId)
       setResetAction(undefined)
       if (action.type === 'create-category') {
         setNewCategoryName('')

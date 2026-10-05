@@ -3,6 +3,9 @@ package coursePhaseConfig
 import (
 	"context"
 	"errors"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"slices"
 	"testing"
 	"time"
@@ -213,10 +216,10 @@ func (suite *ResultsReleasedMailTestSuite) TestRetriesRecipientCoreSkipped() {
 	suite.Equal([]string{"bob@example.com"}, report.SuccessfulEmails)
 }
 
-func (suite *ResultsReleasedMailTestSuite) TestReleasesAllClaimsWhenCoreFails() {
+func (suite *ResultsReleasedMailTestSuite) TestReleasesAllClaimsWhenCoreRejects() {
 	coursePhaseID := suite.createPhase(true)
 	suite.addParticipant(coursePhaseID, "alice@example.com", true)
-	suite.coreMailErr = errors.New("core unavailable")
+	suite.coreMailErr = fmt.Errorf("%w with status 500: boom", errCoreRejectedMail)
 
 	_, err := suite.service.SendResultsReleasedMail(suite.ctx, "Bearer token", coursePhaseID)
 	suite.Error(err)
@@ -224,6 +227,41 @@ func (suite *ResultsReleasedMailTestSuite) TestReleasesAllClaimsWhenCoreFails() 
 	suite.coreMailErr = nil
 	report := suite.send(coursePhaseID)
 	suite.Equal([]string{"alice@example.com"}, report.SuccessfulEmails)
+}
+
+func (suite *ResultsReleasedMailTestSuite) TestKeepsClaimsWhenCoreOutcomeIsUnknown() {
+	coursePhaseID := suite.createPhase(true)
+	suite.addParticipant(coursePhaseID, "alice@example.com", true)
+	suite.coreMailErr = fmt.Errorf("failed to send manual mails via core: %w", context.DeadlineExceeded)
+
+	_, err := suite.service.SendResultsReleasedMail(suite.ctx, "Bearer token", coursePhaseID)
+	suite.ErrorIs(err, errResultsMailOutcomeUnknown)
+
+	suite.coreMailErr = nil
+	report := suite.send(coursePhaseID)
+	suite.Empty(report.SuccessfulEmails)
+	suite.Len(suite.mailRequests, 1)
+}
+
+func TestSendManualMailMarksOnlyCoreRejections(t *testing.T) {
+	status, body := http.StatusInternalServerError, "boom"
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(status)
+		_, _ = w.Write([]byte(body))
+	}))
+	defer server.Close()
+	t.Setenv("SERVER_CORE_HOST", server.URL)
+
+	_, err := sendManualMail(context.Background(), "", uuid.New(), coreManualMailRequest{})
+	if !errors.Is(err, errCoreRejectedMail) {
+		t.Fatalf("expected a core rejection for status 500, got %v", err)
+	}
+
+	status, body = http.StatusOK, "not json"
+	_, err = sendManualMail(context.Background(), "", uuid.New(), coreManualMailRequest{})
+	if err == nil || errors.Is(err, errCoreRejectedMail) {
+		t.Fatalf("expected an unparseable 200 response not to count as a rejection, got %v", err)
+	}
 }
 
 func TestResultsReleasedMailTestSuite(t *testing.T) {

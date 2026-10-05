@@ -2,6 +2,7 @@ package coursePhaseConfig
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"slices"
 
@@ -10,6 +11,8 @@ import (
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
 	log "github.com/sirupsen/logrus"
 )
+
+var errResultsMailOutcomeUnknown = errors.New("results mail outcome is unknown")
 
 func (s *CoursePhaseConfigService) SendResultsReleasedMail(
 	ctx context.Context,
@@ -54,6 +57,10 @@ func (s *CoursePhaseConfigService) SendResultsReleasedMail(
 		AdditionalPlaceholders:          map[string]string{"coursePhaseName": coursePhase.Name},
 	})
 	if err != nil {
+		// Core rejects a request before mailing anyone; after a timeout it may still be mailing.
+		if !errors.Is(err, errCoreRejectedMail) {
+			return nil, fmt.Errorf("%w: %w", errResultsMailOutcomeUnknown, err)
+		}
 		s.releaseResultsReleasedMailClaims(ctx, coursePhaseID, claimedIDs)
 		return nil, err
 	}

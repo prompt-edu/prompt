@@ -61,7 +61,7 @@ export const useReleaseAssessmentResults = (): ReleaseAssessmentResultsModel => 
   const toastMailOutcome = ({ mailReport, mailError }: ReleaseResultsResponse) => {
     if (mailError) {
       toast({
-        title: 'Notification mails not sent',
+        title: 'Notification mails failed',
         description: mailError,
         variant: 'destructive',
       })

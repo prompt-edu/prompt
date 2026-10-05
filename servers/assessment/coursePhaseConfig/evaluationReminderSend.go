@@ -26,6 +26,7 @@ var (
 	ErrReminderEvaluationDisabled = errors.New("evaluation type is disabled for this course phase")
 	ErrReminderDeadlineNotPassed  = errors.New("evaluation deadline has not passed yet")
 	ErrReminderTemplateIncomplete = errors.New("assessment reminder template is incomplete")
+	errCoreRejectedMail           = errors.New("core mailing request failed")
 )
 
 const coreManualMailTimeout = 2 * time.Minute
@@ -205,16 +206,17 @@ func sendManualMail(
 	}
 	defer func() { _ = resp.Body.Close() }()
 
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return coreManualMailReport{}, fmt.Errorf("failed to read core mailing response: %w", err)
-	}
+	body, readErr := io.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusOK {
 		return coreManualMailReport{}, fmt.Errorf(
-			"core mailing request failed with status %d: %s",
+			"%w with status %d: %s",
+			errCoreRejectedMail,
 			resp.StatusCode,
 			strings.TrimSpace(string(body)),
 		)
+	}
+	if readErr != nil {
+		return coreManualMailReport{}, fmt.Errorf("failed to read core mailing response: %w", readErr)
 	}
 
 	var parsed coreManualMailReport

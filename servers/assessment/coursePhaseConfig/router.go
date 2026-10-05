@@ -139,6 +139,9 @@ func (s *CoursePhaseConfigService) releaseResults(c *gin.Context) {
 	if err != nil {
 		log.WithError(err).WithField("coursePhaseID", coursePhaseID).Error("Results were released, but sending the results mail failed")
 		response.MailError = "Results were released, but the notification mails could not be sent."
+		if errors.Is(err, errResultsMailOutcomeUnknown) {
+			response.MailError = "Results were released, but it is unknown whether the notification mails were sent. These students are not mailed again automatically."
+		}
 	}
 
 	c.JSON(http.StatusOK, response)

@@ -1,45 +1,17 @@
 package ai
 
 import (
-	"net/http"
-
-	"github.com/gin-gonic/gin"
-	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase/resolution"
+	"github.com/prompt-edu/prompt/servers/core/standaloneModule"
 )
 
 const ServiceName = "AI"
 
-type Status struct {
-	Enabled bool `json:"enabled"`
-}
-
-func Enabled() bool {
-	return sdkUtils.GetEnv("AI_ENABLED", "") == "true"
-}
-
-func ServerURL() string {
-	if !Enabled() {
-		return ""
+// Module is the AI server, which keeps a key for phases of every type and audit records per person.
+func Module(environment, coreHost string) standaloneModule.Module {
+	baseURL := resolution.NormaliseHost(coreHost) + "/ai/api"
+	if environment == "development" {
+		baseURL = "http://localhost:8092/ai/api"
 	}
-	if sdkUtils.GetEnv("ENVIRONMENT", "development") == "development" {
-		return "http://localhost:8092/ai/api"
-	}
-	return resolution.NormaliseHost(sdkUtils.GetEnv("CORE_HOST", "localhost:8080")) + "/ai/api"
-}
-
-func RegisterRoutes(api *gin.RouterGroup, authMiddleware func() gin.HandlerFunc) {
-	api.GET("/ai/status", authMiddleware(), getStatus)
-}
-
-// getStatus godoc
-// @Summary AI status
-// @Description Reports whether the AI features are enabled for this deployment.
-// @Tags ai
-// @Security BearerAuth
-// @Produce json
-// @Success 200 {object} ai.Status
-// @Router /ai/status [get]
-func getStatus(c *gin.Context) {
-	c.JSON(http.StatusOK, Status{Enabled: Enabled()})
+	return standaloneModule.Module{Name: ServiceName, BaseURL: baseURL}
 }

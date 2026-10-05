@@ -3,14 +3,12 @@ package service
 import (
 	"context"
 	"fmt"
-	"net/url"
 	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	sdk "github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	sdkTypes "github.com/prompt-edu/prompt-sdk/promptTypes"
-	"github.com/prompt-edu/prompt/servers/core/ai"
 	"github.com/prompt-edu/prompt/servers/core/privacy/privacyDTO"
 	log "github.com/sirupsen/logrus"
 )
@@ -54,23 +52,12 @@ func (s *PrivacyService) PrepareDataExport(c *gin.Context) (Export, error) {
 	externalExportDocs := make([]ServiceExportRequest, 0)
 
 	// prepare External Exports
-	for _, cpt := range coursePhaseTypes {
-		_, err := url.ParseRequestURI(cpt.BaseUrl)
-		if err != nil {
-			continue
-		}
-		comparedoc, err := s.PrepareExportRecordDoc(c, exportRecord.ID, cpt.Name, cpt.BaseUrl+sdkTypes.PrivacyRouteDataExport)
-		if err != nil {
-			continue
-		}
-		externalExportDocs = append(externalExportDocs, comparedoc)
-	}
-	if aiURL := ai.ServerURL(); aiURL != "" {
-		aiDoc, err := s.PrepareExportRecordDoc(c, exportRecord.ID, ai.ServiceName, aiURL+sdkTypes.PrivacyRouteDataExport)
+	for _, module := range s.externalModules(coursePhaseTypes) {
+		doc, err := s.PrepareExportRecordDoc(c, exportRecord.ID, module.Name, module.BaseURL+sdkTypes.PrivacyRouteDataExport)
 		if err != nil {
 			return Export{}, err
 		}
-		externalExportDocs = append(externalExportDocs, aiDoc)
+		externalExportDocs = append(externalExportDocs, doc)
 	}
 
 	return Export{

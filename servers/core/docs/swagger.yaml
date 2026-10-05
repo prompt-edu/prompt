@@ -1,10 +1,5 @@
 basePath: /api/
 definitions:
-  ai.Status:
-    properties:
-      enabled:
-        type: boolean
-    type: object
   applicationAdministration.applicationCompleteUploadRequest:
     properties:
       contentType:
@@ -2066,21 +2061,6 @@ info:
   title: PROMPT Core API
   version: "1.0"
 paths:
-  /ai/status:
-    get:
-      description: Reports whether the AI features are enabled for this deployment.
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/ai.Status'
-      security:
-      - BearerAuth: []
-      summary: AI status
-      tags:
-      - ai
   /applications/{coursePhaseID}:
     delete:
       consumes:

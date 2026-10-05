@@ -15,8 +15,6 @@ import (
 
 	"github.com/google/uuid"
 	sdkTypes "github.com/prompt-edu/prompt-sdk/promptTypes"
-	"github.com/prompt-edu/prompt/servers/core/ai"
-	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -31,6 +29,12 @@ const (
 	moduleRequestTimeout = 10 * time.Second
 )
 
+// deletionTarget is one phase a module is asked to delete its data for.
+type deletionTarget struct {
+	coursePhaseID uuid.UUID
+	moduleName    string
+}
+
 // ErrModuleDeletionFailed marks a phase module that could not be asked or did not delete its data,
 // as opposed to a failure within core. The wrapped details name the module URL and quote the
 // module's answer, so they belong in the log and not in a response.
@@ -43,8 +47,8 @@ var moduleClient = &http.Client{
 	CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },
 }
 
-// deleteModuleData asks every course phase module holding data for one of the given phases to drop
-// it. It returns an error unless every module either deleted its data or reported that it does not
+// deleteModuleData asks every course phase module holding data for one of the given phases, and
+// every standalone module, to drop it. It returns an error unless every module either deleted its data or reported that it does not
 // implement phase deletion, so callers can keep core's rows and let the whole operation be retried.
 func (s *CoursePhaseService) deleteModuleData(ctx context.Context, authHeader string, coursePhaseIDs []uuid.UUID) error {
 	targets, err := s.queries.GetCoursePhaseDeletionTargets(ctx, coursePhaseIDs)
@@ -52,28 +56,28 @@ func (s *CoursePhaseService) deleteModuleData(ctx context.Context, authHeader st
 		return fmt.Errorf("failed to load course phase deletion targets: %w", err)
 	}
 
-	byBaseURL := make(map[string][]db.GetCoursePhaseDeletionTargetsRow)
+	byBaseURL := make(map[string][]deletionTarget)
 	for _, target := range targets {
 		if target.BaseUrl == coreBaseURL {
 			continue
 		}
 		baseURL := s.resolutions.ResolveBaseURL(target.BaseUrl)
-		byBaseURL[baseURL] = append(byBaseURL[baseURL], target)
+		byBaseURL[baseURL] = append(byBaseURL[baseURL], deletionTarget{coursePhaseID: target.ID, moduleName: target.CoursePhaseTypeName})
 	}
-	if aiURL := ai.ServerURL(); aiURL != "" {
+	for _, module := range s.standaloneModules {
 		for _, id := range coursePhaseIDs {
-			byBaseURL[aiURL] = append(byBaseURL[aiURL], db.GetCoursePhaseDeletionTargetsRow{ID: id, CoursePhaseTypeName: ai.ServiceName})
+			byBaseURL[module.BaseURL] = append(byBaseURL[module.BaseURL], deletionTarget{coursePhaseID: id, moduleName: module.Name})
 		}
 	}
 
 	for baseURL, moduleTargets := range byBaseURL {
-		name := moduleTargets[0].CoursePhaseTypeName
+		name := moduleTargets[0].moduleName
 		parsed, err := url.ParseRequestURI(baseURL)
 		if err != nil {
-			return fmt.Errorf("course phase type %q has an unusable base url %q: %w", name, baseURL, err)
+			return fmt.Errorf("module %q has an unusable base url %q: %w", name, baseURL, err)
 		}
 		if !mayCarryCredentials(parsed) {
-			return fmt.Errorf("course phase type %q has base url %q, which would send the caller's credentials unencrypted", name, baseURL)
+			return fmt.Errorf("module %q has base url %q, which would send the caller's credentials unencrypted", name, baseURL)
 		}
 	}
 
@@ -120,7 +124,7 @@ func (s *CoursePhaseService) DeleteModuleDataForCourse(ctx context.Context, auth
 
 // deleteModuleDataAt asks one module to delete the data of each of its phases, once it has reported
 // that it implements phase deletion at all.
-func deleteModuleDataAt(ctx context.Context, authHeader, baseURL string, targets []db.GetCoursePhaseDeletionTargetsRow) error {
+func deleteModuleDataAt(ctx context.Context, authHeader, baseURL string, targets []deletionTarget) error {
 	supported, err := moduleSupportsPhaseDeletion(ctx, baseURL)
 	if err != nil {
 		return err
@@ -132,8 +136,8 @@ func deleteModuleDataAt(ctx context.Context, authHeader, baseURL string, targets
 
 	var failures []error
 	for _, target := range targets {
-		if err := deletePhaseDataAt(ctx, authHeader, baseURL, target.ID); err != nil {
-			failures = append(failures, fmt.Errorf("course phase type %q failed to delete its data for phase %s: %w", target.CoursePhaseTypeName, target.ID, err))
+		if err := deletePhaseDataAt(ctx, authHeader, baseURL, target.coursePhaseID); err != nil {
+			failures = append(failures, fmt.Errorf("module %q failed to delete its data for phase %s: %w", target.moduleName, target.coursePhaseID, err))
 		}
 	}
 	return errors.Join(failures...)

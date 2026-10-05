@@ -9,6 +9,7 @@ import (
 	"github.com/prompt-edu/prompt/servers/core/coursePhase/coursePhaseDTO"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase/resolution/resolutionDTO"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/core/standaloneModule"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -19,16 +20,19 @@ type ResolutionReplacer interface {
 }
 
 type CoursePhaseService struct {
-	queries     db.Queries
-	conn        *pgxpool.Pool
-	resolutions ResolutionReplacer
+	queries           db.Queries
+	conn              *pgxpool.Pool
+	resolutions       ResolutionReplacer
+	standaloneModules []standaloneModule.Module
 }
 
-func NewCoursePhaseService(queries db.Queries, conn *pgxpool.Pool, resolutions ResolutionReplacer) *CoursePhaseService {
+// The standalone modules are asked to delete the data of every phase, whatever its type.
+func NewCoursePhaseService(queries db.Queries, conn *pgxpool.Pool, resolutions ResolutionReplacer, standaloneModules ...standaloneModule.Module) *CoursePhaseService {
 	return &CoursePhaseService{
-		queries:     queries,
-		conn:        conn,
-		resolutions: resolutions,
+		queries:           queries,
+		conn:              conn,
+		resolutions:       resolutions,
+		standaloneModules: standaloneModules,
 	}
 }
 

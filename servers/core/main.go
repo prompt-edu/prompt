@@ -34,6 +34,7 @@ import (
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 	"github.com/prompt-edu/prompt/servers/core/privacy"
 	"github.com/prompt-edu/prompt/servers/core/privacy/service"
+	"github.com/prompt-edu/prompt/servers/core/standaloneModule"
 	"github.com/prompt-edu/prompt/servers/core/storage/files"
 	"github.com/prompt-edu/prompt/servers/core/storage/privacyexport"
 	"github.com/prompt-edu/prompt/servers/core/student"
@@ -195,7 +196,6 @@ func main() {
 	tokenVerifier, keycloakRealmService := initKeycloak(api, *query, validationService.CheckCoursePermission)
 
 	auditLog.RegisterRoutes(api, auditLogService, tokenVerifier.KeycloakMiddleware, validationService.CheckCoursePermission)
-	ai.RegisterRoutes(api, tokenVerifier.KeycloakMiddleware)
 
 	// this initializes also all available course phase types
 	environment := sdkUtils.GetEnv("ENVIRONMENT", "development")
@@ -209,7 +209,12 @@ func main() {
 	coreHost := sdkUtils.GetEnv("CORE_HOST", "localhost:8080")
 	resolutionService := resolution.NewResolutionService(coreHost)
 
-	coursePhaseService := coursePhase.NewCoursePhaseService(*query, conn, resolutionService)
+	var standaloneModules []standaloneModule.Module
+	if sdkUtils.GetEnv("AI_ENABLED", "") == "true" {
+		standaloneModules = append(standaloneModules, ai.Module(environment, coreHost))
+	}
+
+	coursePhaseService := coursePhase.NewCoursePhaseService(*query, conn, resolutionService, standaloneModules...)
 	coursePhaseParticipationService := coursePhaseParticipation.NewCoursePhaseParticipationService(*query, conn, resolutionService)
 
 	auth.RegisterRoutes(api, authService, tokenVerifier.KeycloakMiddleware, validationService.CheckCoursePhasePermission)
@@ -249,7 +254,7 @@ func main() {
 		log.Fatalf("Failed to initialize privacy export storage: %v", err)
 	}
 
-	privacyService := service.NewPrivacyService(*query, conn, applicationService, authService, coursePhaseTypeService, studentService, instructorNoteService, fileStorageService, exportStorage, mailingService)
+	privacyService := service.NewPrivacyService(*query, conn, applicationService, authService, coursePhaseTypeService, studentService, instructorNoteService, fileStorageService, exportStorage, mailingService, standaloneModules...)
 	privacy.RegisterRoutes(api, privacyService, tokenVerifier.KeycloakMiddleware, permissionValidation.CheckAccessControlByRole)
 	privacyService.StartExportDeletionRoutine(context.Background())
 

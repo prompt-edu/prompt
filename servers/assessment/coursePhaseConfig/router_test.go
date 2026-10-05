@@ -12,6 +12,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/prompt-edu/prompt-sdk/promptTypes"
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
@@ -379,9 +380,11 @@ func (suite *CoursePhaseConfigRouterTestSuite) TestSendEvaluationReminderSuccess
 
 func (suite *CoursePhaseConfigRouterTestSuite) TestGetEvaluationReminderStatus() {
 	sentAt := time.Date(2026, time.January, 12, 10, 0, 0, 0, time.UTC)
-	_, err := suite.coursePhaseConfigService.conn.Exec(suite.suiteCtx,
-		"INSERT INTO evaluation_reminder (course_phase_id, evaluation_type, last_sent_at) VALUES ($1, 'peer', $2)",
-		suite.testCoursePhaseID, sentAt)
+	err := suite.coursePhaseConfigService.queries.UpsertEvaluationReminderLastSentAt(suite.suiteCtx, db.UpsertEvaluationReminderLastSentAtParams{
+		CoursePhaseID:  suite.testCoursePhaseID,
+		EvaluationType: db.AssessmentTypePeer,
+		LastSentAt:     pgtype.Timestamptz{Time: sentAt, Valid: true},
+	})
 	suite.Require().NoError(err)
 
 	req, _ := http.NewRequest("GET", fmt.Sprintf("/api/course_phase/%s/config/reminders", suite.testCoursePhaseID.String()), nil)

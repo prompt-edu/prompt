@@ -11,6 +11,7 @@ import (
 	"github.com/prompt-edu/prompt/servers/assessment/assessmentType"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig/coursePhaseConfigDTO"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -184,10 +185,70 @@ func (suite *EvaluationReminderSendTestSuite) TestFallsBackToLegacyLastSentAt() 
 	suite.True(firstSentAt.Equal(*report.PreviousSentAt))
 }
 
-func (suite *EvaluationReminderSendTestSuite) TestDeadlineNotPassed() {
+func (suite *EvaluationReminderSendTestSuite) TestOlderSendDoesNotReplaceNewerLastSentAt() {
+	coursePhaseID := uuid.New()
+	newerSentAt := suite.sentAt
+	suite.send(coursePhaseID)
+
+	suite.sentAt = newerSentAt.Add(-time.Hour)
+	suite.send(coursePhaseID)
+
+	sentAt, ok := suite.lastSentAt(coursePhaseID, assessmentType.Self)
+	suite.Require().True(ok)
+	suite.True(newerSentAt.Equal(sentAt))
+}
+
+func (suite *EvaluationReminderSendTestSuite) TestPersistFailureStillReturnsReport() {
+	_, err := suite.service.conn.Exec(suite.ctx, `
+		CREATE FUNCTION reject_evaluation_reminder() RETURNS trigger AS $$
+		BEGIN RAISE EXCEPTION 'evaluation_reminder unavailable'; END;
+		$$ LANGUAGE plpgsql;
+		CREATE TRIGGER reject_evaluation_reminder BEFORE INSERT OR UPDATE ON evaluation_reminder
+			FOR EACH ROW EXECUTE FUNCTION reject_evaluation_reminder();`)
+	suite.Require().NoError(err)
+	suite.T().Cleanup(func() {
+		_, err := suite.service.conn.Exec(suite.ctx, `
+			DROP TRIGGER reject_evaluation_reminder ON evaluation_reminder;
+			DROP FUNCTION reject_evaluation_reminder();`)
+		suite.Require().NoError(err)
+	})
+
+	coursePhaseID := uuid.New()
+	report := suite.send(coursePhaseID)
+	suite.Equal(suite.sentAt, report.SentAt)
+	suite.Equal([]string{"alice@example.com"}, report.SuccessfulEmails)
+	suite.Len(suite.mailRequests, 1)
+
+	_, ok := suite.lastSentAt(coursePhaseID, assessmentType.Self)
+	suite.False(ok)
+}
+
+func (suite *EvaluationReminderSendTestSuite) TestReadFailureAbortsBeforeMailing() {
+	_, err := suite.service.conn.Exec(suite.ctx, "ALTER TABLE evaluation_reminder RENAME TO evaluation_reminder_unavailable")
+	suite.Require().NoError(err)
+	suite.T().Cleanup(func() {
+		_, err := suite.service.conn.Exec(suite.ctx, "ALTER TABLE evaluation_reminder_unavailable RENAME TO evaluation_reminder")
+		suite.Require().NoError(err)
+	})
+
+	_, err = suite.service.SendEvaluationReminderManualTrigger(suite.ctx, "Bearer token", uuid.New(), assessmentType.Self)
+	suite.Require().Error(err)
+	suite.Empty(suite.mailRequests)
+}
+
+func TestEvaluationReminderSendTestSuite(t *testing.T) {
+	suite.Run(t, new(EvaluationReminderSendTestSuite))
+}
+
+func newReminderSendTestService(recipients reminderRecipientsResolver) *CoursePhaseConfigService {
+	service := NewCoursePhaseConfigService(db.Queries{}, nil, nil)
+	service.getEvaluationReminderRecipients = recipients
+	return service
+}
+
+func TestSendEvaluationReminderManualTriggerDeadlineNotPassed(t *testing.T) {
 	deadline := time.Date(2026, time.January, 20, 15, 0, 0, 0, time.UTC)
-	service := NewCoursePhaseConfigService(suite.service.queries, suite.service.conn, nil)
-	service.getEvaluationReminderRecipients = func(
+	service := newReminderSendTestService(func(
 		ctx context.Context,
 		authHeader string,
 		coursePhaseID uuid.UUID,
@@ -198,24 +259,38 @@ func (suite *EvaluationReminderSendTestSuite) TestDeadlineNotPassed() {
 			Deadline:          &deadline,
 			DeadlinePassed:    false,
 		}, nil
+	})
+
+	_, err := service.SendEvaluationReminderManualTrigger(context.Background(), "Bearer token", uuid.New(), assessmentType.Self)
+	require.ErrorIs(t, err, ErrReminderDeadlineNotPassed)
+}
+
+func TestSendEvaluationReminderManualTriggerTemplateIncomplete(t *testing.T) {
+	oldGetCoreCoursePhaseFn := getCoreCoursePhaseFn
+	t.Cleanup(func() {
+		getCoreCoursePhaseFn = oldGetCoreCoursePhaseFn
+	})
+
+	service := newReminderSendTestService(func(
+		ctx context.Context,
+		authHeader string,
+		coursePhaseID uuid.UUID,
+		evaluationType assessmentType.AssessmentType,
+	) (coursePhaseConfigDTO.EvaluationReminderRecipients, error) {
+		return coursePhaseConfigDTO.EvaluationReminderRecipients{
+			EvaluationEnabled: true,
+			DeadlinePassed:    true,
+		}, nil
+	})
+
+	getCoreCoursePhaseFn = func(ctx context.Context, authHeader string, coursePhaseID uuid.UUID) (coreCoursePhaseResponse, error) {
+		return coreCoursePhaseResponse{
+			ID:             coursePhaseID,
+			Name:           "Assessment Phase",
+			RestrictedData: map[string]any{},
+		}, nil
 	}
 
-	_, err := service.SendEvaluationReminderManualTrigger(suite.ctx, "Bearer token", uuid.New(), assessmentType.Self)
-	suite.Require().ErrorIs(err, ErrReminderDeadlineNotPassed)
-	suite.Empty(suite.mailRequests)
-}
-
-func (suite *EvaluationReminderSendTestSuite) TestTemplateIncomplete() {
-	coursePhaseID := uuid.New()
-	suite.restrictedData = map[string]any{}
-
-	_, err := suite.service.SendEvaluationReminderManualTrigger(suite.ctx, "Bearer token", coursePhaseID, assessmentType.Self)
-	suite.Require().ErrorIs(err, ErrReminderTemplateIncomplete)
-	suite.Empty(suite.mailRequests)
-	_, ok := suite.lastSentAt(coursePhaseID, assessmentType.Self)
-	suite.False(ok)
-}
-
-func TestEvaluationReminderSendTestSuite(t *testing.T) {
-	suite.Run(t, new(EvaluationReminderSendTestSuite))
+	_, err := service.SendEvaluationReminderManualTrigger(context.Background(), "Bearer token", uuid.New(), assessmentType.Self)
+	require.ErrorIs(t, err, ErrReminderTemplateIncomplete)
 }

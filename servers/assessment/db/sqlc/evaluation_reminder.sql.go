@@ -60,7 +60,7 @@ func (q *Queries) GetEvaluationRemindersForCoursePhase(ctx context.Context, cour
 const upsertEvaluationReminderLastSentAt = `-- name: UpsertEvaluationReminderLastSentAt :exec
 INSERT INTO evaluation_reminder (course_phase_id, evaluation_type, last_sent_at)
 VALUES ($1, $2, $3)
-ON CONFLICT (course_phase_id, evaluation_type) DO UPDATE SET last_sent_at = EXCLUDED.last_sent_at
+ON CONFLICT (course_phase_id, evaluation_type) DO UPDATE SET last_sent_at = GREATEST(evaluation_reminder.last_sent_at, EXCLUDED.last_sent_at)
 `
 
 type UpsertEvaluationReminderLastSentAtParams struct {

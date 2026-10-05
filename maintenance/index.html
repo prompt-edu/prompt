@@ -55,7 +55,7 @@
             </svg>
             <div>
               <h3>What's Happening</h3>
-              <p>Deploying updates and improvements</p>
+              <p id="maintenance-reason">Deploying updates and improvements</p>
             </div>
           </div>
 
@@ -106,6 +106,35 @@
         "%cSystem is being updated. Please check back in a few minutes.",
         "font-size: 14px; color: #64748b;"
       );
+
+      function isHttpsUrl(value) {
+        try {
+          return new URL(value).protocol === "https:";
+        } catch {
+          return false;
+        }
+      }
+
+      function showMaintenanceReason(status) {
+        if (!status || typeof status.version !== "string" || !status.version) {
+          return;
+        }
+        const reason = document.getElementById("maintenance-reason");
+        reason.textContent = `Upgrading to version ${status.version}`;
+        if (isHttpsUrl(status.releaseUrl)) {
+          const link = document.createElement("a");
+          link.href = status.releaseUrl;
+          link.target = "_blank";
+          link.rel = "noopener noreferrer";
+          link.textContent = "What's new";
+          reason.append(" · ", link);
+        }
+      }
+
+      fetch("/status.json", { cache: "no-store" })
+        .then((response) => (response.ok ? response.json() : null))
+        .catch(() => null)
+        .then(showMaintenanceReason);
     </script>
   </body>
 </html>

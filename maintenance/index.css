@@ -180,13 +180,15 @@ h1 {
   margin-bottom: 1rem;
 }
 
-.support a {
+.support a,
+.info-item a {
   color: #3b82f6;
   text-decoration: none;
   font-weight: 500;
 }
 
-.support a:hover {
+.support a:hover,
+.info-item a:hover {
   text-decoration: underline;
 }
 

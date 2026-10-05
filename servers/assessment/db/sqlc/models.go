@@ -276,6 +276,12 @@ type EvaluationCompletion struct {
 	Type                        AssessmentType     `json:"type"`
 }
 
+type EvaluationReminder struct {
+	CoursePhaseID  uuid.UUID          `json:"course_phase_id"`
+	EvaluationType AssessmentType     `json:"evaluation_type"`
+	LastSentAt     pgtype.Timestamptz `json:"last_sent_at"`
+}
+
 type FeedbackItem struct {
 	ID                          uuid.UUID          `json:"id"`
 	FeedbackType                FeedbackType       `json:"feedback_type"`

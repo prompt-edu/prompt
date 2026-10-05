@@ -89,6 +89,13 @@ INSERT INTO public.assessment_schema (id, name, description) VALUES
 -- Create types
 CREATE TYPE public.score_level AS ENUM ('very_bad', 'bad', 'ok', 'good', 'very_good');
 
+CREATE TYPE public.assessment_type AS ENUM (
+    'self',
+    'peer',
+    'tutor',
+    'assessment'
+);
+
 -- Competency tables
 CREATE TABLE public.category (
     id uuid PRIMARY KEY,
@@ -179,6 +186,13 @@ CREATE TABLE public.results_released_mail (
     course_participation_id uuid NOT NULL,
     sent_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     PRIMARY KEY (course_phase_id, course_participation_id)
+);
+
+CREATE TABLE public.evaluation_reminder (
+    course_phase_id uuid NOT NULL,
+    evaluation_type public.assessment_type NOT NULL,
+    last_sent_at timestamp with time zone NOT NULL,
+    PRIMARY KEY (course_phase_id, evaluation_type)
 );
 
 --

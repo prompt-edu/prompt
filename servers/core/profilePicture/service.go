@@ -5,8 +5,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"image/jpeg"
 	"io"
-	"mime"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -20,18 +20,20 @@ import (
 )
 
 const (
-	storageKeyPrefix   = "profile-picture"
-	pictureFilename    = "profile-picture.jpg"
-	pictureContentType = "image/jpeg"
-	pictureDescription = "Profile picture"
-	// The client crops and re-encodes to a 512 px JPEG, so a valid picture is far below the limit.
+	// Pictures are served from here; only the server writes to it.
+	storageKeyPrefix = "profile-picture"
+	// Presigned uploads land here and are never served.
+	uploadStorageKeyPrefix = "profile-picture-upload"
+	pictureFilename        = "profile-picture.jpg"
+	pictureContentType     = "image/jpeg"
+	pictureDescription     = "Profile picture"
+	// The client crops and re-encodes to a square JPEG of this size.
+	pictureSizePx = 512
+	// A valid 512 px JPEG is far below the limit.
 	maxPictureSizeBytes = 1024 * 1024
 	// Clients cache the URLs slightly shorter than this, so a table re-renders without re-fetching.
 	urlTTLSeconds = 3600
 )
-
-// jpegSignature is the start of every JPEG file (SOI marker followed by the next marker prefix).
-var jpegSignature = []byte{0xFF, 0xD8, 0xFF}
 
 // ErrInvalidInput marks a request the client has to fix (HTTP 400).
 // ErrNotFound marks a missing profile picture or upload (HTTP 404).
@@ -43,8 +45,9 @@ var (
 // FileStore is the slice of the file storage service the profile pictures are kept in.
 type FileStore interface {
 	PresignUpload(ctx context.Context, req files.PresignUploadRequest) (*files.PresignUploadResponse, error)
-	CreateFileFromStorageKey(ctx context.Context, req files.CreateFileFromStorageKeyRequest, uploaderUserID, uploaderEmail string) (*files.FileResponse, error)
-	DownloadFile(ctx context.Context, fileID uuid.UUID) (io.ReadCloser, string, error)
+	DownloadUpload(ctx context.Context, storageKey string) (io.ReadCloser, error)
+	DeleteUpload(ctx context.Context, storageKey string) error
+	StoreFile(ctx context.Context, req files.StoreFileRequest, content io.Reader, uploaderUserID, uploaderEmail string) (*files.FileResponse, error)
 	DeleteFile(ctx context.Context, fileID uuid.UUID, hardDelete bool) error
 	GetDownloadURL(ctx context.Context, storageKey string, ttlSeconds int) (string, error)
 }
@@ -75,7 +78,7 @@ func (s *ProfilePictureService) PresignUpload(ctx context.Context, userID uuid.U
 	presigned, err := s.files.PresignUpload(ctx, files.PresignUploadRequest{
 		Filename:         pictureFilename,
 		ContentType:      pictureContentType,
-		StorageKeyPrefix: ownerStorageKeyPrefix(userID),
+		StorageKeyPrefix: ownerKeyPrefix(uploadStorageKeyPrefix, userID),
 		Description:      pictureDescription,
 	})
 	if err != nil {
@@ -84,26 +87,31 @@ func (s *ProfilePictureService) PresignUpload(ctx context.Context, userID uuid.U
 	return profilePictureDTO.PresignedUpload{UploadURL: presigned.UploadURL, StorageKey: presigned.StorageKey}, nil
 }
 
-// CompleteUpload validates an uploaded picture and makes it the uploader's profile picture,
-// replacing and deleting the previous one. Completing the same key twice is a no-op.
-func (s *ProfilePictureService) CompleteUpload(ctx context.Context, uploader Uploader, storageKey string) (profilePictureDTO.ProfilePicture, error) {
-	if err := validateStorageKeyOwner(storageKey, uploader.UserID); err != nil {
+// CompleteUpload checks an uploaded picture and makes it the uploader's profile picture, replacing
+// and deleting the previous one. The presigned URL stays writable until it expires, so the checked
+// bytes are stored under a key that was never handed out, and the upload itself is removed.
+func (s *ProfilePictureService) CompleteUpload(ctx context.Context, uploader Uploader, uploadKey string) (profilePictureDTO.ProfilePicture, error) {
+	if err := validateUploadKeyOwner(uploadKey, uploader.UserID); err != nil {
 		return profilePictureDTO.ProfilePicture{}, err
 	}
 
-	file, err := s.files.CreateFileFromStorageKey(ctx, files.CreateFileFromStorageKeyRequest{
-		StorageKey:       storageKey,
-		OriginalFilename: pictureFilename,
+	content, err := s.readUploadedPicture(ctx, uploadKey)
+	if err != nil {
+		// A storage hiccup says nothing about the picture, so that upload can be completed again
+		if errors.Is(err, ErrInvalidInput) {
+			s.discardUpload(ctx, uploadKey)
+		}
+		return profilePictureDTO.ProfilePicture{}, err
+	}
+
+	file, err := s.files.StoreFile(ctx, files.StoreFileRequest{
+		StorageKeyPrefix: ownerKeyPrefix(storageKeyPrefix, uploader.UserID),
+		Filename:         pictureFilename,
 		ContentType:      pictureContentType,
 		Description:      pictureDescription,
-	}, uploader.UserID.String(), uploader.Email)
+	}, bytes.NewReader(content), uploader.UserID.String(), uploader.Email)
 	if err != nil {
-		return profilePictureDTO.ProfilePicture{}, mapFileError(err)
-	}
-
-	if err := s.validatePictureFile(ctx, file); err != nil {
-		s.discardFile(ctx, file.ID)
-		return profilePictureDTO.ProfilePicture{}, err
+		return profilePictureDTO.ProfilePicture{}, fmt.Errorf("failed to store profile picture: %w", err)
 	}
 
 	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
@@ -141,11 +149,12 @@ func (s *ProfilePictureService) CompleteUpload(ctx context.Context, uploader Upl
 		return profilePictureDTO.ProfilePicture{}, fmt.Errorf("failed to commit profile picture: %w", err)
 	}
 
-	if hasPrevious && previous.FileID != file.ID {
+	s.discardUpload(ctx, uploadKey)
+	if hasPrevious {
 		s.discardFile(ctx, previous.FileID)
 	}
 
-	url, err := s.files.GetDownloadURL(ctx, storageKey, urlTTLSeconds)
+	url, err := s.files.GetDownloadURL(ctx, file.StorageKey, urlTTLSeconds)
 	if err != nil {
 		return profilePictureDTO.ProfilePicture{}, fmt.Errorf("failed to create profile picture URL: %w", err)
 	}
@@ -275,19 +284,16 @@ func (s *ProfilePictureService) LookupPictureURLs(ctx context.Context, req profi
 	return result, nil
 }
 
-// validatePictureFile checks what the client promised: a JPEG within the size limit. The
-// browser-side crop produces exactly that, so anything else was not uploaded through PROMPT.
-func (s *ProfilePictureService) validatePictureFile(ctx context.Context, file *files.FileResponse) error {
-	if file.SizeBytes > maxPictureSizeBytes {
-		return fmt.Errorf("profile picture is %d bytes, at most %d are allowed: %w", file.SizeBytes, maxPictureSizeBytes, ErrInvalidInput)
+// readUploadedPicture reads an upload once and checks what the client promised: a square JPEG of
+// pictureSizePx within the size limit. The browser-side crop produces exactly that, so anything
+// else was not uploaded through PROMPT.
+func (s *ProfilePictureService) readUploadedPicture(ctx context.Context, uploadKey string) ([]byte, error) {
+	reader, err := s.files.DownloadUpload(ctx, uploadKey)
+	if errors.Is(err, files.ErrNotFound) {
+		return nil, fmt.Errorf("%w: %s", ErrNotFound, err.Error())
 	}
-	if mediaType, _, err := mime.ParseMediaType(file.ContentType); err != nil || mediaType != pictureContentType {
-		return fmt.Errorf("profile picture must be %s, got %q: %w", pictureContentType, file.ContentType, ErrInvalidInput)
-	}
-
-	reader, _, err := s.files.DownloadFile(ctx, file.ID)
 	if err != nil {
-		return fmt.Errorf("failed to read uploaded profile picture: %w", err)
+		return nil, fmt.Errorf("failed to read uploaded profile picture: %w", err)
 	}
 	defer func() {
 		if closeErr := reader.Close(); closeErr != nil {
@@ -295,11 +301,30 @@ func (s *ProfilePictureService) validatePictureFile(ctx context.Context, file *f
 		}
 	}()
 
-	header := make([]byte, len(jpegSignature))
-	if _, err := io.ReadFull(reader, header); err != nil || !bytes.Equal(header, jpegSignature) {
-		return fmt.Errorf("profile picture is not a JPEG image: %w", ErrInvalidInput)
+	content, err := io.ReadAll(io.LimitReader(reader, maxPictureSizeBytes+1))
+	if err != nil {
+		return nil, fmt.Errorf("failed to read uploaded profile picture: %w", err)
 	}
-	return nil
+	if len(content) > maxPictureSizeBytes {
+		return nil, fmt.Errorf("profile picture exceeds %d bytes: %w", maxPictureSizeBytes, ErrInvalidInput)
+	}
+
+	config, err := jpeg.DecodeConfig(bytes.NewReader(content))
+	if err != nil {
+		return nil, fmt.Errorf("profile picture is not a JPEG image: %w", ErrInvalidInput)
+	}
+	if config.Width != pictureSizePx || config.Height != pictureSizePx {
+		return nil, fmt.Errorf("profile picture is %dx%d px, expected %dx%d: %w", config.Width, config.Height, pictureSizePx, pictureSizePx, ErrInvalidInput)
+	}
+	return content, nil
+}
+
+// discardUpload removes an upload that was rejected or stored again. Failures only leave an
+// unreferenced object behind, which is never served.
+func (s *ProfilePictureService) discardUpload(ctx context.Context, uploadKey string) {
+	if err := s.files.DeleteUpload(ctx, uploadKey); err != nil {
+		log.WithError(err).WithField("uploadKey", uploadKey).Warn("failed to delete profile picture upload")
+	}
 }
 
 // discardFile hard-deletes a picture file. Failures only leave an orphaned blob behind, so they
@@ -307,16 +332,5 @@ func (s *ProfilePictureService) validatePictureFile(ctx context.Context, file *f
 func (s *ProfilePictureService) discardFile(ctx context.Context, fileID uuid.UUID) {
 	if err := s.files.DeleteFile(ctx, fileID, true); err != nil {
 		log.WithError(err).WithField("fileID", fileID).Warn("failed to delete profile picture file")
-	}
-}
-
-func mapFileError(err error) error {
-	switch {
-	case errors.Is(err, files.ErrInvalidInput):
-		return fmt.Errorf("%w: %s", ErrInvalidInput, err.Error())
-	case errors.Is(err, files.ErrNotFound):
-		return fmt.Errorf("%w: %s", ErrNotFound, err.Error())
-	default:
-		return fmt.Errorf("failed to register uploaded profile picture: %w", err)
 	}
 }

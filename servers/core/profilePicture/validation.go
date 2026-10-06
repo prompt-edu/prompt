@@ -19,15 +19,15 @@ func validateLookupRequest(req profilePictureDTO.LookupRequest) error {
 	return nil
 }
 
-// validateStorageKeyOwner rejects keys that were not presigned for the caller, so nobody can
-// claim another user's upload as their picture.
-func validateStorageKeyOwner(storageKey string, userID uuid.UUID) error {
-	if !strings.HasPrefix(storageKey, ownerStorageKeyPrefix(userID)+"/") {
-		return fmt.Errorf("storage key does not belong to the caller: %w", ErrInvalidInput)
+// validateUploadKeyOwner rejects keys that were not presigned for the caller, so nobody can claim
+// another user's upload, or an already stored picture, as their picture.
+func validateUploadKeyOwner(uploadKey string, userID uuid.UUID) error {
+	if !strings.HasPrefix(uploadKey, ownerKeyPrefix(uploadStorageKeyPrefix, userID)+"/") {
+		return fmt.Errorf("upload key does not belong to the caller: %w", ErrInvalidInput)
 	}
 	return nil
 }
 
-func ownerStorageKeyPrefix(userID uuid.UUID) string {
-	return fmt.Sprintf("%s/%s", storageKeyPrefix, userID.String())
+func ownerKeyPrefix(prefix string, userID uuid.UUID) string {
+	return fmt.Sprintf("%s/%s", prefix, userID.String())
 }

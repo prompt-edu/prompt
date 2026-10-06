@@ -55,18 +55,19 @@ func (suite *ProfilePictureServiceTestSuite) TestRouter_UploadReadLookupDelete()
 
 	w = serveJSON(router, http.MethodPost, "/api/profile-pictures/me/complete", profilePictureDTO.CompleteUpload{StorageKey: presigned.StorageKey})
 	require.Equal(suite.T(), http.StatusOK, w.Code, w.Body.String())
+	storedKey := suite.storedKey(userID)
 
 	w = serveJSON(router, http.MethodGet, "/api/profile-pictures/me", nil)
 	require.Equal(suite.T(), http.StatusOK, w.Code)
 	var own profilePictureDTO.ProfilePicture
 	require.NoError(suite.T(), json.Unmarshal(w.Body.Bytes(), &own))
-	assert.Contains(suite.T(), own.URL, presigned.StorageKey)
+	assert.Contains(suite.T(), own.URL, storedKey)
 
 	w = serveJSON(router, http.MethodPost, "/api/profile-pictures/lookup", profilePictureDTO.LookupRequest{UserIDs: []uuid.UUID{userID}})
 	require.Equal(suite.T(), http.StatusOK, w.Code)
 	var urls profilePictureDTO.ProfilePictureURLs
 	require.NoError(suite.T(), json.Unmarshal(w.Body.Bytes(), &urls))
-	assert.Contains(suite.T(), urls.Users[userID], presigned.StorageKey)
+	assert.Contains(suite.T(), urls.Users[userID], storedKey)
 
 	w = serveJSON(router, http.MethodDelete, "/api/profile-pictures/me", nil)
 	assert.Equal(suite.T(), http.StatusNoContent, w.Code)

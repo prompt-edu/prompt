@@ -8,10 +8,11 @@ import (
 )
 
 func TestSummarizeJSON(t *testing.T) {
-	summary := Summarize([]byte(`{"model":"m1","choices":[{"message":{"content":"Hello"},"finish_reason":"stop"}],
+	summary := Summarize([]byte(`{"model":"m1","system_fingerprint":"fp_1","choices":[{"message":{"content":"Hello"},"finish_reason":"stop"}],
 		"usage":{"prompt_tokens":42,"completion_tokens":7}}`), false)
 
 	assert.Equal(t, "m1", summary.Model)
+	assert.Equal(t, "fp_1", summary.SystemFingerprint)
 	assert.Equal(t, "Hello", summary.Text)
 	assert.Equal(t, "stop", summary.FinishReason)
 	require.NotNil(t, summary.PromptTokens)

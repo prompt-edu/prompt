@@ -26,9 +26,9 @@ func TestPurge(t *testing.T) {
 	insertCall := func(feature string, age time.Duration, completed bool) uuid.UUID {
 		var callID uuid.UUID
 		require.NoError(t, testDB.Conn.QueryRow(ctx, `
-			INSERT INTO ai_call (course_phase_id, actor_id, actor_role, feature, provider, outcome, streamed,
+			INSERT INTO ai_call (course_phase_id, actor_id, actor_role, issuer, feature, provider, outcome, streamed,
 			                     server_version, requested_at, completed_at)
-			VALUES (gen_random_uuid(), 'actor', 'Lecturer', $1, 'logos.test',
+			VALUES (gen_random_uuid(), 'actor', 'Lecturer', 'https://keycloak.test/realms/prompt', $1, 'logos.test',
 			        CASE WHEN $3 THEN 'success' ELSE 'pending' END, false, 'test', $2,
 			        CASE WHEN $3 THEN $2::timestamptz END)
 			RETURNING id`, feature, now.Add(-age), completed).Scan(&callID))
@@ -43,12 +43,11 @@ func TestPurge(t *testing.T) {
 		return callID
 	}
 	day := 24 * time.Hour
-	expiredAdhoc := insertCall("adhoc", 200*day, true)
 	retainedAssessment := insertCall("assessment.action_item_suggestions", 200*day, true)
 	expiredAssessment := insertCall("assessment.action_item_suggestions", 800*day, true)
 	expiredMetadata := insertCall("assessment.action_item_suggestions", 2000*day, true)
 	unknownFeature := insertCall("removed.feature", 200*day, true)
-	abandoned := insertCall("adhoc", 2*time.Hour, false)
+	abandoned := insertCall("assessment.action_item_suggestions", 2*time.Hour, false)
 
 	require.NoError(t, Purge(ctx, testDB.Queries, now, 1825))
 
@@ -62,13 +61,12 @@ func TestPurge(t *testing.T) {
 			"SELECT EXISTS (SELECT 1 FROM "+table+" WHERE "+column+" = $1)", callID).Scan(&found))
 		return found
 	}
-	assert.False(t, exists("ai_call_content", expiredAdhoc))
-	assert.False(t, exists("ai_call_subject", expiredAdhoc), "subjects go with the content")
-	assert.True(t, exists("ai_call", expiredAdhoc), "metadata outlives the content")
-	assert.True(t, exists("ai_call_event", expiredAdhoc))
 	assert.True(t, exists("ai_call_content", retainedAssessment))
 	assert.True(t, exists("ai_call_subject", retainedAssessment))
 	assert.False(t, exists("ai_call_content", expiredAssessment))
+	assert.False(t, exists("ai_call_subject", expiredAssessment), "subjects go with the content")
+	assert.True(t, exists("ai_call", expiredAssessment), "metadata outlives the content")
+	assert.True(t, exists("ai_call_event", expiredAssessment))
 	assert.False(t, exists("ai_call", expiredMetadata))
 	assert.False(t, exists("ai_call_event", expiredMetadata))
 	assert.True(t, exists("ai_call_content", unknownFeature), "an unknown feature keeps the longest retention")

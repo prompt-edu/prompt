@@ -38,7 +38,7 @@ func StartIdentity() (*Identity, func(), error) {
 	identity := &Identity{PhaseTypes: map[string]string{}, signer: signer}
 
 	identity.issuer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		issuerURL := identity.issuer.URL + "/realms/prompt"
+		issuerURL := identity.IssuerURL()
 		switch r.URL.Path {
 		case "/realms/prompt/.well-known/openid-configuration":
 			writeJSON(w, map[string]any{
@@ -90,6 +90,8 @@ func StartIdentity() (*Identity, func(), error) {
 	return identity, stop, nil
 }
 
+func (i *Identity) IssuerURL() string { return i.issuer.URL + "/realms/prompt" }
+
 func LecturerRole(coursePhaseID string) string { return coursePhaseID + "-Lecturer" }
 
 func EditorRole(coursePhaseID string) string { return coursePhaseID + "-Editor" }
@@ -97,7 +99,7 @@ func EditorRole(coursePhaseID string) string { return coursePhaseID + "-Editor" 
 func (i *Identity) Token(subject string, roles ...string) string {
 	now := time.Now()
 	claims, _ := json.Marshal(map[string]any{
-		"iss":             i.issuer.URL + "/realms/prompt",
+		"iss":             i.IssuerURL(),
 		"sub":             subject,
 		"aud":             []string{"prompt-server"},
 		"azp":             "prompt-client",

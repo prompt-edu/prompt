@@ -48,6 +48,7 @@ type Request struct {
 	CoursePhaseID   uuid.UUID
 	ActorID         string
 	ActorRole       string
+	Issuer          string
 	Feature         string
 	Template        string
 	TemplateVersion string
@@ -122,16 +123,17 @@ func (s *Service) Finish(ctx context.Context, callID uuid.UUID, completion Compl
 	qtx := s.queries.WithTx(tx)
 
 	completed, err := qtx.CompleteCall(ctx, db.CompleteCallParams{
-		ID:               callID,
-		ServedModel:      optionalText(summary.Model),
-		ResponseHash:     optionalText(hash(completion.Response)),
-		Outcome:          completion.Outcome,
-		HttpStatus:       optionalInt(int32(completion.HTTPStatus)),
-		FinishReason:     optionalText(summary.FinishReason),
-		ErrorCode:        optionalText(completion.ErrorCode),
-		PromptTokens:     pointerInt(summary.PromptTokens),
-		CompletionTokens: pointerInt(summary.CompletionTokens),
-		FirstTokenAt:     pgtype.Timestamptz{Time: completion.FirstByteAt, Valid: !completion.FirstByteAt.IsZero()},
+		ID:                callID,
+		ServedModel:       optionalText(summary.Model),
+		SystemFingerprint: optionalText(summary.SystemFingerprint),
+		ResponseHash:      optionalText(hash(completion.Response)),
+		Outcome:           completion.Outcome,
+		HttpStatus:        optionalInt(int32(completion.HTTPStatus)),
+		FinishReason:      optionalText(summary.FinishReason),
+		ErrorCode:         optionalText(completion.ErrorCode),
+		PromptTokens:      pointerInt(summary.PromptTokens),
+		CompletionTokens:  pointerInt(summary.CompletionTokens),
+		FirstTokenAt:      pgtype.Timestamptz{Time: completion.FirstByteAt, Valid: !completion.FirstByteAt.IsZero()},
 	})
 	if err != nil {
 		return fmt.Errorf("complete call: %w", err)
@@ -154,6 +156,7 @@ func (s *Service) callParams(request Request, outcome string) db.CreateCallParam
 		CoursePhaseID:   request.CoursePhaseID,
 		ActorID:         request.ActorID,
 		ActorRole:       request.ActorRole,
+		Issuer:          request.Issuer,
 		Feature:         request.Feature,
 		Template:        optionalText(request.Template),
 		TemplateVersion: optionalText(request.TemplateVersion),

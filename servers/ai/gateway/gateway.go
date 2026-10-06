@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -15,29 +16,35 @@ import (
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/ai/calls"
 	"github.com/prompt-edu/prompt/servers/ai/feature"
-	"github.com/prompt-edu/prompt/servers/ai/key"
 	log "github.com/sirupsen/logrus"
 )
 
 const (
 	CallIDHeader = "X-Prompt-AI-Call-ID"
+	// ProviderKeyHeader carries the calling phase's own Logos key. The AI server stores no keys.
+	ProviderKeyHeader = "X-Prompt-Provider-Key"
+	FeatureHeader     = "X-Prompt-Feature"
 
 	maxRequestBytes   = 4 << 20
 	maxSubjects       = 100
 	totalTimeout      = 10 * time.Minute
 	idleTimeout       = 2 * time.Minute
 	completionTimeout = 10 * time.Second
+	minKeyLength      = 8
+	maxKeyLength      = 512
 )
+
+var errMissingKey = errors.New("the request must carry the phase's Logos key in " + ProviderKeyHeader)
 
 type Gateway struct {
 	providerURL   *url.URL
 	allowedModels map[string]bool
-	keys          *key.Service
+	phaseTypes    *phaseTypes
 	calls         *calls.Service
 	modelsClient  *http.Client
 }
 
-func New(providerURL *url.URL, allowedModels []string, keys *key.Service, callService *calls.Service) *Gateway {
+func New(providerURL *url.URL, allowedModels []string, coreURL string, callService *calls.Service) *Gateway {
 	allowed := make(map[string]bool, len(allowedModels))
 	for _, model := range allowedModels {
 		allowed[model] = true
@@ -45,7 +52,7 @@ func New(providerURL *url.URL, allowedModels []string, keys *key.Service, callSe
 	return &Gateway{
 		providerURL:   providerURL,
 		allowedModels: allowed,
-		keys:          keys,
+		phaseTypes:    &phaseTypes{coreURL: coreURL},
 		calls:         callService,
 		modelsClient:  &http.Client{Timeout: 10 * time.Second},
 	}
@@ -70,12 +77,10 @@ func (g *Gateway) chatCompletions(c *gin.Context) {
 		CoursePhaseID:   coursePhaseID,
 		ActorID:         user.ID,
 		ActorRole:       actorRole(user),
-		Feature:         feature.Adhoc,
+		Issuer:          tokenIssuer(c.GetHeader("Authorization")),
+		Feature:         c.GetHeader(FeatureHeader),
 		Template:        c.GetHeader("X-Prompt-Template"),
 		TemplateVersion: c.GetHeader("X-Prompt-Template-Version"),
-	}
-	if name := c.GetHeader("X-Prompt-Feature"); name != "" {
-		request.Feature = name
 	}
 
 	body, err := io.ReadAll(http.MaxBytesReader(c.Writer, c.Request.Body, maxRequestBytes))
@@ -102,17 +107,18 @@ func (g *Gateway) chatCompletions(c *gin.Context) {
 		g.deny(c, request, http.StatusBadRequest, "invalid_subjects", "X-Prompt-Subjects must list at most 100 course participation ids")
 		return
 	}
-	phaseKey, err := g.keys.Resolve(c.Request.Context(), coursePhaseID)
-	if errors.Is(err, key.ErrNotConfigured) {
-		g.deny(c, request, http.StatusConflict, "ai_not_configured", key.ErrNotConfigured.Error())
-		return
-	}
+	logosKey, err := providerKey(c)
 	if err != nil {
-		log.WithError(err).Error("Could not resolve the phase key")
-		c.JSON(http.StatusInternalServerError, sdkUtils.ErrorResponse{Error: "could not resolve the phase key"})
+		g.deny(c, request, http.StatusBadRequest, "provider_key_missing", err.Error())
 		return
 	}
-	if err := feature.CheckFor(request.Feature, phaseKey.PhaseType); err != nil {
+	phaseType, err := g.phaseTypes.resolve(c.Request.Context(), coursePhaseID, c.GetHeader("Authorization"))
+	if err != nil {
+		log.WithError(err).Error("Could not resolve the phase type")
+		c.JSON(http.StatusBadGateway, sdkUtils.ErrorResponse{Error: "could not resolve the course phase"})
+		return
+	}
+	if err := feature.CheckFor(request.Feature, phaseType); err != nil {
 		g.deny(c, request, http.StatusBadRequest, "feature_not_allowed", err.Error())
 		return
 	}
@@ -124,7 +130,7 @@ func (g *Gateway) chatCompletions(c *gin.Context) {
 		return
 	}
 	c.Header(CallIDHeader, callID.String())
-	g.forward(c, callID, phaseKey.Key, request)
+	g.forward(c, callID, logosKey, request)
 }
 
 func (g *Gateway) deny(c *gin.Context, request calls.Request, status int, errorCode, message string) {
@@ -139,23 +145,17 @@ func (g *Gateway) deny(c *gin.Context, request calls.Request, status int, errorC
 }
 
 func (g *Gateway) listModels(c *gin.Context) {
-	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
-	if err != nil {
+	if _, err := uuid.Parse(c.Param("coursePhaseID")); err != nil {
 		c.JSON(http.StatusBadRequest, sdkUtils.ErrorResponse{Error: "invalid course phase id"})
 		return
 	}
-	phaseKey, err := g.keys.Resolve(c.Request.Context(), coursePhaseID)
-	if errors.Is(err, key.ErrNotConfigured) {
-		c.JSON(http.StatusConflict, sdkUtils.ErrorResponse{Error: key.ErrNotConfigured.Error()})
-		return
-	}
+	logosKey, err := providerKey(c)
 	if err != nil {
-		log.WithError(err).Error("Could not resolve the phase key")
-		c.JSON(http.StatusInternalServerError, sdkUtils.ErrorResponse{Error: "could not resolve the phase key"})
+		c.JSON(http.StatusBadRequest, sdkUtils.ErrorResponse{Error: err.Error()})
 		return
 	}
 
-	available, err := g.providerModels(c, phaseKey.Key)
+	available, err := g.providerModels(c, logosKey)
 	if err != nil {
 		log.WithError(err).Warn("Could not list the provider's models")
 		c.JSON(http.StatusBadGateway, sdkUtils.ErrorResponse{Error: "the AI provider did not list its models"})
@@ -194,6 +194,15 @@ func (g *Gateway) providerModels(c *gin.Context, logosKey string) ([]json.RawMes
 		return nil, err
 	}
 	return listing.Data, nil
+}
+
+func providerKey(c *gin.Context) (string, error) {
+	logosKey := strings.TrimSpace(c.GetHeader(ProviderKeyHeader))
+	if len(logosKey) < minKeyLength || len(logosKey) > maxKeyLength ||
+		strings.ContainsFunc(logosKey, func(r rune) bool { return r < '!' || r > '~' }) {
+		return "", errMissingKey
+	}
+	return logosKey, nil
 }
 
 func actorRole(user keycloakTokenVerifier.TokenUser) string {

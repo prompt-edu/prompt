@@ -6,16 +6,14 @@ import (
 	"strings"
 )
 
-const Adhoc = "adhoc"
-
 type Policy struct {
 	ContentRetentionDays int
 	// EU AI Act Annex III: restricted instead of deleted on erasure, kept at least 183 days.
 	HighRisk bool
 }
 
+// Every call names its feature, so there is no call without a retention.
 var registry = map[string]Policy{
-	Adhoc:          {ContentRetentionDays: 183, HighRisk: true},
 	"assessment.*": {ContentRetentionDays: 730, HighRisk: true},
 }
 
@@ -60,9 +58,6 @@ func Slug(phaseTypeName string) string {
 func CheckFor(name, phaseTypeName string) error {
 	if _, ok := Lookup(name); !ok {
 		return fmt.Errorf("%w: %q is not registered", ErrNotAllowed, name)
-	}
-	if name == Adhoc {
-		return nil
 	}
 	if prefix, _, _ := strings.Cut(name, "."); prefix != Slug(phaseTypeName) {
 		return fmt.Errorf("%w: %q does not belong to phase type %q", ErrNotAllowed, name, phaseTypeName)

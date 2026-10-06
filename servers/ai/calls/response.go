@@ -8,16 +8,19 @@ import (
 )
 
 type Summary struct {
-	Model            string
-	FinishReason     string
-	PromptTokens     *int32
-	CompletionTokens *int32
-	Text             string
+	Model string
+	// SystemFingerprint identifies the provider's model build, where the provider reports one.
+	SystemFingerprint string
+	FinishReason      string
+	PromptTokens      *int32
+	CompletionTokens  *int32
+	Text              string
 }
 
 type completionChunk struct {
-	Model   string `json:"model"`
-	Choices []struct {
+	Model             string `json:"model"`
+	SystemFingerprint string `json:"system_fingerprint"`
+	Choices           []struct {
 		FinishReason *string `json:"finish_reason"`
 		Message      struct {
 			Content string `json:"content"`
@@ -63,6 +66,9 @@ func Summarize(raw []byte, streamed bool) Summary {
 func (s *Summary) add(chunk completionChunk) {
 	if chunk.Model != "" {
 		s.Model = chunk.Model
+	}
+	if chunk.SystemFingerprint != "" {
+		s.SystemFingerprint = chunk.SystemFingerprint
 	}
 	for _, choice := range chunk.Choices {
 		s.Text += choice.Message.Content + choice.Delta.Content

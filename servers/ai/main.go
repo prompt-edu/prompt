@@ -19,7 +19,6 @@ import (
 	db "github.com/prompt-edu/prompt/servers/ai/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/ai/encryption"
 	"github.com/prompt-edu/prompt/servers/ai/gateway"
-	"github.com/prompt-edu/prompt/servers/ai/key"
 	"github.com/prompt-edu/prompt/servers/ai/privacy"
 	"github.com/prompt-edu/prompt/servers/ai/retention"
 	log "github.com/sirupsen/logrus"
@@ -92,23 +91,19 @@ func loadConfig() (config, error) {
 // No audit middleware: AI calls are audited in this service's own database, never in core's.
 func setupRouter(router *gin.Engine, conn *pgxpool.Pool, cfg config) {
 	queries := db.New(conn)
-	keyService := key.NewService(queries, cfg.coreURL)
 	callService := calls.NewService(queries, conn, cfg.providerURL.Host, cfg.serverVersion)
 	privacyService := privacy.NewService(queries, conn)
 
 	router.Use(promptSDK.CORSMiddleware(cfg.clientHost))
 	api := router.Group("/ai/api")
 	coursePhaseAPI := api.Group("/course_phase/:coursePhaseID")
-	gateway.RegisterRoutes(coursePhaseAPI, gateway.New(cfg.providerURL, cfg.allowedModels, keyService, callService))
-	key.RegisterRoutes(coursePhaseAPI, keyService)
+	gateway.RegisterRoutes(coursePhaseAPI, gateway.New(cfg.providerURL, cfg.allowedModels, cfg.coreURL, callService))
 	calls.RegisterRoutes(coursePhaseAPI, callService)
-	promptTypes.RegisterPhaseDeletionModule(coursePhaseAPI, keyService)
 	promptTypes.RegisterPrivacyModule(api, privacyService.Export, privacyService.Delete, []string{})
 	promptTypes.RegisterInfoEndpoint(api, promptTypes.ServiceInfo{
 		ServiceName: "ai",
 		Version:     cfg.serverVersion,
 		Capabilities: map[string]bool{
-			promptTypes.CapabilityPhaseDeletion:   true,
 			promptTypes.CapabilityPrivacyExport:   true,
 			promptTypes.CapabilityPrivacyDeletion: true,
 		},

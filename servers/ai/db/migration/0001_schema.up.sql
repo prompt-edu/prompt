@@ -1,24 +1,18 @@
 BEGIN;
 
-CREATE TABLE ai_phase_key (
-    course_phase_id uuid PRIMARY KEY,
-    phase_type text NOT NULL,
-    encrypted_key bytea NOT NULL,
-    last4 text NOT NULL,
-    set_by text NOT NULL,
-    set_at timestamptz NOT NULL DEFAULT now()
-);
-
 CREATE TABLE ai_call (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     course_phase_id uuid NOT NULL,
     actor_id text NOT NULL,
     actor_role text NOT NULL,
+    -- The iss claim of the caller's token.
+    issuer text NOT NULL,
     feature text NOT NULL,
     template text,
     template_version text,
     requested_model text,
     served_model text,
+    system_fingerprint text,
     provider text NOT NULL,
     params jsonb NOT NULL DEFAULT '{}',
     context_hash text,
@@ -75,13 +69,13 @@ CREATE INDEX ai_call_event_call_idx ON ai_call_event (call_id, created_at);
 CREATE FUNCTION ai_call_complete_only() RETURNS trigger AS $$
 BEGIN
   IF OLD.completed_at IS NOT NULL
-    OR (NEW.id, NEW.course_phase_id, NEW.actor_id, NEW.actor_role, NEW.feature, NEW.template,
-        NEW.template_version, NEW.requested_model, NEW.provider, NEW.params, NEW.context_hash,
-        NEW.streamed, NEW.server_version, NEW.requested_at)
+    OR (NEW.id, NEW.course_phase_id, NEW.actor_id, NEW.actor_role, NEW.issuer, NEW.feature,
+        NEW.template, NEW.template_version, NEW.requested_model, NEW.provider, NEW.params,
+        NEW.context_hash, NEW.streamed, NEW.server_version, NEW.requested_at)
       IS DISTINCT FROM
-       (OLD.id, OLD.course_phase_id, OLD.actor_id, OLD.actor_role, OLD.feature, OLD.template,
-        OLD.template_version, OLD.requested_model, OLD.provider, OLD.params, OLD.context_hash,
-        OLD.streamed, OLD.server_version, OLD.requested_at)
+       (OLD.id, OLD.course_phase_id, OLD.actor_id, OLD.actor_role, OLD.issuer, OLD.feature,
+        OLD.template, OLD.template_version, OLD.requested_model, OLD.provider, OLD.params,
+        OLD.context_hash, OLD.streamed, OLD.server_version, OLD.requested_at)
   THEN
     RAISE EXCEPTION 'ai_call is append-only except for completing a pending call';
   END IF;

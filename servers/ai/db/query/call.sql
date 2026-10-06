@@ -1,8 +1,8 @@
 -- name: CreateCall :one
-INSERT INTO ai_call (course_phase_id, actor_id, actor_role, feature, template, template_version,
+INSERT INTO ai_call (course_phase_id, actor_id, actor_role, issuer, feature, template, template_version,
                      requested_model, provider, params, context_hash, outcome, http_status, error_code,
                      streamed, server_version, completed_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
 RETURNING id;
 
 -- name: CreateCallContent :exec
@@ -15,16 +15,17 @@ SELECT $1, unnest(@course_participation_ids::uuid[]);
 
 -- name: CompleteCall :execrows
 UPDATE ai_call
-SET served_model      = $2,
-    response_hash     = $3,
-    outcome           = $4,
-    http_status       = $5,
-    finish_reason     = $6,
-    error_code        = $7,
-    prompt_tokens     = $8,
-    completion_tokens = $9,
-    first_token_at    = $10,
-    completed_at      = now()
+SET served_model       = $2,
+    system_fingerprint = $3,
+    response_hash      = $4,
+    outcome            = $5,
+    http_status        = $6,
+    finish_reason      = $7,
+    error_code         = $8,
+    prompt_tokens      = $9,
+    completion_tokens  = $10,
+    first_token_at     = $11,
+    completed_at       = now()
 WHERE id = $1
   AND completed_at IS NULL;
 

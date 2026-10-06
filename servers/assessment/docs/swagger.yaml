@@ -19,16 +19,12 @@ definitions:
     properties:
       action:
         type: string
-      author:
-        type: string
       courseParticipationID:
         type: string
     type: object
   actionItemDTO.UpdateActionItemRequest:
     properties:
       action:
-        type: string
-      author:
         type: string
       courseParticipationID:
         type: string
@@ -3263,7 +3259,8 @@ paths:
     post:
       consumes:
       - application/json
-      description: Create a new action item.
+      description: Create a new action item. The author is taken from the authenticated
+        JWT.
       parameters:
       - description: Course phase ID
         in: path
@@ -3287,6 +3284,12 @@ paths:
             type: object
         "400":
           description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
           schema:
             additionalProperties:
               type: string
@@ -3355,7 +3358,8 @@ paths:
     put:
       consumes:
       - application/json
-      description: Update an action item.
+      description: Update an action item. The author is taken from the authenticated
+        JWT.
       parameters:
       - description: Course phase ID
         in: path
@@ -3384,6 +3388,12 @@ paths:
             type: object
         "400":
           description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
           schema:
             additionalProperties:
               type: string

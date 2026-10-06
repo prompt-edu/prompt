@@ -3177,7 +3177,7 @@ const docTemplate = `{
         },
         "/course_phase/{coursePhaseID}/student-assessment/action-item": {
             "post": {
-                "description": "Create a new action item.",
+                "description": "Create a new action item. The author is taken from the authenticated JWT.",
                 "consumes": [
                     "application/json"
                 ],
@@ -3218,6 +3218,15 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -3477,7 +3486,7 @@ const docTemplate = `{
         },
         "/course_phase/{coursePhaseID}/student-assessment/action-item/{id}": {
             "put": {
-                "description": "Update an action item.",
+                "description": "Update an action item. The author is taken from the authenticated JWT.",
                 "consumes": [
                     "application/json"
                 ],
@@ -3525,6 +3534,15 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -4937,9 +4955,6 @@ const docTemplate = `{
                 "action": {
                     "type": "string"
                 },
-                "author": {
-                    "type": "string"
-                },
                 "courseParticipationID": {
                     "type": "string"
                 }
@@ -4949,9 +4964,6 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "action": {
-                    "type": "string"
-                },
-                "author": {
                     "type": "string"
                 },
                 "courseParticipationID": {

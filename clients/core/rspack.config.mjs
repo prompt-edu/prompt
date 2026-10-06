@@ -25,6 +25,7 @@ const config = (env = {}) => {
   const certificateURL = IS_DEV ? `http://localhost:3010` : `/certificate`
   const presentationURL = IS_DEV ? `http://localhost:3011` : `/presentation`
   const infrastructureSetupURL = IS_DEV ? `http://localhost:3012` : `/infrastructure-setup`
+  const aiURL = IS_DEV ? `http://localhost:3013` : `/ai`
 
   return {
     target: 'web',
@@ -102,6 +103,7 @@ const config = (env = {}) => {
           certificate_component: `certificate_component@${certificateURL}/remoteEntry.js?${Date.now()}`,
           presentation_component: `presentation_component@${presentationURL}/remoteEntry.js?${Date.now()}`,
           infrastructure_setup_component: `infrastructure_setup_component@${infrastructureSetupURL}/remoteEntry.js?${Date.now()}`,
+          ai_component: `ai_component@${aiURL}/remoteEntry.js?${Date.now()}`,
         },
         shared: federatedDependencies(),
       }),

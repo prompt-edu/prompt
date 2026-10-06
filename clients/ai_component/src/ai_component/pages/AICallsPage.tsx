@@ -1,6 +1,3 @@
-import { coreApi } from '@core/network/api'
-import { coreKeys } from '@core/network/cache'
-import { useAIStatus } from '@core/network/hooks/useAIEnabled'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import type { CoursePhaseWithType } from '@tumaet/prompt-shared-state'
 import {
@@ -18,34 +15,23 @@ import {
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import {
-  currentCursor,
-  hasNewerPage,
-  popNewerPage,
-  pushOlderPage,
-} from '../auditLog/auditLogPaging'
-import { AICallDetailDialog } from './components/AICallDetailDialog'
-import { getAICallColumns } from './components/aiCallColumns'
-import { useCoursePhases } from './hooks/useCoursePhases'
-import type { AICallCursor } from './interfaces/aiCallPage'
+import { AICallDetailDialog } from '../components/AICallDetailDialog'
+import { getAICallColumns } from '../components/aiCallColumns'
+import { useCoursePhases } from '../hooks/useCoursePhases'
+import type { AICallCursor } from '../interfaces/aiCallPage'
+import { getAICalls } from '../network/queries/getAICalls'
+import { currentCursor, hasNewerPage, popNewerPage, pushOlderPage } from '../utils/paging'
 
 const PAGE_SIZE = 50
 
 export const AICallsPage = () => {
   const { courseId } = useParams<{ courseId: string }>()
   const phases = useCoursePhases(courseId)
-  const ai = useAIStatus()
 
   return (
     <div className='space-y-6'>
       <ManagementPageHeader>AI Calls</ManagementPageHeader>
-      {ai.isPending ? (
-        <LoadingPage />
-      ) : !ai.enabled ? (
-        <p className='text-muted-foreground'>
-          AI is turned off or unavailable for this deployment.
-        </p>
-      ) : phases.length === 0 ? (
+      {phases.length === 0 ? (
         <p className='text-muted-foreground'>This course has no phases yet.</p>
       ) : (
         <AICallsBrowser key={courseId} phases={phases} />
@@ -62,8 +48,8 @@ const AICallsBrowser = ({ phases }: { phases: CoursePhaseWithType[] }) => {
 
   const cursor = currentCursor(cursorStack)
   const query = useQuery({
-    queryKey: coreKeys.ai.calls(phaseId, PAGE_SIZE, cursor),
-    queryFn: () => coreApi.ai.calls(phaseId, PAGE_SIZE, cursor),
+    queryKey: ['aiCalls', phaseId, PAGE_SIZE, cursor],
+    queryFn: () => getAICalls(phaseId, PAGE_SIZE, cursor),
     placeholderData: keepPreviousData,
   })
   const page = query.data

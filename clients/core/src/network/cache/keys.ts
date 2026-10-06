@@ -125,10 +125,6 @@ export const coreKeys = {
 
   ai: {
     info: () => ['aiInfo'] as const,
-    key: (phaseId: Id) => ['aiKey', phaseId] as const,
-    calls: (phaseId: Id, limit: number, cursor: unknown) =>
-      ['aiCalls', phaseId, limit, cursor] as const,
-    call: (phaseId: Id, callId: Id) => ['aiCall', phaseId, callId] as const,
   },
 
   githubPullRequest: (pullRequestNumber: Id) => ['github-pr', pullRequestNumber] as const,

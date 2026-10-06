@@ -5321,6 +5321,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"ai_component@workspace:ai_component":
+  version: 0.0.0-use.local
+  resolution: "ai_component@workspace:ai_component"
+  dependencies:
+    "@rspack/cli": "npm:^2.2.7"
+    "@rspack/core": "npm:^2.2.7"
+  languageName: unknown
+  linkType: soft
+
 "ajv-formats@npm:^2.1.1":
   version: 2.1.1
   resolution: "ajv-formats@npm:2.1.1"

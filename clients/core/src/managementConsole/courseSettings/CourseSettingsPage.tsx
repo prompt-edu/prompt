@@ -1,4 +1,3 @@
-import { AIKeySettings } from '@managementConsole/ai/components/AIKeySettings'
 import { ManagementPageHeader } from '@tumaet/prompt-ui-components'
 import { MailingConfigPage } from '../mailingConfig/MailingConfigPage'
 import CourseDangerZone from './components/CourseDangerZone'
@@ -11,7 +10,6 @@ export const CourseSettingsPage = () => {
 
       <CourseGeneralSettings />
       <MailingConfigPage />
-      <AIKeySettings />
       <CourseDangerZone />
     </div>
   )

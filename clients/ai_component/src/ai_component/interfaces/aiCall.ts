@@ -11,11 +11,13 @@ export interface AICall {
   id: string
   actorId: string
   actorRole: string
+  issuer: string
   feature: string
   template: string | null
   templateVersion: string | null
   requestedModel: string | null
   servedModel: string | null
+  systemFingerprint: string | null
   outcome: AICallOutcome
   httpStatus: number | null
   finishReason: string | null

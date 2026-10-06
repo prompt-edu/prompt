@@ -379,14 +379,3 @@ describe('a key whose scoping id is missing', () => {
     expect(isInvalidated(coreKeys.mailCampaigns.byId(OTHER_COURSE, CAMPAIGN))).toBe(false)
   })
 })
-
-describe('aiKeyChanged', () => {
-  it('invalidates the key of this phase only', () => {
-    seed(coreKeys.ai.key(PHASE), coreKeys.ai.key(OTHER_PHASE))
-
-    coreCache.aiKeyChanged(queryClient, PHASE)
-
-    expect(isInvalidated(coreKeys.ai.key(PHASE))).toBe(true)
-    expect(isInvalidated(coreKeys.ai.key(OTHER_PHASE))).toBe(false)
-  })
-})

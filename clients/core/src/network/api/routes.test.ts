@@ -61,7 +61,6 @@ const keycloakPath = `${CORE}/api/keycloak`
 const campaignsPath = `${coursesPath}/${COURSE}/mail-campaigns`
 const privacyPath = `${CORE}/api/privacy`
 const studentsPath = `${CORE}/api/students`
-const aiPhasePath = `http://ai.test/ai/api/course_phase/${PHASE}`
 const studyProgramsPath = `${CORE}/api/study-programs`
 
 const ROUTES: Route[] = [
@@ -70,49 +69,6 @@ const ROUTES: Route[] = [
     run: () => coreApi.ai.info(),
     method: 'get',
     url: 'http://ai.test/ai/api/info',
-    instance: 'ai',
-  },
-  {
-    name: 'ai.key',
-    run: () => coreApi.ai.key(PHASE),
-    method: 'get',
-    url: `${aiPhasePath}/key`,
-    instance: 'ai',
-  },
-  {
-    name: 'ai.setKey',
-    run: () => coreApi.ai.setKey(PHASE, 'logos-key-1234'),
-    method: 'put',
-    url: `${aiPhasePath}/key`,
-    data: { key: 'logos-key-1234' },
-    instance: 'ai',
-  },
-  {
-    name: 'ai.removeKey',
-    run: () => coreApi.ai.removeKey(PHASE),
-    method: 'delete',
-    url: `${aiPhasePath}/key`,
-    instance: 'ai',
-  },
-  {
-    name: 'ai.calls',
-    run: () => coreApi.ai.calls(PHASE, 50),
-    method: 'get',
-    url: `${aiPhasePath}/calls?limit=50`,
-    instance: 'ai',
-  },
-  {
-    name: 'ai.calls',
-    run: () => coreApi.ai.calls(PHASE, 50, { requestedAt: '2026-10-04T10:00:00Z', id: 'call-1' }),
-    method: 'get',
-    url: `${aiPhasePath}/calls?limit=50&cursorRequestedAt=2026-10-04T10:00:00Z&cursorId=call-1`,
-    instance: 'ai',
-  },
-  {
-    name: 'ai.call',
-    run: () => coreApi.ai.call(PHASE, 'call-1'),
-    method: 'get',
-    url: `${aiPhasePath}/calls/call-1`,
     instance: 'ai',
   },
   {

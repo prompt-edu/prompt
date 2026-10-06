@@ -1,5 +1,3 @@
-import { coreApi } from '@core/network/api'
-import { coreKeys } from '@core/network/cache'
 import { useQuery } from '@tanstack/react-query'
 import {
   Badge,
@@ -12,6 +10,7 @@ import {
   LoadingPage,
 } from '@tumaet/prompt-ui-components'
 import { AICallContentState } from '../interfaces/aiCallDetail'
+import { getAICall } from '../network/queries/getAICall'
 
 interface AICallDetailDialogProps {
   phaseId: string
@@ -41,8 +40,8 @@ export const AICallDetailDialog = ({ phaseId, callId, onClose }: AICallDetailDia
     isPending,
     isError,
   } = useQuery({
-    queryKey: coreKeys.ai.call(phaseId, callId),
-    queryFn: () => coreApi.ai.call(phaseId, callId ?? ''),
+    queryKey: ['aiCall', phaseId, callId],
+    queryFn: () => getAICall(phaseId, callId ?? ''),
     enabled: callId !== undefined,
     gcTime: 0,
     staleTime: Infinity,
@@ -77,8 +76,10 @@ export const AICallDetailDialog = ({ phaseId, callId, onClose }: AICallDetailDia
                 value={call.template && `${call.template} v${call.templateVersion ?? '-'}`}
               />
               <Field label='Model' value={call.servedModel ?? call.requestedModel} />
+              <Field label='Model build' value={call.systemFingerprint} />
               <Field label='Finish reason' value={call.finishReason} />
               <Field label='Actor' value={`${call.actorId} (${call.actorRole})`} />
+              <Field label='Issuer' value={call.issuer} />
               <Field
                 label='Tokens'
                 value={

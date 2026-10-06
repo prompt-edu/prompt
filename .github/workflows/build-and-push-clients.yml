@@ -41,6 +41,9 @@ on:
       infrastructure_setup_image_tag:
         description: "The tag of the infrastructure setup component image that was built"
         value: ${{ jobs.infrastructure-setup.outputs.image_tag }}
+      ai_image_tag:
+        description: "The tag of the AI component image that was built"
+        value: ${{ jobs.ai.outputs.image_tag }}
 
 permissions:
   contents: read
@@ -187,6 +190,18 @@ jobs:
       image-name: ghcr.io/prompt-edu/prompt/prompt-clients-infrastructure-setup-component
       docker-file: clients/infrastructure_setup_component/Dockerfile # Defaults to Dockerfile
       docker-context: ./clients/infrastructure_setup_component
+      tags: ${{ inputs.release_tag }}
+      build-args: |
+        "IMAGE_TAG=${{ needs.clients-base.outputs.image_tag }}"
+        "CORE_HOST=${{ vars.CORE_HOST }}"
+    secrets: inherit
+  ai:
+    needs: clients-base
+    uses: ls1intum/.github/.github/workflows/build-and-push-docker-image.yml@v1.2.0
+    with:
+      image-name: ghcr.io/prompt-edu/prompt/prompt-clients-ai-component
+      docker-file: clients/ai_component/Dockerfile
+      docker-context: ./clients/ai_component
       tags: ${{ inputs.release_tag }}
       build-args: |
         "IMAGE_TAG=${{ needs.clients-base.outputs.image_tag }}"

@@ -58,3 +58,4 @@ jobs:
       server_infrastructure_setup_image_tag: ${{ needs.build-servers.outputs.server_infrastructure_setup_image_tag }}
       server_ai_image_tag: ${{ needs.build-servers.outputs.server_ai_image_tag }}
       infrastructure_setup_image_tag: ${{ needs.build-clients.outputs.infrastructure_setup_image_tag }}
+      ai_image_tag: ${{ needs.build-clients.outputs.ai_image_tag }}

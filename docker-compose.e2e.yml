@@ -836,6 +836,24 @@ services:
       timeout: 5s
       retries: 10
 
+  # The AI audit remote. client-core proxies /ai/ to it, resolved per request like /ai/api/.
+  client-ai:
+    build:
+      context: ./clients/ai_component
+      dockerfile: Dockerfile
+      args: *client-build-args
+      additional_contexts: *client-additional-contexts
+    container_name: prompt-e2e-client-ai
+    profiles: [ai]
+    depends_on:
+      - clients-base
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:80/ || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
   # Same image and fixtures as the AI server's Go tests (servers/ai/testutils).
   aimock:
     image: ghcr.io/copilotkit/aimock:1.43.0
@@ -1168,6 +1186,9 @@ services:
       server-ai:
         # distroless; global-setup polls /ai/api/info when AI_ENABLED=true.
         condition: service_started
+        required: false
+      client-ai:
+        condition: service_healthy
         required: false
     environment:
       - CI

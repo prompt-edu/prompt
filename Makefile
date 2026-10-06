@@ -1,4 +1,4 @@
-.PHONY: help server servers client-core client-certificate client-presentation client-assessment \
+.PHONY: help server servers client-core client-certificate client-ai client-presentation client-assessment \
 	client-interview client-matching clients db db-down \
 	server-core server-assessment server-interview \
 	server-team-allocation server-self-team-allocation server-example \
@@ -91,6 +91,9 @@ client-core: ## Start only the core client
 
 client-certificate: ## Start only the certificate client
 	cd clients/certificate_component && yarn dev
+
+client-ai: ## Start only the AI audit client
+	cd clients/ai_component && yarn dev
 
 client-presentation: ## Start only the presentation client
 	cd clients/presentation_component && yarn dev

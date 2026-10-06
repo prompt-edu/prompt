@@ -481,6 +481,20 @@ services:
     depends_on:
       - clients-base
 
+  # Started only with the `ai` profile, like the AI server it shows the audit records of.
+  client-ai-component:
+    build:
+      context: ./clients/ai_component
+      dockerfile: Dockerfile
+      args: *client-build-args
+      additional_contexts: *client-additional-contexts
+    container_name: prompt-client-ai-component
+    profiles: [ai]
+    ports:
+      - "3013:80"
+    depends_on:
+      - clients-base
+
   client-presentation-component:
     build:
       context: ./clients/presentation_component

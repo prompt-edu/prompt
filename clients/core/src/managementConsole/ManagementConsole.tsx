@@ -159,7 +159,10 @@ const ManagementConsole = ({ children }: { children?: React.ReactNode }) => {
         <AppSidebar />
         <SidebarInset className='min-h-[calc(100svh-var(--announcement-bar-height,0px))]'>
           {courseId && !courseExists && <CourseNotFound courseId={courseId || ''} />}
-          <header className='sticky top-0 z-10 md:top-[var(--announcement-bar-height,0px)] flex h-14 shrink-0 items-center justify-between gap-4 border-b bg-background px-4 print:hidden'>
+          <header
+            id='management-header'
+            className='sticky top-0 z-10 md:top-[var(--announcement-bar-height,0px)] flex h-14 shrink-0 items-center justify-between gap-4 border-b bg-background px-4 print:hidden'
+          >
             <div className='flex min-w-0 flex-1 items-center gap-2'>
               <SidebarTrigger className='-ml-1' />
               <Separator orientation='vertical' className='mr-2 h-4' />

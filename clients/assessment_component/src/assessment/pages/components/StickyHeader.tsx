@@ -72,12 +72,18 @@ export const StickyHeader = ({ children, expandedContent, className }: StickyHea
 
     const resizeObserver = new ResizeObserver(scheduleUpdate)
     resizeObserver.observe(bar)
+    const bannerHeightObserver = new MutationObserver(scheduleUpdate)
+    bannerHeightObserver.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['style'],
+    })
     undockedHeightRef.current = bar.offsetHeight
     update()
     window.addEventListener('scroll', scheduleUpdate, true)
     window.addEventListener('resize', scheduleUpdate)
     return () => {
       resizeObserver.disconnect()
+      bannerHeightObserver.disconnect()
       if (frame !== undefined) cancelAnimationFrame(frame)
       window.removeEventListener('scroll', scheduleUpdate, true)
       window.removeEventListener('resize', scheduleUpdate)

@@ -1,10 +1,5 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import {
-  type CoursePhaseWithMetaData,
-  getCoursePhase,
-  useGetMailingIsConfigured,
-  useModifyCoursePhase,
-} from '@tumaet/prompt-shared-state'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useGetMailingIsConfigured, useModifyCoursePhase } from '@tumaet/prompt-shared-state'
 import {
   Alert,
   AlertDescription,
@@ -22,8 +17,9 @@ import type {
   EvaluationReminderType,
 } from '../../../../interfaces/evaluationReminder'
 import { assessmentApi } from '../../../../network/api'
-import { assessmentCache, assessmentKeys } from '../../../../network/cache'
+import { assessmentCache } from '../../../../network/cache'
 import { useGetCoursePhaseConfig } from '../../../hooks/useGetCoursePhaseConfig'
+import { useGetCoursePhaseMetaData } from '../../../hooks/useGetCoursePhaseMetaData'
 import { ManualReminderSendingSection } from './components/ManualReminderSendingSection'
 import { ReminderSendConfirmationDialog } from './components/ReminderSendConfirmationDialog'
 import { ReminderTemplateEditor } from './components/ReminderTemplateEditor'
@@ -59,11 +55,7 @@ export const AssessmentReminderCard = () => {
     data: coursePhase,
     isPending: isCoursePhasePending,
     isError: isCoursePhaseError,
-  } = useQuery<CoursePhaseWithMetaData>({
-    queryKey: assessmentKeys.coursePhase(phaseId),
-    queryFn: () => getCoursePhase(phaseId ?? ''),
-    enabled: !!phaseId,
-  })
+  } = useGetCoursePhaseMetaData()
 
   const { mutate: updateCoursePhase, isPending: isSavingTemplate } = useModifyCoursePhase(
     () => {

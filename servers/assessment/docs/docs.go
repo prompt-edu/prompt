@@ -1413,7 +1413,7 @@ const docTemplate = `{
         },
         "/course_phase/{coursePhaseID}/config/release": {
             "post": {
-                "description": "Release assessment results for the course phase.",
+                "description": "Release assessment results for the course phase and mail the students who were not notified yet.",
                 "produces": [
                     "application/json"
                 ],
@@ -1434,10 +1434,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/coursePhaseConfigDTO.ReleaseResultsResponse"
                         }
                     },
                     "400": {
@@ -3110,6 +3107,15 @@ const docTemplate = `{
                             }
                         }
                     },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -3488,6 +3494,15 @@ const docTemplate = `{
                             }
                         }
                     },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -3539,6 +3554,15 @@ const docTemplate = `{
                     },
                     "403": {
                         "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -4348,6 +4372,161 @@ const docTemplate = `{
                 }
             }
         },
+        "/course_phase/{coursePhaseID}/student-assessment/independent": {
+            "post": {
+                "description": "Create or update the caller's own score for a student, kept apart from other assessors' scores and from the final assessment. The author identity is taken from the authenticated JWT and any client-sent author fields are ignored.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "assessments"
+                ],
+                "summary": "Create or update independent assessment",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Course phase ID",
+                        "name": "coursePhaseID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Assessment payload",
+                        "name": "assessment",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/assessmentDTO.CreateOrUpdateAssessmentRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/course_phase/{coursePhaseID}/student-assessment/independent/{independentAssessmentID}": {
+            "delete": {
+                "description": "Delete one of the caller's own independent scores. Scores of other assessors are reported as not found.",
+                "tags": [
+                    "assessments"
+                ],
+                "summary": "Delete own independent assessment",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Course phase ID",
+                        "name": "coursePhaseID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Independent assessment ID",
+                        "name": "independentAssessmentID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/course_phase/{coursePhaseID}/student-assessment/my-results": {
             "get": {
                 "description": "Get assessment results for the current student.",
@@ -4716,9 +4895,6 @@ const docTemplate = `{
                 },
                 "courseParticipationID": {
                     "type": "string"
-                },
-                "coursePhaseID": {
-                    "type": "string"
                 }
             }
         },
@@ -4732,9 +4908,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "courseParticipationID": {
-                    "type": "string"
-                },
-                "coursePhaseID": {
                     "type": "string"
                 },
                 "id": {
@@ -4965,6 +5138,18 @@ const docTemplate = `{
                         "$ref": "#/definitions/evaluationDTO.Evaluation"
                     }
                 },
+                "independentAssessments": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/assessmentDTO.Assessment"
+                    }
+                },
+                "myIndependentAssessments": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/assessmentDTO.Assessment"
+                    }
+                },
                 "studentScore": {
                     "$ref": "#/definitions/scoreLevelDTO.StudentScore"
                 }
@@ -5120,9 +5305,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "courseParticipationID": {
-                    "type": "string"
-                },
-                "coursePhaseID": {
                     "type": "string"
                 }
             }
@@ -5293,9 +5475,6 @@ const docTemplate = `{
         "competencyDTO.UpdateCompetencyRequest": {
             "type": "object",
             "properties": {
-                "categoryID": {
-                    "type": "string"
-                },
                 "description": {
                     "type": "string"
                 },
@@ -5404,6 +5583,9 @@ const docTemplate = `{
                 "gradingSheetVisible": {
                     "type": "boolean"
                 },
+                "independentAssessmentEnabled": {
+                    "type": "boolean"
+                },
                 "peerEvaluationDeadline": {
                     "type": "string"
                 },
@@ -5476,6 +5658,9 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "gradingSheetVisible": {
+                    "type": "boolean"
+                },
+                "independentAssessmentEnabled": {
                     "type": "boolean"
                 },
                 "peerEvaluationDeadline": {
@@ -5584,6 +5769,40 @@ const docTemplate = `{
                 },
                 "sentAt": {
                     "type": "string"
+                },
+                "successfulEmails": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "coursePhaseConfigDTO.ReleaseResultsResponse": {
+            "type": "object",
+            "properties": {
+                "mailError": {
+                    "type": "string"
+                },
+                "mailReport": {
+                    "$ref": "#/definitions/coursePhaseConfigDTO.ResultsReleasedMailReport"
+                },
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "coursePhaseConfigDTO.ResultsReleasedMailReport": {
+            "type": "object",
+            "properties": {
+                "failedEmails": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "requestedRecipients": {
+                    "type": "integer"
                 },
                 "successfulEmails": {
                     "type": "array",

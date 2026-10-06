@@ -64,23 +64,6 @@ func validateCreateCourse(c courseDTO.CreateCourse) error {
 	return nil
 }
 
-func (s *CourseService) validateUpdateCourseOrder(ctx context.Context, courseID uuid.UUID, c []courseDTO.CoursePhaseGraph) error {
-	// for each course phase check if the course id is the same
-	for _, graphItem := range c {
-		coursePhase, err := s.coursePhases.GetCoursePhaseByID(ctx, graphItem.ToCoursePhaseID)
-		if err != nil {
-			return err
-		}
-		if courseID != coursePhase.CourseID {
-			errorMessage := "course id must be the same for all course phases"
-			log.Error(errorMessage)
-			return errors.New(errorMessage)
-		}
-	}
-
-	return nil
-}
-
 func (s *CourseService) validateMetaDataGraph(ctx context.Context, courseID uuid.UUID, newGraph []courseDTO.MetaDataGraphItem) error {
 	// for each check if the course phase really belongs to this course
 	uniqueCoursePhaseIDs := make([]uuid.UUID, 0)

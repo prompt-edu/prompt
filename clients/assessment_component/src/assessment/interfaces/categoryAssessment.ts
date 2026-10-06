@@ -12,7 +12,6 @@ export interface CategoryAssessment {
 
 export interface CreateOrUpdateCategoryAssessmentRequest {
   categoryID: string
-  coursePhaseID: string
   courseParticipationID: string
   comment: string
 }

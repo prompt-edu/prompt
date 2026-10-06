@@ -127,8 +127,14 @@ describe('coreKeys', () => {
   it('builds the instructor note and student keys', () => {
     expect(coreKeys.instructorNotes.tags()).toEqual(['noteTags'])
     expect(coreKeys.instructorNotes.ofStudent(STUDENT)).toEqual(['instructorNotes', STUDENT])
+    expect(coreKeys.students.all()).toEqual(['student'])
     expect(coreKeys.students.byId(STUDENT)).toEqual(['student', STUDENT])
     expect(coreKeys.students.enrollments(STUDENT)).toEqual(['studentEnrollments', STUDENT])
+  })
+
+  it('puts the student counts under the study program list, so one invalidation reaches both', () => {
+    expect(coreKeys.studyPrograms.all()).toEqual(['studyPrograms'])
+    expect(coreKeys.studyPrograms.studentCounts()).toEqual(['studyPrograms', 'studentCounts'])
   })
 
   it('builds the privacy keys, with the resource folded into the second element', () => {

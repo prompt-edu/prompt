@@ -8,7 +8,6 @@ import (
 )
 
 type CreateCoursePhase struct {
-	CourseID            uuid.UUID     `json:"courseID"`
 	Name                string        `json:"name"`
 	IsInitialPhase      bool          `json:"isInitialPhase"`
 	RestrictedData      meta.MetaData `json:"restrictedData"`
@@ -16,7 +15,7 @@ type CreateCoursePhase struct {
 	CoursePhaseTypeID   uuid.UUID     `json:"coursePhaseTypeID"`
 }
 
-func (cp CreateCoursePhase) GetDBModel() (db.CreateCoursePhaseParams, error) {
+func (cp CreateCoursePhase) GetDBModel(courseID uuid.UUID) (db.CreateCoursePhaseParams, error) {
 	restrictedData, err := cp.RestrictedData.GetDBModel()
 	if err != nil {
 		return db.CreateCoursePhaseParams{}, err
@@ -28,7 +27,7 @@ func (cp CreateCoursePhase) GetDBModel() (db.CreateCoursePhaseParams, error) {
 	}
 
 	return db.CreateCoursePhaseParams{
-		CourseID:            cp.CourseID,
+		CourseID:            courseID,
 		Name:                pgtype.Text{String: cp.Name, Valid: true},
 		IsInitialPhase:      cp.IsInitialPhase,
 		RestrictedData:      restrictedData,

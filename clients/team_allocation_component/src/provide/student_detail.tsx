@@ -10,6 +10,7 @@ import { RenderStudents } from '@tumaet/prompt-ui-components'
 import type React from 'react'
 import { useMemo } from 'react'
 import type { Allocation } from '../team_allocation/interfaces/allocation'
+import { teamAllocationKeys } from '../team_allocation/network/cache'
 import { getAllTeams } from '../team_allocation/network/queries/getAllTeams'
 import { getTeamAllocations } from '../team_allocation/network/queries/getTeamAllocations'
 
@@ -20,18 +21,18 @@ export const StudentDetail: React.FC<CoursePhaseStudentIdentifierProps> = ({
   courseParticipationId,
 }) => {
   const { data: teams, isPending: isTeamsPending } = useQuery<Team[]>({
-    queryKey: ['team_allocation_team', coursePhaseId],
+    queryKey: teamAllocationKeys.teams(coursePhaseId),
     queryFn: () => getAllTeams(coursePhaseId),
   })
 
   const { data: coursePhaseParticipations, isPending: isParticipationsPending } =
     useQuery<CoursePhaseParticipationsWithResolution>({
-      queryKey: ['participants', coursePhaseId],
+      queryKey: teamAllocationKeys.participants(coursePhaseId),
       queryFn: () => getCoursePhaseParticipations(coursePhaseId),
     })
 
   const { data: teamAllocations, isPending: isAllocationsPending } = useQuery<Allocation[]>({
-    queryKey: ['team_allocations', coursePhaseId],
+    queryKey: teamAllocationKeys.allocations(coursePhaseId),
     queryFn: () => getTeamAllocations(coursePhaseId),
   })
 

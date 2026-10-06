@@ -37,10 +37,10 @@ func MapDBActionItemToActionItemDTO(dbActionItem db.ActionItem) ActionItem {
 }
 
 // GetDBModel converts CreateActionItemRequest to database parameters.
-func (r CreateActionItemRequest) GetDBModel() db.CreateActionItemParams {
+func (r CreateActionItemRequest) GetDBModel(coursePhaseID uuid.UUID) db.CreateActionItemParams {
 	return db.CreateActionItemParams{
 		ID:                    uuid.New(),
-		CoursePhaseID:         r.CoursePhaseID,
+		CoursePhaseID:         coursePhaseID,
 		CourseParticipationID: r.CourseParticipationID,
 		Action:                r.Action,
 		Author:                r.Author,
@@ -48,10 +48,10 @@ func (r CreateActionItemRequest) GetDBModel() db.CreateActionItemParams {
 }
 
 // GetDBModel converts UpdateActionItemRequest to database parameters.
-func (r UpdateActionItemRequest) GetDBModel() db.UpdateActionItemParams {
+func (r UpdateActionItemRequest) GetDBModel(coursePhaseID uuid.UUID) db.UpdateActionItemParams {
 	return db.UpdateActionItemParams{
 		ID:                    r.ID,
-		CoursePhaseID:         r.CoursePhaseID,
+		CoursePhaseID:         coursePhaseID,
 		CourseParticipationID: r.CourseParticipationID,
 		Action:                r.Action,
 		Author:                r.Author,

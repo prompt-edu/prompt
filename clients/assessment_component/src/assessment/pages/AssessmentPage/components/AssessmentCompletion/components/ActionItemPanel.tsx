@@ -7,6 +7,7 @@ import {
   CardTitle,
   ErrorPage,
   getStudentName,
+  QueryGate,
 } from '@tumaet/prompt-ui-components'
 import { AlertCircle, Loader2, Plus } from 'lucide-react'
 import { useState } from 'react'
@@ -28,10 +29,7 @@ interface ActionItemPanelProps {
 }
 
 export function ActionItemPanel({ readOnly = false, actionItems }: ActionItemPanelProps) {
-  const { phaseId, courseParticipationID } = useParams<{
-    phaseId: string
-    courseParticipationID: string
-  }>()
+  const { courseParticipationID } = useParams<{ courseParticipationID: string }>()
   const [error, setError] = useState<string | undefined>(undefined)
   const [savingItemId, setSavingItemId] = useState<string | undefined>(undefined)
   const [itemValues, setItemValues] = useState<Record<string, string>>({})
@@ -43,12 +41,8 @@ export function ActionItemPanel({ readOnly = false, actionItems }: ActionItemPan
 
   const completed = readOnly || assessmentCompletion?.completed
 
-  const {
-    actionItems: fetchedActionItems,
-    isPending: isGetActionItemsPending,
-    isError,
-    refetch,
-  } = useGetActionItemsForStudent(!readOnly)
+  const actionItemsQuery = useGetActionItemsForStudent(!readOnly)
+  const { actionItems: fetchedActionItems, isPending: isGetActionItemsPending } = actionItemsQuery
 
   const { mutate: createActionItem, isPending: isCreatePending } = useCreateActionItem(setError)
   const { mutate: updateActionItem, isPending: isUpdatePending } = useUpdateActionItem(setError)
@@ -63,7 +57,6 @@ export function ActionItemPanel({ readOnly = false, actionItems }: ActionItemPan
     if (completed) return
 
     await createActionItem({
-      coursePhaseID: phaseId ?? '',
       courseParticipationID: courseParticipationID ?? '',
       action: '',
       author: userName,
@@ -85,7 +78,6 @@ export function ActionItemPanel({ readOnly = false, actionItems }: ActionItemPan
 
       const updateRequest: UpdateActionItemRequest = {
         id: item.id,
-        coursePhaseID: phaseId ?? '',
         courseParticipationID: courseParticipationID ?? '',
         action: value.trim(),
         author: userName,
@@ -126,20 +118,18 @@ export function ActionItemPanel({ readOnly = false, actionItems }: ActionItemPan
 
   const isPending = isGetActionItemsPending || isCreatePending || isUpdatePending || isDeletePending
 
-  if (isError) {
-    return <ErrorPage message='Error loading assessments' onRetry={refetch} />
-  }
-
-  if (isGetActionItemsPending && !readOnly) {
-    return (
-      <div className='flex justify-center items-center h-64'>
-        <Loader2 className='h-12 w-12 animate-spin text-primary' />
-      </div>
-    )
-  }
-
   return (
-    <>
+    <QueryGate
+      queries={[actionItemsQuery]}
+      loadingFallback={
+        <div className='flex justify-center items-center h-64'>
+          <Loader2 className='h-12 w-12 animate-spin text-primary' />
+        </div>
+      }
+      errorFallback={({ refetch }) => (
+        <ErrorPage message='Error loading action items' onRetry={refetch} />
+      )}
+    >
       <Card>
         <CardHeader>
           <CardTitle>Action Items</CardTitle>
@@ -205,6 +195,6 @@ export function ActionItemPanel({ readOnly = false, actionItems }: ActionItemPan
         onCancel={cancelDelete}
         isDeleting={isDeletePending}
       />
-    </>
+    </QueryGate>
   )
 }

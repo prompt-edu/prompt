@@ -13,12 +13,13 @@ import {
   AlertDescription,
   AlertTitle,
   ErrorPage,
-  LoadingPage,
+  QueryGate,
   UnauthorizedPage,
 } from '@tumaet/prompt-ui-components'
 import { TriangleAlert } from 'lucide-react'
 import { useParams } from 'react-router-dom'
 import type { Timeframe } from '../../interfaces/timeframe'
+import { selfTeamAllocationKeys } from '../../network/cache'
 import { getAllTeams } from '../../network/queries/getAllTeams'
 import { getTimeframe } from '../../network/queries/getSurveyTimeframe'
 import { TeamSelection } from './components/TeamSelection'
@@ -33,61 +34,37 @@ export const SelfTeamAllocationPage = () => {
   )
   const isStudent = isStudentOfCourse(courseId) && !isManager
 
-  const {
-    data: participation,
-    isPending: isParticipationsPending,
-    isError: isParticipationsError,
-    refetch: refetchCoursePhaseParticipations,
-    error: participationError,
-  } = useQuery<CoursePhaseParticipationWithStudent>({
-    queryKey: ['course_phase_participation', phaseId],
+  const participationQuery = useQuery<CoursePhaseParticipationWithStudent>({
+    queryKey: selfTeamAllocationKeys.myParticipation(phaseId),
     queryFn: () => getOwnCoursePhaseParticipation(phaseId),
     enabled: isStudent,
   })
 
-  const {
-    data: teams,
-    isPending: isTeamsPending,
-    isError: isTeamsError,
-    refetch: refetchTeams,
-  } = useQuery<Team[]>({
-    queryKey: ['self_team_allocations', phaseId],
+  const teamsQuery = useQuery<Team[]>({
+    queryKey: selfTeamAllocationKeys.teams(phaseId),
     queryFn: () => getAllTeams(phaseId),
   })
 
-  const {
-    data: timeframe,
-    isPending: isTimeframePending,
-    isError: isTimeframeError,
-    refetch: refetchTimeframe,
-  } = useQuery<Timeframe>({
-    queryKey: ['timeframe', phaseId],
+  const timeframeQuery = useQuery<Timeframe>({
+    queryKey: selfTeamAllocationKeys.timeframe(phaseId),
     queryFn: () => getTimeframe(phaseId),
   })
 
-  const isError = isParticipationsError || isTeamsError || isTimeframeError
-  const isPending = isParticipationsPending || isTeamsPending || isTimeframePending
-  const refetch = () => {
-    refetchCoursePhaseParticipations()
-    refetchTeams()
-    refetchTimeframe()
-  }
-
-  if (isTeamsPending || (isStudent && isPending)) {
-    return <LoadingPage />
-  }
-
-  if (isStudent && isError) {
-    if (participationError?.message.includes('404')) {
-      return <UnauthorizedPage backUrl={`/management/course/${courseId}`} />
-    }
-    return <ErrorPage onRetry={refetch} />
-  }
-
-  const cpId = participation?.courseParticipationID
+  const { data: participation, error: participationError } = participationQuery
+  const teams = teamsQuery.data
+  const timeframe = timeframeQuery.data
 
   return (
-    <>
+    <QueryGate
+      queries={[participationQuery, teamsQuery, timeframeQuery]}
+      errorFallback={({ refetch }) =>
+        isStudent && participationError?.message.includes('404') ? (
+          <UnauthorizedPage backUrl={`/management/course/${courseId}`} />
+        ) : (
+          <ErrorPage onRetry={refetch} />
+        )
+      }
+    >
       {!isStudent && (
         <Alert>
           <TriangleAlert className='h-4 w-4' />
@@ -101,11 +78,11 @@ export const SelfTeamAllocationPage = () => {
       {teams && timeframe && (
         <TeamSelection
           teams={teams}
-          courseParticipationID={cpId}
-          refetchTeams={refetchTeams}
+          courseParticipationID={participation?.courseParticipationID}
+          refetchTeams={teamsQuery.refetch}
           timeframe={timeframe}
         />
       )}
-    </>
+    </QueryGate>
   )
 }

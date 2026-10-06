@@ -257,22 +257,20 @@ func (q *Queries) ListCompetenciesForCoursePhase(ctx context.Context, coursePhas
 
 const updateCompetency = `-- name: UpdateCompetency :exec
 UPDATE competency
-SET category_id           = $2,
-    name                  = $3,
-    short_name            = $4,
-    description           = $5,
-    description_very_bad  = $6,
-    description_bad       = $7,
-    description_ok        = $8,
-    description_good      = $9,
-    description_very_good = $10,
-    weight                = $11
+SET name                  = $2,
+    short_name            = $3,
+    description           = $4,
+    description_very_bad  = $5,
+    description_bad       = $6,
+    description_ok        = $7,
+    description_good      = $8,
+    description_very_good = $9,
+    weight                = $10
 WHERE id = $1
 `
 
 type UpdateCompetencyParams struct {
 	ID                  uuid.UUID   `json:"id"`
-	CategoryID          uuid.UUID   `json:"category_id"`
 	Name                string      `json:"name"`
 	ShortName           pgtype.Text `json:"short_name"`
 	Description         pgtype.Text `json:"description"`
@@ -287,7 +285,6 @@ type UpdateCompetencyParams struct {
 func (q *Queries) UpdateCompetency(ctx context.Context, arg UpdateCompetencyParams) error {
 	_, err := q.db.Exec(ctx, updateCompetency,
 		arg.ID,
-		arg.CategoryID,
 		arg.Name,
 		arg.ShortName,
 		arg.Description,

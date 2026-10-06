@@ -114,3 +114,41 @@ SET student_first_name = $1,
     updated_at = CURRENT_TIMESTAMP
 WHERE course_participation_id = $3
   AND course_phase_id = $4;
+
+-- name: UpsertAllocationForParticipant :execrows
+-- The COALESCE guard scopes the write to an expected source team: a NULL
+-- expected_team_id writes unconditionally, a set one only updates a row that is
+-- still in that team, so authorization and mutation stay a single statement.
+INSERT INTO allocations AS a (
+  id,
+  course_participation_id,
+  team_id,
+  course_phase_id,
+  student_first_name,
+  student_last_name,
+  created_at,
+  updated_at
+) VALUES (
+  @id,
+  @course_participation_id,
+  @team_id,
+  @course_phase_id,
+  @student_first_name,
+  @student_last_name,
+  CURRENT_TIMESTAMP,
+  CURRENT_TIMESTAMP
+)
+ON CONFLICT ON CONSTRAINT allocations_participation_phase_uk
+DO UPDATE
+SET team_id = EXCLUDED.team_id,
+    student_first_name = EXCLUDED.student_first_name,
+    student_last_name = EXCLUDED.student_last_name,
+    updated_at = CURRENT_TIMESTAMP
+WHERE a.team_id = COALESCE(sqlc.narg('expected_team_id')::uuid, a.team_id);
+
+-- name: DeleteAllocationForParticipant :execrows
+DELETE
+FROM allocations a
+WHERE a.course_participation_id = @course_participation_id
+  AND a.course_phase_id = @course_phase_id
+  AND a.team_id = COALESCE(sqlc.narg('expected_team_id')::uuid, a.team_id);

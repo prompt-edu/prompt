@@ -1,29 +1,30 @@
 ---
 name: verify
-description: Run PROMPT 2.0 and observe a change in the real UI or API. Boots the seeded e2e stack (core client + server + Keycloak + Postgres + SeaweedFS) without the Playwright suite and drives it from inside the compose network. Use when verifying a client or core-server change at its surface rather than through tests.
+description: Run PROMPT 2.0 and observe a change in a real browser. Boots the seeded e2e stack (core client + server + Keycloak + Postgres + SeaweedFS) in host-browser mode and drives it with the Playwright MCP browser. Use when verifying a client or core-server change at its surface rather than through tests.
 ---
 
-# Verify a change against a running PROMPT stack
+# Verify a change in a real browser
 
 The `docker-compose.e2e.yml` stack is the fastest handle: it boots the core client, the
 core server, every phase service, Keycloak with an imported realm, and every database
 seeded from `seed/` (by the one-shot `seed` service, after the servers have migrated) on
-ports that coexist with a dev stack — client 4000, core API 18090, Keycloak 18081.
+ports that coexist with a dev stack — client 4000, core API 18090, Keycloak 18081,
+Mailpit 18025.
 
-## Boot the app without running tests
+`e2e/docker-compose.browser.yml` overlays it for **host-browser mode**, and
+`make verify-up` boots that combination. Drive it with the **Playwright MCP** browser
+(`mcp__playwright__*`), which the repo's `.mcp.json` registers.
 
-The Makefile exports `.env` / `.env.dev`, whose host-mode overrides outrank
-`--env-file e2e/.env.e2e`, so unset those keys (this is what `make test-e2e-*` does):
+## 1. Boot the stack
 
 ```bash
-env -u DB_CORE_HOST -u DB_CORE_PORT -u DB_CORE_USER -u DB_CORE_PASSWORD -u DB_CORE_NAME \
-    -u KEYCLOAK_HOST -u CORE_HOST -u SERVER_ADDRESS \
-  docker compose -f docker-compose.e2e.yml --env-file e2e/.env.e2e up -d client-core server-core seed
+make verify-up               # add SKIP_BUILD=1 to reuse images already built
 ```
 
-`depends_on` pulls in the databases, Keycloak, SeaweedFS and every phase service. Name
-`seed` explicitly: only `e2e-runner` depends on it, so without it the stack boots against
-empty databases. A cold build is ~10 min; afterwards startup is under a minute. Readiness:
+`depends_on` pulls in the databases, Keycloak, SeaweedFS and every phase service.
+`verify-up` also names `seed` explicitly: only `e2e-runner` depends on it, so without it
+the stack boots against empty databases. A cold build is ~10 min; afterwards startup is
+under a minute. Readiness:
 
 ```bash
 curl -s -o /dev/null -w '%{http_code}\n' http://localhost:18090/api/hello   # core API
@@ -31,15 +32,74 @@ curl -s -o /dev/null -w '%{http_code}\n' http://localhost:4000              # co
 docker compose -f docker-compose.e2e.yml logs seed | tail -1                # "seed: done"
 ```
 
-Tear down with `make test-e2e-down` (removes volumes, so the seed is fresh next boot).
+Tear down with `make verify-down` (removes volumes, so the seed is fresh next boot).
 
-## Drive it from inside the compose network, not from the host
+## 2. Drive the browser
 
-The client's runtime config points the browser at `http://keycloak:8080`, a name only
-Docker DNS resolves — a host browser dies on `ERR_NAME_NOT_RESOLVED` at the login
-redirect, and a Keycloak token minted via `localhost:18081` is rejected by the server as
-`{"error":"Invalid token"}` (issuer mismatch). Run driver scripts in the `e2e-runner`
-container instead: it sits on the network and ships Playwright plus Chromium.
+Navigate to `http://localhost:4000/management`, log in, and interact. Seeded accounts are
+in `e2e/src/data/roles.ts` — **username equals password** (`lecturer`, `admin`, `student`,
+…). Seeded courses, phases and participants are in `e2e/src/data/constants.ts`.
+
+The login form is Keycloak's own page; log in the way the suite does
+(`e2e/src/pages/LoginPage.ts`): fill `#username` / `#password`, click `#kc-login`, then
+wait for the app shell. Sequence with the MCP tools:
+
+1. `browser_navigate` → `http://localhost:4000/management`
+2. `browser_snapshot` to get refs for the Keycloak fields
+3. `browser_type` into `#username` / `#password`, `browser_click` `#kc-login`
+4. `browser_snapshot` again once redirected back, then click through to the change
+5. `browser_take_screenshot` for the evidence, `browser_console_messages` for errors
+
+Action tools (`browser_navigate`, `browser_click`, `browser_type`, …) save the page
+snapshot they take, and each tab streams its console log, into the gitignored
+`.playwright-mcp/` on their own. An explicit `browser_snapshot` or
+`browser_console_messages` call returns its output inline instead. Any `filename` you pass
+— to those two or to `browser_take_screenshot` — resolves against the repo root, so give
+an explicit `.playwright-mcp/<name>` or the file lands in the working tree, where only a
+`git status` catches it. Always report what you observed, and show a screenshot of the
+changed surface.
+
+## 3. Exercising real write paths
+
+A lecturer token drives any core API directly from the host, which beats hand-editing the
+seed when you need a state the fixtures don't have:
+
+```bash
+TOKEN=$(curl -s -X POST http://localhost:18081/realms/prompt/protocol/openid-connect/token \
+  -d client_id=prompt-client -d username=lecturer -d password=lecturer \
+  -d grant_type=password | python3 -c 'import sys,json;print(json.load(sys.stdin)["access_token"])')
+curl -s -H "Authorization: Bearer $TOKEN" http://localhost:18090/api/courses/ | head -c 400
+```
+
+## Why host-browser mode exists
+
+The base stack addresses everything by compose service name (`http://client-core`,
+`http://keycloak:8080`), because the containerized runner's Chromium resolves those via
+Docker DNS. A host browser cannot: it dies on `ERR_NAME_NOT_RESOLVED` at the login
+redirect, and a token minted via `localhost:18081` against the unmodified stack is
+rejected as `{"error":"Invalid token"}` (issuer mismatch).
+
+The overlay fixes both ends so there is exactly one issuer,
+`http://localhost:18081/realms/prompt`:
+
+- `client-core` gets `CORE_HOST=http://localhost:18090` and
+  `KEYCLOAK_HOST=http://localhost:18081` in its `env.js` (generated by the container
+  entrypoint at start, so no rebuild is needed for an env change).
+- `server-core` gets `CORE_HOST=http://localhost:4000` (the CORS allow-list origin) and
+  the same `KEYCLOAK_HOST`.
+- Every token-validating server gets `localhost:host-gateway`, so `localhost:18081`
+  resolves to the published Keycloak port from inside its container.
+- `seaweedfs-s3` is published on 18333 and `S3_PUBLIC_ENDPOINT` points there, so
+  presigned upload/download URLs handed to the browser resolve on the host.
+
+The e2e realm already whitelists `http://localhost:4000/*` as a redirect URI and web
+origin, so no realm edit is needed.
+
+## Fallback: drive from inside the compose network
+
+Only needed when you must reproduce the suite's exact DNS-name environment (for example
+debugging a failing spec's own navigation). Run a throwaway driver in the `e2e-runner`
+container, which sits on the network and ships Playwright plus Chromium:
 
 ```bash
 env -u DB_CORE_HOST -u DB_CORE_PORT -u DB_CORE_USER -u DB_CORE_PASSWORD -u DB_CORE_NAME \
@@ -54,25 +114,6 @@ core API and `http://keycloak:8080` for tokens. Screenshots written to
 `/work/test-results` land in `e2e/test-results/` on the host. Delete the driver script
 from the repo when done — `e2e/` is checked in.
 
-Log in the way the suite does (`e2e/src/pages/LoginPage.ts`): go to `/management`, fill
-`#username` / `#password`, click `#kc-login`, then wait for the `jwt_token` localStorage
-key. Seeded accounts are in `e2e/src/data/roles.ts` — username equals password
-(`lecturer`, `admin`, `student`, …). Seeded courses, phases and participants are in
-`e2e/src/data/constants.ts`.
-
-## Exercising real write paths
-
-A lecturer token from the container drives any core API directly, which beats hand-editing
-the seed when you need a state the fixtures don't have:
-
-```js
-const body = new URLSearchParams({ client_id: 'prompt-client', username: 'lecturer',
-  password: 'lecturer', grant_type: 'password' })
-const { access_token } = await (await fetch(
-  'http://keycloak:8080/realms/prompt/protocol/openid-connect/token',
-  { method: 'POST', body })).json()
-```
-
 ## Gotchas
 
 - `/management/**` and `/apply/:id/authenticated` sit behind `RequireAuth`, which asks
@@ -80,15 +121,19 @@ const { access_token } = await (await fetch(
   so enter through a management route when you need to log in.
 - The console logs a `[prompt-shared-state] Missing or invalid env keys` warning and
   404s for optional phase assets on every page — pre-existing noise, not your change.
+  Offline you also get `ERR_NAME_NOT_RESOLVED` for the `gravatar.com` avatar.
 - The seed runs in the one-shot `seed` container with `--single-transaction` and
-  `ON_ERROR_STOP`: a bad statement rolls the whole file back, `seed` exits non-zero, and
-  `e2e-runner` never starts (it waits on `service_completed_successfully`). Read
-  `docker compose -f docker-compose.e2e.yml logs seed` first. `make seed-check` catches a
-  mistyped cross-database id without booting anything.
+  `ON_ERROR_STOP`: a bad statement rolls the whole file back and `seed` exits non-zero.
+  `make verify-up` does not wait for it, so the browser stack still comes up, just without
+  the demo data. Read `docker compose -f docker-compose.e2e.yml logs seed` first.
+  `make seed-check` catches a mistyped cross-database id without booting anything.
 - The driver command's `--no-deps` skips `seed` along with everything else, so the boot
   step above is the only thing that seeds the databases. The seed is authoritative, so
   `docker compose -f docker-compose.e2e.yml start seed` runs the one-shot container
   again and resets a stack you have written into.
 - Reusing images with `SKIP_BUILD=1` keeps the *baked-in* copy of `e2e/src` and
   `e2e/tests`; `seed/` is a bind mount and updates without a rebuild. Edited constants
-  therefore need a rebuild, or the browser navigates to stale ids.
+  therefore need a rebuild, or the fallback driver navigates to stale ids. A client or
+  server code change always needs the build.
+- Both stacks share container names, so run one at a time: `make verify-down` before
+  `make test-e2e-shard`, and vice versa.

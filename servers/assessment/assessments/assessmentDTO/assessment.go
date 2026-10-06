@@ -37,3 +37,20 @@ func GetAssessmentDTOsFromDBModels(dbAssessments []db.Assessment) []Assessment {
 	}
 	return assessments
 }
+
+func GetAssessmentDTOsFromIndependentAssessments(dbAssessments []db.IndependentAssessment) []Assessment {
+	assessments := make([]Assessment, 0, len(dbAssessments))
+	for _, a := range dbAssessments {
+		assessments = append(assessments, Assessment{
+			ID:                    a.ID,
+			CourseParticipationID: a.CourseParticipationID,
+			CoursePhaseID:         a.CoursePhaseID,
+			CompetencyID:          a.CompetencyID,
+			ScoreLevel:            scoreLevelDTO.MapDBScoreLevelToDTO(a.ScoreLevel),
+			AssessedAt:            a.AssessedAt.Time,
+			Author:                a.Author,
+			AuthorID:              a.AuthorID,
+		})
+	}
+	return assessments
+}

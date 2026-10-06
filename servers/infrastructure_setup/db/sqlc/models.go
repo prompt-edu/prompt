@@ -184,3 +184,9 @@ type ResourceInstance struct {
 	TargetName            string         `json:"targetName"`
 	ResolvedName          string         `json:"resolvedName"`
 }
+
+type ResourceInstanceMember struct {
+	ResourceInstanceID    uuid.UUID `json:"resourceInstanceId"`
+	CourseParticipationID uuid.UUID `json:"courseParticipationId"`
+	Granted               bool      `json:"granted"`
+}

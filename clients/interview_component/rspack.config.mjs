@@ -4,4 +4,5 @@ export default createRspackConfig({
   name: 'interview_component',
   port: 3002,
   configUrl: import.meta.url,
+  consumesCore: true,
 })

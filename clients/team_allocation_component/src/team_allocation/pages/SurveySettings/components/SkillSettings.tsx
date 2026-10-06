@@ -1,9 +1,11 @@
 //
 // SkillSettings component uses the generic EntitySettings for skills
 
+import { useQueryClient } from '@tanstack/react-query'
 import { Star } from 'lucide-react'
 import { useParams } from 'react-router-dom'
 import type { Skill } from '../../../interfaces/skill'
+import { teamAllocationCache } from '../../../network/cache'
 import { createSkills } from '../../../network/mutations/createSkills'
 import { deleteSkill } from '../../../network/mutations/deleteSkill'
 import { updateSkill } from '../../../network/mutations/updateSkill'
@@ -16,6 +18,7 @@ interface SkillSettingsProps {
 export const SkillSettings = ({ skills }: SkillSettingsProps) => {
   // Use the same phaseId context if needed (or adjust as appropriate)
   const phaseId = useParams<{ phaseId: string }>().phaseId ?? ''
+  const queryClient = useQueryClient()
 
   return (
     <EntitySettings<Skill>
@@ -23,7 +26,7 @@ export const SkillSettings = ({ skills }: SkillSettingsProps) => {
       createFn={(names) => createSkills(phaseId, names)}
       updateFn={(id, newName) => updateSkill(phaseId, id, newName)}
       deleteFn={(id) => deleteSkill(phaseId, id)}
-      queryKey={['team_allocation_skill', phaseId]}
+      onChanged={() => teamAllocationCache.skillsChanged(queryClient, phaseId)}
       title='Skill'
       description='Manage your skills and their names'
       icon={<Star className='h-5 w-5' />}

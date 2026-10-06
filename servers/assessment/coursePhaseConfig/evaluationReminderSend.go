@@ -19,13 +19,14 @@ import (
 )
 
 var getCoreCoursePhaseFn = getCoreCoursePhase
-var sendManualReminderMailFn = sendManualReminderMail
+var sendManualMailFn = sendManualMail
 var updateCoreCoursePhaseFn = updateCoreCoursePhase
 
 var (
 	ErrReminderEvaluationDisabled = errors.New("evaluation type is disabled for this course phase")
 	ErrReminderDeadlineNotPassed  = errors.New("evaluation deadline has not passed yet")
 	ErrReminderTemplateIncomplete = errors.New("assessment reminder template is incomplete")
+	errCoreRejectedMail           = errors.New("core mailing request failed")
 )
 
 const coreManualMailTimeout = 2 * time.Minute
@@ -38,7 +39,6 @@ type coreCoursePhaseResponse struct {
 }
 
 type coreUpdateCoursePhaseRequest struct {
-	ID                  uuid.UUID      `json:"id"`
 	Name                string         `json:"name"`
 	RestrictedData      map[string]any `json:"restrictedData"`
 	StudentReadableData map[string]any `json:"studentReadableData"`
@@ -99,7 +99,7 @@ func (s *CoursePhaseConfigService) SendEvaluationReminderManualTrigger(
 	}
 	report.PreviousSentAt = getPreviousReminderSentAt(lastSentByType, evaluationType)
 
-	mailReport, err := sendManualReminderMailFn(ctx, authHeader, coursePhaseID, coreManualMailRequest{
+	mailReport, err := sendManualMailFn(ctx, authHeader, coursePhaseID, coreManualMailRequest{
 		Subject:                         subject,
 		Content:                         content,
 		RecipientCourseParticipationIDs: recipients.IncompleteAuthorCourseParticipationIDs,
@@ -119,7 +119,12 @@ func (s *CoursePhaseConfigService) SendEvaluationReminderManualTrigger(
 	report.SentAt = mailReport.SentAt
 
 	setLastSentAt(coursePhase.RestrictedData, evaluationType, report.SentAt)
-	if err := updateCoreCoursePhaseFn(ctx, authHeader, coreUpdateCoursePhaseRequest(coursePhase)); err != nil {
+	update := coreUpdateCoursePhaseRequest{
+		Name:                coursePhase.Name,
+		RestrictedData:      coursePhase.RestrictedData,
+		StudentReadableData: coursePhase.StudentReadableData,
+	}
+	if err := updateCoreCoursePhaseFn(ctx, authHeader, coursePhase.ID, update); err != nil {
 		log.WithError(err).
 			WithField("coursePhaseID", coursePhase.ID).
 			WithField("evaluationType", evaluationType).
@@ -173,7 +178,7 @@ func getCoreCoursePhase(ctx context.Context, authHeader string, coursePhaseID uu
 	return parsed, nil
 }
 
-func sendManualReminderMail(
+func sendManualMail(
 	ctx context.Context,
 	authHeader string,
 	coursePhaseID uuid.UUID,
@@ -201,16 +206,17 @@ func sendManualReminderMail(
 	}
 	defer func() { _ = resp.Body.Close() }()
 
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return coreManualMailReport{}, fmt.Errorf("failed to read core mailing response: %w", err)
-	}
+	body, readErr := io.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusOK {
 		return coreManualMailReport{}, fmt.Errorf(
-			"core mailing request failed with status %d: %s",
+			"%w with status %d: %s",
+			errCoreRejectedMail,
 			resp.StatusCode,
 			strings.TrimSpace(string(body)),
 		)
+	}
+	if readErr != nil {
+		return coreManualMailReport{}, fmt.Errorf("failed to read core mailing response: %w", readErr)
 	}
 
 	var parsed coreManualMailReport
@@ -223,6 +229,7 @@ func sendManualReminderMail(
 func updateCoreCoursePhase(
 	ctx context.Context,
 	authHeader string,
+	coursePhaseID uuid.UUID,
 	request coreUpdateCoursePhaseRequest,
 ) error {
 	payload, err := json.Marshal(request)
@@ -230,7 +237,7 @@ func updateCoreCoursePhase(
 		return fmt.Errorf("failed to marshal course phase update request: %w", err)
 	}
 
-	endpoint := fmt.Sprintf("%s/api/course_phases/%s", sdkUtils.GetCoreUrl(), request.ID)
+	endpoint := fmt.Sprintf("%s/api/course_phases/%s", sdkUtils.GetCoreUrl(), coursePhaseID)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, endpoint, bytes.NewReader(payload))
 	if err != nil {
 		return fmt.Errorf("failed to create core course phase update request: %w", err)

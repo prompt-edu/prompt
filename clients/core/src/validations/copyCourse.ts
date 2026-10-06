@@ -18,6 +18,7 @@ export const copyCourseSchema = z.object({
     .string()
     .min(1, 'Semester tag is required')
     .refine((val) => !val.includes('-'), 'Semester tag cannot contain a "-" character'),
+  courseType: z.string().min(1, 'Course type is required'),
   shortDescription: z
     .string()
     .min(1, 'Short description is required')

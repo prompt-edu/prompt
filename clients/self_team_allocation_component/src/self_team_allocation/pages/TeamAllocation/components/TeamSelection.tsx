@@ -6,6 +6,7 @@ import type React from 'react'
 import { useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import type { Timeframe } from '../../../interfaces/timeframe'
+import { selfTeamAllocationCache } from '../../../network/cache'
 import { createTeam } from '../../../network/mutations/createTeam'
 import { createTeamAssignment } from '../../../network/mutations/createTeamAllocation'
 import { deleteTeam } from '../../../network/mutations/deleteTeam'
@@ -40,7 +41,7 @@ export const TeamSelection: React.FC<Props> = ({
     mutationFn: (teamId: string) => createTeamAssignment(phaseId ?? '', teamId),
     onSuccess: () => {
       setSubmitError(null)
-      queryClient.invalidateQueries({ queryKey: ['self_team_allocations', phaseId] })
+      selfTeamAllocationCache.teamsChanged(queryClient, phaseId)
       window.scrollTo({ top: 0, behavior: 'smooth' })
     },
     onError: () => setSubmitError('Failed to join team. Please try again.'),
@@ -50,7 +51,7 @@ export const TeamSelection: React.FC<Props> = ({
     mutationFn: (teamId: string) => deleteTeamAssignment(phaseId ?? '', teamId),
     onSuccess: () => {
       setSubmitError(null)
-      queryClient.invalidateQueries({ queryKey: ['self_team_allocations', phaseId] })
+      selfTeamAllocationCache.teamsChanged(queryClient, phaseId)
     },
     onError: () => setSubmitError('Failed to leave team. Please try again.'),
   })
@@ -59,7 +60,7 @@ export const TeamSelection: React.FC<Props> = ({
     mutationFn: (name: string) => createTeam(phaseId ?? '', [name]),
     onSuccess: () => {
       setSubmitError(null)
-      queryClient.invalidateQueries({ queryKey: ['self_team_allocations', phaseId] })
+      selfTeamAllocationCache.teamsChanged(queryClient, phaseId)
     },
     onError: () => setSubmitError('Failed to create team. Please try again.'),
   })
@@ -68,7 +69,7 @@ export const TeamSelection: React.FC<Props> = ({
     mutationFn: (teamId: string) => deleteTeam(phaseId ?? '', teamId),
     onSuccess: () => {
       setSubmitError(null)
-      queryClient.invalidateQueries({ queryKey: ['self_team_allocations', phaseId] })
+      selfTeamAllocationCache.teamsChanged(queryClient, phaseId)
     },
     onError: () => setSubmitError('Failed to delete team. Please try again.'),
   })

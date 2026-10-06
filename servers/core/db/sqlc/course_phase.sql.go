@@ -299,7 +299,7 @@ func (q *Queries) GetResolutionsForCoursePhase(ctx context.Context, toCoursePhas
 	return items, nil
 }
 
-const updateCoursePhase = `-- name: UpdateCoursePhase :exec
+const updateCoursePhase = `-- name: UpdateCoursePhase :execrows
 UPDATE course_phase
 SET
     name = COALESCE($2, name),
@@ -315,12 +315,15 @@ type UpdateCoursePhaseParams struct {
 	StudentReadableData []byte      `json:"student_readable_data"`
 }
 
-func (q *Queries) UpdateCoursePhase(ctx context.Context, arg UpdateCoursePhaseParams) error {
-	_, err := q.db.Exec(ctx, updateCoursePhase,
+func (q *Queries) UpdateCoursePhase(ctx context.Context, arg UpdateCoursePhaseParams) (int64, error) {
+	result, err := q.db.Exec(ctx, updateCoursePhase,
 		arg.ID,
 		arg.Name,
 		arg.RestrictedData,
 		arg.StudentReadableData,
 	)
-	return err
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }

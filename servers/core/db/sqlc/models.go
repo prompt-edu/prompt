@@ -844,3 +844,9 @@ type Student struct {
 	CurrentSemester      pgtype.Int4      `json:"current_semester"`
 	LastModified         pgtype.Timestamp `json:"last_modified"`
 }
+
+type StudyProgram struct {
+	ID        uuid.UUID   `json:"id"`
+	Name      string      `json:"name"`
+	ShortName pgtype.Text `json:"short_name"`
+}

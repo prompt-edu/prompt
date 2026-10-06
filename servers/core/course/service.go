@@ -27,6 +27,8 @@ var ErrDuplicateCourseIdentifier = errors.New("a course with this name and semes
 // was asking the phase modules to drop their data. Retrying the deletion covers the new phase.
 var ErrCourseChangedDuringDeletion = errors.New("a course phase was added while the course was being deleted, please retry")
 
+var ErrPhaseNotInCourse = errors.New("course phase does not belong to this course")
+
 // courseDeletionTimeout bounds the transaction that deletes a course. It holds the course row lock
 // and a pool connection while the Keycloak groups and roles are deleted over the network, so it is
 // longer than the default query timeout.
@@ -255,13 +257,17 @@ func (s *CourseService) UpdateCoursePhaseOrder(ctx context.Context, courseID uui
 
 	// create new connections
 	for _, graphItem := range graphUpdate.PhaseGraph {
-		err = qtx.CreateCourseGraphConnection(ctx, db.CreateCourseGraphConnectionParams{
+		rows, err := qtx.CreateCourseGraphConnection(ctx, db.CreateCourseGraphConnectionParams{
 			FromCoursePhaseID: graphItem.FromCoursePhaseID,
 			ToCoursePhaseID:   graphItem.ToCoursePhaseID,
+			CourseID:          courseID,
 		})
 		if err != nil {
 			log.Error("Error creating graph connection: ", err)
 			return err
+		}
+		if rows == 0 {
+			return fmt.Errorf("%w: %s -> %s", ErrPhaseNotInCourse, graphItem.FromCoursePhaseID, graphItem.ToCoursePhaseID)
 		}
 	}
 

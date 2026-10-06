@@ -61,6 +61,7 @@ const campaignsPath = `${coursesPath}/${COURSE}/mail-campaigns`
 const ownProfilePicturePath = `${CORE}/api/profile-pictures/me`
 const privacyPath = `${CORE}/api/privacy`
 const studentsPath = `${CORE}/api/students`
+const studyProgramsPath = `${CORE}/api/study-programs`
 
 const ROUTES: Route[] = [
   {
@@ -252,17 +253,17 @@ const ROUTES: Route[] = [
   },
   {
     name: 'coursePhases.create',
-    run: () => coreApi.coursePhases.create({ courseID: COURSE } as never),
+    run: () => coreApi.coursePhases.create({ courseID: COURSE, name: 'New' } as never),
     method: 'post',
     url: `${CORE}/api/course_phases/course/${COURSE}`,
-    data: { courseID: COURSE },
+    data: { name: 'New' },
   },
   {
     name: 'coursePhases.update',
-    run: () => coreApi.coursePhases.update({ id: PHASE } as never),
+    run: () => coreApi.coursePhases.update({ id: PHASE, name: 'Renamed' } as never),
     method: 'put',
     url: `${CORE}/api/course_phases/${PHASE}`,
-    data: { id: PHASE },
+    data: { name: 'Renamed' },
   },
   {
     name: 'coursePhases.remove',
@@ -653,6 +654,40 @@ const ROUTES: Route[] = [
     method: 'put',
     url: `${studentsPath}/${STUDENT}`,
     data: { id: STUDENT },
+  },
+
+  {
+    name: 'studyPrograms.list',
+    run: () => coreApi.studyPrograms.list(),
+    method: 'get',
+    url: studyProgramsPath,
+    instance: 'public',
+  },
+  {
+    name: 'studyPrograms.studentCounts',
+    run: () => coreApi.studyPrograms.studentCounts(),
+    method: 'get',
+    url: `${studyProgramsPath}/student-counts`,
+  },
+  {
+    name: 'studyPrograms.create',
+    run: () => coreApi.studyPrograms.create(body()),
+    method: 'post',
+    url: studyProgramsPath,
+    data: BODY,
+  },
+  {
+    name: 'studyPrograms.update',
+    run: () => coreApi.studyPrograms.update('program-1', body()),
+    method: 'put',
+    url: `${studyProgramsPath}/program-1`,
+    data: BODY,
+  },
+  {
+    name: 'studyPrograms.remove',
+    run: () => coreApi.studyPrograms.remove('program-1'),
+    method: 'delete',
+    url: `${studyProgramsPath}/program-1`,
   },
 
   {

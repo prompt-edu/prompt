@@ -1,6 +1,5 @@
 import { Alert, AlertDescription, Textarea } from '@tumaet/prompt-ui-components'
 import { useEffect, useRef, useState } from 'react'
-import { useParams } from 'react-router-dom'
 
 import type { CategoryAssessment } from '../../../../interfaces/categoryAssessment'
 
@@ -21,8 +20,6 @@ export const CategoryComment = ({
   completed = false,
   disabled = false,
 }: CategoryCommentProps) => {
-  const { phaseId } = useParams<{ phaseId: string }>()
-
   const [comment, setComment] = useState(categoryAssessment?.comment ?? '')
   const [error, setError] = useState<string | undefined>(undefined)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -48,7 +45,6 @@ export const CategoryComment = ({
 
     saveCategoryAssessment({
       categoryID,
-      coursePhaseID: phaseId ?? '',
       courseParticipationID,
       comment: trimmed,
     })

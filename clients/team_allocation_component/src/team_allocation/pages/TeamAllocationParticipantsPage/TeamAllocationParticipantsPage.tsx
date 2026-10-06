@@ -4,13 +4,14 @@ import {
   CoursePhaseParticipationsTable,
   ErrorPage,
   type ExtraParticipantColumn,
-  LoadingPage,
   ManagementPageHeader,
+  QueryGate,
 } from '@tumaet/prompt-ui-components'
 import { useEffect, useMemo } from 'react'
 import { useParams } from 'react-router-dom'
 import type { Allocation } from '../../interfaces/allocation'
 import type { StudentName } from '../../interfaces/studentNameUpdateRequest'
+import { teamAllocationKeys } from '../../network/cache'
 import { addStudentNamesToTeams } from '../../network/mutations/addStudentNamesToTeams'
 import { getAllTeams } from '../../network/queries/getAllTeams'
 import { getTeamAllocations } from '../../network/queries/getTeamAllocations'
@@ -18,32 +19,21 @@ import { getTeamAllocations } from '../../network/queries/getTeamAllocations'
 export const TeamAllocationParticipantsPage = () => {
   const { phaseId } = useParams<{ phaseId: string }>()
 
-  const {
-    data: coursePhaseParticipations,
-    isPending: isCoursePhaseParticipationsPending,
-    isError: isParticipationsError,
-    refetch: refetchCoursePhaseParticipations,
-  } = useGetCoursePhaseParticipants()
+  const participationsQuery = useGetCoursePhaseParticipants()
 
-  const {
-    data: teams,
-    isPending: isTeamsPending,
-    isError: isTeamsError,
-    refetch: refetchTeams,
-  } = useQuery<Team[]>({
-    queryKey: ['team_allocation_team', phaseId],
+  const teamsQuery = useQuery<Team[]>({
+    queryKey: teamAllocationKeys.teams(phaseId),
     queryFn: () => getAllTeams(phaseId ?? ''),
   })
 
-  const {
-    data: teamAllocations,
-    isPending: isTeamAllocationsPending,
-    isError: isTeamAllocationsError,
-    refetch: refetchTeamAllocations,
-  } = useQuery<Allocation[]>({
-    queryKey: ['team_allocations', phaseId],
+  const teamAllocationsQuery = useQuery<Allocation[]>({
+    queryKey: teamAllocationKeys.allocations(phaseId),
     queryFn: () => getTeamAllocations(phaseId ?? ''),
   })
+
+  const coursePhaseParticipations = participationsQuery.data
+  const teams = teamsQuery.data
+  const teamAllocations = teamAllocationsQuery.data
 
   const extraColumns: ExtraParticipantColumn<any>[] = useMemo(() => {
     if (!teams || !teamAllocations) return []
@@ -99,17 +89,10 @@ export const TeamAllocationParticipantsPage = () => {
     ]
   }, [coursePhaseParticipations?.participations, teams, teamAllocations])
 
-  const refetch = () => {
-    refetchCoursePhaseParticipations()
-    refetchTeams()
-    refetchTeamAllocations()
-  }
-
   useEffect(() => {
     if (!coursePhaseParticipations?.participations?.length || !phaseId) return
 
     const requestPayload = {
-      coursePhaseID: phaseId,
       studentNamesPerID: coursePhaseParticipations.participations.reduce(
         (acc, p) => {
           if (p.student?.firstName && p.student?.lastName) {
@@ -124,32 +107,33 @@ export const TeamAllocationParticipantsPage = () => {
       ),
     }
 
-    void addStudentNamesToTeams(requestPayload).catch((error) => {
+    void addStudentNamesToTeams(phaseId, requestPayload).catch((error) => {
       console.error('Failed to update student names:', error)
     })
   }, [coursePhaseParticipations, phaseId])
 
-  const isError = isParticipationsError || isTeamsError || isTeamAllocationsError
-  const isPending = isCoursePhaseParticipationsPending || isTeamsPending || isTeamAllocationsPending
-
-  if (!phaseId) return <ErrorPage onRetry={refetch} description='Invalid course phase ID' />
-  if (isError)
-    return <ErrorPage onRetry={refetch} description='Could not fetch participants or teams' />
-  if (isPending) return <LoadingPage />
+  if (!phaseId) return <ErrorPage description='Invalid course phase ID' />
 
   return (
-    <div id='table-view' className='relative flex flex-col'>
-      <ManagementPageHeader>Team Allocation Participants</ManagementPageHeader>
-      <p className='text-sm text-muted-foreground mb-4'>
-        This table shows all participants and their allocated teams.
-      </p>
-      <div className='w-full'>
-        <CoursePhaseParticipationsTable
-          phaseId={phaseId}
-          participants={coursePhaseParticipations.participations ?? []}
-          extraColumns={extraColumns}
-        />
+    <QueryGate
+      queries={[participationsQuery, teamsQuery, teamAllocationsQuery]}
+      errorFallback={({ refetch }) => (
+        <ErrorPage onRetry={refetch} description='Could not fetch participants or teams' />
+      )}
+    >
+      <div id='table-view' className='relative flex flex-col'>
+        <ManagementPageHeader>Team Allocation Participants</ManagementPageHeader>
+        <p className='text-sm text-muted-foreground mb-4'>
+          This table shows all participants and their allocated teams.
+        </p>
+        <div className='w-full'>
+          <CoursePhaseParticipationsTable
+            phaseId={phaseId}
+            participants={coursePhaseParticipations?.participations ?? []}
+            extraColumns={extraColumns}
+          />
+        </div>
       </div>
-    </div>
+    </QueryGate>
   )
 }

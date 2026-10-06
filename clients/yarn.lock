@@ -5362,8 +5362,8 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "ai_component@workspace:ai_component"
   dependencies:
-    "@rspack/cli": "npm:^2.2.7"
-    "@rspack/core": "npm:^2.2.7"
+    "@rspack/cli": "npm:^2.2.8"
+    "@rspack/core": "npm:^2.2.8"
   languageName: unknown
   linkType: soft
 

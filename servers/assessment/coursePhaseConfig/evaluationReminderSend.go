@@ -12,35 +12,31 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/assessment/assessmentType"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig/coursePhaseConfigDTO"
+	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
 	log "github.com/sirupsen/logrus"
 )
 
 var getCoreCoursePhaseFn = getCoreCoursePhase
-var sendManualReminderMailFn = sendManualReminderMail
-var updateCoreCoursePhaseFn = updateCoreCoursePhase
+var sendManualMailFn = sendManualMail
 
 var (
 	ErrReminderEvaluationDisabled = errors.New("evaluation type is disabled for this course phase")
 	ErrReminderDeadlineNotPassed  = errors.New("evaluation deadline has not passed yet")
 	ErrReminderTemplateIncomplete = errors.New("assessment reminder template is incomplete")
+	errCoreRejectedMail           = errors.New("core mailing request failed")
 )
 
 const coreManualMailTimeout = 2 * time.Minute
 
 type coreCoursePhaseResponse struct {
-	ID                  uuid.UUID      `json:"id"`
-	Name                string         `json:"name"`
-	RestrictedData      map[string]any `json:"restrictedData"`
-	StudentReadableData map[string]any `json:"studentReadableData"`
-}
-
-type coreUpdateCoursePhaseRequest struct {
-	Name                string         `json:"name"`
-	RestrictedData      map[string]any `json:"restrictedData"`
-	StudentReadableData map[string]any `json:"studentReadableData"`
+	ID             uuid.UUID      `json:"id"`
+	Name           string         `json:"name"`
+	RestrictedData map[string]any `json:"restrictedData"`
 }
 
 type coreManualMailRequest struct {
@@ -92,13 +88,16 @@ func (s *CoursePhaseConfigService) SendEvaluationReminderManualTrigger(
 		return report, err
 	}
 
-	subject, content, lastSentByType := getAssessmentReminderTemplate(coursePhase.RestrictedData)
+	subject, content, legacyLastSentByType := getAssessmentReminderTemplate(coursePhase.RestrictedData)
 	if subject == "" || content == "" {
 		return report, ErrReminderTemplateIncomplete
 	}
-	report.PreviousSentAt = getPreviousReminderSentAt(lastSentByType, evaluationType)
+	report.PreviousSentAt, err = s.getPreviousReminderSentAt(ctx, coursePhaseID, evaluationType, legacyLastSentByType)
+	if err != nil {
+		return report, err
+	}
 
-	mailReport, err := sendManualReminderMailFn(ctx, authHeader, coursePhaseID, coreManualMailRequest{
+	mailReport, err := sendManualMailFn(ctx, authHeader, coursePhaseID, coreManualMailRequest{
 		Subject:                         subject,
 		Content:                         content,
 		RecipientCourseParticipationIDs: recipients.IncompleteAuthorCourseParticipationIDs,
@@ -117,21 +116,58 @@ func (s *CoursePhaseConfigService) SendEvaluationReminderManualTrigger(
 	report.RequestedRecipients = mailReport.RequestedRecipients
 	report.SentAt = mailReport.SentAt
 
-	setLastSentAt(coursePhase.RestrictedData, evaluationType, report.SentAt)
-	update := coreUpdateCoursePhaseRequest{
-		Name:                coursePhase.Name,
-		RestrictedData:      coursePhase.RestrictedData,
-		StudentReadableData: coursePhase.StudentReadableData,
-	}
-	if err := updateCoreCoursePhaseFn(ctx, authHeader, coursePhase.ID, update); err != nil {
+	// The reminder state lives in this service's database, so persisting it cannot overwrite the
+	// course phase settings in core that were changed while the mails were being sent.
+	if err := s.queries.UpsertEvaluationReminderLastSentAt(ctx, db.UpsertEvaluationReminderLastSentAtParams{
+		CoursePhaseID:  coursePhaseID,
+		EvaluationType: assessmentType.MapDTOtoDBAssessmentType(evaluationType),
+		LastSentAt:     pgtype.Timestamptz{Time: report.SentAt, Valid: true},
+	}); err != nil {
 		log.WithError(err).
-			WithField("coursePhaseID", coursePhase.ID).
+			WithField("coursePhaseID", coursePhaseID).
 			WithField("evaluationType", evaluationType).
 			Warn("Evaluation reminder mails were sent, but persisting lastSentAt failed")
 		return report, nil
 	}
 
 	return report, nil
+}
+
+// GetEvaluationReminderStatus returns when a reminder was last sent for each evaluation type.
+func (s *CoursePhaseConfigService) GetEvaluationReminderStatus(ctx context.Context, coursePhaseID uuid.UUID) (coursePhaseConfigDTO.EvaluationReminderStatus, error) {
+	reminders, err := s.queries.GetEvaluationRemindersForCoursePhase(ctx, coursePhaseID)
+	if err != nil {
+		return coursePhaseConfigDTO.EvaluationReminderStatus{}, fmt.Errorf("failed to get evaluation reminders: %w", err)
+	}
+
+	status := coursePhaseConfigDTO.EvaluationReminderStatus{
+		LastSentAtByType: make(map[assessmentType.AssessmentType]time.Time, len(reminders)),
+	}
+	for _, reminder := range reminders {
+		status.LastSentAtByType[assessmentType.MapDBAssessmentTypeToDTO(reminder.EvaluationType)] = reminder.LastSentAt.Time
+	}
+	return status, nil
+}
+
+// getPreviousReminderSentAt prefers the stored reminder state and falls back to the
+// lastSentAtByType that older versions kept in the course phase's restricted data.
+func (s *CoursePhaseConfigService) getPreviousReminderSentAt(
+	ctx context.Context,
+	coursePhaseID uuid.UUID,
+	evaluationType assessmentType.AssessmentType,
+	legacyLastSentByType map[string]string,
+) (*time.Time, error) {
+	reminder, err := s.queries.GetEvaluationReminder(ctx, db.GetEvaluationReminderParams{
+		CoursePhaseID:  coursePhaseID,
+		EvaluationType: assessmentType.MapDTOtoDBAssessmentType(evaluationType),
+	})
+	if err == nil {
+		return &reminder.LastSentAt.Time, nil
+	}
+	if !errors.Is(err, pgx.ErrNoRows) {
+		return nil, fmt.Errorf("failed to get evaluation reminder: %w", err)
+	}
+	return getLegacyReminderSentAt(legacyLastSentByType, evaluationType), nil
 }
 
 func getCoreCoursePhase(ctx context.Context, authHeader string, coursePhaseID uuid.UUID) (coreCoursePhaseResponse, error) {
@@ -170,14 +206,11 @@ func getCoreCoursePhase(ctx context.Context, authHeader string, coursePhaseID uu
 	if parsed.RestrictedData == nil {
 		parsed.RestrictedData = map[string]any{}
 	}
-	if parsed.StudentReadableData == nil {
-		parsed.StudentReadableData = map[string]any{}
-	}
 
 	return parsed, nil
 }
 
-func sendManualReminderMail(
+func sendManualMail(
 	ctx context.Context,
 	authHeader string,
 	coursePhaseID uuid.UUID,
@@ -205,16 +238,17 @@ func sendManualReminderMail(
 	}
 	defer func() { _ = resp.Body.Close() }()
 
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return coreManualMailReport{}, fmt.Errorf("failed to read core mailing response: %w", err)
-	}
+	body, readErr := io.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusOK {
 		return coreManualMailReport{}, fmt.Errorf(
-			"core mailing request failed with status %d: %s",
+			"%w with status %d: %s",
+			errCoreRejectedMail,
 			resp.StatusCode,
 			strings.TrimSpace(string(body)),
 		)
+	}
+	if readErr != nil {
+		return coreManualMailReport{}, fmt.Errorf("failed to read core mailing response: %w", readErr)
 	}
 
 	var parsed coreManualMailReport
@@ -222,49 +256,6 @@ func sendManualReminderMail(
 		return coreManualMailReport{}, fmt.Errorf("failed to parse core mailing response: %w", err)
 	}
 	return parsed, nil
-}
-
-func updateCoreCoursePhase(
-	ctx context.Context,
-	authHeader string,
-	coursePhaseID uuid.UUID,
-	request coreUpdateCoursePhaseRequest,
-) error {
-	payload, err := json.Marshal(request)
-	if err != nil {
-		return fmt.Errorf("failed to marshal course phase update request: %w", err)
-	}
-
-	endpoint := fmt.Sprintf("%s/api/course_phases/%s", sdkUtils.GetCoreUrl(), coursePhaseID)
-	req, err := http.NewRequestWithContext(ctx, http.MethodPut, endpoint, bytes.NewReader(payload))
-	if err != nil {
-		return fmt.Errorf("failed to create core course phase update request: %w", err)
-	}
-	req.Header.Set("Content-Type", "application/json")
-	if authHeader != "" {
-		req.Header.Set("Authorization", authHeader)
-	}
-
-	client := &http.Client{Timeout: 15 * time.Second}
-	resp, err := client.Do(req)
-	if err != nil {
-		return fmt.Errorf("failed to update course phase in core: %w", err)
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return fmt.Errorf("failed to read core course phase update response: %w", err)
-	}
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf(
-			"core course phase update failed with status %d: %s",
-			resp.StatusCode,
-			strings.TrimSpace(string(body)),
-		)
-	}
-
-	return nil
 }
 
 func getAssessmentReminderTemplate(restrictedData map[string]any) (string, string, map[string]string) {
@@ -293,7 +284,7 @@ func getAssessmentReminderTemplate(restrictedData map[string]any) (string, strin
 	return subject, content, lastSentByType
 }
 
-func getPreviousReminderSentAt(lastSentByType map[string]string, evaluationType assessmentType.AssessmentType) *time.Time {
+func getLegacyReminderSentAt(lastSentByType map[string]string, evaluationType assessmentType.AssessmentType) *time.Time {
 	if len(lastSentByType) == 0 {
 		return nil
 	}
@@ -306,21 +297,4 @@ func getPreviousReminderSentAt(lastSentByType map[string]string, evaluationType 
 		return nil
 	}
 	return &parsed
-}
-
-func setLastSentAt(restrictedData map[string]any, evaluationType assessmentType.AssessmentType, sentAt time.Time) {
-	mailingSettings := getOrCreateMap(restrictedData, "mailingSettings")
-	assessmentReminder := getOrCreateMap(mailingSettings, "assessmentReminder")
-	lastSentAtByType := getOrCreateMap(assessmentReminder, "lastSentAtByType")
-	lastSentAtByType[string(evaluationType)] = sentAt.Format(time.RFC3339)
-}
-
-func getOrCreateMap(parent map[string]any, key string) map[string]any {
-	existing, ok := parent[key].(map[string]any)
-	if ok {
-		return existing
-	}
-	created := map[string]any{}
-	parent[key] = created
-	return created
 }

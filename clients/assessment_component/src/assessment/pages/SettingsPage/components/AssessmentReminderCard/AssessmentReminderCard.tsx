@@ -1,10 +1,5 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import {
-  type CoursePhaseWithMetaData,
-  getCoursePhase,
-  useGetMailingIsConfigured,
-  useModifyCoursePhase,
-} from '@tumaet/prompt-shared-state'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useGetMailingIsConfigured, useModifyCoursePhase } from '@tumaet/prompt-shared-state'
 import {
   Alert,
   AlertDescription,
@@ -17,13 +12,14 @@ import type { AxiosError } from 'axios'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import type {
-  AssessmentReminderMetaData,
   EvaluationReminderReport,
   EvaluationReminderType,
 } from '../../../../interfaces/evaluationReminder'
 import { assessmentApi } from '../../../../network/api'
-import { assessmentCache, assessmentKeys } from '../../../../network/cache'
+import { assessmentCache } from '../../../../network/cache'
 import { useGetCoursePhaseConfig } from '../../../hooks/useGetCoursePhaseConfig'
+import { useGetCoursePhaseMetaData } from '../../../hooks/useGetCoursePhaseMetaData'
+import { useGetEvaluationReminderStatus } from '../../../hooks/useGetEvaluationReminderStatus'
 import { ManualReminderSendingSection } from './components/ManualReminderSendingSection'
 import { ReminderSendConfirmationDialog } from './components/ReminderSendConfirmationDialog'
 import { ReminderTemplateEditor } from './components/ReminderTemplateEditor'
@@ -59,19 +55,16 @@ export const AssessmentReminderCard = () => {
     data: coursePhase,
     isPending: isCoursePhasePending,
     isError: isCoursePhaseError,
-  } = useQuery<CoursePhaseWithMetaData>({
-    queryKey: assessmentKeys.coursePhase(phaseId),
-    queryFn: () => getCoursePhase(phaseId ?? ''),
-    enabled: !!phaseId,
-  })
+  } = useGetCoursePhaseMetaData()
+  const {
+    data: reminderStatus,
+    isPending: isReminderStatusPending,
+    isError: isReminderStatusError,
+  } = useGetEvaluationReminderStatus()
 
   const { mutate: updateCoursePhase, isPending: isSavingTemplate } = useModifyCoursePhase(
     () => {
-      setInitialMetaData({
-        subject,
-        content,
-        lastSentAtByType: currentReminderMetaData.lastSentAtByType ?? {},
-      })
+      setInitialMetaData((previous) => ({ ...previous, subject, content }))
       toast({ title: 'Assessment reminder template updated' })
       assessmentCache.coursePhaseMetaDataChanged(queryClient, phaseId)
     },
@@ -95,7 +88,7 @@ export const AssessmentReminderCard = () => {
           report.successfulEmails.length === 1 ? 'email was' : 'emails were'
         } sent.`,
       })
-      assessmentCache.coursePhaseMetaDataChanged(queryClient, phaseId)
+      assessmentCache.evaluationReminderSent(queryClient, phaseId)
     },
     onError: (error: AxiosError<ErrorResponse>) => {
       const serverError = error.response?.data?.error ?? 'Failed to send reminder emails.'
@@ -125,6 +118,14 @@ export const AssessmentReminderCard = () => {
   }, [coursePhase, phaseId])
 
   const currentReminderMetaData = useMemo(() => parseReminderMetaData(coursePhase), [coursePhase])
+  // Send times from before the assessment server stored them only exist in the course phase
+  const lastSentAtByType = useMemo(
+    () => ({
+      ...currentReminderMetaData.lastSentAtByType,
+      ...reminderStatus?.lastSentAtByType,
+    }),
+    [currentReminderMetaData, reminderStatus],
+  )
   const reminderTypes = useMemo(() => getReminderTypes(coursePhaseConfig), [coursePhaseConfig])
   const confirmationReminderType = useMemo(
     () => reminderTypes.find((reminderType) => reminderType.type === confirmationType) ?? null,
@@ -140,21 +141,14 @@ export const AssessmentReminderCard = () => {
 
     const mailingSettings =
       (coursePhase.restrictedData?.mailingSettings as Record<string, unknown>) ?? {}
-    const updatedReminder: AssessmentReminderMetaData = {
-      subject,
-      content,
-      lastSentAtByType: currentReminderMetaData.lastSentAtByType ?? {},
-    }
+    const reminder = (mailingSettings.assessmentReminder as Record<string, unknown>) ?? {}
 
     updateCoursePhase({
       id: coursePhase.id,
-      name: coursePhase.name,
-      studentReadableData: coursePhase.studentReadableData ?? {},
       restrictedData: {
-        ...coursePhase.restrictedData,
         mailingSettings: {
           ...mailingSettings,
-          assessmentReminder: updatedReminder,
+          assessmentReminder: { ...reminder, subject, content },
         },
       },
     })
@@ -181,6 +175,8 @@ export const AssessmentReminderCard = () => {
     if (isModified) return 'Save template changes before sending reminders.'
     if (!courseMailingIsConfigured) return 'Configure course mailing reply-to settings first.'
     if (!templateComplete) return 'Reminder subject and content are required.'
+    if (isReminderStatusError) return 'Previous reminder sends could not be loaded.'
+    if (isReminderStatusPending) return 'Loading previous reminder sends.'
     if (!deadlinePassed(reminderType.deadline))
       return `${reminderType.label} deadline must pass first (${formatDeadline(reminderType.deadline)}).`
     return undefined
@@ -231,6 +227,15 @@ export const AssessmentReminderCard = () => {
           <Alert variant='destructive'>
             <AlertTitle>Failed to load phase metadata</AlertTitle>
             <AlertDescription>Cannot load existing reminder template settings.</AlertDescription>
+          </Alert>
+        )}
+
+        {isReminderStatusError && (
+          <Alert variant='destructive'>
+            <AlertTitle>Failed to load previous reminders</AlertTitle>
+            <AlertDescription>
+              Reminders cannot be sent until it is known when they were last sent.
+            </AlertDescription>
           </Alert>
         )}
 
@@ -298,7 +303,7 @@ export const AssessmentReminderCard = () => {
 
             <ManualReminderSendingSection
               reminderTypes={reminderTypes}
-              lastSentAtByType={currentReminderMetaData.lastSentAtByType}
+              lastSentAtByType={lastSentAtByType}
               getDisableReason={getDisableReason}
               isSending={sendReminderMutation.isPending}
               onSend={openConfirmationDialog}
@@ -311,9 +316,7 @@ export const AssessmentReminderCard = () => {
         open={dialogOpen}
         onOpenChange={handleDialogOpenChange}
         confirmationReminderType={confirmationReminderType}
-        previousSentAt={
-          confirmationType ? currentReminderMetaData.lastSentAtByType[confirmationType] : undefined
-        }
+        previousSentAt={confirmationType ? lastSentAtByType[confirmationType] : undefined}
         isSending={sendReminderMutation.isPending}
         onConfirm={sendConfirmedReminder}
       />

@@ -12,6 +12,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/prompt-edu/prompt-sdk/promptTypes"
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
@@ -377,7 +378,35 @@ func (suite *CoursePhaseConfigRouterTestSuite) TestSendEvaluationReminderSuccess
 	assert.Contains(suite.T(), resp.Body.String(), "alice@example.com")
 }
 
-func (suite *CoursePhaseConfigRouterTestSuite) TestReleaseResults() {
+func (suite *CoursePhaseConfigRouterTestSuite) TestGetEvaluationReminderStatus() {
+	sentAt := time.Date(2026, time.January, 12, 10, 0, 0, 0, time.UTC)
+	err := suite.coursePhaseConfigService.queries.UpsertEvaluationReminderLastSentAt(suite.suiteCtx, db.UpsertEvaluationReminderLastSentAtParams{
+		CoursePhaseID:  suite.testCoursePhaseID,
+		EvaluationType: db.AssessmentTypePeer,
+		LastSentAt:     pgtype.Timestamptz{Time: sentAt, Valid: true},
+	})
+	suite.Require().NoError(err)
+
+	req, _ := http.NewRequest("GET", fmt.Sprintf("/api/course_phase/%s/config/reminders", suite.testCoursePhaseID.String()), nil)
+	resp := httptest.NewRecorder()
+	suite.router.ServeHTTP(resp, req)
+	assert.Equal(suite.T(), http.StatusOK, resp.Code)
+
+	var status coursePhaseConfigDTO.EvaluationReminderStatus
+	suite.Require().NoError(json.Unmarshal(resp.Body.Bytes(), &status))
+	assert.Len(suite.T(), status.LastSentAtByType, 1)
+	assert.True(suite.T(), sentAt.Equal(status.LastSentAtByType[assessmentType.Peer]))
+}
+
+func (suite *CoursePhaseConfigRouterTestSuite) stubCoreCoursePhase(err error) {
+	oldGetCoreCoursePhaseFn := getCoreCoursePhaseFn
+	suite.T().Cleanup(func() { getCoreCoursePhaseFn = oldGetCoreCoursePhaseFn })
+	getCoreCoursePhaseFn = func(ctx context.Context, authHeader string, coursePhaseID uuid.UUID) (coreCoursePhaseResponse, error) {
+		return coreCoursePhaseResponse{ID: coursePhaseID, RestrictedData: map[string]any{}}, err
+	}
+}
+
+func (suite *CoursePhaseConfigRouterTestSuite) releaseResults() (*httptest.ResponseRecorder, uuid.UUID) {
 	testID := uuid.New()
 	schemaID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
 	_, err := suite.coursePhaseConfigService.conn.Exec(suite.suiteCtx,
@@ -387,9 +416,35 @@ func (suite *CoursePhaseConfigRouterTestSuite) TestReleaseResults() {
 
 	req, _ := http.NewRequest("POST", fmt.Sprintf("/api/course_phase/%s/config/release", testID.String()), nil)
 	resp := httptest.NewRecorder()
-
 	suite.router.ServeHTTP(resp, req)
+	return resp, testID
+}
+
+func (suite *CoursePhaseConfigRouterTestSuite) TestReleaseResults() {
+	suite.stubCoreCoursePhase(nil)
+
+	resp, testID := suite.releaseResults()
 	assert.Equal(suite.T(), http.StatusOK, resp.Code)
+
+	var response coursePhaseConfigDTO.ReleaseResultsResponse
+	assert.NoError(suite.T(), json.Unmarshal(resp.Body.Bytes(), &response))
+	assert.Nil(suite.T(), response.MailReport)
+	assert.Empty(suite.T(), response.MailError)
+
+	config, err := suite.coursePhaseConfigService.GetCoursePhaseConfig(suite.suiteCtx, testID)
+	assert.NoError(suite.T(), err)
+	assert.True(suite.T(), config.ResultsReleased)
+}
+
+func (suite *CoursePhaseConfigRouterTestSuite) TestReleaseResultsSucceedsWhenMailFails() {
+	suite.stubCoreCoursePhase(fmt.Errorf("core unavailable"))
+
+	resp, testID := suite.releaseResults()
+	assert.Equal(suite.T(), http.StatusOK, resp.Code)
+
+	var response coursePhaseConfigDTO.ReleaseResultsResponse
+	assert.NoError(suite.T(), json.Unmarshal(resp.Body.Bytes(), &response))
+	assert.NotEmpty(suite.T(), response.MailError)
 
 	config, err := suite.coursePhaseConfigService.GetCoursePhaseConfig(suite.suiteCtx, testID)
 	assert.NoError(suite.T(), err)

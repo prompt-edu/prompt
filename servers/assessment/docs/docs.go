@@ -1413,7 +1413,7 @@ const docTemplate = `{
         },
         "/course_phase/{coursePhaseID}/config/release": {
             "post": {
-                "description": "Release assessment results for the course phase.",
+                "description": "Release assessment results for the course phase and mail the students who were not notified yet.",
                 "produces": [
                     "application/json"
                 ],
@@ -1434,10 +1434,54 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
+                            "$ref": "#/definitions/coursePhaseConfigDTO.ReleaseResultsResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
                             "type": "object",
                             "additionalProperties": {
                                 "type": "string"
                             }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/course_phase/{coursePhaseID}/config/reminders": {
+            "get": {
+                "description": "Returns when a reminder was last sent for each evaluation type.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "course_phase_config"
+                ],
+                "summary": "Get evaluation reminder status",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Course phase ID",
+                        "name": "coursePhaseID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/coursePhaseConfigDTO.EvaluationReminderStatus"
                         }
                     },
                     "400": {
@@ -3133,7 +3177,7 @@ const docTemplate = `{
         },
         "/course_phase/{coursePhaseID}/student-assessment/action-item": {
             "post": {
-                "description": "Create a new action item.",
+                "description": "Create a new action item. The author is taken from the authenticated JWT.",
                 "consumes": [
                     "application/json"
                 ],
@@ -3174,6 +3218,15 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -3433,7 +3486,7 @@ const docTemplate = `{
         },
         "/course_phase/{coursePhaseID}/student-assessment/action-item/{id}": {
             "put": {
-                "description": "Update an action item.",
+                "description": "Update an action item. The author is taken from the authenticated JWT.",
                 "consumes": [
                     "application/json"
                 ],
@@ -3481,6 +3534,15 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -4893,9 +4955,6 @@ const docTemplate = `{
                 "action": {
                     "type": "string"
                 },
-                "author": {
-                    "type": "string"
-                },
                 "courseParticipationID": {
                     "type": "string"
                 }
@@ -4905,9 +4964,6 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "action": {
-                    "type": "string"
-                },
-                "author": {
                     "type": "string"
                 },
                 "courseParticipationID": {
@@ -5772,6 +5828,51 @@ const docTemplate = `{
                 },
                 "sentAt": {
                     "type": "string"
+                },
+                "successfulEmails": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "coursePhaseConfigDTO.EvaluationReminderStatus": {
+            "type": "object",
+            "properties": {
+                "lastSentAtByType": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "coursePhaseConfigDTO.ReleaseResultsResponse": {
+            "type": "object",
+            "properties": {
+                "mailError": {
+                    "type": "string"
+                },
+                "mailReport": {
+                    "$ref": "#/definitions/coursePhaseConfigDTO.ResultsReleasedMailReport"
+                },
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "coursePhaseConfigDTO.ResultsReleasedMailReport": {
+            "type": "object",
+            "properties": {
+                "failedEmails": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "requestedRecipients": {
+                    "type": "integer"
                 },
                 "successfulEmails": {
                     "type": "array",

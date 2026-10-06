@@ -7,8 +7,10 @@ import type {
 } from '../../interfaces/coursePhaseConfig'
 import type {
   EvaluationReminderReport,
+  EvaluationReminderStatus,
   SendEvaluationReminderRequest,
 } from '../../interfaces/evaluationReminder'
+import type { ReleaseResultsResponse } from '../../interfaces/resultsReleasedMail'
 import { assessmentRequest, coursePhasePath } from '../client'
 
 const path = (coursePhaseID: string) => `${coursePhasePath(coursePhaseID)}/config`
@@ -26,11 +28,14 @@ export const config = {
   save: (coursePhaseID: string, request: CreateOrUpdateCoursePhaseConfigRequest): Promise<void> =>
     assessmentRequest.put(path(coursePhaseID), request),
 
-  releaseResults: (coursePhaseID: string): Promise<void> =>
+  releaseResults: (coursePhaseID: string): Promise<ReleaseResultsResponse> =>
     assessmentRequest.post(`${path(coursePhaseID)}/release`, {}),
 
   unreleaseResults: (coursePhaseID: string): Promise<void> =>
     assessmentRequest.post(`${path(coursePhaseID)}/unrelease`, {}),
+
+  reminderStatus: (coursePhaseID: string): Promise<EvaluationReminderStatus> =>
+    assessmentRequest.get(`${path(coursePhaseID)}/reminders`),
 
   // The only endpoint on core's host rather than the assessment host: in production both resolve
   // to the same origin, where traefik routes /assessment/api to this service

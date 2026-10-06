@@ -276,6 +276,12 @@ type EvaluationCompletion struct {
 	Type                        AssessmentType     `json:"type"`
 }
 
+type EvaluationReminder struct {
+	CoursePhaseID  uuid.UUID          `json:"course_phase_id"`
+	EvaluationType AssessmentType     `json:"evaluation_type"`
+	LastSentAt     pgtype.Timestamptz `json:"last_sent_at"`
+}
+
 type FeedbackItem struct {
 	ID                          uuid.UUID          `json:"id"`
 	FeedbackType                FeedbackType       `json:"feedback_type"`
@@ -296,6 +302,12 @@ type IndependentAssessment struct {
 	Author                string             `json:"author"`
 	AuthorID              string             `json:"author_id"`
 	AssessedAt            pgtype.Timestamptz `json:"assessed_at"`
+}
+
+type ResultsReleasedMail struct {
+	CoursePhaseID         uuid.UUID          `json:"course_phase_id"`
+	CourseParticipationID uuid.UUID          `json:"course_participation_id"`
+	SentAt                pgtype.Timestamptz `json:"sent_at"`
 }
 
 type WeightedParticipantScore struct {

@@ -388,25 +388,3 @@ func (q *Queries) ReleaseStatusMailClaim(ctx context.Context, arg ReleaseStatusM
 	_, err := q.db.Exec(ctx, releaseStatusMailClaim, arg.Status, arg.CoursePhaseID, arg.CourseParticipationID)
 	return err
 }
-
-const updateAssessmentReminderLastSentAt = `-- name: UpdateAssessmentReminderLastSentAt :exec
-UPDATE course_phase
-SET restricted_data = jsonb_set(
-  COALESCE(restricted_data, '{}'::jsonb),
-  ARRAY['mailingSettings', 'assessmentReminder', 'lastSentAtByType', $2::text],
-  to_jsonb($3::text),
-  true
-)
-WHERE id = $1
-`
-
-type UpdateAssessmentReminderLastSentAtParams struct {
-	ID      uuid.UUID `json:"id"`
-	Column2 string    `json:"column_2"`
-	Column3 string    `json:"column_3"`
-}
-
-func (q *Queries) UpdateAssessmentReminderLastSentAt(ctx context.Context, arg UpdateAssessmentReminderLastSentAtParams) error {
-	_, err := q.db.Exec(ctx, updateAssessmentReminderLastSentAt, arg.ID, arg.Column2, arg.Column3)
-	return err
-}

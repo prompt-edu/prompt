@@ -441,6 +441,12 @@ const ROUTES: Route[] = [
     data: {},
   },
   {
+    name: 'config.reminderStatus',
+    run: () => assessmentApi.config.reminderStatus(PHASE),
+    method: 'get',
+    url: `${ASSESSMENT_BASE}/config/reminders`,
+  },
+  {
     name: 'config.sendReminder',
     run: () => assessmentApi.config.sendReminder(PHASE, { evaluationType: AssessmentType.SELF }),
     method: 'post',

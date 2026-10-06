@@ -95,6 +95,16 @@ func (q *Queries) DeleteIndependentAssessmentsByCourseParticipationIDs(ctx conte
 	return err
 }
 
+const deleteResultsReleasedMailsByCourseParticipationIDs = `-- name: DeleteResultsReleasedMailsByCourseParticipationIDs :exec
+DELETE FROM results_released_mail
+WHERE course_participation_id = ANY($1::uuid[])
+`
+
+func (q *Queries) DeleteResultsReleasedMailsByCourseParticipationIDs(ctx context.Context, dollar_1 []uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteResultsReleasedMailsByCourseParticipationIDs, dollar_1)
+	return err
+}
+
 const getAllActionItemsByCourseParticipationIDs = `-- name: GetAllActionItemsByCourseParticipationIDs :many
 SELECT id, course_phase_id, course_participation_id, action, created_at
 FROM action_item
@@ -434,6 +444,32 @@ func (q *Queries) GetAllIndependentAssessmentsByCourseParticipationIDs(ctx conte
 			&i.AssessedAt,
 			&i.ScoreLevel,
 		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getAllResultsReleasedMailsByCourseParticipationIDs = `-- name: GetAllResultsReleasedMailsByCourseParticipationIDs :many
+SELECT course_phase_id, course_participation_id, sent_at
+FROM results_released_mail
+WHERE course_participation_id = ANY($1::uuid[])
+`
+
+func (q *Queries) GetAllResultsReleasedMailsByCourseParticipationIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]ResultsReleasedMail, error) {
+	rows, err := q.db.Query(ctx, getAllResultsReleasedMailsByCourseParticipationIDs, dollar_1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ResultsReleasedMail
+	for rows.Next() {
+		var i ResultsReleasedMail
+		if err := rows.Scan(&i.CoursePhaseID, &i.CourseParticipationID, &i.SentAt); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

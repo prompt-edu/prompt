@@ -27,6 +27,7 @@ func RegisterRoutes(routerGroup *gin.RouterGroup, service *CoursePhaseConfigServ
 	coursePhaseRouter.PUT("", audit.Describe("Updated the assessment configuration"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.createOrUpdateCoursePhaseConfig)
 	coursePhaseRouter.POST("/release", audit.Describe("Released assessment results"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.releaseResults)
 	coursePhaseRouter.POST("/unrelease", audit.Describe("Withdrew released assessment results"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.unreleaseResults)
+	coursePhaseRouter.GET("/reminders", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.getEvaluationReminderStatus)
 	coursePhaseRouter.GET("/reminders/incomplete", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.getIncompleteReminderRecipients)
 	coursePhaseRouter.POST("/reminders/send", audit.Describe("Sent evaluation reminders"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.sendEvaluationReminder)
 
@@ -111,11 +112,11 @@ func (s *CoursePhaseConfigService) createOrUpdateCoursePhaseConfig(c *gin.Contex
 
 // releaseResults godoc
 // @Summary Release assessment results
-// @Description Release assessment results for the course phase.
+// @Description Release assessment results for the course phase and mail the students who were not notified yet.
 // @Tags course_phase_config
 // @Produce json
 // @Param coursePhaseID path string true "Course phase ID"
-// @Success 200 {object} map[string]string
+// @Success 200 {object} coursePhaseConfigDTO.ReleaseResultsResponse
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/config/release [post]
@@ -134,7 +135,17 @@ func (s *CoursePhaseConfigService) releaseResults(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Results released successfully"})
+	response := coursePhaseConfigDTO.ReleaseResultsResponse{Message: "Results released successfully"}
+	response.MailReport, err = s.SendResultsReleasedMail(c, c.GetHeader("Authorization"), coursePhaseID)
+	if err != nil {
+		log.WithError(err).WithField("coursePhaseID", coursePhaseID).Error("Results were released, but sending the results mail failed")
+		response.MailError = "Results were released, but the notification mails could not be sent."
+		if errors.Is(err, errResultsMailOutcomeUnknown) {
+			response.MailError = "Results were released, but it is unknown whether the notification mails were sent. These students are not mailed again automatically."
+		}
+	}
+
+	c.JSON(http.StatusOK, response)
 }
 
 // unreleaseResults godoc
@@ -221,6 +232,34 @@ func (s *CoursePhaseConfigService) getTeamsForCoursePhase(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, teams)
+}
+
+// getEvaluationReminderStatus godoc
+// @Summary Get evaluation reminder status
+// @Description Returns when a reminder was last sent for each evaluation type.
+// @Tags course_phase_config
+// @Produce json
+// @Param coursePhaseID path string true "Course phase ID"
+// @Success 200 {object} coursePhaseConfigDTO.EvaluationReminderStatus
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /course_phase/{coursePhaseID}/config/reminders [get]
+func (s *CoursePhaseConfigService) getEvaluationReminderStatus(c *gin.Context) {
+	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
+	if err != nil {
+		log.WithError(err).Error("Failed to parse course phase ID")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid course phase ID"})
+		return
+	}
+
+	status, err := s.GetEvaluationReminderStatus(c, coursePhaseID)
+	if err != nil {
+		log.WithError(err).Error("Failed to get evaluation reminder status")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve evaluation reminder status"})
+		return
+	}
+
+	c.JSON(http.StatusOK, status)
 }
 
 // getIncompleteReminderRecipients godoc

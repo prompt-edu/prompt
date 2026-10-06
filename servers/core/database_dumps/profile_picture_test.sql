@@ -1,5 +1,6 @@
 -- Minimal schema for the profile picture tests: students, their course participations, the
--- files table, and profile_picture (matching migration 0032).
+-- files table, and profile_picture (matching migration 0032). The note and privacy tables only
+-- carry the columns a privacy deletion touches.
 
 CREATE TYPE gender AS ENUM ('male', 'female', 'diverse', 'prefer_not_to_say');
 
@@ -44,6 +45,28 @@ CREATE TABLE profile_picture (
     file_id UUID NOT NULL UNIQUE REFERENCES files (id) ON DELETE CASCADE,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE note (
+    id uuid PRIMARY KEY,
+    author uuid NOT NULL,
+    author_name text NOT NULL,
+    author_email text NOT NULL
+);
+
+CREATE TABLE privacy_deletion_request (
+    id uuid PRIMARY KEY,
+    auditor_id uuid,
+    auditor_name text NOT NULL DEFAULT '',
+    auditor_email text NOT NULL DEFAULT ''
+);
+
+CREATE TYPE export_status AS ENUM ('pending', 'complete', 'failed', 'no_data', 'archived');
+
+CREATE TABLE privacy_export (
+    id uuid PRIMARY KEY,
+    user_id uuid NOT NULL,
+    status export_status NOT NULL DEFAULT 'pending'
 );
 
 -- Ada has a picture (uploaded with her university login), Grace has none, Alan has no login.

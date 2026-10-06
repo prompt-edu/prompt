@@ -1,7 +1,7 @@
 import { Page, Locator, expect } from '@playwright/test'
 
-// /management/course/:id/ai-calls (admins only). Lists the AI calls of one
-// course phase at a time; a row opens the call's content in a dialog.
+// /management/course/:id/ai (admins only), served by the ai_component remote. Lists
+// the AI calls of one course phase at a time; a row opens the call's content in a dialog.
 export class AICallsPage {
   readonly heading: Locator
   readonly accessDenied: Locator
@@ -16,7 +16,7 @@ export class AICallsPage {
   }
 
   async goto(courseId: string) {
-    await this.page.goto(`/management/course/${courseId}/ai-calls`)
+    await this.page.goto(`/management/course/${courseId}/ai`)
   }
 
   async expectLoaded() {

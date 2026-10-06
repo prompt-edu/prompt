@@ -6,13 +6,22 @@ export const TEST_MODEL = 'prompt-test-model'
 export const SUMMARY_PROMPT = 'Summarize the peer feedback'
 export const SUMMARY_ANSWER = 'The team communicates well and should record its decisions earlier.'
 
+export const FEATURE = 'assessment.action_item_suggestions'
+// Stands in for the key a phase server keeps for its phase; the AI server keeps none.
+export const PROVIDER_KEY = 'logos-e2e-phase-key'
+
 export const aiUrl = (phaseId: string, path: string) =>
   `${BASE_URL}${AI_API}/course_phase/${phaseId}/${path}`
 
-export async function setPhaseKey(api: APIRequestContext, phaseId: string, key: string) {
-  const res = await api.put(aiUrl(phaseId, 'key'), { data: { key } })
-  expect(res.status()).toBe(200)
-}
+// The headers a phase server sends. An empty value leaves that header out.
+export const phaseHeaders = (overrides: Record<string, string> = {}): Record<string, string> =>
+  Object.fromEntries(
+    Object.entries({
+      'X-Prompt-Provider-Key': PROVIDER_KEY,
+      'X-Prompt-Feature': FEATURE,
+      ...overrides,
+    }).filter(([, value]) => value !== ''),
+  )
 
 export async function complete(
   api: APIRequestContext,
@@ -20,7 +29,7 @@ export async function complete(
   options: { stream?: boolean; headers?: Record<string, string>; marker?: string } = {},
 ) {
   return api.post(aiUrl(phaseId, 'v1/chat/completions'), {
-    headers: options.headers,
+    headers: phaseHeaders(options.headers),
     data: {
       model: TEST_MODEL,
       stream: options.stream ?? false,

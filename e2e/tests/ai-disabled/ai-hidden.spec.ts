@@ -19,7 +19,6 @@ test.describe('AI switched off', () => {
     await expect(page.getByRole('button', { name: 'Danger Zone' })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Audit Log', exact: true })).toBeVisible()
 
-    await expect(settings.aiCard()).toHaveCount(0)
     await expect(page.getByRole('button', { name: 'AI Calls', exact: true })).toHaveCount(0)
   })
 })

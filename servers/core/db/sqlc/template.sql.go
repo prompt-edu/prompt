@@ -44,7 +44,7 @@ func (q *Queries) CheckCourseTemplateStatus(ctx context.Context, id uuid.UUID) (
 }
 
 const getTemplateCourseByID = `-- name: GetTemplateCourseByID :one
-SELECT id, name, start_date, end_date, semester_tag, course_type, ects, restricted_data, student_readable_data, template, short_description, long_description, archived, archived_on
+SELECT id, name, start_date, end_date, semester_tag, course_type, ects, restricted_data, student_readable_data, template, short_description, long_description, archived, archived_on, org_id
 FROM course
 WHERE id = $1
   AND template = TRUE
@@ -68,12 +68,13 @@ func (q *Queries) GetTemplateCourseByID(ctx context.Context, id uuid.UUID) (Cour
 		&i.LongDescription,
 		&i.Archived,
 		&i.ArchivedOn,
+		&i.OrgID,
 	)
 	return i, err
 }
 
 const getTemplateCoursesAdmin = `-- name: GetTemplateCoursesAdmin :many
-SELECT id, name, start_date, end_date, semester_tag, course_type, ects, restricted_data, student_readable_data, template, short_description, long_description, archived, archived_on
+SELECT id, name, start_date, end_date, semester_tag, course_type, ects, restricted_data, student_readable_data, template, short_description, long_description, archived, archived_on, org_id
 FROM course
 WHERE template = TRUE
 ORDER BY semester_tag, name DESC
@@ -103,6 +104,7 @@ func (q *Queries) GetTemplateCoursesAdmin(ctx context.Context) ([]Course, error)
 			&i.LongDescription,
 			&i.Archived,
 			&i.ArchivedOn,
+			&i.OrgID,
 		); err != nil {
 			return nil, err
 		}
@@ -122,6 +124,10 @@ WITH parsed_roles AS (
     split_part(role, '-', 3) AS user_role
   FROM
     unnest($1::text[]) AS role
+  -- Only course roles: org roles (org-<slug>-Admin|Member) would otherwise read as a
+  -- course in semester "org". An org slug is lowercase and has no "cg" segment.
+  WHERE
+    split_part(role, '-', 3) IN ('Lecturer', 'Editor', 'Student', 'cg')
 ),
 user_course_roles AS (
   SELECT
@@ -139,6 +145,7 @@ user_course_roles AS (
     c.long_description,
     c.archived,
     c.archived_on,
+    c.org_id,
     pr.user_role
   FROM
     course c
@@ -167,7 +174,8 @@ SELECT
   ucr.short_description,
   ucr.long_description,
   ucr.archived,
-  ucr.archived_on
+  ucr.archived_on,
+  ucr.org_id
 FROM
   user_course_roles ucr
 GROUP BY
@@ -184,7 +192,8 @@ GROUP BY
   ucr.short_description,
   ucr.long_description,
   ucr.archived,
-  ucr.archived_on
+  ucr.archived_on,
+  ucr.org_id
 ORDER BY
   ucr.semester_tag, ucr.name DESC
 `
@@ -204,6 +213,7 @@ type GetTemplateCoursesRestrictedRow struct {
 	LongDescription     pgtype.Text        `json:"long_description"`
 	Archived            bool               `json:"archived"`
 	ArchivedOn          pgtype.Timestamptz `json:"archived_on"`
+	OrgID               pgtype.UUID        `json:"org_id"`
 }
 
 // struct: Course
@@ -231,6 +241,7 @@ func (q *Queries) GetTemplateCoursesRestricted(ctx context.Context, dollar_1 []s
 			&i.LongDescription,
 			&i.Archived,
 			&i.ArchivedOn,
+			&i.OrgID,
 		); err != nil {
 			return nil, err
 		}

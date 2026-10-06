@@ -562,6 +562,7 @@ type Course struct {
 	LongDescription     pgtype.Text        `json:"long_description"`
 	Archived            bool               `json:"archived"`
 	ArchivedOn          pgtype.Timestamptz `json:"archived_on"`
+	OrgID               pgtype.UUID        `json:"org_id"`
 }
 
 type CourseParticipation struct {
@@ -732,6 +733,18 @@ type NoteWithVersion struct {
 	DeletedBy   pgtype.UUID        `json:"deleted_by"`
 	Versions    []byte             `json:"versions"`
 	Tags        []byte             `json:"tags"`
+}
+
+type Org struct {
+	ID           uuid.UUID          `json:"id"`
+	ParentOrgID  pgtype.UUID        `json:"parent_org_id"`
+	Name         string             `json:"name"`
+	Slug         string             `json:"slug"`
+	School       pgtype.Text        `json:"school"`
+	University   pgtype.Text        `json:"university"`
+	Website      pgtype.Text        `json:"website"`
+	ContactEmail pgtype.Text        `json:"contact_email"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
 }
 
 type ParticipationDataDependencyGraph struct {

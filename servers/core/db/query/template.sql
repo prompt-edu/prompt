@@ -13,6 +13,10 @@ WITH parsed_roles AS (
     split_part(role, '-', 3) AS user_role
   FROM
     unnest($1::text[]) AS role
+  -- Only course roles: org roles (org-<slug>-Admin|Member) would otherwise read as a
+  -- course in semester "org". An org slug is lowercase and has no "cg" segment.
+  WHERE
+    split_part(role, '-', 3) IN ('Lecturer', 'Editor', 'Student', 'cg')
 ),
 user_course_roles AS (
   SELECT
@@ -30,6 +34,7 @@ user_course_roles AS (
     c.long_description,
     c.archived,
     c.archived_on,
+    c.org_id,
     pr.user_role
   FROM
     course c
@@ -58,7 +63,8 @@ SELECT
   ucr.short_description,
   ucr.long_description,
   ucr.archived,
-  ucr.archived_on
+  ucr.archived_on,
+  ucr.org_id
 FROM
   user_course_roles ucr
 GROUP BY
@@ -75,7 +81,8 @@ GROUP BY
   ucr.short_description,
   ucr.long_description,
   ucr.archived,
-  ucr.archived_on
+  ucr.archived_on,
+  ucr.org_id
 ORDER BY
   ucr.semester_tag, ucr.name DESC;
 

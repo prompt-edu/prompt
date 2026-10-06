@@ -589,3 +589,6 @@ ADD COLUMN short_description VARCHAR(255);
 
 ALTER TABLE course
 ADD COLUMN long_description TEXT;
+
+ALTER TABLE course
+ADD COLUMN org_id uuid;

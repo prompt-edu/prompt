@@ -17,7 +17,10 @@ ORDER BY c.template,
  WITH parsed_roles AS (SELECT split_part(role, '-', 1) AS semester_tag,
           split_part(role, '-', 2) AS course_name,
           split_part(role, '-', 3) AS user_role
-        FROM unnest($1::text[]) AS role),
+        FROM unnest($1::text[]) AS role
+        -- Only course roles: org roles (org-<slug>-Admin|Member) would otherwise read as a
+        -- course in semester "org". An org slug is lowercase and has no "cg" segment.
+        WHERE split_part(role, '-', 3) IN ('Lecturer', 'Editor', 'Student', 'cg')),
   user_course_roles AS (SELECT c.id,
             c.name,
             c.semester_tag,
@@ -32,6 +35,7 @@ ORDER BY c.template,
             c.long_description,
             c.archived,
             c.archived_on,
+            c.org_id,
             pr.user_role
           FROM course c
             INNER JOIN
@@ -54,7 +58,8 @@ SELECT ucr.id,
        ucr.short_description,
        ucr.long_description,
        ucr.archived,
-       ucr.archived_on
+       ucr.archived_on,
+       ucr.org_id
 FROM user_course_roles ucr
 GROUP BY ucr.id,
          ucr.name,
@@ -69,7 +74,8 @@ GROUP BY ucr.id,
          ucr.short_description,
          ucr.long_description,
          ucr.archived,
-         ucr.archived_on
+         ucr.archived_on,
+         ucr.org_id
 HAVING NOT (
            ucr.archived
            AND COUNT(ucr.user_role) = 1

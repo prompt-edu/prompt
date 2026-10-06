@@ -31,6 +31,7 @@ clients/
     - self_team_allocation_component (port 3009)
     - certificate_component (port 3010)
     - infrastructure_setup_component (port 3012)
+  ai_component/            # AI audit records, not a course phase, behind AI_ENABLED (port 3013)
   external remotes:
     - intro_course_developer_component (served by prompt-intro-course, port 3005 in local dev)
     - github_challenge_component (served by prompt-github-challenge, port 3006 in local dev)
@@ -45,7 +46,7 @@ servers/
   interview/               # Interview scheduling (port 8087)
   certificate/             # Certificate generation (port 8088)
   infrastructure_setup/    # External resource provisioning (port 8091)
-  ai/                      # AI gateway, phase keys and AI audit, behind AI_ENABLED (port 8092)
+  ai/                      # AI gateway and AI audit, behind AI_ENABLED (port 8092)
 
 docs/                      # Docusaurus documentation
 ```

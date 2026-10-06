@@ -67,7 +67,7 @@
         "y": 230
       },
       "data": {
-        "name": "AI Course Phase API (keys, events, audit)"
+        "name": "AI Course Phase API (events, audit)"
       },
       "measured": {
         "width": 30,
@@ -228,7 +228,7 @@
       },
       "parentId": "ai",
       "data": {
-        "name": "Phase Key Store (encrypted Logos keys)",
+        "name": "Feature Registry (retention per feature)",
         "isComponentHeaderShown": true
       },
       "measured": {
@@ -395,6 +395,80 @@
         "width": 200,
         "height": 90
       }
+    },
+    {
+      "id": "aiClient",
+      "width": 180,
+      "height": 90,
+      "type": "component",
+      "position": {
+        "x": 980,
+        "y": 0
+      },
+      "data": {
+        "name": "AI Client (ai_component)",
+        "isComponentHeaderShown": true
+      },
+      "measured": {
+        "width": 180,
+        "height": 90
+      }
+    },
+    {
+      "id": "planned",
+      "width": 440,
+      "height": 250,
+      "type": "componentSubsystem",
+      "position": {
+        "x": 1780,
+        "y": 620
+      },
+      "data": {
+        "name": "Planned (#2285, #2286)",
+        "isComponentSubsystemHeaderShown": true
+      },
+      "measured": {
+        "width": 440,
+        "height": 250
+      }
+    },
+    {
+      "id": "chatClient",
+      "width": 190,
+      "height": 90,
+      "type": "component",
+      "position": {
+        "x": 20,
+        "y": 110
+      },
+      "parentId": "planned",
+      "data": {
+        "name": "AI Chat Client (AI_CHAT)",
+        "isComponentHeaderShown": true
+      },
+      "measured": {
+        "width": 190,
+        "height": 90
+      }
+    },
+    {
+      "id": "mcp",
+      "width": 190,
+      "height": 90,
+      "type": "component",
+      "position": {
+        "x": 230,
+        "y": 110
+      },
+      "parentId": "planned",
+      "data": {
+        "name": "prompt-mcp (AI_MCP)",
+        "isComponentHeaderShown": true
+      },
+      "measured": {
+        "width": 190,
+        "height": 90
+      }
     }
   ],
   "edges": [
@@ -467,27 +541,14 @@
       }
     },
     {
-      "id": "e5-coreClient-iAiPhase",
-      "source": "coreClient",
+      "id": "e5-aiClient-iAiPhase",
+      "source": "aiClient",
       "target": "iAiPhase",
       "type": "ComponentRequiredInterface",
-      "sourceHandle": "right",
+      "sourceHandle": "bottom",
       "targetHandle": "top",
       "data": {
-        "points": [
-          {
-            "x": 601,
-            "y": 45
-          },
-          {
-            "x": 1070,
-            "y": 45
-          },
-          {
-            "x": 1070,
-            "y": 225
-          }
-        ]
+        "points": []
       }
     },
     {
@@ -871,34 +932,6 @@
       }
     },
     {
-      "id": "e25-keys-aiDb",
-      "source": "keys",
-      "target": "aiDb",
-      "type": "ComponentDependency",
-      "sourceHandle": "bottom",
-      "targetHandle": "top",
-      "data": {
-        "points": [
-          {
-            "x": 950,
-            "y": 671
-          },
-          {
-            "x": 950,
-            "y": 691
-          },
-          {
-            "x": 1070,
-            "y": 691
-          },
-          {
-            "x": 1070,
-            "y": 899
-          }
-        ]
-      }
-    },
-    {
       "id": "e26-audit-aiDb",
       "source": "audit",
       "target": "aiDb",
@@ -933,6 +966,17 @@
       "type": "ComponentDependency",
       "sourceHandle": "bottom",
       "targetHandle": "top",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "e28-coreClient-aiClient",
+      "source": "coreClient",
+      "target": "aiClient",
+      "type": "ComponentDependency",
+      "sourceHandle": "right",
+      "targetHandle": "left",
       "data": {
         "points": []
       }

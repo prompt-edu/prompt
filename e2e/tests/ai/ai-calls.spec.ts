@@ -7,12 +7,13 @@ import { complete, SUMMARY_ANSWER } from './helpers'
 const PHASE = FULL_COURSE_PHASES.assessment
 
 test.describe('AI calls page', () => {
+  // Made as an admin, so its row is told apart from the gateway spec's calls in the same phase.
   test.beforeAll(async () => {
-    const lecturer = await apiContextFor('course-lecturer')
+    const admin = await apiContextFor('admin')
     try {
-      expect((await complete(lecturer, PHASE.id)).status()).toBe(200)
+      expect((await complete(admin, PHASE.id)).status()).toBe(200)
     } finally {
-      await lecturer.dispose()
+      await admin.dispose()
     }
   })
 
@@ -26,8 +27,11 @@ test.describe('AI calls page', () => {
       await expect(page.getByRole('button', { name: 'AI Calls', exact: true })).toBeVisible()
       await aiCalls.selectPhase(PHASE.type)
 
-      const row = aiCalls.rows.filter({ hasText: 'success' }).first()
-      await expect(row).toContainText('success')
+      const row = aiCalls.rows
+        .filter({ hasText: 'PROMPT_Admin' })
+        .filter({ hasText: 'success' })
+        .first()
+      await expect(row).toBeVisible()
       await row.getByRole('button', { name: 'Open' }).click()
 
       const dialog = page.getByRole('dialog')

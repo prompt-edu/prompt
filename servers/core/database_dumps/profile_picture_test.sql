@@ -1,5 +1,5 @@
 -- Minimal schema for the profile picture tests: students, their course participations, the
--- files table, and profile_picture (matching migration 0030).
+-- files table, and profile_picture (matching migration 0032).
 
 CREATE TYPE gender AS ENUM ('male', 'female', 'diverse', 'prefer_not_to_say');
 

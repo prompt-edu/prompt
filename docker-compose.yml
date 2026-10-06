@@ -378,6 +378,8 @@ services:
     build:
       context: ./clients/assessment_component
       dockerfile: Dockerfile
+      args: *client-build-args
+      additional_contexts: *client-additional-contexts
     container_name: prompt-client-assessment-component
     ports:
       - "3002:80"

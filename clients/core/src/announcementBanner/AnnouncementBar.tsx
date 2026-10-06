@@ -56,25 +56,34 @@ export const AnnouncementBar = () => {
     setSelectedIndex((index + offset + visible.length) % visible.length)
 
   return (
-    <div ref={barRef} className='relative z-40 w-full shadow-sm md:sticky md:top-0 print:hidden'>
-      <AnnouncementBanner
-        severity={current.severity}
-        title={current.title}
-        message={current.message}
-        linkUrl={current.linkUrl}
-        linkLabel={current.linkLabel}
-        pager={
-          visible.length > 1
-            ? {
-                position: index + 1,
-                total: visible.length,
-                onPrevious: () => step(-1),
-                onNext: () => step(1),
-              }
-            : undefined
-        }
-        onDismiss={() => dismiss(getDismissalKey(current), announcements.map(getDismissalKey))}
+    <>
+      <div
+        aria-hidden='true'
+        className='hidden md:block md:h-[var(--announcement-bar-height,0px)] print:hidden'
       />
-    </div>
+      <div
+        ref={barRef}
+        className='relative z-40 w-full shadow-sm md:fixed md:inset-x-0 md:top-0 print:hidden'
+      >
+        <AnnouncementBanner
+          severity={current.severity}
+          title={current.title}
+          message={current.message}
+          linkUrl={current.linkUrl}
+          linkLabel={current.linkLabel}
+          pager={
+            visible.length > 1
+              ? {
+                  position: index + 1,
+                  total: visible.length,
+                  onPrevious: () => step(-1),
+                  onNext: () => step(1),
+                }
+              : undefined
+          }
+          onDismiss={() => dismiss(getDismissalKey(current), announcements.map(getDismissalKey))}
+        />
+      </div>
+    </>
   )
 }

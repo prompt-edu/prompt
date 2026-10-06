@@ -251,7 +251,7 @@ func (s *AssessmentCompletionService) markAssessmentsAsCompleted(c *gin.Context)
 		handleError(c, http.StatusUnauthorized, errors.New("authenticated user not found in context"))
 		return
 	}
-	result, err := s.MarkAssessmentsAsCompleted(c, coursePhaseID, req.CourseParticipationIDs, authorName(tokenUser))
+	result, err := s.MarkAssessmentsAsCompleted(c, coursePhaseID, req.CourseParticipationIDs, AuthorName(tokenUser))
 	if err != nil {
 		if errors.Is(err, coursePhaseConfig.ErrNotStarted) {
 			handleError(c, http.StatusForbidden, err)
@@ -474,9 +474,9 @@ func recordBatchAudit(c *gin.Context, action string, coursePhaseID uuid.UUID, ch
 	})
 }
 
-// authorName is the name stored on a completion, falling back to the university login and then
-// the email when the token carries no first or last name.
-func authorName(tokenUser keycloakTokenVerifier.TokenUser) string {
+// AuthorName is the name stored as the author of a completion or action item, falling back to
+// the university login and then the email when the token carries no first or last name.
+func AuthorName(tokenUser keycloakTokenVerifier.TokenUser) string {
 	if name := strings.TrimSpace(tokenUser.FirstName + " " + tokenUser.LastName); name != "" {
 		return name
 	}

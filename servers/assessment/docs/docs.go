@@ -1458,6 +1458,53 @@ const docTemplate = `{
                 }
             }
         },
+        "/course_phase/{coursePhaseID}/config/reminders": {
+            "get": {
+                "description": "Returns when a reminder was last sent for each evaluation type.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "course_phase_config"
+                ],
+                "summary": "Get evaluation reminder status",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Course phase ID",
+                        "name": "coursePhaseID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/coursePhaseConfigDTO.EvaluationReminderStatus"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/course_phase/{coursePhaseID}/config/reminders/incomplete": {
             "get": {
                 "description": "Returns authors who have not fully completed evaluations for the selected type.",
@@ -3130,7 +3177,7 @@ const docTemplate = `{
         },
         "/course_phase/{coursePhaseID}/student-assessment/action-item": {
             "post": {
-                "description": "Create a new action item.",
+                "description": "Create a new action item. The author is taken from the authenticated JWT.",
                 "consumes": [
                     "application/json"
                 ],
@@ -3171,6 +3218,15 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -3430,7 +3486,7 @@ const docTemplate = `{
         },
         "/course_phase/{coursePhaseID}/student-assessment/action-item/{id}": {
             "put": {
-                "description": "Update an action item.",
+                "description": "Update an action item. The author is taken from the authenticated JWT.",
                 "consumes": [
                     "application/json"
                 ],
@@ -3478,6 +3534,15 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -4890,9 +4955,6 @@ const docTemplate = `{
                 "action": {
                     "type": "string"
                 },
-                "author": {
-                    "type": "string"
-                },
                 "courseParticipationID": {
                     "type": "string"
                 }
@@ -4902,9 +4964,6 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "action": {
-                    "type": "string"
-                },
-                "author": {
                     "type": "string"
                 },
                 "courseParticipationID": {
@@ -5773,6 +5832,17 @@ const docTemplate = `{
                 "successfulEmails": {
                     "type": "array",
                     "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "coursePhaseConfigDTO.EvaluationReminderStatus": {
+            "type": "object",
+            "properties": {
+                "lastSentAtByType": {
+                    "type": "object",
+                    "additionalProperties": {
                         "type": "string"
                     }
                 }

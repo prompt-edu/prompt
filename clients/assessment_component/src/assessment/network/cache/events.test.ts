@@ -145,6 +145,10 @@ describe('the remaining events', () => {
         assessmentKeys.coursePhaseConfig(PHASE),
       ],
       [
+        () => assessmentCache.evaluationReminderSent(queryClient, PHASE),
+        assessmentKeys.evaluationReminderStatus(PHASE),
+      ],
+      [
         () => assessmentCache.actionItemsChanged(queryClient, PHASE),
         assessmentKeys.actionItems.inPhase(PHASE),
       ],

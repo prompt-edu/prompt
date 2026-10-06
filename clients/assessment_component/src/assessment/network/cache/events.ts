@@ -40,6 +40,9 @@ export const assessmentCache = {
   resultsReleaseChanged: (queryClient: QueryClient, phaseId: Id): void =>
     invalidate(queryClient, [assessmentKeys.coursePhaseConfig(phaseId)]),
 
+  evaluationReminderSent: (queryClient: QueryClient, phaseId: Id): void =>
+    invalidate(queryClient, [assessmentKeys.evaluationReminderStatus(phaseId)]),
+
   assessmentWritten: (queryClient: QueryClient, phaseId: Id): void =>
     invalidate(queryClient, [assessmentKeys.assessments.inPhase(phaseId)]),
 

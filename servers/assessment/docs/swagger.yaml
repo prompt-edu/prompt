@@ -19,16 +19,12 @@ definitions:
     properties:
       action:
         type: string
-      author:
-        type: string
       courseParticipationID:
         type: string
     type: object
   actionItemDTO.UpdateActionItemRequest:
     properties:
       action:
-        type: string
-      author:
         type: string
       courseParticipationID:
         type: string
@@ -612,6 +608,13 @@ definitions:
         items:
           type: string
         type: array
+    type: object
+  coursePhaseConfigDTO.EvaluationReminderStatus:
+    properties:
+      lastSentAtByType:
+        additionalProperties:
+          type: string
+        type: object
     type: object
   coursePhaseConfigDTO.ReleaseResultsResponse:
     properties:
@@ -1989,6 +1992,37 @@ paths:
       summary: Release assessment results
       tags:
       - course_phase_config
+  /course_phase/{coursePhaseID}/config/reminders:
+    get:
+      description: Returns when a reminder was last sent for each evaluation type.
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/coursePhaseConfigDTO.EvaluationReminderStatus'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get evaluation reminder status
+      tags:
+      - course_phase_config
   /course_phase/{coursePhaseID}/config/reminders/incomplete:
     get:
       description: Returns authors who have not fully completed evaluations for the
@@ -3225,7 +3259,8 @@ paths:
     post:
       consumes:
       - application/json
-      description: Create a new action item.
+      description: Create a new action item. The author is taken from the authenticated
+        JWT.
       parameters:
       - description: Course phase ID
         in: path
@@ -3249,6 +3284,12 @@ paths:
             type: object
         "400":
           description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
           schema:
             additionalProperties:
               type: string
@@ -3317,7 +3358,8 @@ paths:
     put:
       consumes:
       - application/json
-      description: Update an action item.
+      description: Update an action item. The author is taken from the authenticated
+        JWT.
       parameters:
       - description: Course phase ID
         in: path
@@ -3346,6 +3388,12 @@ paths:
             type: object
         "400":
           description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
           schema:
             additionalProperties:
               type: string

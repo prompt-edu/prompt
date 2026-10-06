@@ -12,6 +12,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/prompt-edu/prompt-sdk/promptTypes"
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
@@ -375,6 +376,26 @@ func (suite *CoursePhaseConfigRouterTestSuite) TestSendEvaluationReminderSuccess
 	suite.router.ServeHTTP(resp, req)
 	assert.Equal(suite.T(), http.StatusOK, resp.Code)
 	assert.Contains(suite.T(), resp.Body.String(), "alice@example.com")
+}
+
+func (suite *CoursePhaseConfigRouterTestSuite) TestGetEvaluationReminderStatus() {
+	sentAt := time.Date(2026, time.January, 12, 10, 0, 0, 0, time.UTC)
+	err := suite.coursePhaseConfigService.queries.UpsertEvaluationReminderLastSentAt(suite.suiteCtx, db.UpsertEvaluationReminderLastSentAtParams{
+		CoursePhaseID:  suite.testCoursePhaseID,
+		EvaluationType: db.AssessmentTypePeer,
+		LastSentAt:     pgtype.Timestamptz{Time: sentAt, Valid: true},
+	})
+	suite.Require().NoError(err)
+
+	req, _ := http.NewRequest("GET", fmt.Sprintf("/api/course_phase/%s/config/reminders", suite.testCoursePhaseID.String()), nil)
+	resp := httptest.NewRecorder()
+	suite.router.ServeHTTP(resp, req)
+	assert.Equal(suite.T(), http.StatusOK, resp.Code)
+
+	var status coursePhaseConfigDTO.EvaluationReminderStatus
+	suite.Require().NoError(json.Unmarshal(resp.Body.Bytes(), &status))
+	assert.Len(suite.T(), status.LastSentAtByType, 1)
+	assert.True(suite.T(), sentAt.Equal(status.LastSentAtByType[assessmentType.Peer]))
 }
 
 func (suite *CoursePhaseConfigRouterTestSuite) stubCoreCoursePhase(err error) {

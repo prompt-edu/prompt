@@ -14,7 +14,6 @@ import (
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase/resolution"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
-	"github.com/prompt-edu/prompt/servers/core/standaloneModule"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -313,40 +312,6 @@ func (suite *ModuleDeletionTestSuite) TestKeepsThePhaseWhenTheBaseURLWouldLeakCr
 
 	assert.Error(suite.T(), err)
 	assert.True(suite.T(), suite.phaseExists(phaseID))
-}
-
-// withStandaloneModule returns a service that also asks the module for every phase, as core does
-// with the AI server.
-func (suite *ModuleDeletionTestSuite) withStandaloneModule(module *fakeModule) *CoursePhaseService {
-	return NewCoursePhaseService(*suite.queries, suite.conn, resolution.NewResolutionService("localhost:8080"),
-		standaloneModule.Module{Name: "AI", BaseURL: module.server.URL})
-}
-
-func (suite *ModuleDeletionTestSuite) TestAsksAStandaloneModuleForEveryPhase() {
-	module := newFakeModule(supportsDeletion, http.StatusOK)
-	defer module.server.Close()
-	courseID := uuid.New()
-	corePhaseID := suite.newPhase(suite.newPhaseType("core"), courseID)
-	secondPhaseID := suite.newPhase(suite.newPhaseType("core"), courseID)
-
-	deleted, err := suite.withStandaloneModule(module).DeleteModuleDataForCourse(suite.ctx, testAuthHeader, courseID)
-
-	assert.NoError(suite.T(), err)
-	assert.ElementsMatch(suite.T(), []uuid.UUID{corePhaseID, secondPhaseID}, deleted)
-	assert.ElementsMatch(suite.T(), []string{corePhaseID.String(), secondPhaseID.String()}, module.deletedIDs,
-		"a standalone module holds data for phases of every type, core implemented ones included")
-	assert.Equal(suite.T(), []string{testAuthHeader, testAuthHeader}, module.authHeaders)
-}
-
-func (suite *ModuleDeletionTestSuite) TestKeepsThePhaseWhenAStandaloneModuleFails() {
-	module := newFakeModule(supportsDeletion, http.StatusInternalServerError)
-	defer module.server.Close()
-	phaseID := suite.newPhase(suite.newPhaseType("core"), uuid.New())
-
-	err := suite.withStandaloneModule(module).DeleteCoursePhase(suite.ctx, testAuthHeader, phaseID)
-
-	assert.ErrorIs(suite.T(), err, ErrModuleDeletionFailed)
-	assert.True(suite.T(), suite.phaseExists(phaseID), "the phase must not outlive the module's data")
 }
 
 func TestMayCarryCredentials(t *testing.T) {

@@ -1,6 +1,6 @@
 // Package standaloneModule describes services that are not a course phase type but still keep
-// data per course phase or per person. Core asks them in its phase deletion and privacy fan-outs
-// exactly like a phase module, through the endpoints the prompt-sdk registrars serve.
+// data per person. Core asks them in its privacy fan-outs exactly like a phase module, through the
+// endpoints the prompt-sdk registrars serve.
 package standaloneModule
 
 type Module struct {

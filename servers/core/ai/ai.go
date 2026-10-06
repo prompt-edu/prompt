@@ -7,7 +7,7 @@ import (
 
 const ServiceName = "AI"
 
-// Module is the AI server, which keeps a key for phases of every type and audit records per person.
+// Module is the AI server, which keeps audit records per person but no data per course phase.
 func Module(environment, coreHost string) standaloneModule.Module {
 	baseURL := resolution.NormaliseHost(coreHost) + "/ai/api"
 	if environment == "development" {

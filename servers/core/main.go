@@ -214,7 +214,7 @@ func main() {
 		standaloneModules = append(standaloneModules, ai.Module(environment, coreHost))
 	}
 
-	coursePhaseService := coursePhase.NewCoursePhaseService(*query, conn, resolutionService, standaloneModules...)
+	coursePhaseService := coursePhase.NewCoursePhaseService(*query, conn, resolutionService)
 	coursePhaseParticipationService := coursePhaseParticipation.NewCoursePhaseParticipationService(*query, conn, resolutionService)
 
 	auth.RegisterRoutes(api, authService, tokenVerifier.KeycloakMiddleware, validationService.CheckCoursePhasePermission)

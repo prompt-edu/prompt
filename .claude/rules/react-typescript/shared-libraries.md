@@ -34,7 +34,9 @@ import { Button, Card, ManagementPageHeader } from '@tumaet/prompt-ui-components
 - **Profile pictures:** render every person with `ProfilePicture`, passing whichever id you have
   (`userId`, `studentId` or `courseParticipationId`). It batches the lookups of one render into a
   single request, loads only avatars near the viewport, and falls back to initials. Never build
-  avatar URLs yourself; `getGravatarUrl` is deprecated and returns no URL.
+  avatar URLs yourself, and never use `getGravatarUrl` from either package: the
+  `@tumaet/prompt-ui-components` one is deprecated and returns no URL, while the
+  `@tumaet/prompt-shared-state` one still sends the email hash to Gravatar.
 - **Rich text:** `MinimalTiptapEditor`, `MailingTiptapEditor`, `DescriptionMinimalTiptapEditor`.
 - **Hooks:** `useToast`, `useIsMobile`, `useCustomElementWidth`, `useScreenSize`.
 - **Utilities:** `cn` (clsx + tailwind-merge), `getStatusBadge`, `getStatusColor`,

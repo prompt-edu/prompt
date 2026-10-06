@@ -24,6 +24,7 @@ import {
   type ProviderType,
   providerTypes,
 } from '../interfaces/providerConfig'
+import { infrastructureSetupCache, infrastructureSetupKeys } from '../network/cache'
 import { upsertProviderConfig } from '../network/mutations/upsertProviderConfig'
 import { getProviderAuthFields } from '../network/queries/getProviderAuthFields'
 import { describeError } from '../utils/describeError'
@@ -73,7 +74,7 @@ export const ProviderUpsertDialog = ({
     isLoading: fieldsLoading,
     isError: fieldsError,
   } = useQuery({
-    queryKey: ['provider-auth-fields', coursePhaseID, selectedType],
+    queryKey: infrastructureSetupKeys.providerAuthFields(coursePhaseID, selectedType),
     queryFn: () => getProviderAuthFields(coursePhaseID, selectedType!),
     enabled: open && !!selectedType,
   })
@@ -85,7 +86,7 @@ export const ProviderUpsertDialog = ({
         credentials: values,
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['provider-configs', coursePhaseID] })
+      infrastructureSetupCache.providerSaved(queryClient, coursePhaseID)
       toast({
         title: existingProvider ? 'Provider updated' : 'Provider added',
         description: `Credentials for ${selectedType} saved.`,
@@ -108,7 +109,7 @@ export const ProviderUpsertDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className='max-h-[90vh] overflow-y-auto'>
         <form
           onSubmit={(e) => {
             e.preventDefault()

@@ -30,6 +30,9 @@ func (s *PrivacyService) DataExportHandler(c *gin.Context, exp *utils.Export, su
 	exp.AddJSON("Assessments", "student/assessment.json", func() (any, error) {
 		return q.GetAllAssessmentsByCourseParticipationIDs(c, ids)
 	})
+	exp.AddJSON("Independent Assessments", "student/independent_assessment.json", func() (any, error) {
+		return q.GetAllIndependentAssessmentsByCourseParticipationIDs(c, ids)
+	})
 	exp.AddJSON("Assessment Completions", "student/assessment_completion.json", func() (any, error) {
 		return q.GetAllAssessmentCompletionsByCourseParticipationIDs(c, ids)
 	})
@@ -47,6 +50,9 @@ func (s *PrivacyService) DataExportHandler(c *gin.Context, exp *utils.Export, su
 	})
 	exp.AddJSON("Feedback Items", "student/feedback_item.json", func() (any, error) {
 		return q.GetAllFeedbackItemsByCourseParticipationIDs(c, ids)
+	})
+	exp.AddJSON("Results Released Mails", "student/results_released_mail.json", func() (any, error) {
+		return q.GetAllResultsReleasedMailsByCourseParticipationIDs(c, ids)
 	})
 
 	return nil
@@ -68,6 +74,9 @@ func (s *PrivacyService) DataDeletionHandler(c *gin.Context, subject sdkAuth.Sub
 	if err := qtx.DeleteAssessmentsByCourseParticipationIDs(ctx, ids); err != nil {
 		return fmt.Errorf("failed to delete assessments: %w", err)
 	}
+	if err := qtx.DeleteIndependentAssessmentsByCourseParticipationIDs(ctx, ids); err != nil {
+		return fmt.Errorf("failed to delete independent assessments: %w", err)
+	}
 	if err := qtx.DeleteAssessmentCompletionsByCourseParticipationIDs(ctx, ids); err != nil {
 		return fmt.Errorf("failed to delete assessment completions: %w", err)
 	}
@@ -85,6 +94,9 @@ func (s *PrivacyService) DataDeletionHandler(c *gin.Context, subject sdkAuth.Sub
 	}
 	if err := qtx.DeleteFeedbackItemsByRecipientOrAuthorIDs(ctx, ids); err != nil {
 		return fmt.Errorf("failed to delete feedback items: %w", err)
+	}
+	if err := qtx.DeleteResultsReleasedMailsByCourseParticipationIDs(ctx, ids); err != nil {
+		return fmt.Errorf("failed to delete results released mails: %w", err)
 	}
 
 	if err := tx.Commit(ctx); err != nil {

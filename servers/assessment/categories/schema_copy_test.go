@@ -23,6 +23,7 @@ type SchemaCopyTestSuite struct {
 	suiteCtx                 context.Context
 	cleanup                  func()
 	mockCoreCleanup          func()
+	conn                     *pgxpool.Pool
 	categoryService          *CategoryService
 	schemaService            *assessmentSchemas.AssessmentSchemaService
 	coursePhaseConfigService *coursePhaseConfig.CoursePhaseConfigService
@@ -35,6 +36,7 @@ func (suite *SchemaCopyTestSuite) SetupTest() {
 		suite.T().Fatalf("Failed to set up test database: %v", err)
 	}
 	suite.cleanup = cleanup
+	suite.conn = testDB.Conn
 
 	// Set up mock core service
 	_, mockCleanup := testutils.SetupMockCoreService()
@@ -222,6 +224,46 @@ func (suite *SchemaCopyTestSuite) TestUpdateCategory_WithAssessmentsInOtherPhase
 		"Copied category should have original weight")
 	assert.Equal(suite.T(), copiedSchemaID, categoryInCopy.AssessmentSchemaID,
 		"Copied category should belong to copied schema")
+}
+
+func (suite *SchemaCopyTestSuite) TestUpdateCategory_WithOnlyIndependentAssessmentsInOtherPhase() {
+	ownerPhaseID := uuid.MustParse("10000000-0000-0000-0000-000000000002")
+	otherPhaseID := uuid.MustParse("10000000-0000-0000-0000-000000000004")
+	originalSchemaID := uuid.MustParse("00000000-0000-0000-0000-000000000002")
+	originalCompetencyID := uuid.MustParse("30000000-0000-0000-0000-000000000002")
+
+	for _, table := range []string{"assessment", "evaluation"} {
+		_, err := suite.conn.Exec(suite.suiteCtx, "DELETE FROM "+table+" WHERE course_phase_id = $1", otherPhaseID)
+		assert.NoError(suite.T(), err)
+	}
+	_, err := suite.conn.Exec(suite.suiteCtx, `
+		INSERT INTO independent_assessment (course_participation_id, course_phase_id, competency_id, score_level, author, author_id)
+		VALUES ('50000000-0000-0000-0000-000000000001', $1, $2, 'good', 'Coach', 'coach-id')`, otherPhaseID, originalCompetencyID)
+	assert.NoError(suite.T(), err)
+
+	err = suite.categoryService.UpdateCategory(suite.suiteCtx, uuid.MustParse("20000000-0000-0000-0000-000000000002"), ownerPhaseID, categoryDTO.UpdateCategoryRequest{
+		Name:               "Updated Category",
+		ShortName:          "UC",
+		Weight:             10,
+		AssessmentSchemaID: originalSchemaID,
+	})
+	assert.NoError(suite.T(), err)
+
+	otherPhaseConfig, err := suite.coursePhaseConfigService.GetCoursePhaseConfig(suite.suiteCtx, otherPhaseID)
+	assert.NoError(suite.T(), err)
+	assert.NotEqual(suite.T(), originalSchemaID, otherPhaseConfig.AssessmentSchemaID,
+		"Independent scores alone must protect the consumer phase with its own schema copy")
+
+	var competencySchemaID uuid.UUID
+	err = suite.conn.QueryRow(suite.suiteCtx, `
+		SELECT cat.assessment_schema_id
+		FROM independent_assessment ia
+		JOIN competency co ON co.id = ia.competency_id
+		JOIN category cat ON cat.id = co.category_id
+		WHERE ia.course_phase_id = $1`, otherPhaseID).Scan(&competencySchemaID)
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), otherPhaseConfig.AssessmentSchemaID, competencySchemaID,
+		"Independent scores must move to the copied schema's competencies")
 }
 
 // TestUpdateCategory_WithAssessmentsInSamePhase tests updating a category when there are

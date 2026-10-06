@@ -293,6 +293,7 @@ func (q *Queries) ListAssessmentsByStudentInPhase(ctx context.Context, arg ListA
 
 const phaseHasAssessmentData = `-- name: PhaseHasAssessmentData :one
 SELECT EXISTS(SELECT 1 FROM assessment a WHERE a.course_phase_id = $1)
+           OR EXISTS(SELECT 1 FROM independent_assessment ia WHERE ia.course_phase_id = $1)
            OR EXISTS(SELECT 1 FROM assessment_completion ac WHERE ac.course_phase_id = $1)
            OR EXISTS(SELECT 1
                      FROM category_assessment ca

@@ -141,19 +141,30 @@ func (s *ApplicationService) buildFileUploadAnswerDTOs(ctx context.Context, answ
 	return answerDTOs
 }
 
-// createOrReplaceFileUploadAnswer creates or updates a file upload answer and returns a stale file id for cleanup after commit.
-func createOrReplaceFileUploadAnswer(ctx context.Context, qtx *db.Queries, answer applicationDTO.CreateAnswerFileUpload, courseParticipationID uuid.UUID) (*uuid.UUID, error) {
-	return upsertFileUploadAnswer(ctx, qtx, answer, courseParticipationID)
+var ErrFileNotInApplication = errors.New("file was not uploaded for this application")
+
+// fileUploader limits which uploader's files an answer may reference; its zero value matches no file.
+type fileUploader struct {
+	userID     string
+	anyInPhase bool
 }
 
-// createOrOverwriteFileUploadAnswer creates or updates a file upload answer and returns a stale file id for cleanup after commit.
-func createOrOverwriteFileUploadAnswer(ctx context.Context, qtx *db.Queries, answer applicationDTO.CreateAnswerFileUpload, courseParticipationID uuid.UUID) (*uuid.UUID, error) {
-	return upsertFileUploadAnswer(ctx, qtx, answer, courseParticipationID)
+func uploadedBy(userID string) fileUploader {
+	return fileUploader{userID: userID}
 }
 
-func upsertFileUploadAnswer(ctx context.Context, qtx *db.Queries, answer applicationDTO.CreateAnswerFileUpload, courseParticipationID uuid.UUID) (*uuid.UUID, error) {
+func anyUploaderInPhase() fileUploader {
+	return fileUploader{anyInPhase: true}
+}
+
+// upsertFileUploadAnswer creates or updates a file upload answer and returns a stale file id for cleanup after commit.
+func upsertFileUploadAnswer(ctx context.Context, qtx *db.Queries, coursePhaseID uuid.UUID, uploader fileUploader, answer applicationDTO.CreateAnswerFileUpload, courseParticipationID uuid.UUID) (*uuid.UUID, error) {
 	if answer.FileID == uuid.Nil {
 		return nil, nil
+	}
+	// Privacy deletion anonymizes files to an empty uploader, so an empty uploader must not match them.
+	if !uploader.anyInPhase && uploader.userID == "" {
+		return nil, ErrFileNotInApplication
 	}
 
 	// Check if there's an existing file upload answer for this question
@@ -167,18 +178,27 @@ func upsertFileUploadAnswer(ctx context.Context, qtx *db.Queries, answer applica
 
 	var oldFileID *uuid.UUID
 	if err == nil {
-		if existingAnswer.FileID != answer.FileID {
-			existingFileID := existingAnswer.FileID
-			oldFileID = &existingFileID
+		if existingAnswer.FileID == answer.FileID {
+			return nil, nil
 		}
+		existingFileID := existingAnswer.FileID
+		oldFileID = &existingFileID
 	}
 
 	// Create or overwrite the answer in the same transaction.
-	answerDBModel := answer.GetDBModel()
-	answerDBModel.ID = uuid.New()
-	answerDBModel.CourseParticipationID = courseParticipationID
-	if err := qtx.CreateOrOverwriteApplicationAnswerFileUpload(ctx, db.CreateOrOverwriteApplicationAnswerFileUploadParams(answerDBModel)); err != nil {
+	rows, err := qtx.CreateOrOverwriteApplicationAnswerFileUpload(ctx, db.CreateOrOverwriteApplicationAnswerFileUploadParams{
+		ID:                    uuid.New(),
+		CourseParticipationID: courseParticipationID,
+		FileID:                answer.FileID,
+		ApplicationQuestionID: answer.ApplicationQuestionID,
+		CoursePhaseID:         coursePhaseID,
+		UploadedByUserID:      pgtype.Text{String: uploader.userID, Valid: !uploader.anyInPhase},
+	})
+	if err != nil {
 		return nil, err
+	}
+	if rows == 0 {
+		return nil, ErrFileNotInApplication
 	}
 
 	return oldFileID, nil
@@ -199,6 +219,14 @@ func (s *ApplicationService) cleanupReplacedFiles(ctx context.Context, fileIDs [
 		}
 		seenFileIDs[fileID] = struct{}{}
 
+		referenced, err := s.queries.IsFileReferencedByApplicationAnswer(ctx, fileID)
+		if err != nil {
+			log.WithError(err).WithField("fileId", fileID).Warn("Failed to check whether a replaced file is still referenced")
+			continue
+		}
+		if referenced {
+			continue
+		}
 		if err := s.files.DeleteFile(ctx, fileID, true); err != nil {
 			log.WithError(err).WithField("fileId", fileID).Warn("Failed to delete replaced file after transaction commit")
 		}
@@ -492,7 +520,10 @@ func (s *ApplicationService) PostApplicationExtern(ctx context.Context, coursePh
 	replacedFileIDs := make([]uuid.UUID, 0, len(application.AnswersFileUpload))
 	for _, answer := range application.AnswersFileUpload {
 		var oldFileID *uuid.UUID
-		oldFileID, err = createOrReplaceFileUploadAnswer(ctx, qtx, answer, cPhaseParticipation.CourseParticipationID)
+		oldFileID, err = upsertFileUploadAnswer(ctx, qtx, coursePhaseID, anyUploaderInPhase(), answer, cPhaseParticipation.CourseParticipationID)
+		if errors.Is(err, ErrFileNotInApplication) {
+			return uuid.Nil, err
+		}
 		if err != nil {
 			log.Error(err)
 			return uuid.Nil, errors.New("could not save the application answers")
@@ -621,7 +652,7 @@ func (s *ApplicationService) GetApplicationAuthenticatedByMatriculationNumberAnd
 
 }
 
-func (s *ApplicationService) PostApplicationAuthenticatedStudent(ctx context.Context, coursePhaseID uuid.UUID, application applicationDTO.PostApplication) (uuid.UUID, error) {
+func (s *ApplicationService) PostApplicationAuthenticatedStudent(ctx context.Context, coursePhaseID uuid.UUID, uploader fileUploader, application applicationDTO.PostApplication) (uuid.UUID, error) {
 	tx, err := s.conn.Begin(ctx)
 	if err != nil {
 		return uuid.Nil, err
@@ -685,7 +716,10 @@ func (s *ApplicationService) PostApplicationAuthenticatedStudent(ctx context.Con
 	replacedFileIDs := make([]uuid.UUID, 0, len(application.AnswersFileUpload))
 	for _, answer := range application.AnswersFileUpload {
 		var oldFileID *uuid.UUID
-		oldFileID, err = createOrOverwriteFileUploadAnswer(ctx, qtx, answer, cPhaseParticipation.CourseParticipationID)
+		oldFileID, err = upsertFileUploadAnswer(ctx, qtx, coursePhaseID, uploader, answer, cPhaseParticipation.CourseParticipationID)
+		if errors.Is(err, ErrFileNotInApplication) {
+			return uuid.Nil, err
+		}
 		if err != nil {
 			log.Error(err)
 			return uuid.Nil, errors.New("could not save the application answers")

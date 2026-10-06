@@ -2,11 +2,12 @@ import type { StudentNameUpdateRequest } from '../../interfaces/studentNameUpdat
 import { teamAllocationAxiosInstance } from '../teamAllocationServerConfig'
 
 export const addStudentNamesToTeams = async (
+  coursePhaseID: string,
   studentNames: StudentNameUpdateRequest,
 ): Promise<void> => {
   try {
     await teamAllocationAxiosInstance.post(
-      `/team-allocation/api/course_phase/${studentNames.coursePhaseID}/team/student-names`,
+      `/team-allocation/api/course_phase/${coursePhaseID}/team/student-names`,
       studentNames,
       {
         headers: {

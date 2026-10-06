@@ -1,9 +1,12 @@
+import { useToast } from '@tumaet/prompt-ui-components'
 import { useState } from 'react'
+import type { ReleaseResultsResponse } from '../../../../../interfaces/resultsReleasedMail'
 import { useGetAllAssessmentCompletions } from '../../../../hooks/useGetAllAssessmentCompletions'
 import { useGetCoursePhaseConfig } from '../../../../hooks/useGetCoursePhaseConfig'
 import { useGetCoursePhaseParticipations } from '../../../../hooks/useGetCoursePhaseParticipations'
 import { useReleaseResults } from '../../../hooks/useReleaseResults'
 import { useUnreleaseResults } from '../../../hooks/useUnreleaseResults'
+import { describeMailReport } from '../../ResultsReleasedMailCard/utils'
 
 export interface ReleaseAssessmentResultsModel {
   assessmentEnabled: boolean
@@ -28,6 +31,7 @@ export const useReleaseAssessmentResults = (): ReleaseAssessmentResultsModel => 
   const [showUnreleaseDialog, setShowUnreleaseDialog] = useState(false)
   const [releaseError, setReleaseError] = useState<string | null>(null)
   const [unreleaseError, setUnreleaseError] = useState<string | null>(null)
+  const { toast } = useToast()
 
   const { data: participations } = useGetCoursePhaseParticipations()
   const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
@@ -54,10 +58,25 @@ export const useReleaseAssessmentResults = (): ReleaseAssessmentResultsModel => 
     return responseError || fallback
   }
 
+  const toastMailOutcome = ({ mailReport, mailError }: ReleaseResultsResponse) => {
+    if (mailError) {
+      toast({
+        title: 'Notification mails failed',
+        description: mailError,
+        variant: 'destructive',
+      })
+    } else if (mailReport) {
+      toast({ title: 'Results released', description: describeMailReport(mailReport) })
+    }
+  }
+
   const confirmRelease = () => {
     setReleaseError(null)
     releaseResults(undefined, {
-      onSuccess: () => setShowReleaseDialog(false),
+      onSuccess: (response) => {
+        setShowReleaseDialog(false)
+        toastMailOutcome(response)
+      },
       onError: (error) =>
         setReleaseError(getErrorMessage(error, 'Releasing results failed. Please try again.')),
     })

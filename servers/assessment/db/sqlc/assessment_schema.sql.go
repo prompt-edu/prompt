@@ -22,6 +22,14 @@ SELECT EXISTS(
         WHERE cat.assessment_schema_id = $2
     )
 ) OR EXISTS(
+    SELECT 1 FROM independent_assessment ia
+    WHERE ia.course_phase_id = $1
+    AND ia.competency_id IN (
+        SELECT co.id FROM competency co
+        JOIN category cat ON co.category_id = cat.id
+        WHERE cat.assessment_schema_id = $2
+    )
+) OR EXISTS(
     SELECT 1 FROM evaluation e
     WHERE e.course_phase_id = $1
     AND e.competency_id IN (
@@ -524,5 +532,23 @@ type UpdateEvaluationCompetenciesParams struct {
 
 func (q *Queries) UpdateEvaluationCompetencies(ctx context.Context, arg UpdateEvaluationCompetenciesParams) error {
 	_, err := q.db.Exec(ctx, updateEvaluationCompetencies, arg.CoursePhaseID, arg.CompetencyID, arg.CompetencyID_2)
+	return err
+}
+
+const updateIndependentAssessmentCompetencies = `-- name: UpdateIndependentAssessmentCompetencies :exec
+UPDATE independent_assessment
+SET competency_id = $3
+WHERE course_phase_id = $1
+AND competency_id = $2
+`
+
+type UpdateIndependentAssessmentCompetenciesParams struct {
+	CoursePhaseID  uuid.UUID `json:"course_phase_id"`
+	CompetencyID   uuid.UUID `json:"competency_id"`
+	CompetencyID_2 uuid.UUID `json:"competency_id_2"`
+}
+
+func (q *Queries) UpdateIndependentAssessmentCompetencies(ctx context.Context, arg UpdateIndependentAssessmentCompetenciesParams) error {
+	_, err := q.db.Exec(ctx, updateIndependentAssessmentCompetencies, arg.CoursePhaseID, arg.CompetencyID, arg.CompetencyID_2)
 	return err
 }

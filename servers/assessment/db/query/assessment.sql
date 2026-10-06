@@ -84,6 +84,7 @@ FROM remaining_per_category rpc;
 -- comments have no delete route, so a bare EXISTS would permanently lock the phase. The regex
 -- covers tabs and newlines too, which btrim's default (spaces only) would leave in place.
 SELECT EXISTS(SELECT 1 FROM assessment a WHERE a.course_phase_id = $1)
+           OR EXISTS(SELECT 1 FROM independent_assessment ia WHERE ia.course_phase_id = $1)
            OR EXISTS(SELECT 1 FROM assessment_completion ac WHERE ac.course_phase_id = $1)
            OR EXISTS(SELECT 1
                      FROM category_assessment ca

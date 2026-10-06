@@ -1,7 +1,15 @@
-import { ErrorPage, LoadingPage } from '@tumaet/prompt-ui-components'
-import { useEffect, useMemo } from 'react'
+import {
+  ErrorPage,
+  QueryGate,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '@tumaet/prompt-ui-components'
+import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
-
+import type { Assessment } from '../../interfaces/assessment'
+import type { CategoryWithCompetencies } from '../../interfaces/category'
 import { useStudentAssessmentStore } from '../../zustand/useStudentAssessmentStore'
 import { AssessmentDisabledNotice } from '../components/AssessmentDisabledNotice'
 import { AssessmentPrintReport } from '../components/AssessmentPrintReport/AssessmentPrintReport'
@@ -18,19 +26,25 @@ import { useGetFeedbackItemsForStudent } from './components/FeedbackItemsPanel/h
 import { PassStatusControls } from './components/PassStatusControls'
 import { useGetStudentAssessment } from './hooks/useGetStudentAssessment'
 
+const inCategory = (assessments: Assessment[], category: CategoryWithCompetencies) =>
+  assessments.filter((assessment) =>
+    category.competencies.some((competency) => competency.id === assessment.competencyID),
+  )
+
 export const AssessmentPage = () => {
   const { courseParticipationID } = useParams<{
     courseParticipationID: string
   }>()
 
   const { setStudentAssessment, setAssessmentParticipation } = useStudentAssessmentStore()
-  const {
-    data: coursePhaseConfig,
-    isPending: isCoursePhaseConfigPending,
-    isError: isCoursePhaseConfigError,
-    refetch: refetchCoursePhaseConfig,
-  } = useGetCoursePhaseConfig()
+  const coursePhaseConfigQuery = useGetCoursePhaseConfig()
+  const coursePhaseConfig = coursePhaseConfigQuery.data
   const assessmentEnabled = coursePhaseConfig?.assessmentEnabled ?? false
+  const independentAssessmentEnabled = coursePhaseConfig?.independentAssessmentEnabled ?? false
+  const [selectedTab, setSelectedTab] = useState({ courseParticipationID, value: 'mine' })
+  const tab =
+    selectedTab.courseParticipationID === courseParticipationID ? selectedTab.value : 'mine'
+  const setTab = (value: string) => setSelectedTab({ courseParticipationID, value })
   const { data: categories } = useGetAllCategoriesWithCompetencies({ enabled: assessmentEnabled })
   const { data: participations } = useGetCoursePhaseParticipations()
   const participant = participations.find(
@@ -45,14 +59,12 @@ export const AssessmentPage = () => {
   )
   const { actionItems } = useGetActionItemsForStudent()
 
+  const studentAssessmentQuery = useGetStudentAssessment({ enabled: assessmentEnabled })
   const {
     data: studentAssessment,
-    isPending: isStudentAssessmentPending,
     isFetching: isStudentAssessmentFetching,
     isPlaceholderData: isPlaceholderStudentAssessmentData,
-    isError: isStudentAssessmentError,
-    refetch: refetchStudentAssessment,
-  } = useGetStudentAssessment({ enabled: assessmentEnabled })
+  } = studentAssessmentQuery
   const isSwitchingParticipant = isStudentAssessmentFetching && isPlaceholderStudentAssessmentData
 
   const remainingAssessments = useMemo(() => {
@@ -75,64 +87,105 @@ export const AssessmentPage = () => {
     }
   }, [participant, setAssessmentParticipation])
 
-  if (isCoursePhaseConfigError) return <ErrorPage onRetry={refetchCoursePhaseConfig} />
-  if (isCoursePhaseConfigPending) return <LoadingPage />
-  if (!assessmentEnabled) return <AssessmentDisabledNotice title='Assessment' />
-  if (isStudentAssessmentError) return <ErrorPage onRetry={refetchStudentAssessment} />
-  if (isStudentAssessmentPending) return <LoadingPage />
-
-  if (!studentAssessment) {
-    return (
-      <ErrorPage
-        title='No participant found for this course participation ID'
-        description='We like what you are doing. To contribute, checkout https://github.com/prompt-edu/prompt'
-      />
-    )
-  }
-
   return (
-    <>
-      <div className='space-y-4 print:hidden' aria-busy={isSwitchingParticipant}>
-        {participant && (
-          <AssessmentHeader
-            participant={participant}
-            studentAssessment={studentAssessment}
-            remainingAssessments={remainingAssessments}
-          />
-        )}
+    <QueryGate queries={[coursePhaseConfigQuery, studentAssessmentQuery]}>
+      {() => {
+        if (!assessmentEnabled) return <AssessmentDisabledNotice title='Assessment' />
 
-        {categories.map((category) => (
-          <CategoryAssessment
-            key={category.id}
-            category={category}
-            assessments={studentAssessment.assessments.filter((assessment) =>
-              category.competencies
-                .map((competency) => competency.id)
-                .includes(assessment.competencyID),
-            )}
-            completed={studentAssessment.assessmentCompletion.completed}
-            disabled={isSwitchingParticipant}
-            courseParticipationID={courseParticipationID ?? ''}
-          />
-        ))}
+        if (!studentAssessment) {
+          return (
+            <ErrorPage
+              title='No participant found for this course participation ID'
+              description='We like what you are doing. To contribute, checkout https://github.com/prompt-edu/prompt'
+            />
+          )
+        }
 
-        {evaluationEnabled && <FeedbackItemsPanel />}
+        const finalAssessment = (
+          <>
+            {categories.map((category) => (
+              <CategoryAssessment
+                key={category.id}
+                category={category}
+                assessments={inCategory(studentAssessment.assessments, category)}
+                completed={studentAssessment.assessmentCompletion.completed}
+                disabled={isSwitchingParticipant}
+                courseParticipationID={courseParticipationID ?? ''}
+                independentAssessments={
+                  independentAssessmentEnabled
+                    ? studentAssessment.independentAssessments
+                    : undefined
+                }
+              />
+            ))}
 
-        <AssessmentCompletion />
+            {evaluationEnabled && <FeedbackItemsPanel />}
 
-        <PassStatusControls
-          courseParticipationID={courseParticipationID}
-          disabled={isSwitchingParticipant}
-        />
+            <AssessmentCompletion />
 
-        <AssessmentExportMenu />
-      </div>
+            <PassStatusControls
+              courseParticipationID={courseParticipationID}
+              disabled={isSwitchingParticipant}
+            />
 
-      <AssessmentPrintReport
-        categories={categories}
-        feedbackItems={feedbackItems}
-        actionItems={actionItems}
-      />
-    </>
+            <AssessmentExportMenu />
+          </>
+        )
+
+        return (
+          <>
+            <div className='space-y-4 print:hidden' aria-busy={isSwitchingParticipant}>
+              {participant && (
+                <AssessmentHeader
+                  participant={participant}
+                  studentAssessment={studentAssessment}
+                  remainingAssessments={remainingAssessments}
+                />
+              )}
+
+              {independentAssessmentEnabled ? (
+                <Tabs value={tab} onValueChange={setTab}>
+                  <TabsList className='w-full'>
+                    <TabsTrigger value='mine' className='flex-1'>
+                      My assessment
+                    </TabsTrigger>
+                    <TabsTrigger value='final' className='flex-1'>
+                      Final assessment
+                    </TabsTrigger>
+                  </TabsList>
+                  <TabsContent value='mine' className='space-y-4'>
+                    {categories.map((category) => (
+                      <CategoryAssessment
+                        key={category.id}
+                        category={category}
+                        assessments={inCategory(
+                          studentAssessment.myIndependentAssessments,
+                          category,
+                        )}
+                        completed={studentAssessment.assessmentCompletion.completed}
+                        disabled={isSwitchingParticipant}
+                        courseParticipationID={courseParticipationID ?? ''}
+                        independent
+                      />
+                    ))}
+                  </TabsContent>
+                  <TabsContent value='final' className='space-y-4'>
+                    {finalAssessment}
+                  </TabsContent>
+                </Tabs>
+              ) : (
+                finalAssessment
+              )}
+            </div>
+
+            <AssessmentPrintReport
+              categories={categories}
+              feedbackItems={feedbackItems}
+              actionItems={actionItems}
+            />
+          </>
+        )
+      }}
+    </QueryGate>
   )
 }

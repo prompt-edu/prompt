@@ -117,19 +117,19 @@ func (p *Provider) CreateResource(ctx context.Context, input provider.CreateReso
 // permissionBuckets groups the members by the Outline permission their role maps to.
 // A role with no mapping, or one mapping to a permission Outline does not accept, is
 // reported instead of silently becoming read access.
-func permissionBuckets(input provider.CreateResourceInput) (map[string][]provider.Member, []string) {
+func permissionBuckets(input provider.CreateResourceInput) (map[string][]provider.Member, []provider.Warning) {
 	buckets := map[string][]provider.Member{}
-	var warnings []string
+	var warnings []provider.Warning
 
 	for _, member := range input.Members {
 		permission, ok := input.PermissionMapping[member.Role]
 		if !ok {
-			warnings = append(warnings, fmt.Sprintf("%s: no permission mapped for role %q", member.Email, member.Role))
+			warnings = append(warnings, provider.MemberWarning(member.Email, "no permission mapped for role %q", member.Role))
 			continue
 		}
 		normalized := strings.ToLower(strings.TrimSpace(permission))
 		if !validPermissions[normalized] {
-			warnings = append(warnings, fmt.Sprintf("%s: unknown permission %q (expected read, read_write or admin)", member.Email, permission))
+			warnings = append(warnings, provider.MemberWarning(member.Email, "unknown permission %q (expected read, read_write or admin)", permission))
 			continue
 		}
 		buckets[normalized] = append(buckets[normalized], member)
@@ -141,8 +141,8 @@ func permissionBuckets(input provider.CreateResourceInput) (map[string][]provide
 // access. One group can hold one permission, so a team of students at read plus a tutor
 // at read_write becomes two groups and two bindings rather than a silent choice between
 // them.
-func (p *Provider) bindGroups(ctx context.Context, collectionID string, input provider.CreateResourceInput, buckets map[string][]provider.Member) []string {
-	var warnings []string
+func (p *Provider) bindGroups(ctx context.Context, collectionID string, input provider.CreateResourceInput, buckets map[string][]provider.Member) []provider.Warning {
+	var warnings []provider.Warning
 	if len(buckets) == 0 {
 		return warnings
 	}
@@ -153,15 +153,17 @@ func (p *Provider) bindGroups(ctx context.Context, collectionID string, input pr
 	}
 	split := len(buckets) > 1
 
+	bucketed := make([]provider.Member, 0, len(input.Members))
 	emails := make([]string, 0, len(input.Members))
 	for _, members := range buckets {
 		for _, member := range members {
+			bucketed = append(bucketed, member)
 			emails = append(emails, member.Email)
 		}
 	}
 	userIDs, err := p.lookupUsersByEmail(ctx, emails)
 	if err != nil {
-		return append(warnings, fmt.Sprintf("could not look up Outline users: %v", err))
+		return append(warnings, provider.MembersWarning(bucketed, "could not look up Outline users: %v", err))
 	}
 
 	for _, permission := range slices.Sorted(maps.Keys(buckets)) {
@@ -179,23 +181,25 @@ func (p *Provider) bindGroups(ctx context.Context, collectionID string, input pr
 
 		groupID, err := p.findOrCreateGroup(ctx, groupName, externalID)
 		if err != nil {
-			warnings = append(warnings, fmt.Sprintf("group %q: %v", groupName, err))
+			warnings = append(warnings, provider.MembersWarning(buckets[permission], "group %q: %v", groupName, err))
 			continue
 		}
 
 		for _, member := range buckets[permission] {
 			userID, ok := userIDs[strings.ToLower(member.Email)]
 			if !ok {
-				warnings = append(warnings, fmt.Sprintf("%s: no Outline user with this email", member.Email))
+				warnings = append(warnings, provider.MemberWarning(member.Email, "no Outline user with this email"))
 				continue
 			}
 			if err := p.addUserToGroup(ctx, groupID, userID); err != nil {
-				warnings = append(warnings, fmt.Sprintf("%s: %v", member.Email, err))
+				warnings = append(warnings, provider.MemberWarning(member.Email, "%v", err))
 			}
 		}
 
+		// Members already in the group still cannot see the collection without the
+		// binding, so the whole group is reported.
 		if err := p.addGroupToCollection(ctx, collectionID, groupID, permission); err != nil {
-			warnings = append(warnings, fmt.Sprintf("group %q: %v", groupName, err))
+			warnings = append(warnings, provider.MembersWarning(buckets[permission], "group %q: %v", groupName, err))
 		}
 	}
 	return warnings

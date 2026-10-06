@@ -229,29 +229,30 @@ type CompletedScoreLevel struct {
 }
 
 type CoursePhaseConfig struct {
-	AssessmentSchemaID       uuid.UUID          `json:"assessment_schema_id"`
-	CoursePhaseID            uuid.UUID          `json:"course_phase_id"`
-	Deadline                 pgtype.Timestamptz `json:"deadline"`
-	SelfEvaluationEnabled    bool               `json:"self_evaluation_enabled"`
-	SelfEvaluationSchema     uuid.UUID          `json:"self_evaluation_schema"`
-	SelfEvaluationDeadline   pgtype.Timestamptz `json:"self_evaluation_deadline"`
-	PeerEvaluationEnabled    bool               `json:"peer_evaluation_enabled"`
-	PeerEvaluationSchema     uuid.UUID          `json:"peer_evaluation_schema"`
-	PeerEvaluationDeadline   pgtype.Timestamptz `json:"peer_evaluation_deadline"`
-	Start                    pgtype.Timestamptz `json:"start"`
-	SelfEvaluationStart      pgtype.Timestamptz `json:"self_evaluation_start"`
-	PeerEvaluationStart      pgtype.Timestamptz `json:"peer_evaluation_start"`
-	TutorEvaluationEnabled   bool               `json:"tutor_evaluation_enabled"`
-	TutorEvaluationStart     pgtype.Timestamptz `json:"tutor_evaluation_start"`
-	TutorEvaluationDeadline  pgtype.Timestamptz `json:"tutor_evaluation_deadline"`
-	TutorEvaluationSchema    uuid.UUID          `json:"tutor_evaluation_schema"`
-	EvaluationResultsVisible bool               `json:"evaluation_results_visible"`
-	GradeSuggestionVisible   bool               `json:"grade_suggestion_visible"`
-	ActionItemsVisible       bool               `json:"action_items_visible"`
-	ResultsReleased          bool               `json:"results_released"`
-	GradingSheetVisible      bool               `json:"grading_sheet_visible"`
-	AssessmentEnabled        bool               `json:"assessment_enabled"`
-	TutorDisplayName         pgtype.Text        `json:"tutor_display_name"`
+	AssessmentSchemaID           uuid.UUID          `json:"assessment_schema_id"`
+	CoursePhaseID                uuid.UUID          `json:"course_phase_id"`
+	Deadline                     pgtype.Timestamptz `json:"deadline"`
+	SelfEvaluationEnabled        bool               `json:"self_evaluation_enabled"`
+	SelfEvaluationSchema         uuid.UUID          `json:"self_evaluation_schema"`
+	SelfEvaluationDeadline       pgtype.Timestamptz `json:"self_evaluation_deadline"`
+	PeerEvaluationEnabled        bool               `json:"peer_evaluation_enabled"`
+	PeerEvaluationSchema         uuid.UUID          `json:"peer_evaluation_schema"`
+	PeerEvaluationDeadline       pgtype.Timestamptz `json:"peer_evaluation_deadline"`
+	Start                        pgtype.Timestamptz `json:"start"`
+	SelfEvaluationStart          pgtype.Timestamptz `json:"self_evaluation_start"`
+	PeerEvaluationStart          pgtype.Timestamptz `json:"peer_evaluation_start"`
+	TutorEvaluationEnabled       bool               `json:"tutor_evaluation_enabled"`
+	TutorEvaluationStart         pgtype.Timestamptz `json:"tutor_evaluation_start"`
+	TutorEvaluationDeadline      pgtype.Timestamptz `json:"tutor_evaluation_deadline"`
+	TutorEvaluationSchema        uuid.UUID          `json:"tutor_evaluation_schema"`
+	EvaluationResultsVisible     bool               `json:"evaluation_results_visible"`
+	GradeSuggestionVisible       bool               `json:"grade_suggestion_visible"`
+	ActionItemsVisible           bool               `json:"action_items_visible"`
+	ResultsReleased              bool               `json:"results_released"`
+	GradingSheetVisible          bool               `json:"grading_sheet_visible"`
+	AssessmentEnabled            bool               `json:"assessment_enabled"`
+	TutorDisplayName             pgtype.Text        `json:"tutor_display_name"`
+	IndependentAssessmentEnabled bool               `json:"independent_assessment_enabled"`
 }
 
 type Evaluation struct {
@@ -284,6 +285,23 @@ type FeedbackItem struct {
 	AuthorCourseParticipationID uuid.UUID          `json:"author_course_participation_id"`
 	CreatedAt                   pgtype.Timestamptz `json:"created_at"`
 	Type                        AssessmentType     `json:"type"`
+}
+
+type IndependentAssessment struct {
+	ID                    uuid.UUID          `json:"id"`
+	CourseParticipationID uuid.UUID          `json:"course_participation_id"`
+	CoursePhaseID         uuid.UUID          `json:"course_phase_id"`
+	CompetencyID          uuid.UUID          `json:"competency_id"`
+	ScoreLevel            ScoreLevel         `json:"score_level"`
+	Author                string             `json:"author"`
+	AuthorID              string             `json:"author_id"`
+	AssessedAt            pgtype.Timestamptz `json:"assessed_at"`
+}
+
+type ResultsReleasedMail struct {
+	CoursePhaseID         uuid.UUID          `json:"course_phase_id"`
+	CourseParticipationID uuid.UUID          `json:"course_participation_id"`
+	SentAt                pgtype.Timestamptz `json:"sent_at"`
 }
 
 type WeightedParticipantScore struct {

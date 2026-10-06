@@ -7,8 +7,9 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@tumaet/prompt-ui-components'
-import { User, Users } from 'lucide-react'
+import { User, UserCheck, Users } from 'lucide-react'
 import type { ReactNode } from 'react'
+import type { Assessment } from '../../interfaces/assessment'
 import { AssessmentType } from '../../interfaces/assessmentType'
 import type { Competency } from '../../interfaces/competency'
 
@@ -20,6 +21,7 @@ interface ScoreLevelSelectorProps {
   selectedScore?: ScoreLevel
   onScoreChange: (value: ScoreLevel) => void
   completed: boolean
+  finalized?: boolean
   assessmentType?: AssessmentType
   selfEvaluationCompetency?: Competency
   selfEvaluationScoreLevel?: ScoreLevel
@@ -27,6 +29,7 @@ interface ScoreLevelSelectorProps {
   peerEvaluationCompetency?: Competency
   peerEvaluationScoreLevel?: ScoreLevel
   peerEvaluationStudentAnswers?: (() => ReactNode)[]
+  independentAssessments?: Assessment[]
 }
 
 const mapCompetencyDescriptionsByLevel = (competency: Competency): Record<ScoreLevel, string> => ({
@@ -43,6 +46,7 @@ export const ScoreLevelSelector = ({
   selectedScore,
   onScoreChange,
   completed,
+  finalized = completed,
   assessmentType = AssessmentType.ASSESSMENT,
   selfEvaluationCompetency,
   selfEvaluationScoreLevel,
@@ -50,10 +54,11 @@ export const ScoreLevelSelector = ({
   peerEvaluationCompetency,
   peerEvaluationScoreLevel,
   peerEvaluationStudentAnswers,
+  independentAssessments = [],
 }: ScoreLevelSelectorProps) => {
   const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
   const descriptionsByLevel = mapCompetencyDescriptionsByLevel(competency)
-  const showIndicators = coursePhaseConfig?.evaluationResultsVisible || completed
+  const showIndicators = coursePhaseConfig?.evaluationResultsVisible || finalized
   const indicators: Partial<Record<ScoreLevel, ReactNode[]>> = {}
 
   if (selfEvaluationCompetency && selfEvaluationScoreLevel) {
@@ -114,6 +119,33 @@ export const ScoreLevelSelector = ({
                   <div key={`peer-answer-${index}`}>{studentAnswer()}</div>
                 ))
               : undefined}
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>,
+    ]
+  }
+
+  for (const scoreLevel of new Set(independentAssessments.map((a) => a.scoreLevel))) {
+    const assessors = independentAssessments.filter((a) => a.scoreLevel === scoreLevel)
+    indicators[scoreLevel] = [
+      ...(indicators[scoreLevel] ?? []),
+      <TooltipProvider key={`independent-assessment-${scoreLevel}-${competency.id}`}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type='button'
+              aria-label={`Independent assessments: ${getLevelConfig(scoreLevel).title}`}
+            >
+              <UserCheck size={20} className='text-purple-500 dark:text-purple-300' aria-hidden />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <div className='font-semibold'>Independent Assessments</div>
+            {assessors.map((assessor) => (
+              <div key={assessor.id} className='text-sm'>
+                {assessor.author}
+              </div>
+            ))}
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>,

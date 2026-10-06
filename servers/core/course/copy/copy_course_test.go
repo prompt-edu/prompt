@@ -70,6 +70,8 @@ func (suite *CopyCourseTestSuite) TestCopyCourseInternal() {
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), newName, result.Name)
 	assert.Equal(suite.T(), newTag, result.SemesterTag.String)
+	assert.Equal(suite.T(), string(suite.sourceCourse.CourseType), result.CourseType)
+	assert.Equal(suite.T(), suite.sourceCourse.Ects, result.Ects)
 
 	// Verify phase graph
 	newGraph, err := suite.courseCopyService.queries.GetCoursePhaseGraph(suite.ctx, result.ID)
@@ -104,6 +106,29 @@ func (suite *CopyCourseTestSuite) TestCopyCourseInternal() {
 	assert.NoError(suite.T(), err)
 
 	assert.True(suite.T(), len(textQuestions) > 0 || len(multiSelectQuestions) > 0, "Expected application form to be copied")
+}
+
+func (suite *CopyCourseTestSuite) TestCopyCourseInternalWithDifferentCourseType() {
+	assert.NotEqual(suite.T(), db.CourseTypeSeminar, suite.sourceCourse.CourseType)
+
+	copyReq := courseCopyDTO.CopyCourseRequest{
+		Name:        "Seminar Clone",
+		SemesterTag: pgtype.Text{Valid: true, String: "ws2526"},
+		StartDate:   pgtype.Date{Valid: true, Time: time.Date(2025, 10, 1, 0, 0, 0, 0, time.UTC)},
+		EndDate:     pgtype.Date{Valid: true, Time: time.Date(2026, 2, 28, 0, 0, 0, 0, time.UTC)},
+		CourseType:  db.CourseTypeSeminar,
+		Ects:        pgtype.Int4{Valid: true, Int32: 5},
+	}
+
+	ginCtx, _ := gin.CreateTestContext(nil)
+	result, err := suite.courseCopyService.copyCourseInternal(ginCtx, suite.sourceCourse.ID, copyReq, "test_user")
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), string(db.CourseTypeSeminar), result.CourseType)
+	assert.Equal(suite.T(), pgtype.Int4{Valid: true, Int32: 5}, result.Ects)
+
+	sequence, err := suite.courseCopyService.queries.GetCoursePhaseSequence(suite.ctx, result.ID)
+	assert.NoError(suite.T(), err)
+	assert.NotEmpty(suite.T(), sequence, "Expected course phases to be copied")
 }
 
 func TestCopyCourseTestSuite(t *testing.T) {

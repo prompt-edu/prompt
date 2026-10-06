@@ -22,6 +22,8 @@ interface AssessmentVisibilityModel {
   setActionItemsVisible: (checked: boolean) => void
   evaluationResultsVisible: boolean
   setEvaluationResultsVisible: (checked: boolean) => void
+  independentAssessmentEnabled: boolean
+  setIndependentAssessmentEnabled: (checked: boolean) => void
 }
 
 interface UseAssessmentSettingsCardStateResult {
@@ -40,6 +42,7 @@ export const useAssessmentSettingsCardState = (): UseAssessmentSettingsCardState
   const [gradeSuggestionVisible, setGradeSuggestionVisible] = useState<boolean>(true)
   const [actionItemsVisible, setActionItemsVisible] = useState<boolean>(true)
   const [gradingSheetVisible, setGradingSheetVisible] = useState<boolean>(false)
+  const [independentAssessmentEnabled, setIndependentAssessmentEnabled] = useState<boolean>(false)
   const { data: originalConfig } = useGetCoursePhaseConfig()
 
   useEffect(() => {
@@ -52,6 +55,7 @@ export const useAssessmentSettingsCardState = (): UseAssessmentSettingsCardState
       setGradeSuggestionVisible(originalConfig.gradeSuggestionVisible ?? true)
       setActionItemsVisible(originalConfig.actionItemsVisible ?? true)
       setGradingSheetVisible(originalConfig.gradingSheetVisible ?? false)
+      setIndependentAssessmentEnabled(originalConfig.independentAssessmentEnabled ?? false)
       return
     }
 
@@ -63,6 +67,7 @@ export const useAssessmentSettingsCardState = (): UseAssessmentSettingsCardState
     setGradeSuggestionVisible(true)
     setActionItemsVisible(true)
     setGradingSheetVisible(false)
+    setIndependentAssessmentEnabled(false)
   }, [originalConfig])
 
   const configMutation = useCreateOrUpdateCoursePhaseConfig({
@@ -85,6 +90,7 @@ export const useAssessmentSettingsCardState = (): UseAssessmentSettingsCardState
           gradeSuggestionVisible,
           actionItemsVisible,
           gradingSheetVisible,
+          independentAssessmentEnabled,
         },
         originalConfig,
       ),
@@ -96,6 +102,7 @@ export const useAssessmentSettingsCardState = (): UseAssessmentSettingsCardState
       evaluationResultsVisible,
       gradeSuggestionVisible,
       gradingSheetVisible,
+      independentAssessmentEnabled,
       originalConfig,
       start,
     ],
@@ -135,6 +142,7 @@ export const useAssessmentSettingsCardState = (): UseAssessmentSettingsCardState
         gradeSuggestionVisible,
         actionItemsVisible,
         gradingSheetVisible,
+        independentAssessmentEnabled,
       })
     },
     canSave: (!assessmentEnabled || Boolean(assessmentSchemaId)) && Boolean(baseRequest),
@@ -153,6 +161,8 @@ export const useAssessmentSettingsCardState = (): UseAssessmentSettingsCardState
       setActionItemsVisible,
       evaluationResultsVisible,
       setEvaluationResultsVisible,
+      independentAssessmentEnabled,
+      setIndependentAssessmentEnabled,
     },
   }
 }

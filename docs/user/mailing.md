@@ -99,6 +99,11 @@ At the top of the Mailing page in each course phase, you’ll find toggles and a
 
 Students who do not have a status assigned, when sending out the mails, will not receive any email.
 
+### 4. ✅ Auto-Send Results Mail (Assessment Phase Only)
+
+* When enabled on the assessment **Settings** page, students receive the results mail when the lecturer releases the results.
+* Each student receives it once, also if the results are released again. See [Notifying Students About Released Results](./assessment.md#notifying-students-about-released-results).
+
 ---
 
 ## 📨 Course Mailing Campaigns

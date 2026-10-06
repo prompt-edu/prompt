@@ -9,8 +9,8 @@ import { API_PREFIX, coreRequest } from '../client'
 
 const CLIENT_PROBE_TIMEOUT_MS = 5_000
 
-const fetchUncached = (url: string) =>
-  fetch(url, { cache: 'no-store', signal: AbortSignal.timeout(CLIENT_PROBE_TIMEOUT_MS) })
+const fetchUncached = (url: string, method: 'GET' | 'HEAD' = 'GET') =>
+  fetch(url, { method, cache: 'no-store', signal: AbortSignal.timeout(CLIENT_PROBE_TIMEOUT_MS) })
 
 const readBuildVersion = async (remoteUrl: string): Promise<string | undefined> => {
   try {
@@ -39,7 +39,7 @@ export const system = {
 
   clientInfo: async (remote: ClientRemote): Promise<ClientInfo> => {
     const [entry, buildVersion] = await Promise.all([
-      fetchUncached(`${remote.url}/remoteEntry.js`),
+      fetchUncached(`${remote.url}/remoteEntry.js`, 'HEAD'),
       readBuildVersion(remote.url),
     ])
     if (!entry.ok) {

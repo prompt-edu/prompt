@@ -872,6 +872,17 @@ describe('system.clientInfo', () => {
     }
   })
 
+  it('checks remoteEntry.js without downloading it', async () => {
+    const fetchMock = stubFetch({ [ENTRY]: entry, [MANIFEST]: manifest('v2.18.1') })
+
+    await coreApi.system.clientInfo(remote)
+
+    const methodOf = (target: string) =>
+      fetchMock.mock.calls.find(([url]) => url === target)?.[1]?.method
+    expect(methodOf(ENTRY)).toBe('HEAD')
+    expect(methodOf(MANIFEST)).toBe('GET')
+  })
+
   it('reads the build version from the manifest', async () => {
     stubFetch({ [ENTRY]: entry, [MANIFEST]: manifest('v2.18.1') })
 

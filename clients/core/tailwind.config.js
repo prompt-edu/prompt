@@ -1,6 +1,5 @@
 // Default values that shall be reused in every component
 
-import typography from '@tailwindcss/typography'
 import tailwindAnimate from 'tailwindcss-animate'
 
 /** @type {import('tailwindcss').Config} */
@@ -70,7 +69,7 @@ export default {
       '2xl': '1536px',
     },
   },
-  plugins: [tailwindAnimate, typography],
+  plugins: [tailwindAnimate],
   // Core builds the only Tailwind stylesheet in the document, so it scans every
   // micro-frontend as well: remotes ship no utilities of their own.
   content: [

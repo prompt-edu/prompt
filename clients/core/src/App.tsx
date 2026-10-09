@@ -116,7 +116,9 @@ export const App = () => {
               path='/management/students/:studentId'
               element={
                 <ManagementRoot>
-                  <PermissionRestriction requiredPermissions={[Role.PROMPT_ADMIN]}>
+                  <PermissionRestriction
+                    requiredPermissions={[Role.PROMPT_ADMIN, Role.PROMPT_LECTURER]}
+                  >
                     <StudentDetailPage />
                   </PermissionRestriction>
                 </ManagementRoot>

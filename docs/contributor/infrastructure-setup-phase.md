@@ -37,7 +37,6 @@ servers/infrastructure_setup/
 │   │   └── 0006_instance_members.up.sql   # who each run was for, and who got in
 │   ├── query/                         # sqlc sources
 │   └── sqlc/                          # generated, committed
-├── database_dumps/base.sql            # schema for testcontainers-based tests
 ├── encryption/aes.go                  # AES-256-GCM credential encryption
 ├── provider/
 │   ├── interface.go                   # Provider interface and shared types
@@ -643,8 +642,8 @@ The SDK-registered routes below are not phase-scoped and protect themselves:
 make test-infrastructure-setup
 ```
 
-DB-backed tests use `testcontainers-go` with `database_dumps/base.sql`, which must be kept in step
-with the migrations.
+DB-backed tests use `testcontainers-go` and build their schema from `db/migration`, so the tests
+always run against the production schema.
 
 - **encryption** — round-trip, wrong key, nonce uniqueness, corrupted ciphertext.
 - **execution/template** — every placeholder and alias, sanitization, and rejection of unknown

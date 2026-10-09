@@ -65,13 +65,14 @@ func (suite *CourseMailingServiceTestSuite) SetupSuite() {
 	suite.emptyPhase = uuid.MustParse(testEmptyPhase)
 	suite.actor = courseMailingDTO.Actor{ID: "user-1", Email: "lecturer@example.com", Name: "Lena Lecturer"}
 
-	testDB, cleanup, err := testutils.SetupTestDB(
+	testDB, cleanup, err := testutils.SetupTestDBWithMigrations(
 		suite.ctx,
-		"../database_dumps/course_mail_campaign_test.sql",
+		"../db/migration",
 		func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) },
+		"../database_dumps/course_mail_campaign_test.sql",
 	)
 	if err != nil {
-		suite.T().Skipf("skipping db-backed course mailing tests: %v", err)
+		suite.T().Fatalf("Failed to set up test database: %v", err)
 	}
 	suite.cleanup = cleanup
 

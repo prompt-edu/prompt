@@ -6,8 +6,9 @@
   `*.test.ts(x)` next to the module they cover, run in a `node` environment, and import
   `describe`/`it`/`expect` from `vitest` explicitly. Keep them on pure modules: anything needing a
   browser belongs in the Playwright suite.
-- **Go:** `cd servers/<service> && go test ./...`. Tests use `testcontainers-go` for DB isolation;
-  seed data from `database_dumps/*.sql`; pattern `*_test.go` with `testutils.SetupTestDB()`.
+- **Go:** `cd servers/<service> && go test ./...`. Tests use `testcontainers-go` for DB isolation
+  via `sdkTestUtils.SetupTestDBWithMigrations()`, which applies the service's `db/migration` and then
+  data-only seeds from `database_dumps/*.sql` (DML only, never DDL); pattern `*_test.go`.
 - **End-to-end:** Playwright, in `e2e/`, one shard at a time. Run `make test-e2e-shard SHARD=<name>`
   (with no argument it prints the available shards), or `make test-e2e-shard PATHS="<pattern>"` for a
   narrower slice. Do **not** run `make test-e2e`: CI never runs the whole suite in one container

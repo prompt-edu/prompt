@@ -30,9 +30,9 @@ func (suite *StorageServiceTestSuite) SetupSuite() {
 	suite.ctx = context.Background()
 
 	// Set up test database
-	testDB, cleanup, err := testutils.SetupTestDB(suite.ctx, "../../database_dumps/storage_test.sql", func(pool *pgxpool.Pool) *db.Queries {
+	testDB, cleanup, err := testutils.SetupTestDBWithMigrations(suite.ctx, "../../db/migration", func(pool *pgxpool.Pool) *db.Queries {
 		return db.New(pool)
-	})
+	}, "../../database_dumps/storage_test.sql")
 	if err != nil {
 		suite.T().Fatalf("Failed to set up test database: %v", err)
 	}

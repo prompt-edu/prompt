@@ -40,9 +40,9 @@ func (suite *EvaluationReminderSendTestSuite) SetupSuite() {
 	}()
 
 	suite.ctx = context.Background()
-	testDB, cleanup, err := sdkTestUtils.SetupTestDB(suite.ctx, "../database_dumps/coursePhaseConfig.sql", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) })
+	testDB, cleanup, err := sdkTestUtils.SetupTestDBWithMigrations(suite.ctx, "../db/migration", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) }, "../database_dumps/coursePhaseConfig.sql")
 	if err != nil {
-		suite.T().Skipf("skipping db-backed evaluation reminder tests: %v", err)
+		suite.T().Fatalf("Failed to set up test database: %v", err)
 	}
 	suite.cleanup = cleanup
 	suite.service = NewCoursePhaseConfigService(*testDB.Queries, testDB.Conn, nil)

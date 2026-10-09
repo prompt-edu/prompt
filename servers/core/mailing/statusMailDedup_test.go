@@ -48,7 +48,7 @@ const (
 
 func (suite *StatusMailDedupTestSuite) SetupSuite() {
 	suite.ctx = context.Background()
-	testDB, cleanup, err := sdkTestUtils.SetupTestDB(suite.ctx, "../database_dumps/application_administration.sql", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) })
+	testDB, cleanup, err := sdkTestUtils.SetupTestDBWithMigrations(suite.ctx, "../db/migration", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) }, "../database_dumps/application_administration.sql")
 	suite.Require().NoError(err, "failed to set up test database")
 	suite.cleanup = cleanup
 	suite.queries = testDB.Queries
@@ -74,7 +74,7 @@ func (suite *StatusMailDedupTestSuite) SetupTest() {
 }
 
 // configureTestData adds the reply-to and passed-status templates the trigger requires and gives the
-// two seeded students distinct addresses, since the dump shares one email between them.
+// two seeded students the addresses the assertions expect.
 func (suite *StatusMailDedupTestSuite) configureTestData() {
 	_, err := suite.conn.Exec(suite.ctx,
 		`UPDATE course SET restricted_data = COALESCE(restricted_data, '{}'::jsonb) || $2::jsonb WHERE id = $1`,

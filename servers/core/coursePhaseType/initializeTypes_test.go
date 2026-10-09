@@ -15,9 +15,9 @@ import (
 
 func TestPresentationPhaseTypeExists(t *testing.T) {
 	ctx := context.Background()
-	testDB, cleanup, err := sdkTestUtils.SetupTestDB(ctx, "../database_dumps/copy_course_test.sql", func(conn *pgxpool.Pool) *db.Queries {
+	testDB, cleanup, err := sdkTestUtils.SetupTestDBWithMigrations(ctx, "../db/migration", func(conn *pgxpool.Pool) *db.Queries {
 		return db.New(conn)
-	})
+	}, "../database_dumps/copy_course_test.sql")
 	require.NoError(t, err)
 	defer cleanup()
 
@@ -71,9 +71,9 @@ func TestPresentationPhaseTypeExists(t *testing.T) {
 
 func TestPresentationPhaseTypeInitializationRestoresMissingInputs(t *testing.T) {
 	ctx := context.Background()
-	testDB, cleanup, err := sdkTestUtils.SetupTestDB(ctx, "../database_dumps/copy_course_test.sql", func(conn *pgxpool.Pool) *db.Queries {
+	testDB, cleanup, err := sdkTestUtils.SetupTestDBWithMigrations(ctx, "../db/migration", func(conn *pgxpool.Pool) *db.Queries {
 		return db.New(conn)
-	})
+	}, "../database_dumps/copy_course_test.sql")
 	require.NoError(t, err)
 	defer cleanup()
 
@@ -106,9 +106,9 @@ func TestPresentationPhaseTypeInitializationRestoresMissingInputs(t *testing.T) 
 
 func TestInfrastructureSetupPhaseTypeExists(t *testing.T) {
 	ctx := context.Background()
-	testDB, cleanup, err := sdkTestUtils.SetupTestDB(ctx, "../database_dumps/copy_course_test.sql", func(conn *pgxpool.Pool) *db.Queries {
+	testDB, cleanup, err := sdkTestUtils.SetupTestDBWithMigrations(ctx, "../db/migration", func(conn *pgxpool.Pool) *db.Queries {
 		return db.New(conn)
-	})
+	}, "../database_dumps/copy_course_test.sql")
 	require.NoError(t, err)
 	defer cleanup()
 

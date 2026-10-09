@@ -39,8 +39,8 @@ func (s *AuditLogTestSuite) SetupSuite() {
 	s.T().Setenv("AUDIT_ENABLED", "true")
 	s.ctx = context.Background()
 
-	testDB, cleanup, err := sdkTestUtils.SetupTestDB(s.ctx, "../database_dumps/audit_log_test.sql",
-		func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) })
+	testDB, cleanup, err := sdkTestUtils.SetupTestDBWithMigrations(s.ctx, "../db/migration",
+		func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) }, "../database_dumps/audit_log_test.sql")
 	require.NoError(s.T(), err)
 
 	s.cleanup = cleanup

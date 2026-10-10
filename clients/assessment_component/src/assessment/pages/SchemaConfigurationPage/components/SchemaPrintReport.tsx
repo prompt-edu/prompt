@@ -13,8 +13,6 @@ interface SchemaPrintReportProps {
   schemaDescription?: string
 }
 
-const byName = (a: { name: string }, b: { name: string }) => a.name.localeCompare(b.name)
-
 export const SchemaPrintReport = ({
   categories,
   schemaType,
@@ -30,7 +28,7 @@ export const SchemaPrintReport = ({
       </span>
     }
   >
-    {[...categories].sort(byName).map((category) => (
+    {categories.map((category) => (
       <section key={category.id} className='mb-6'>
         <div className='mb-2 flex items-center justify-between gap-2 border-b border-gray-200 pb-1'>
           <h2 className='text-lg font-semibold'>{category.name}</h2>
@@ -42,7 +40,7 @@ export const SchemaPrintReport = ({
         )}
 
         <div className='space-y-3'>
-          {[...category.competencies].sort(byName).map((competency) => (
+          {category.competencies.map((competency) => (
             <div
               key={competency.id}
               className='break-inside-avoid rounded-sm border border-gray-200 p-3'

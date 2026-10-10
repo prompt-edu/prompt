@@ -1,4 +1,5 @@
-import { getGravatarUrl, useAuthStore } from '@tumaet/prompt-shared-state'
+import { useOwnProfilePicture } from '@core/network/hooks/useProfilePicture'
+import { useAuthStore } from '@tumaet/prompt-shared-state'
 import { Avatar, AvatarFallback, AvatarImage, getStudentName } from '@tumaet/prompt-ui-components'
 
 interface NavAvatarProps {
@@ -7,6 +8,7 @@ interface NavAvatarProps {
 
 export function NavAvatar({ avatarOnly = false }: NavAvatarProps) {
   const { user } = useAuthStore()
+  const { data: ownPicture } = useOwnProfilePicture()
 
   const userName = getStudentName(user ?? {}) || 'Unknown User'
   const userEmail = user?.email || 'Unknown Email'
@@ -19,7 +21,7 @@ export function NavAvatar({ avatarOnly = false }: NavAvatarProps) {
   return (
     <>
       <Avatar className='h-10 w-10 rounded-lg'>
-        <AvatarImage src={getGravatarUrl(userEmail)} alt={userName} />
+        {ownPicture && <AvatarImage src={ownPicture.url} alt={userName} className='object-cover' />}
         <AvatarFallback className='rounded-lg'>{initials}</AvatarFallback>
       </Avatar>
       {!avatarOnly && (

@@ -6,6 +6,7 @@ import {
   CardHeader,
   CardTitle,
   DeleteConfirmation,
+  ProfilePicture,
   Table,
   TableBody,
   TableCell,
@@ -98,7 +99,17 @@ export const StaffMemberTable = ({
                 )
                 return (
                   <TableRow key={member.keycloakUserID}>
-                    <TableCell className='font-medium'>{staffMemberFullName(member)}</TableCell>
+                    <TableCell className='font-medium'>
+                      <div className='flex items-center gap-2'>
+                        <ProfilePicture
+                          userId={member.keycloakUserID}
+                          firstName={member.firstName}
+                          lastName={member.lastName}
+                          size='sm'
+                        />
+                        {staffMemberFullName(member)}
+                      </div>
+                    </TableCell>
                     <TableCell>{member.username}</TableCell>
                     <TableCell>{member.email}</TableCell>
                     <TableCell className='text-right'>

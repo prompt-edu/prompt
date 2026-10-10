@@ -21,6 +21,12 @@ func (s *PrivacyService) ExecuteCoreDeletion(ctx context.Context, subject sdk.Su
 		return fmt.Errorf("collect application file IDs: %w", err)
 	}
 
+	// profile pictures are matched through the student record, so collect them before it is deleted
+	profilePictureFileIDs, err := s.collectProfilePictureFileIDs(ctx, subject)
+	if err != nil {
+		return fmt.Errorf("collect profile picture file IDs: %w", err)
+	}
+
 	// begin transaction
 	tx, err := s.conn.Begin(ctx)
 	if err != nil {
@@ -44,9 +50,18 @@ func (s *PrivacyService) ExecuteCoreDeletion(ctx context.Context, subject sdk.Su
 		return fmt.Errorf("commit deletion transaction: %w", err)
 	}
 
-	// applicationFiles
+	// The student record is already gone, so each file cleanup runs even when the other fails;
+	// a retry could no longer find these files through the student.
+	var cleanupErrs []error
 	if err := s.deleteApplicationFiles(ctx, fileIDs); err != nil {
-		return fmt.Errorf("delete application files: %w", err)
+		cleanupErrs = append(cleanupErrs, fmt.Errorf("delete application files: %w", err))
+	}
+	// deleting a picture's file cascades to its profile_picture row
+	if err := s.deleteProfilePictureFiles(ctx, profilePictureFileIDs); err != nil {
+		cleanupErrs = append(cleanupErrs, fmt.Errorf("delete profile pictures: %w", err))
+	}
+	if err := errors.Join(cleanupErrs...); err != nil {
+		return err
 	}
 
 	// Privacy Exports
@@ -106,6 +121,20 @@ func (s *PrivacyService) deleteApplicationFiles(ctx context.Context, fileIDs []u
 	}
 	if len(errs) > 0 {
 		return fmt.Errorf("failed to delete %d of %d application files: %w", len(errs), len(fileIDs), errors.Join(errs...))
+	}
+	return nil
+}
+
+func (s *PrivacyService) deleteProfilePictureFiles(ctx context.Context, fileIDs []uuid.UUID) error {
+	var errs []error
+	for _, fileID := range fileIDs {
+		if err := s.applicationFiles.DeleteFile(ctx, fileID, true); err != nil {
+			log.WithError(err).WithField("fileID", fileID).Warn("failed to delete profile picture during privacy deletion")
+			errs = append(errs, fmt.Errorf("file %s: %w", fileID, err))
+		}
+	}
+	if len(errs) > 0 {
+		return fmt.Errorf("failed to delete %d of %d profile pictures: %w", len(errs), len(fileIDs), errors.Join(errs...))
 	}
 	return nil
 }

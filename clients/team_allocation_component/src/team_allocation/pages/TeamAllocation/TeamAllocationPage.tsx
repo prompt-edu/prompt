@@ -4,17 +4,15 @@ import type {
   Student,
   Team,
 } from '@tumaet/prompt-shared-state'
-import { getCoursePhaseParticipations, getGravatarUrl } from '@tumaet/prompt-shared-state'
+import { getCoursePhaseParticipations } from '@tumaet/prompt-shared-state'
 import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
   Badge,
   Card,
   CardContent,
   CardHeader,
   getStudentName,
   ManagementPageHeader,
+  ProfilePicture,
   QueryGate,
   Separator,
 } from '@tumaet/prompt-ui-components'
@@ -128,12 +126,13 @@ export const TeamAllocationPage: React.FC = () => {
                       <ul className='space-y-2'>
                         {team.tutors.map((tutor) => (
                           <li key={tutor.id} className='text-sm flex items-center gap-2'>
-                            <Avatar className='h-6 w-6'>
-                              <AvatarFallback className='text-xs font-medium'>
-                                {tutor.firstName[0]}
-                                {tutor.lastName[0]}
-                              </AvatarFallback>
-                            </Avatar>
+                            {/* The tutor import stores the student id as the tutor's id */}
+                            <ProfilePicture
+                              studentId={tutor.id}
+                              firstName={tutor.firstName}
+                              lastName={tutor.lastName}
+                              size='sm'
+                            />
                             <span>{getStudentName(tutor)}</span>
                           </li>
                         ))}
@@ -151,16 +150,12 @@ export const TeamAllocationPage: React.FC = () => {
                       <ul className='space-y-2'>
                         {team.members.map((member) => (
                           <li key={member.id} className='text-sm flex items-center gap-2'>
-                            <Avatar className='h-6 w-6'>
-                              <AvatarImage
-                                src={getGravatarUrl(member.email)}
-                                alt={getStudentName(member)}
-                              />
-                              <AvatarFallback className='text-xs font-medium'>
-                                {member.firstName[0]}
-                                {member.lastName[0]}
-                              </AvatarFallback>
-                            </Avatar>
+                            <ProfilePicture
+                              studentId={member.id}
+                              firstName={member.firstName}
+                              lastName={member.lastName}
+                              size='sm'
+                            />
                             <span>{getStudentName(member)}</span>
                           </li>
                         ))}

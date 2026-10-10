@@ -31,7 +31,7 @@ type SchemaCopyTestSuite struct {
 
 func (suite *SchemaCopyTestSuite) SetupTest() {
 	suite.suiteCtx = context.Background()
-	testDB, cleanup, err := sdkTestUtils.SetupTestDB(suite.suiteCtx, "../database_dumps/schema_copy_tests.sql", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) })
+	testDB, cleanup, err := sdkTestUtils.SetupTestDBWithMigrations(suite.suiteCtx, "../db/migration", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) }, "../database_dumps/schema_copy_tests.sql")
 	if err != nil {
 		suite.T().Fatalf("Failed to set up test database: %v", err)
 	}
@@ -319,6 +319,26 @@ func (suite *SchemaCopyTestSuite) TestUpdateCategory_WithAssessmentsInSamePhase(
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), originalSchemaID, config.AssessmentSchemaID,
 		"Course phase config should still point to original schema")
+}
+
+// TestUpdateSchemaOrder_WithAssessmentsInSamePhase checks that reordering, like any other schema change,
+// is blocked once the phase has submitted assessment data for the schema.
+func (suite *SchemaCopyTestSuite) TestUpdateSchemaOrder_WithAssessmentsInSamePhase() {
+	coursePhaseID := uuid.MustParse("10000000-0000-0000-0000-000000000003")
+	schemaID := uuid.MustParse("00000000-0000-0000-0000-000000000003")
+
+	categories, err := suite.categoryService.GetCategoriesWithCompetencies(suite.suiteCtx, schemaID)
+	suite.Require().NoError(err)
+	order := make([]categoryDTO.CategoryOrder, 0, len(categories))
+	for _, category := range categories {
+		order = append(order, categoryDTO.CategoryOrder{ID: category.ID, CompetencyIDs: competencyIDs(category.Competencies)})
+	}
+
+	_, err = suite.categoryService.UpdateSchemaOrder(suite.suiteCtx, coursePhaseID, categoryDTO.UpdateSchemaOrderRequest{
+		Categories: order,
+	})
+	suite.Require().Error(err)
+	suite.Contains(err.Error(), "modifications are not allowed")
 }
 
 func TestSchemaCopyTestSuite(t *testing.T) {

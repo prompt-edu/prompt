@@ -33,7 +33,7 @@ type CategoryRouterTestSuite struct {
 
 func (suite *CategoryRouterTestSuite) SetupTest() {
 	suite.suiteCtx = context.Background()
-	testDB, cleanup, err := sdkTestUtils.SetupTestDB(suite.suiteCtx, "../database_dumps/categories.sql", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) })
+	testDB, cleanup, err := sdkTestUtils.SetupTestDBWithMigrations(suite.suiteCtx, "../db/migration", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) }, "../database_dumps/categories.sql")
 	if err != nil {
 		suite.T().Fatalf("Failed to set up test database: %v", err)
 	}
@@ -132,6 +132,40 @@ func (suite *CategoryRouterTestSuite) TestUpdateCategory() {
 
 	suite.router.ServeHTTP(resp, req)
 	assert.Equal(suite.T(), http.StatusOK, resp.Code)
+}
+
+func (suite *CategoryRouterTestSuite) TestUpdateSchemaOrder() {
+	coursePhaseID := "4179d58a-d00d-4fa7-94a5-397bc69fab02" // Dev Application phase from test data
+	schemaID := uuid.MustParse("550e8400-e29b-41d4-a716-446655440000")
+
+	categories, err := suite.categoryService.GetCategoriesWithCompetencies(suite.suiteCtx, schemaID)
+	suite.Require().NoError(err)
+	order := make([]categoryDTO.CategoryOrder, 0, len(categories))
+	for i := len(categories) - 1; i >= 0; i-- {
+		order = append(order, categoryDTO.CategoryOrder{ID: categories[i].ID, CompetencyIDs: competencyIDs(categories[i].Competencies)})
+	}
+
+	body, _ := json.Marshal(categoryDTO.UpdateSchemaOrderRequest{Categories: order})
+	req, _ := http.NewRequest("PUT", "/api/course_phase/"+coursePhaseID+"/category/order", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp := httptest.NewRecorder()
+
+	suite.router.ServeHTTP(resp, req)
+	assert.Equal(suite.T(), http.StatusOK, resp.Code)
+}
+
+func (suite *CategoryRouterTestSuite) TestUpdateSchemaOrderIncomplete() {
+	coursePhaseID := "4179d58a-d00d-4fa7-94a5-397bc69fab02" // Dev Application phase from test data
+
+	body, _ := json.Marshal(categoryDTO.UpdateSchemaOrderRequest{
+		Categories: []categoryDTO.CategoryOrder{{ID: uuid.MustParse("25f1c984-ba31-4cf2-aa8e-5662721bf44e")}},
+	})
+	req, _ := http.NewRequest("PUT", "/api/course_phase/"+coursePhaseID+"/category/order", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp := httptest.NewRecorder()
+
+	suite.router.ServeHTTP(resp, req)
+	assert.Equal(suite.T(), http.StatusBadRequest, resp.Code)
 }
 
 func (suite *CategoryRouterTestSuite) TestDeleteCategory() {

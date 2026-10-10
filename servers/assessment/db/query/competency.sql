@@ -9,8 +9,10 @@ INSERT INTO competency (id,
                         description_ok,
                         description_good,
                         description_very_good,
-                        weight)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11);
+                        weight,
+                        sort_order)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,
+        (SELECT COALESCE(MAX(sort_order) + 1, 0) FROM competency WHERE category_id = $2));
 
 -- name: CheckCompetencyNameExists :one
 -- Check if a competency name already exists within a given category
@@ -51,12 +53,13 @@ WHERE s.source_phase_id IS NULL
    OR s.id = pc.self_evaluation_schema
    OR s.id = pc.peer_evaluation_schema
    OR s.id = pc.tutor_evaluation_schema
-ORDER BY comp.name;
+ORDER BY cat.assessment_schema_id, cat.sort_order, cat.name, comp.sort_order, comp.name;
 
 -- name: ListCompetenciesByCategory :many
 SELECT *
 FROM competency
-WHERE category_id = $1;
+WHERE category_id = $1
+ORDER BY sort_order, name;
 
 -- name: UpdateCompetency :exec
 UPDATE competency
@@ -75,3 +78,20 @@ WHERE id = $1;
 DELETE
 FROM competency
 WHERE id = $1;
+
+-- name: UpdateCompetencyPlacements :execrows
+-- Moves each listed competency to the category and sort_order at the same index. Restricted to
+-- competencies and categories of the given schema.
+UPDATE competency cmp
+SET category_id = placement.category_id,
+    sort_order  = placement.sort_order
+FROM (SELECT unnest(sqlc.arg(competency_ids)::uuid[]) AS id,
+             unnest(sqlc.arg(category_ids)::uuid[])   AS category_id,
+             unnest(sqlc.arg(sort_orders)::int[])     AS sort_order) AS placement,
+     category source_category,
+     category target_category
+WHERE cmp.id = placement.id
+  AND source_category.id = cmp.category_id
+  AND target_category.id = placement.category_id
+  AND source_category.assessment_schema_id = sqlc.arg(assessment_schema_id)
+  AND target_category.assessment_schema_id = sqlc.arg(assessment_schema_id);

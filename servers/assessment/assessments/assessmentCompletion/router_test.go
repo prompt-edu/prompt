@@ -38,7 +38,7 @@ type AssessmentCompletionRouterTestSuite struct {
 
 func (suite *AssessmentCompletionRouterTestSuite) SetupSuite() {
 	suite.suiteCtx = context.Background()
-	testDB, cleanup, err := sdkTestUtils.SetupTestDB(suite.suiteCtx, "../../database_dumps/assessmentCompletions.sql", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) })
+	testDB, cleanup, err := sdkTestUtils.SetupTestDBWithMigrations(suite.suiteCtx, "../../db/migration", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) }, "../../database_dumps/assessmentCompletions.sql")
 	if err != nil {
 		suite.T().Fatalf("Failed to set up test database: %v", err)
 	}
@@ -890,7 +890,7 @@ func TestAuthorNameFallsBackWhenTheTokenHasNoName(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.want, authorName(tt.tokenUser))
+			assert.Equal(t, tt.want, AuthorName(tt.tokenUser))
 		})
 	}
 }

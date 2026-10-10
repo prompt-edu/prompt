@@ -10,12 +10,10 @@ export interface ActionItem {
 export interface CreateActionItemRequest {
   courseParticipationID: string // UUID
   action: string
-  author: string
 }
 
 export interface UpdateActionItemRequest {
   id: string // UUID
   courseParticipationID: string // UUID
   action: string
-  author: string
 }

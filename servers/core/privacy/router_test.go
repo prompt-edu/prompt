@@ -209,7 +209,7 @@ type RouterTestSuite struct {
 func (suite *RouterTestSuite) SetupSuite() {
 	suite.ctx = context.Background()
 	// Set up the test database
-	testDB, cleanup, err := sdkTestUtils.SetupTestDB(suite.ctx, "../database_dumps/export_test.sql", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) })
+	testDB, cleanup, err := sdkTestUtils.SetupTestDBWithMigrations(suite.ctx, "../db/migration", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) }, "../database_dumps/export_test.sql")
 	if err != nil {
 		log.Fatalf("Failed to set up test database: %v", err)
 	}

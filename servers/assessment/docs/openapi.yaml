@@ -230,6 +230,35 @@ paths:
       responses:
         "200":
           description: Category deleted
+  /category/order:
+    put:
+      summary: Set the order of categories and their competencies
+      description: |
+        Lists every category of a schema in display order, each with its competencies in display
+        order. A competency listed under another category moves there. The schema is the one the
+        listed categories belong to.
+      tags: [Category]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSchemaOrderRequest"
+      responses:
+        "200":
+          description: |
+            Order updated. Names the schema the order was written to, which is a copy for this phase
+            when the listed categories belonged to a shared schema.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  assessmentSchemaID:
+                    type: string
+                    format: uuid
+        "400":
+          description: The order does not list every category and competency exactly once, or a category would contain duplicate competency names
   /category/assessment/with-competencies:
     get:
       summary: List assessment categories with competencies for the configured schema
@@ -1079,6 +1108,24 @@ components:
         assessmentSchemaID:
           type: string
           format: uuid
+    UpdateSchemaOrderRequest:
+      type: object
+      required: [categories]
+      properties:
+        categories:
+          type: array
+          items:
+            type: object
+            required: [id, competencyIDs]
+            properties:
+              id:
+                type: string
+                format: uuid
+              competencyIDs:
+                type: array
+                items:
+                  type: string
+                  format: uuid
     CategoryWithCompetencies:
       type: object
       properties:

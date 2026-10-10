@@ -238,6 +238,9 @@ Competencies are individual skills within categories:
 - **Edit Categories**: Click the edit icon next to any category
 - **Edit Competencies**: Click the edit icon next to any competency
 - **Delete Items**: Click the trash icon (⚠️ this cannot be undone)
+- **Reorder**: Drag a category by its header to move it, or drag a competency card to change its position within its category or to move it into another category. Students, tutors, and exports show categories and competencies in this order. New categories and competencies are added at the end.
+
+Like other template changes, editing and reordering are disabled once assessment data has been submitted for the template.
 
 ### Exporting a Template
 

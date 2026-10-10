@@ -9,7 +9,11 @@ import type {
   UpdateAssessmentSchemaRequest,
 } from '../../interfaces/assessmentSchema'
 import { AssessmentType } from '../../interfaces/assessmentType'
-import type { CreateCategoryRequest, UpdateCategoryRequest } from '../../interfaces/category'
+import type {
+  CreateCategoryRequest,
+  UpdateCategoryRequest,
+  UpdateSchemaOrderRequest,
+} from '../../interfaces/category'
 import type { CreateOrUpdateCategoryAssessmentRequest } from '../../interfaces/categoryAssessment'
 import type { CreateCompetencyRequest, UpdateCompetencyRequest } from '../../interfaces/competency'
 import type { CreateOrUpdateCoursePhaseConfigRequest } from '../../interfaces/coursePhaseConfig'
@@ -33,6 +37,7 @@ const schemaRequest = BODY as unknown as CreateAssessmentSchemaRequest
 const schemaUpdate = BODY as unknown as UpdateAssessmentSchemaRequest
 const category = BODY as unknown as CreateCategoryRequest
 const categoryUpdate = { id: 'category-1' } as unknown as UpdateCategoryRequest
+const schemaOrder = BODY as unknown as UpdateSchemaOrderRequest
 const competency = BODY as unknown as CreateCompetencyRequest
 const competencyUpdate = { id: 'competency-1' } as unknown as UpdateCompetencyRequest
 const categoryAssessment = BODY as unknown as CreateOrUpdateCategoryAssessmentRequest
@@ -104,6 +109,13 @@ const ROUTES: Route[] = [
     method: 'put',
     url: `${ASSESSMENT_BASE}/category/category-1`,
     data: { id: 'category-1' },
+  },
+  {
+    name: 'categories.updateOrder',
+    run: () => assessmentApi.categories.updateOrder(PHASE, schemaOrder),
+    method: 'put',
+    url: `${ASSESSMENT_BASE}/category/order`,
+    data: BODY,
   },
   {
     name: 'categories.remove',
@@ -439,6 +451,12 @@ const ROUTES: Route[] = [
     method: 'post',
     url: `${ASSESSMENT_BASE}/config/unrelease`,
     data: {},
+  },
+  {
+    name: 'config.reminderStatus',
+    run: () => assessmentApi.config.reminderStatus(PHASE),
+    method: 'get',
+    url: `${ASSESSMENT_BASE}/config/reminders`,
   },
   {
     name: 'config.sendReminder',

@@ -16,7 +16,7 @@ import (
 func setupResourceConfigTestDB(t *testing.T) (*sdkTestUtils.TestDB[*db.Queries], func()) {
 	t.Helper()
 
-	testDB, cleanup, err := sdkTestUtils.SetupTestDB(context.Background(), "../database_dumps/base.sql", func(conn *pgxpool.Pool) *db.Queries {
+	testDB, cleanup, err := sdkTestUtils.SetupTestDBWithMigrations(context.Background(), "../db/migration", func(conn *pgxpool.Pool) *db.Queries {
 		return db.New(conn)
 	})
 	if err != nil {

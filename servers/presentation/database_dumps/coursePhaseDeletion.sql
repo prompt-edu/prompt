@@ -1,5 +1,5 @@
 -- Fixture data for the course phase deletion tests. The schema comes from db/migration/, which
--- testutils applies first, so this file only contains rows. Both phases hold a row in every table,
+-- the test setup applies first, so this file only contains rows. Both phases hold a row in every table,
 -- so the tests can tell a phase-scoped deletion from one that also reaches the other phase.
 --
 -- Stable IDs:

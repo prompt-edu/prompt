@@ -48,7 +48,6 @@ export const CategoryAssessment = ({
   }
 
   const categoryScore = getWeightedScoreLevel(assessments, [category])
-  const sortedCompetencies = [...category.competencies].sort((a, b) => a.name.localeCompare(b.name))
   const remainingCategoryAssessments = category.competencies.length - assessments.length
   const isCategoryCompleted = remainingCategoryAssessments === 0
 
@@ -101,7 +100,7 @@ export const CategoryAssessment = ({
             </p>
           ) : (
             <div className='grid gap-4'>
-              {sortedCompetencies.map((competency) => {
+              {category.competencies.map((competency) => {
                 const competencyAssessment = assessments.find(
                   (assessment) => assessment.competencyID === competency.id,
                 )

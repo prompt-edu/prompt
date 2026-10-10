@@ -33,7 +33,7 @@ type ActionItemRouterTestSuite struct {
 
 func (suite *ActionItemRouterTestSuite) SetupSuite() {
 	suite.suiteCtx = context.Background()
-	testDB, cleanup, err := sdkTestUtils.SetupTestDB(suite.suiteCtx, "../../database_dumps/assessments.sql", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) })
+	testDB, cleanup, err := sdkTestUtils.SetupTestDBWithMigrations(suite.suiteCtx, "../../db/migration", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) }, "../../database_dumps/assessments.sql")
 	if err != nil {
 		suite.T().Fatalf("Failed to set up test database: %v", err)
 	}
@@ -74,7 +74,6 @@ func (suite *ActionItemRouterTestSuite) TestCreateActionItemValid() {
 	payload := actionItemDTO.CreateActionItemRequest{
 		CourseParticipationID: partID,
 		Action:                "Test action item",
-		Author:                "tester",
 	}
 	body, _ := json.Marshal(payload)
 	req, _ := http.NewRequest("POST", "/api/course_phase/"+phaseID.String()+"/student-assessment/action-item", bytes.NewBuffer(body))
@@ -94,7 +93,6 @@ func (suite *ActionItemRouterTestSuite) TestCreateActionItemIgnoresBodyCoursePha
 		"coursePhaseID":         otherPhaseID.String(),
 		"courseParticipationID": partID.String(),
 		"action":                "Cross-phase action item",
-		"author":                "tester",
 	})
 	req, _ := http.NewRequest("POST", "/api/course_phase/"+phaseID.String()+"/student-assessment/action-item", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -110,6 +108,51 @@ func (suite *ActionItemRouterTestSuite) TestCreateActionItemIgnoresBodyCoursePha
 	inBodyPhase, err := suite.service.ListActionItemsForStudentInPhase(suite.suiteCtx, partID, otherPhaseID)
 	assert.NoError(suite.T(), err)
 	assert.Empty(suite.T(), inBodyPhase)
+}
+
+func (suite *ActionItemRouterTestSuite) TestCreateActionItemTakesAuthorFromToken() {
+	phaseID := uuid.MustParse("24461b6b-3c3a-4bc6-ba42-69eeb1514da9")
+	partID := uuid.New()
+
+	body, _ := json.Marshal(map[string]string{
+		"courseParticipationID": partID.String(),
+		"action":                "Spoofed author action item",
+		"author":                "Someone Else",
+	})
+	req, _ := http.NewRequest("POST", "/api/course_phase/"+phaseID.String()+"/student-assessment/action-item", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp := httptest.NewRecorder()
+
+	suite.router.ServeHTTP(resp, req)
+	assert.Equal(suite.T(), http.StatusCreated, resp.Code)
+
+	items, err := suite.service.ListActionItemsForStudentInPhase(suite.suiteCtx, partID, phaseID)
+	suite.Require().NoError(err)
+	suite.Require().Len(items, 1)
+	assert.Equal(suite.T(), "John Doe", items[0].Author)
+}
+
+func (suite *ActionItemRouterTestSuite) TestUpdateActionItemTakesAuthorFromToken() {
+	phaseID := uuid.MustParse("24461b6b-3c3a-4bc6-ba42-69eeb1514da9")
+	item := suite.createActionItemIn(phaseID)
+
+	body, _ := json.Marshal(map[string]string{
+		"id":                    item.ID.String(),
+		"courseParticipationID": item.CourseParticipationID.String(),
+		"action":                "Changed action",
+		"author":                "Someone Else",
+	})
+	req, _ := http.NewRequest("PUT", "/api/course_phase/"+phaseID.String()+"/student-assessment/action-item/"+item.ID.String(), bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp := httptest.NewRecorder()
+
+	suite.router.ServeHTTP(resp, req)
+	assert.Equal(suite.T(), http.StatusOK, resp.Code)
+
+	stored, err := suite.service.GetActionItem(suite.suiteCtx, phaseID, item.ID)
+	suite.Require().NoError(err)
+	assert.Equal(suite.T(), "Changed action", stored.Action)
+	assert.Equal(suite.T(), "John Doe", stored.Author)
 }
 
 func (suite *ActionItemRouterTestSuite) createActionItemIn(phaseID uuid.UUID) actionItemDTO.ActionItem {
@@ -152,7 +195,6 @@ func (suite *ActionItemRouterTestSuite) TestUpdateActionItemFromOtherCoursePhase
 		ID:                    item.ID,
 		CourseParticipationID: item.CourseParticipationID,
 		Action:                "Changed action",
-		Author:                "tester",
 	})
 	assert.Equal(suite.T(), http.StatusNotFound, resp.Code)
 
@@ -169,7 +211,6 @@ func (suite *ActionItemRouterTestSuite) TestUpdateActionItemOfOtherParticipation
 		ID:                    item.ID,
 		CourseParticipationID: uuid.New(),
 		Action:                "Changed action",
-		Author:                "tester",
 	})
 	assert.Equal(suite.T(), http.StatusNotFound, resp.Code)
 

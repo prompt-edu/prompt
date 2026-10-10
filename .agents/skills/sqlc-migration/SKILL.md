@@ -39,6 +39,9 @@ queries. Work in the target service directory.
 ## 4. Verify (matches CI)
 
 - `cd servers/<service> && go build ./... && go test ./...` (tests use testcontainers-go).
+- Tests build their schema from `db/migration` and then load the data-only seeds in
+  `database_dumps/`. When a migration adds a NOT NULL column without a default, a unique constraint,
+  or a foreign key, update the seeds that insert into that table so test setup does not fail.
 - The `detect-migrations.yml` workflow flags migration changes — ensure new files follow the
   `NNNN_*.up.sql` naming and that `db/sqlc/` was regenerated and committed alongside the migration.
 - Never commit a migration without its regenerated `db/sqlc/` changes.

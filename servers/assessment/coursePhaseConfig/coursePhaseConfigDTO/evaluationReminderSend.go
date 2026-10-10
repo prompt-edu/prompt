@@ -20,3 +20,7 @@ type EvaluationReminderSendReport struct {
 	SentAt              time.Time                     `json:"sentAt"`
 	PreviousSentAt      *time.Time                    `json:"previousSentAt"`
 }
+
+type EvaluationReminderStatus struct {
+	LastSentAtByType map[assessmentType.AssessmentType]time.Time `json:"lastSentAtByType"`
+}

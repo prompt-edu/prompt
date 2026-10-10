@@ -237,18 +237,24 @@ func (q *Queries) UpdateCategory(ctx context.Context, arg UpdateCategoryParams) 
 	return err
 }
 
-const updateCategorySortOrder = `-- name: UpdateCategorySortOrder :exec
-UPDATE category
-SET sort_order = $2
-WHERE id = $1
+const updateCategorySortOrders = `-- name: UpdateCategorySortOrders :execrows
+UPDATE category c
+SET sort_order = ordered.position - 1
+FROM unnest($2::uuid[]) WITH ORDINALITY AS ordered(id, position)
+WHERE c.id = ordered.id
+  AND c.assessment_schema_id = $1
 `
 
-type UpdateCategorySortOrderParams struct {
-	ID        uuid.UUID `json:"id"`
-	SortOrder int32     `json:"sort_order"`
+type UpdateCategorySortOrdersParams struct {
+	AssessmentSchemaID uuid.UUID   `json:"assessment_schema_id"`
+	CategoryIds        []uuid.UUID `json:"category_ids"`
 }
 
-func (q *Queries) UpdateCategorySortOrder(ctx context.Context, arg UpdateCategorySortOrderParams) error {
-	_, err := q.db.Exec(ctx, updateCategorySortOrder, arg.ID, arg.SortOrder)
-	return err
+// Sets each listed category's sort_order to its position in category_ids
+func (q *Queries) UpdateCategorySortOrders(ctx context.Context, arg UpdateCategorySortOrdersParams) (int64, error) {
+	result, err := q.db.Exec(ctx, updateCategorySortOrders, arg.AssessmentSchemaID, arg.CategoryIds)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }

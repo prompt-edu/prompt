@@ -246,7 +246,17 @@ paths:
               $ref: "#/components/schemas/UpdateSchemaOrderRequest"
       responses:
         "200":
-          description: Order updated
+          description: |
+            Order updated. Names the schema the order was written to, which is a copy for this phase
+            when the listed categories belonged to a shared schema.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  assessmentSchemaID:
+                    type: string
+                    format: uuid
         "400":
           description: The order does not list every category and competency exactly once, or a category would contain duplicate competency names
   /category/assessment/with-competencies:

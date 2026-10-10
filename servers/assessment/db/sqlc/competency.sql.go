@@ -226,7 +226,7 @@ WHERE s.source_phase_id IS NULL
    OR s.id = pc.self_evaluation_schema
    OR s.id = pc.peer_evaluation_schema
    OR s.id = pc.tutor_evaluation_schema
-ORDER BY comp.name
+ORDER BY cat.assessment_schema_id, cat.sort_order, cat.name, comp.sort_order, comp.name
 `
 
 func (q *Queries) ListCompetenciesForCoursePhase(ctx context.Context, coursePhaseID pgtype.UUID) ([]Competency, error) {
@@ -305,20 +305,40 @@ func (q *Queries) UpdateCompetency(ctx context.Context, arg UpdateCompetencyPara
 	return err
 }
 
-const updateCompetencyCategoryAndSortOrder = `-- name: UpdateCompetencyCategoryAndSortOrder :exec
-UPDATE competency
-SET category_id = $2,
-    sort_order  = $3
-WHERE id = $1
+const updateCompetencyPlacements = `-- name: UpdateCompetencyPlacements :execrows
+UPDATE competency cmp
+SET category_id = placement.category_id,
+    sort_order  = placement.sort_order
+FROM (SELECT unnest($2::uuid[]) AS id,
+             unnest($3::uuid[])   AS category_id,
+             unnest($4::int[])     AS sort_order) AS placement,
+     category source_category,
+     category target_category
+WHERE cmp.id = placement.id
+  AND source_category.id = cmp.category_id
+  AND target_category.id = placement.category_id
+  AND source_category.assessment_schema_id = $1
+  AND target_category.assessment_schema_id = $1
 `
 
-type UpdateCompetencyCategoryAndSortOrderParams struct {
-	ID         uuid.UUID `json:"id"`
-	CategoryID uuid.UUID `json:"category_id"`
-	SortOrder  int32     `json:"sort_order"`
+type UpdateCompetencyPlacementsParams struct {
+	AssessmentSchemaID uuid.UUID   `json:"assessment_schema_id"`
+	CompetencyIds      []uuid.UUID `json:"competency_ids"`
+	CategoryIds        []uuid.UUID `json:"category_ids"`
+	SortOrders         []int32     `json:"sort_orders"`
 }
 
-func (q *Queries) UpdateCompetencyCategoryAndSortOrder(ctx context.Context, arg UpdateCompetencyCategoryAndSortOrderParams) error {
-	_, err := q.db.Exec(ctx, updateCompetencyCategoryAndSortOrder, arg.ID, arg.CategoryID, arg.SortOrder)
-	return err
+// Moves each listed competency to the category and sort_order at the same index. Restricted to
+// competencies and categories of the given schema.
+func (q *Queries) UpdateCompetencyPlacements(ctx context.Context, arg UpdateCompetencyPlacementsParams) (int64, error) {
+	result, err := q.db.Exec(ctx, updateCompetencyPlacements,
+		arg.AssessmentSchemaID,
+		arg.CompetencyIds,
+		arg.CategoryIds,
+		arg.SortOrders,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }

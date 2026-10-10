@@ -334,7 +334,7 @@ func (suite *SchemaCopyTestSuite) TestUpdateSchemaOrder_WithAssessmentsInSamePha
 		order = append(order, categoryDTO.CategoryOrder{ID: category.ID, CompetencyIDs: competencyIDs(category.Competencies)})
 	}
 
-	err = suite.categoryService.UpdateSchemaOrder(suite.suiteCtx, coursePhaseID, categoryDTO.UpdateSchemaOrderRequest{
+	_, err = suite.categoryService.UpdateSchemaOrder(suite.suiteCtx, coursePhaseID, categoryDTO.UpdateSchemaOrderRequest{
 		Categories: order,
 	})
 	suite.Require().Error(err)

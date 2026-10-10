@@ -14,7 +14,6 @@ import (
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/assessment/schemaModification"
 	"github.com/prompt-edu/prompt/servers/assessment/testutils"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
@@ -28,99 +27,13 @@ var (
 	fundamentalsID   = uuid.MustParse("9107c0aa-15b7-4967-bf62-6fa131f08bee")
 )
 
-func TestValidateSchemaOrder(t *testing.T) {
-	categoryA, categoryB := uuid.New(), uuid.New()
-	competencyA1, competencyA2, competencyB1 := uuid.New(), uuid.New(), uuid.New()
-	current := []categoryDTO.CategoryWithCompetencies{
-		{ID: categoryA, Competencies: []competencyDTO.Competency{{ID: competencyA1, Name: "Shared"}, {ID: competencyA2, Name: "Only A"}}},
-		{ID: categoryB, Competencies: []competencyDTO.Competency{{ID: competencyB1, Name: "Shared"}}},
-	}
-
-	tests := []struct {
-		name  string
-		order []categoryDTO.CategoryOrder
-		want  error
-	}{
-		{
-			name: "reordered and moved",
-			order: []categoryDTO.CategoryOrder{
-				{ID: categoryB, CompetencyIDs: []uuid.UUID{competencyB1, competencyA2}},
-				{ID: categoryA, CompetencyIDs: []uuid.UUID{competencyA1}},
-			},
-		},
-		{
-			name:  "missing category",
-			order: []categoryDTO.CategoryOrder{{ID: categoryA, CompetencyIDs: []uuid.UUID{competencyA1, competencyA2, competencyB1}}},
-			want:  ErrIncompleteSchemaOrder,
-		},
-		{
-			name: "unknown category",
-			order: []categoryDTO.CategoryOrder{
-				{ID: categoryA, CompetencyIDs: []uuid.UUID{competencyA1, competencyA2}},
-				{ID: uuid.New(), CompetencyIDs: []uuid.UUID{competencyB1}},
-			},
-			want: ErrIncompleteSchemaOrder,
-		},
-		{
-			name: "duplicate category",
-			order: []categoryDTO.CategoryOrder{
-				{ID: categoryA, CompetencyIDs: []uuid.UUID{competencyA1, competencyA2}},
-				{ID: categoryA, CompetencyIDs: []uuid.UUID{competencyB1}},
-			},
-			want: ErrIncompleteSchemaOrder,
-		},
-		{
-			name: "missing competency",
-			order: []categoryDTO.CategoryOrder{
-				{ID: categoryA, CompetencyIDs: []uuid.UUID{competencyA1}},
-				{ID: categoryB, CompetencyIDs: []uuid.UUID{competencyB1}},
-			},
-			want: ErrIncompleteSchemaOrder,
-		},
-		{
-			name: "competency listed twice",
-			order: []categoryDTO.CategoryOrder{
-				{ID: categoryA, CompetencyIDs: []uuid.UUID{competencyA1, competencyA2}},
-				{ID: categoryB, CompetencyIDs: []uuid.UUID{competencyB1, competencyA2}},
-			},
-			want: ErrIncompleteSchemaOrder,
-		},
-		{
-			name: "unknown competency",
-			order: []categoryDTO.CategoryOrder{
-				{ID: categoryA, CompetencyIDs: []uuid.UUID{competencyA1, competencyA2, uuid.New()}},
-				{ID: categoryB, CompetencyIDs: []uuid.UUID{competencyB1}},
-			},
-			want: ErrIncompleteSchemaOrder,
-		},
-		{
-			name: "duplicate name after move",
-			order: []categoryDTO.CategoryOrder{
-				{ID: categoryA, CompetencyIDs: []uuid.UUID{competencyA2}},
-				{ID: categoryB, CompetencyIDs: []uuid.UUID{competencyB1, competencyA1}},
-			},
-			want: ErrDuplicateCompetencyName,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := validateSchemaOrder(current, tt.order)
-			if tt.want == nil {
-				assert.NoError(t, err)
-			} else {
-				assert.ErrorIs(t, err, tt.want)
-			}
-		})
-	}
-}
-
 type SchemaOrderTestSuite struct {
 	suite.Suite
 	suiteCtx                 context.Context
 	cleanup                  func()
 	mockCoreCleanup          func()
 	categoryService          *CategoryService
+	queries                  *db.Queries
 	schemaService            *assessmentSchemas.AssessmentSchemaService
 	coursePhaseConfigService *coursePhaseConfig.CoursePhaseConfigService
 }
@@ -132,6 +45,7 @@ func (suite *SchemaOrderTestSuite) SetupTest() {
 		suite.T().Fatalf("Failed to set up test database: %v", err)
 	}
 	suite.cleanup = cleanup
+	suite.queries = testDB.Queries
 
 	_, mockCleanup := testutils.SetupMockCoreService()
 	suite.mockCoreCleanup = mockCleanup
@@ -203,7 +117,7 @@ func (suite *SchemaOrderTestSuite) TestUpdateSchemaOrderCopiesSharedSchemaThenEd
 	fundamentals := competencyIDs(original[fundamentalsID].Competencies)
 
 	movedCompetency := versionControl[0]
-	err := suite.categoryService.UpdateSchemaOrder(suite.suiteCtx, orderCoursePhaseID, categoryDTO.UpdateSchemaOrderRequest{
+	writtenSchemaID, err := suite.categoryService.UpdateSchemaOrder(suite.suiteCtx, orderCoursePhaseID, categoryDTO.UpdateSchemaOrderRequest{
 		Categories: []categoryDTO.CategoryOrder{
 			{ID: userInterfaceID, CompetencyIDs: []uuid.UUID{userInterface[1], movedCompetency, userInterface[0]}},
 			{ID: versionControlID, CompetencyIDs: versionControl[1:]},
@@ -216,6 +130,7 @@ func (suite *SchemaOrderTestSuite) TestUpdateSchemaOrderCopiesSharedSchemaThenEd
 	suite.Require().NoError(err)
 	copiedSchemaID := config.AssessmentSchemaID
 	suite.NotEqual(orderSchemaID, copiedSchemaID, "reordering a shared schema should give the phase its own copy")
+	suite.Equal(copiedSchemaID, writtenSchemaID, "the response should name the copy the order was written to")
 
 	reordered, err := suite.categoryService.GetCategoriesWithCompetencies(suite.suiteCtx, copiedSchemaID)
 	suite.Require().NoError(err)
@@ -242,10 +157,11 @@ func (suite *SchemaOrderTestSuite) TestUpdateSchemaOrderCopiesSharedSchemaThenEd
 	for i := len(reordered) - 1; i >= 0; i-- {
 		reversed = append(reversed, categoryDTO.CategoryOrder{ID: reordered[i].ID, CompetencyIDs: competencyIDs(reordered[i].Competencies)})
 	}
-	err = suite.categoryService.UpdateSchemaOrder(suite.suiteCtx, orderCoursePhaseID, categoryDTO.UpdateSchemaOrderRequest{
+	writtenSchemaID, err = suite.categoryService.UpdateSchemaOrder(suite.suiteCtx, orderCoursePhaseID, categoryDTO.UpdateSchemaOrderRequest{
 		Categories: reversed,
 	})
 	suite.Require().NoError(err)
+	suite.Equal(copiedSchemaID, writtenSchemaID)
 
 	schemasAfter, err := suite.schemaService.ListAssessmentSchemas(suite.suiteCtx)
 	suite.Require().NoError(err)
@@ -260,7 +176,7 @@ func (suite *SchemaOrderTestSuite) TestUpdateSchemaOrderRejectsIncompleteOrderWi
 	schemasBefore, err := suite.schemaService.ListAssessmentSchemas(suite.suiteCtx)
 	suite.Require().NoError(err)
 
-	err = suite.categoryService.UpdateSchemaOrder(suite.suiteCtx, orderCoursePhaseID, categoryDTO.UpdateSchemaOrderRequest{
+	_, err = suite.categoryService.UpdateSchemaOrder(suite.suiteCtx, orderCoursePhaseID, categoryDTO.UpdateSchemaOrderRequest{
 		Categories: []categoryDTO.CategoryOrder{{ID: userInterfaceID}},
 	})
 	suite.ErrorIs(err, ErrIncompleteSchemaOrder)
@@ -283,6 +199,57 @@ func (suite *SchemaOrderTestSuite) TestCreatedEntriesAreAppended() {
 	suite.Require().NoError(err)
 	suite.Require().NotEmpty(categories)
 	suite.Equal("Accessibility", categories[len(categories)-1].Name, "a new category should come last despite its name")
+}
+
+// Swapping two same-named competencies between categories is valid as a whole even though every
+// intermediate row-by-row state would hold a duplicate name.
+func (suite *SchemaOrderTestSuite) TestUpdateSchemaOrderSwapsSameNamedCompetencies() {
+	createdUI, err := suite.categoryService.CreateCategory(suite.suiteCtx, orderCoursePhaseID, categoryDTO.CreateCategoryRequest{
+		Name: "Swap Source", ShortName: "SS", Weight: 1, AssessmentSchemaID: orderSchemaID,
+	})
+	suite.Require().NoError(err)
+	schemaID := createdUI.AssessmentSchemaID
+
+	createdOther, err := suite.categoryService.CreateCategory(suite.suiteCtx, orderCoursePhaseID, categoryDTO.CreateCategoryRequest{
+		Name: "Swap Target", ShortName: "ST", Weight: 1, AssessmentSchemaID: schemaID,
+	})
+	suite.Require().NoError(err)
+
+	for _, categoryID := range []uuid.UUID{createdUI.ID, createdOther.ID} {
+		suite.Require().NoError(suite.queries.CreateCompetency(suite.suiteCtx, db.CreateCompetencyParams{
+			ID: uuid.New(), CategoryID: categoryID, Name: "Shared Name", Weight: 1,
+		}))
+	}
+
+	categories, err := suite.categoryService.GetCategoriesWithCompetencies(suite.suiteCtx, schemaID)
+	suite.Require().NoError(err)
+	order := make([]categoryDTO.CategoryOrder, 0, len(categories))
+	var sourceCompetency, targetCompetency uuid.UUID
+	for _, category := range categories {
+		ids := competencyIDs(category.Competencies)
+		switch category.ID {
+		case createdUI.ID:
+			sourceCompetency = ids[0]
+		case createdOther.ID:
+			targetCompetency = ids[0]
+		}
+		order = append(order, categoryDTO.CategoryOrder{ID: category.ID, CompetencyIDs: ids})
+	}
+	for i := range order {
+		switch order[i].ID {
+		case createdUI.ID:
+			order[i].CompetencyIDs = []uuid.UUID{targetCompetency}
+		case createdOther.ID:
+			order[i].CompetencyIDs = []uuid.UUID{sourceCompetency}
+		}
+	}
+
+	_, err = suite.categoryService.UpdateSchemaOrder(suite.suiteCtx, orderCoursePhaseID, categoryDTO.UpdateSchemaOrderRequest{Categories: order})
+	suite.Require().NoError(err)
+
+	moved, err := suite.queries.GetCompetency(suite.suiteCtx, sourceCompetency)
+	suite.Require().NoError(err)
+	suite.Equal(createdOther.ID, moved.CategoryID)
 }
 
 func TestSchemaOrderTestSuite(t *testing.T) {

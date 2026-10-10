@@ -14,3 +14,9 @@ type CategoryOrder struct {
 type UpdateSchemaOrderRequest struct {
 	Categories []CategoryOrder `json:"categories"`
 }
+
+// UpdateSchemaOrderResponse names the schema the order was written to. It differs from the schema the
+// request's categories belong to when the write copied a shared schema for the course phase.
+type UpdateSchemaOrderResponse struct {
+	AssessmentSchemaID uuid.UUID `json:"assessmentSchemaID"`
+}

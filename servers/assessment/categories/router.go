@@ -144,7 +144,7 @@ func (s *CategoryService) updateCategory(c *gin.Context) {
 // @Accept json
 // @Param coursePhaseID path string true "Course phase ID"
 // @Param order body categoryDTO.UpdateSchemaOrderRequest true "Schema order payload"
-// @Success 200 {string} string "OK"
+// @Success 200 {object} categoryDTO.UpdateSchemaOrderResponse
 // @Failure 400 {object} map[string]string
 // @Failure 403 {object} map[string]string
 // @Failure 500 {object} map[string]string
@@ -162,7 +162,7 @@ func (s *CategoryService) updateSchemaOrder(c *gin.Context) {
 		return
 	}
 
-	err = s.UpdateSchemaOrder(c, coursePhaseID, request)
+	schemaID, err := s.UpdateSchemaOrder(c, coursePhaseID, request)
 	if err != nil {
 		if errors.Is(err, assessmentSchemas.ErrSchemaNotAccessible) {
 			handleError(c, http.StatusForbidden, err)
@@ -172,10 +172,11 @@ func (s *CategoryService) updateSchemaOrder(c *gin.Context) {
 			handleError(c, http.StatusBadRequest, err)
 			return
 		}
-		handleError(c, http.StatusInternalServerError, err)
+		log.WithError(err).Error("could not update schema order")
+		handleError(c, http.StatusInternalServerError, errors.New("could not update schema order"))
 		return
 	}
-	c.Status(http.StatusOK)
+	c.JSON(http.StatusOK, categoryDTO.UpdateSchemaOrderResponse{AssessmentSchemaID: schemaID})
 }
 
 // deleteCategory godoc

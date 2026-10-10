@@ -78,7 +78,10 @@ WHERE c.assessment_schema_id = $1
 GROUP BY c.id, c.name, c.short_name, c.description, c.weight, c.sort_order
 ORDER BY c.sort_order ASC, c.name ASC;
 
--- name: UpdateCategorySortOrder :exec
-UPDATE category
-SET sort_order = $2
-WHERE id = $1;
+-- name: UpdateCategorySortOrders :execrows
+-- Sets each listed category's sort_order to its position in category_ids
+UPDATE category c
+SET sort_order = ordered.position - 1
+FROM unnest(sqlc.arg(category_ids)::uuid[]) WITH ORDINALITY AS ordered(id, position)
+WHERE c.id = ordered.id
+  AND c.assessment_schema_id = sqlc.arg(assessment_schema_id);

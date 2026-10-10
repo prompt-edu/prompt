@@ -19,4 +19,13 @@ FROM (SELECT id, ROW_NUMBER() OVER (PARTITION BY category_id ORDER BY name) - 1 
       FROM competency) ordered
 WHERE cmp.id = ordered.id;
 
+-- Check competency name uniqueness at the end of each statement rather than per row, so a single
+-- statement can move competencies between categories in any order (e.g. swap two same-named ones)
+ALTER TABLE competency
+    DROP CONSTRAINT competency_category_id_name_unique;
+
+ALTER TABLE competency
+    ADD CONSTRAINT competency_category_id_name_unique
+        UNIQUE (category_id, name) DEFERRABLE INITIALLY IMMEDIATE;
+
 COMMIT;

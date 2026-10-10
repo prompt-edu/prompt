@@ -70,6 +70,26 @@ describe('schemaChanged', () => {
   })
 })
 
+describe('schemaOrderChanged', () => {
+  it('invalidates the category caches of the phase but keeps its assessments', () => {
+    seed(
+      assessmentKeys.categories(PHASE),
+      assessmentKeys.evaluationCategories(AssessmentType.SELF, PHASE),
+      assessmentKeys.assessments.inPhase(PHASE),
+      assessmentKeys.categories(OTHER_PHASE),
+    )
+
+    assessmentCache.schemaOrderChanged(queryClient, PHASE)
+
+    expect(isInvalidated(assessmentKeys.categories(PHASE))).toBe(true)
+    expect(isInvalidated(assessmentKeys.evaluationCategories(AssessmentType.SELF, PHASE))).toBe(
+      true,
+    )
+    expect(isInvalidated(assessmentKeys.assessments.inPhase(PHASE))).toBe(false)
+    expect(isInvalidated(assessmentKeys.categories(OTHER_PHASE))).toBe(false)
+  })
+})
+
 describe('assessmentWritten', () => {
   it('invalidates the phase and its participants, not the other phases or the parent', () => {
     seed(

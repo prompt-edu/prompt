@@ -37,3 +37,7 @@ export interface CategoryOrder {
 export interface UpdateSchemaOrderRequest {
   categories: CategoryOrder[]
 }
+
+export interface UpdateSchemaOrderResponse {
+  assessmentSchemaID: string
+}

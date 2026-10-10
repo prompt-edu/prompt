@@ -18,6 +18,7 @@ interface CompetencyItemProps {
   categoryID: string
   assessmentType: AssessmentType
   disabled?: boolean
+  dragDisabled?: boolean
 }
 
 export const CompetencyItem = ({
@@ -25,6 +26,7 @@ export const CompetencyItem = ({
   index,
   categoryID,
   disabled = false,
+  dragDisabled = disabled,
 }: CompetencyItemProps) => {
   const [competencyToEdit, setCompetencyToEdit] = useState<Competency | undefined>(undefined)
   const [competencyToDelete, setCompetencyToDelete] = useState<
@@ -38,7 +40,7 @@ export const CompetencyItem = ({
 
   return (
     <>
-      <Draggable draggableId={competency.id} index={index} isDragDisabled={disabled}>
+      <Draggable draggableId={competency.id} index={index} isDragDisabled={dragDisabled}>
         {(provided, snapshot) => (
           <div
             ref={provided.innerRef}
@@ -49,7 +51,7 @@ export const CompetencyItem = ({
             <div
               className={cn(
                 'rounded-md border bg-background p-4 space-y-4 transition-shadow',
-                !disabled && 'cursor-grab hover:border-muted-foreground/40',
+                !dragDisabled && 'cursor-grab hover:border-muted-foreground/40',
                 snapshot.isDragging && 'cursor-grabbing shadow-lg ring-1 ring-border',
               )}
             >

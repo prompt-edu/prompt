@@ -67,7 +67,10 @@ export const CategoryList = ({
   )
   const categoryListRef = useRef<HTMLDivElement>(null)
   const { toast } = useToast()
-  const { mutate: updateSchemaOrder } = useUpdateSchemaOrder(assessmentType)
+  const { mutate: updateSchemaOrder, isPending: isSavingOrder } = useUpdateSchemaOrder(
+    assessmentSchemaID,
+    assessmentType,
+  )
 
   const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
   const { data: assessmentCategories } = useGetAllCategoriesWithCompetencies()
@@ -222,6 +225,8 @@ export const CategoryList = ({
                             setCategoryToDelete={setCategoryToDelete}
                             assessmentType={assessmentType}
                             disabled={hasAssessmentData}
+                            // A drag waits for the previous save, so it starts from the saved IDs
+                            dragDisabled={hasAssessmentData || isSavingOrder}
                             defaultExpanded
                             collapsed={categoryDragLayout !== undefined}
                           />

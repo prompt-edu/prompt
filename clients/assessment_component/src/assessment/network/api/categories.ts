@@ -5,6 +5,7 @@ import type {
   CreateCategoryRequest,
   UpdateCategoryRequest,
   UpdateSchemaOrderRequest,
+  UpdateSchemaOrderResponse,
 } from '../../interfaces/category'
 import { assessmentRequest, coursePhasePath } from '../client'
 
@@ -23,8 +24,11 @@ export const categories = {
   update: (coursePhaseID: string, category: UpdateCategoryRequest): Promise<void> =>
     assessmentRequest.put(`${path(coursePhaseID)}/${category.id}`, category),
 
-  updateOrder: (coursePhaseID: string, order: UpdateSchemaOrderRequest): Promise<void> =>
-    assessmentRequest.put(`${path(coursePhaseID)}/order`, order),
+  updateOrder: (
+    coursePhaseID: string,
+    order: UpdateSchemaOrderRequest,
+  ): Promise<UpdateSchemaOrderResponse> =>
+    assessmentRequest.put<UpdateSchemaOrderResponse>(`${path(coursePhaseID)}/order`, order),
 
   remove: (coursePhaseID: string, categoryID: string): Promise<void> =>
     assessmentRequest.del(`${path(coursePhaseID)}/${categoryID}`),

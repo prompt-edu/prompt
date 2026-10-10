@@ -17,6 +17,7 @@ interface CategoryItemProps {
   setCategoryToDelete: (categoryID: string | undefined) => void
   assessmentType: AssessmentType
   disabled?: boolean
+  dragDisabled?: boolean
   defaultExpanded?: boolean
   // Hides the competencies while a category is dragged, so categories are compared by their headers
   collapsed?: boolean
@@ -29,6 +30,7 @@ export const CategoryItem = ({
   setCategoryToDelete,
   assessmentType,
   disabled = false,
+  dragDisabled = disabled,
   defaultExpanded = false,
   collapsed = false,
 }: CategoryItemProps) => {
@@ -40,7 +42,7 @@ export const CategoryItem = ({
   }
 
   return (
-    <Draggable draggableId={category.id} index={index} isDragDisabled={disabled}>
+    <Draggable draggableId={category.id} index={index} isDragDisabled={dragDisabled}>
       {(provided, snapshot) => (
         <div ref={provided.innerRef} {...provided.draggableProps} className='pb-6'>
           <div
@@ -54,7 +56,7 @@ export const CategoryItem = ({
               className={cn(
                 'flex items-center rounded-md',
                 !collapsed && 'mb-4',
-                !disabled && 'cursor-grab',
+                !dragDisabled && 'cursor-grab',
                 snapshot.isDragging && 'cursor-grabbing',
               )}
             >
@@ -92,8 +94,9 @@ export const CategoryItem = ({
               </div>
             </div>
 
-            {isExpanded && !collapsed && (
-              <div id={`content-${category.id}`}>
+            {isExpanded && (
+              // Hidden rather than unmounted while collapsed, so an open form keeps its input
+              <div id={`content-${category.id}`} className={cn(collapsed && 'hidden')}>
                 <Droppable droppableId={category.id} type={COMPETENCY_DROP_TYPE}>
                   {(dropProvided, dropSnapshot) => (
                     <div
@@ -117,6 +120,7 @@ export const CategoryItem = ({
                           categoryID={category.id}
                           assessmentType={assessmentType}
                           disabled={disabled}
+                          dragDisabled={dragDisabled}
                         />
                       ))}
                       {dropProvided.placeholder}

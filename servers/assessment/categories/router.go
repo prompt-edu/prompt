@@ -28,6 +28,7 @@ func RegisterRoutes(routerGroup *gin.RouterGroup, service *CategoryService, auth
 	categoryRouter.GET("/tutor/with-competencies", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.CourseStudent), service.getTutorEvaluationCategoriesWithCompetencies)
 
 	categoryRouter.POST("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.createCategory)
+	categoryRouter.PUT("/order", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.updateSchemaOrder)
 	categoryRouter.PUT("/:categoryID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.updateCategory)
 	categoryRouter.DELETE("/:categoryID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.deleteCategory)
 }
@@ -128,6 +129,47 @@ func (s *CategoryService) updateCategory(c *gin.Context) {
 	if err != nil {
 		if errors.Is(err, assessmentSchemas.ErrSchemaNotAccessible) {
 			handleError(c, http.StatusForbidden, err)
+			return
+		}
+		handleError(c, http.StatusInternalServerError, err)
+		return
+	}
+	c.Status(http.StatusOK)
+}
+
+// updateSchemaOrder godoc
+// @Summary Update schema order
+// @Description Set the order of the categories of a schema and of the competencies within them. A competency listed under another category moves there.
+// @Tags categories
+// @Accept json
+// @Param coursePhaseID path string true "Course phase ID"
+// @Param order body categoryDTO.UpdateSchemaOrderRequest true "Schema order payload"
+// @Success 200 {string} string "OK"
+// @Failure 400 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /course_phase/{coursePhaseID}/category/order [put]
+func (s *CategoryService) updateSchemaOrder(c *gin.Context) {
+	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
+	if err != nil {
+		handleError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	var request categoryDTO.UpdateSchemaOrderRequest
+	if err := c.BindJSON(&request); err != nil {
+		handleError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	err = s.UpdateSchemaOrder(c, coursePhaseID, request)
+	if err != nil {
+		if errors.Is(err, assessmentSchemas.ErrSchemaNotAccessible) {
+			handleError(c, http.StatusForbidden, err)
+			return
+		}
+		if errors.Is(err, ErrIncompleteSchemaOrder) || errors.Is(err, ErrDuplicateCompetencyName) {
+			handleError(c, http.StatusBadRequest, err)
 			return
 		}
 		handleError(c, http.StatusInternalServerError, err)

@@ -60,9 +60,44 @@ const keycloakPath = `${CORE}/api/keycloak`
 const campaignsPath = `${coursesPath}/${COURSE}/mail-campaigns`
 const privacyPath = `${CORE}/api/privacy`
 const studentsPath = `${CORE}/api/students`
+const announcementsPath = `${CORE}/api/announcements`
 const studyProgramsPath = `${CORE}/api/study-programs`
 
 const ROUTES: Route[] = [
+  {
+    name: 'announcements.active',
+    run: () => coreApi.announcements.active(),
+    method: 'get',
+    url: `${announcementsPath}/active`,
+    instance: 'public',
+  },
+  {
+    name: 'announcements.list',
+    run: () => coreApi.announcements.list(true),
+    method: 'get',
+    url: `${announcementsPath}?includeExpired=true`,
+  },
+  {
+    name: 'announcements.create',
+    run: () => coreApi.announcements.create(body()),
+    method: 'post',
+    url: announcementsPath,
+    data: BODY,
+  },
+  {
+    name: 'announcements.update',
+    run: () => coreApi.announcements.update('announcement-1', body()),
+    method: 'put',
+    url: `${announcementsPath}/announcement-1`,
+    data: BODY,
+  },
+  {
+    name: 'announcements.remove',
+    run: () => coreApi.announcements.remove('announcement-1'),
+    method: 'delete',
+    url: `${announcementsPath}/announcement-1`,
+  },
+
   {
     name: 'applications.listParticipations',
     run: () => coreApi.applications.listParticipations(PHASE),

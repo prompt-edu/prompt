@@ -1,3 +1,4 @@
+import { AnnouncementBar } from '@core/announcementBanner/AnnouncementBar'
 import { useAuthStore } from '@tumaet/prompt-shared-state'
 import {
   Button,
@@ -28,7 +29,8 @@ export const NonAuthenticatedPageWrapper = ({
   return (
     <DarkModeProvider>
       <div className='min-h-screen bg-background text-foreground flex flex-col'>
-        <main className='grow w-full px-4 sm:px-6 lg:px-8 py-12'>
+        <AnnouncementBar />
+        <main className='grow w-full px-4 sm:px-6 lg:px-8 pt-6 pb-12'>
           <div className='max-w-[1400px] mx-auto'>
             <Header
               withLoginButton={withLoginButton}

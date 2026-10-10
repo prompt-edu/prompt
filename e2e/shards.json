@@ -5,6 +5,7 @@
       "name": "core",
       "cacheWriter": false,
       "paths": [
+        "/tests/announcements/.*\\.spec\\.ts$",
         "/tests/application/.*\\.spec\\.ts$",
         "/tests/audit-log/.*\\.spec\\.ts$",
         "/tests/auth/.*\\.spec\\.ts$",

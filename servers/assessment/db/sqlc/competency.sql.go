@@ -43,8 +43,10 @@ INSERT INTO competency (id,
                         description_ok,
                         description_good,
                         description_very_good,
-                        weight)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+                        weight,
+                        sort_order)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,
+        (SELECT COALESCE(MAX(sort_order) + 1, 0) FROM competency WHERE category_id = $2))
 `
 
 type CreateCompetencyParams struct {
@@ -104,7 +106,7 @@ func (q *Queries) GetAssessmentSchemaIDByCompetency(ctx context.Context, id uuid
 }
 
 const getCompetency = `-- name: GetCompetency :one
-SELECT id, category_id, name, description, weight, short_name, description_very_bad, description_bad, description_ok, description_good, description_very_good
+SELECT id, category_id, name, description, weight, short_name, description_very_bad, description_bad, description_ok, description_good, description_very_good, sort_order
 FROM competency
 WHERE id = $1
 `
@@ -124,12 +126,13 @@ func (q *Queries) GetCompetency(ctx context.Context, id uuid.UUID) (Competency, 
 		&i.DescriptionOk,
 		&i.DescriptionGood,
 		&i.DescriptionVeryGood,
+		&i.SortOrder,
 	)
 	return i, err
 }
 
 const listCompetencies = `-- name: ListCompetencies :many
-SELECT id, category_id, name, description, weight, short_name, description_very_bad, description_bad, description_ok, description_good, description_very_good
+SELECT id, category_id, name, description, weight, short_name, description_very_bad, description_bad, description_ok, description_good, description_very_good, sort_order
 FROM competency
 `
 
@@ -154,6 +157,7 @@ func (q *Queries) ListCompetencies(ctx context.Context) ([]Competency, error) {
 			&i.DescriptionOk,
 			&i.DescriptionGood,
 			&i.DescriptionVeryGood,
+			&i.SortOrder,
 		); err != nil {
 			return nil, err
 		}
@@ -166,9 +170,10 @@ func (q *Queries) ListCompetencies(ctx context.Context) ([]Competency, error) {
 }
 
 const listCompetenciesByCategory = `-- name: ListCompetenciesByCategory :many
-SELECT id, category_id, name, description, weight, short_name, description_very_bad, description_bad, description_ok, description_good, description_very_good
+SELECT id, category_id, name, description, weight, short_name, description_very_bad, description_bad, description_ok, description_good, description_very_good, sort_order
 FROM competency
 WHERE category_id = $1
+ORDER BY sort_order, name
 `
 
 func (q *Queries) ListCompetenciesByCategory(ctx context.Context, categoryID uuid.UUID) ([]Competency, error) {
@@ -192,6 +197,7 @@ func (q *Queries) ListCompetenciesByCategory(ctx context.Context, categoryID uui
 			&i.DescriptionOk,
 			&i.DescriptionGood,
 			&i.DescriptionVeryGood,
+			&i.SortOrder,
 		); err != nil {
 			return nil, err
 		}
@@ -209,7 +215,7 @@ WITH phase_config AS (
     FROM course_phase_config
     WHERE course_phase_id = $1
 )
-SELECT comp.id, comp.category_id, comp.name, comp.description, comp.weight, comp.short_name, comp.description_very_bad, comp.description_bad, comp.description_ok, comp.description_good, comp.description_very_good
+SELECT comp.id, comp.category_id, comp.name, comp.description, comp.weight, comp.short_name, comp.description_very_bad, comp.description_bad, comp.description_ok, comp.description_good, comp.description_very_good, comp.sort_order
 FROM competency comp
 INNER JOIN category cat ON comp.category_id = cat.id
 INNER JOIN assessment_schema s ON cat.assessment_schema_id = s.id
@@ -220,7 +226,7 @@ WHERE s.source_phase_id IS NULL
    OR s.id = pc.self_evaluation_schema
    OR s.id = pc.peer_evaluation_schema
    OR s.id = pc.tutor_evaluation_schema
-ORDER BY comp.name
+ORDER BY cat.assessment_schema_id, cat.sort_order, cat.name, comp.sort_order, comp.name
 `
 
 func (q *Queries) ListCompetenciesForCoursePhase(ctx context.Context, coursePhaseID pgtype.UUID) ([]Competency, error) {
@@ -244,6 +250,7 @@ func (q *Queries) ListCompetenciesForCoursePhase(ctx context.Context, coursePhas
 			&i.DescriptionOk,
 			&i.DescriptionGood,
 			&i.DescriptionVeryGood,
+			&i.SortOrder,
 		); err != nil {
 			return nil, err
 		}
@@ -296,4 +303,42 @@ func (q *Queries) UpdateCompetency(ctx context.Context, arg UpdateCompetencyPara
 		arg.Weight,
 	)
 	return err
+}
+
+const updateCompetencyPlacements = `-- name: UpdateCompetencyPlacements :execrows
+UPDATE competency cmp
+SET category_id = placement.category_id,
+    sort_order  = placement.sort_order
+FROM (SELECT unnest($2::uuid[]) AS id,
+             unnest($3::uuid[])   AS category_id,
+             unnest($4::int[])     AS sort_order) AS placement,
+     category source_category,
+     category target_category
+WHERE cmp.id = placement.id
+  AND source_category.id = cmp.category_id
+  AND target_category.id = placement.category_id
+  AND source_category.assessment_schema_id = $1
+  AND target_category.assessment_schema_id = $1
+`
+
+type UpdateCompetencyPlacementsParams struct {
+	AssessmentSchemaID uuid.UUID   `json:"assessment_schema_id"`
+	CompetencyIds      []uuid.UUID `json:"competency_ids"`
+	CategoryIds        []uuid.UUID `json:"category_ids"`
+	SortOrders         []int32     `json:"sort_orders"`
+}
+
+// Moves each listed competency to the category and sort_order at the same index. Restricted to
+// competencies and categories of the given schema.
+func (q *Queries) UpdateCompetencyPlacements(ctx context.Context, arg UpdateCompetencyPlacementsParams) (int64, error) {
+	result, err := q.db.Exec(ctx, updateCompetencyPlacements,
+		arg.AssessmentSchemaID,
+		arg.CompetencyIds,
+		arg.CategoryIds,
+		arg.SortOrders,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }

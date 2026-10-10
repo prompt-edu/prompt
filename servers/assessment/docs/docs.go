@@ -658,6 +658,71 @@ const docTemplate = `{
                 }
             }
         },
+        "/course_phase/{coursePhaseID}/category/order": {
+            "put": {
+                "description": "Set the order of the categories of a schema and of the competencies within them. A competency listed under another category moves there.",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "categories"
+                ],
+                "summary": "Update schema order",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Course phase ID",
+                        "name": "coursePhaseID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Schema order payload",
+                        "name": "order",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/categoryDTO.UpdateSchemaOrderRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/categoryDTO.UpdateSchemaOrderResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/course_phase/{coursePhaseID}/category/peer/with-competencies": {
             "get": {
                 "description": "List peer-evaluation categories with competencies for the course phase.",
@@ -5391,6 +5456,20 @@ const docTemplate = `{
                 }
             }
         },
+        "categoryDTO.CategoryOrder": {
+            "type": "object",
+            "properties": {
+                "competencyIDs": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "id": {
+                    "type": "string"
+                }
+            }
+        },
         "categoryDTO.CategoryWithCompetencies": {
             "type": "object",
             "properties": {
@@ -5455,6 +5534,25 @@ const docTemplate = `{
                 },
                 "weight": {
                     "type": "integer"
+                }
+            }
+        },
+        "categoryDTO.UpdateSchemaOrderRequest": {
+            "type": "object",
+            "properties": {
+                "categories": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/categoryDTO.CategoryOrder"
+                    }
+                }
+            }
+        },
+        "categoryDTO.UpdateSchemaOrderResponse": {
+            "type": "object",
+            "properties": {
+                "assessmentSchemaID": {
+                    "type": "string"
                 }
             }
         },
@@ -5907,6 +6005,9 @@ const docTemplate = `{
                 },
                 "short_name": {
                     "$ref": "#/definitions/pgtype.Text"
+                },
+                "sort_order": {
+                    "type": "integer"
                 },
                 "weight": {
                     "type": "integer"

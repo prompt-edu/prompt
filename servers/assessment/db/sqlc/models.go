@@ -189,6 +189,7 @@ type Category struct {
 	Weight             int32       `json:"weight"`
 	ShortName          pgtype.Text `json:"short_name"`
 	AssessmentSchemaID uuid.UUID   `json:"assessment_schema_id"`
+	SortOrder          int32       `json:"sort_order"`
 }
 
 type CategoryAssessment struct {
@@ -220,6 +221,7 @@ type Competency struct {
 	DescriptionOk       string      `json:"description_ok"`
 	DescriptionGood     string      `json:"description_good"`
 	DescriptionVeryGood string      `json:"description_very_good"`
+	SortOrder           int32       `json:"sort_order"`
 }
 
 type CompletedScoreLevel struct {

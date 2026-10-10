@@ -9,7 +9,8 @@ import {
   useToast,
 } from '@tumaet/prompt-ui-components'
 import { Lock, Plus } from 'lucide-react'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
+import { flushSync } from 'react-dom'
 import { AssessmentType } from '../../../../interfaces/assessmentType'
 import type { CategoryWithCompetencies } from '../../../../interfaces/category'
 import { useGetAllCategoriesWithCompetencies } from '../../../hooks/useGetAllCategoriesWithCompetencies'
@@ -30,6 +31,11 @@ import { DeleteConfirmDialog } from './components/DeleteConfirmDialog'
 import { EditCategoryDialog } from './components/EditCategoryDialog'
 import { SchemaTemplateButtons } from './components/SchemaTemplateButtons'
 import { useUpdateSchemaOrder } from './hooks/useUpdateSchemaOrder'
+
+interface CategoryDragLayout {
+  minHeight: number
+  offsetTop: number
+}
 
 interface CategoryListProps {
   assessmentSchemaID: string
@@ -56,7 +62,10 @@ export const CategoryList = ({
   )
   const [categoryToDelete, setCategoryToDelete] = useState<string | undefined>(undefined)
   const [showAddCategoryForm, setShowAddCategoryForm] = useState(false)
-  const [isDraggingCategory, setIsDraggingCategory] = useState(false)
+  const [categoryDragLayout, setCategoryDragLayout] = useState<CategoryDragLayout | undefined>(
+    undefined,
+  )
+  const categoryListRef = useRef<HTMLDivElement>(null)
   const { toast } = useToast()
   const { mutate: updateSchemaOrder } = useUpdateSchemaOrder(assessmentType)
 
@@ -86,13 +95,25 @@ export const CategoryList = ({
 
   const content = getSchemaSectionContent(useTutorLabel())[assessmentType]
 
-  // Collapse every category before a category drag measures them, so they swap by their headers
+  // Collapse every category before a category drag measures them, so they swap by their headers.
+  // The list keeps its height and is padded by the distance the collapse moved the dragged header,
+  // so the header stays under the pointer and the page does not shrink under the scroll position.
   const handleBeforeCapture = ({ draggableId }: BeforeCapture) => {
-    setIsDraggingCategory(categories.some((category) => category.id === draggableId))
+    const list = categoryListRef.current
+    const dragged = list?.querySelector(`[data-rfd-draggable-id="${draggableId}"]`)
+    if (!list || !dragged || !categories.some((category) => category.id === draggableId)) {
+      return
+    }
+
+    const minHeight = list.offsetHeight
+    const topBefore = dragged.getBoundingClientRect().top
+    flushSync(() => setCategoryDragLayout({ minHeight, offsetTop: 0 }))
+    const offsetTop = topBefore - dragged.getBoundingClientRect().top
+    flushSync(() => setCategoryDragLayout({ minHeight, offsetTop }))
   }
 
   const handleDragEnd = ({ source, destination, type }: DropResult) => {
-    setIsDraggingCategory(false)
+    setCategoryDragLayout(undefined)
     if (
       !destination ||
       (source.droppableId === destination.droppableId && source.index === destination.index)
@@ -180,26 +201,36 @@ export const CategoryList = ({
               </div>
             ) : (
               <DragDropContext onBeforeCapture={handleBeforeCapture} onDragEnd={handleDragEnd}>
-                <Droppable droppableId='categories' type={CATEGORY_DROP_TYPE}>
-                  {(provided) => (
-                    <div ref={provided.innerRef} {...provided.droppableProps}>
-                      {categories.map((category, index) => (
-                        <CategoryItem
-                          key={category.id}
-                          category={category}
-                          index={index}
-                          setCategoryToEdit={setCategoryToEdit}
-                          setCategoryToDelete={setCategoryToDelete}
-                          assessmentType={assessmentType}
-                          disabled={hasAssessmentData}
-                          defaultExpanded
-                          collapsed={isDraggingCategory}
-                        />
-                      ))}
-                      {provided.placeholder}
-                    </div>
-                  )}
-                </Droppable>
+                <div
+                  ref={categoryListRef}
+                  style={
+                    categoryDragLayout && {
+                      minHeight: categoryDragLayout.minHeight,
+                      paddingTop: categoryDragLayout.offsetTop,
+                    }
+                  }
+                >
+                  <Droppable droppableId='categories' type={CATEGORY_DROP_TYPE}>
+                    {(provided) => (
+                      <div ref={provided.innerRef} {...provided.droppableProps}>
+                        {categories.map((category, index) => (
+                          <CategoryItem
+                            key={category.id}
+                            category={category}
+                            index={index}
+                            setCategoryToEdit={setCategoryToEdit}
+                            setCategoryToDelete={setCategoryToDelete}
+                            assessmentType={assessmentType}
+                            disabled={hasAssessmentData}
+                            defaultExpanded
+                            collapsed={categoryDragLayout !== undefined}
+                          />
+                        ))}
+                        {provided.placeholder}
+                      </div>
+                    )}
+                  </Droppable>
+                </div>
               </DragDropContext>
             )}
 

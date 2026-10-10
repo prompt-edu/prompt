@@ -1,3 +1,4 @@
+import { type BeforeCapture, DragDropContext, Droppable, type DropResult } from '@hello-pangea/dnd'
 import {
   Button,
   Card,
@@ -5,6 +6,7 @@ import {
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
+  useToast,
 } from '@tumaet/prompt-ui-components'
 import { Lock, Plus } from 'lucide-react'
 import { useState } from 'react'
@@ -15,12 +17,19 @@ import { useGetCoursePhaseConfig } from '../../../hooks/useGetCoursePhaseConfig'
 import { useGetEvaluationCategoriesWithCompetencies } from '../../../hooks/useGetEvaluationCategoriesWithCompetencies'
 import { useTutorLabel } from '../../../hooks/useTutorLabel'
 import { getSchemaSectionContent } from '../../../schemaSectionContent'
+import {
+  CATEGORY_DROP_TYPE,
+  findCompetencyNameConflict,
+  moveCategory,
+  moveCompetency,
+} from '../../utils/schemaOrder'
 import { SchemaPrintReport } from '../SchemaPrintReport'
 import { CategoryItem } from './components/CategoryItem'
 import { CreateCategoryForm } from './components/CreateCategoryForm'
 import { DeleteConfirmDialog } from './components/DeleteConfirmDialog'
 import { EditCategoryDialog } from './components/EditCategoryDialog'
 import { SchemaTemplateButtons } from './components/SchemaTemplateButtons'
+import { useUpdateSchemaOrder } from './hooks/useUpdateSchemaOrder'
 
 interface CategoryListProps {
   assessmentSchemaID: string
@@ -47,6 +56,9 @@ export const CategoryList = ({
   )
   const [categoryToDelete, setCategoryToDelete] = useState<string | undefined>(undefined)
   const [showAddCategoryForm, setShowAddCategoryForm] = useState(false)
+  const [isDraggingCategory, setIsDraggingCategory] = useState(false)
+  const { toast } = useToast()
+  const { mutate: updateSchemaOrder } = useUpdateSchemaOrder(assessmentType)
 
   const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
   const { data: assessmentCategories } = useGetAllCategoriesWithCompetencies()
@@ -73,6 +85,44 @@ export const CategoryList = ({
           : assessmentCategories
 
   const content = getSchemaSectionContent(useTutorLabel())[assessmentType]
+
+  // Collapse every category before a category drag measures them, so they swap by their headers
+  const handleBeforeCapture = ({ draggableId }: BeforeCapture) => {
+    setIsDraggingCategory(categories.some((category) => category.id === draggableId))
+  }
+
+  const handleDragEnd = ({ source, destination, type }: DropResult) => {
+    setIsDraggingCategory(false)
+    if (
+      !destination ||
+      (source.droppableId === destination.droppableId && source.index === destination.index)
+    ) {
+      return
+    }
+
+    if (type === CATEGORY_DROP_TYPE) {
+      updateSchemaOrder(moveCategory(categories, source.index, destination.index))
+      return
+    }
+
+    const from = { categoryID: source.droppableId, index: source.index }
+    const conflictingName = findCompetencyNameConflict(categories, from, destination.droppableId)
+    if (conflictingName) {
+      toast({
+        title: 'Competency not moved',
+        description: `The target category already contains a competency named "${conflictingName}".`,
+        variant: 'destructive',
+      })
+      return
+    }
+
+    updateSchemaOrder(
+      moveCompetency(categories, from, {
+        categoryID: destination.droppableId,
+        index: destination.index,
+      }),
+    )
+  }
 
   return (
     <>
@@ -117,6 +167,8 @@ export const CategoryList = ({
             <p className='text-sm leading-6 text-muted-foreground'>
               Review the {content.inlineTitle} structure, category weights, competency descriptions,
               and score-level guidance below.
+              {!hasAssessmentData &&
+                ' Drag categories and competencies to change their order or to move a competency to another category.'}
             </p>
           </div>
 
@@ -127,17 +179,28 @@ export const CategoryList = ({
                 defining the rubric.
               </div>
             ) : (
-              categories.map((category) => (
-                <CategoryItem
-                  key={category.id}
-                  category={category}
-                  setCategoryToEdit={setCategoryToEdit}
-                  setCategoryToDelete={setCategoryToDelete}
-                  assessmentType={assessmentType}
-                  disabled={hasAssessmentData}
-                  defaultExpanded
-                />
-              ))
+              <DragDropContext onBeforeCapture={handleBeforeCapture} onDragEnd={handleDragEnd}>
+                <Droppable droppableId='categories' type={CATEGORY_DROP_TYPE}>
+                  {(provided) => (
+                    <div ref={provided.innerRef} {...provided.droppableProps}>
+                      {categories.map((category, index) => (
+                        <CategoryItem
+                          key={category.id}
+                          category={category}
+                          index={index}
+                          setCategoryToEdit={setCategoryToEdit}
+                          setCategoryToDelete={setCategoryToDelete}
+                          assessmentType={assessmentType}
+                          disabled={hasAssessmentData}
+                          defaultExpanded
+                          collapsed={isDraggingCategory}
+                        />
+                      ))}
+                      {provided.placeholder}
+                    </div>
+                  )}
+                </Droppable>
+              </DragDropContext>
             )}
 
             {showAddCategoryForm ? (

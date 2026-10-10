@@ -1,4 +1,5 @@
-import { Badge, Button } from '@tumaet/prompt-ui-components'
+import { Draggable } from '@hello-pangea/dnd'
+import { Badge, Button, cn } from '@tumaet/prompt-ui-components'
 import { Edit, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -13,6 +14,7 @@ import { EditCompetencyDialog } from './components/EditCompetencyDialog'
 
 interface CompetencyItemProps {
   competency: Competency
+  index: number
   categoryID: string
   assessmentType: AssessmentType
   disabled?: boolean
@@ -20,6 +22,7 @@ interface CompetencyItemProps {
 
 export const CompetencyItem = ({
   competency,
+  index,
   categoryID,
   disabled = false,
 }: CompetencyItemProps) => {
@@ -34,55 +37,72 @@ export const CompetencyItem = ({
   >(undefined)
 
   return (
-    <div>
-      <div className='rounded-md border p-4 space-y-4'>
-        <div className='flex justify-between items-center gap-2'>
-          <div className='flex flex-wrap items-center gap-2'>
-            <h3 className='text-base font-medium'>{competency.name}</h3>
-            <Badge className='h-5 border-border bg-muted px-2 text-xs font-medium text-muted-foreground hover:bg-muted'>
-              Weight: {competency.weight}
-            </Badge>
-          </div>
-
-          <div className='flex'>
-            <Button
-              variant='ghost'
-              size='icon'
-              className='h-7 w-7'
-              onClick={() => setCompetencyToEdit(competency)}
-              aria-label={`Edit ${competency.name}`}
-              disabled={disabled}
+    <>
+      <Draggable draggableId={competency.id} index={index} isDragDisabled={disabled}>
+        {(provided, snapshot) => (
+          <div
+            ref={provided.innerRef}
+            {...provided.draggableProps}
+            {...provided.dragHandleProps}
+            className='pb-4'
+          >
+            <div
+              className={cn(
+                'rounded-md border bg-background p-4 space-y-4 transition-shadow',
+                !disabled && 'cursor-grab hover:border-muted-foreground/40',
+                snapshot.isDragging && 'cursor-grabbing shadow-lg ring-1 ring-border',
+              )}
             >
-              <Edit size={16} />
-            </Button>
-            <Button
-              variant='ghost'
-              size='icon'
-              className='h-7 w-7'
-              onClick={() =>
-                setCompetencyToDelete({
-                  id: competency.id,
-                  name: competency.name,
-                  categoryID: categoryID,
-                })
-              }
-              aria-label={`Delete ${competency.name}`}
-              disabled={disabled}
-            >
-              <Trash2 size={16} className='text-destructive' />
-            </Button>
+              <div className='flex justify-between items-center gap-2'>
+                <div className='flex flex-wrap items-center gap-2'>
+                  <h3 className='text-base font-medium'>{competency.name}</h3>
+                  <Badge className='h-5 border-border bg-muted px-2 text-xs font-medium text-muted-foreground hover:bg-muted'>
+                    Weight: {competency.weight}
+                  </Badge>
+                </div>
+
+                <div className='flex'>
+                  <Button
+                    variant='ghost'
+                    size='icon'
+                    className='h-7 w-7'
+                    onClick={() => setCompetencyToEdit(competency)}
+                    aria-label={`Edit ${competency.name}`}
+                    disabled={disabled}
+                  >
+                    <Edit size={16} />
+                  </Button>
+                  <Button
+                    variant='ghost'
+                    size='icon'
+                    className='h-7 w-7'
+                    onClick={() =>
+                      setCompetencyToDelete({
+                        id: competency.id,
+                        name: competency.name,
+                        categoryID: categoryID,
+                      })
+                    }
+                    aria-label={`Delete ${competency.name}`}
+                    disabled={disabled}
+                  >
+                    <Trash2 size={16} className='text-destructive' />
+                  </Button>
+                </div>
+              </div>
+
+              <div className='text-sm text-muted-foreground'>{competency.description}</div>
+
+              <ScoreLevelSelector
+                className='grid grid-cols-1 gap-1 md:grid-cols-5'
+                competency={competency}
+                onScoreChange={() => {}}
+                completed={false}
+              />
+            </div>
           </div>
-        </div>
-
-        <div className='text-sm text-muted-foreground'>{competency.description}</div>
-
-        <ScoreLevelSelector
-          className='grid grid-cols-1 gap-1 md:grid-cols-5'
-          competency={competency}
-          onScoreChange={() => {}}
-          completed={false}
-        />
-      </div>
+        )}
+      </Draggable>
 
       <EditCompetencyDialog
         open={!!competencyToEdit}
@@ -101,6 +121,6 @@ export const CompetencyItem = ({
           categoryId={competencyToDelete.categoryID}
         />
       )}
-    </div>
+    </>
   )
 }

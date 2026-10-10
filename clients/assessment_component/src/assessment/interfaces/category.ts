@@ -28,3 +28,12 @@ export interface UpdateCategoryRequest {
   weight?: number
   assessmentSchemaID: string
 }
+
+export interface CategoryOrder {
+  id: string
+  competencyIDs: string[]
+}
+
+export interface UpdateSchemaOrderRequest {
+  categories: CategoryOrder[]
+}

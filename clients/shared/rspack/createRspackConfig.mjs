@@ -37,6 +37,7 @@ export const createRspackConfig = ({
         port,
         client: { progress: true },
         open: false,
+        headers: { 'Access-Control-Allow-Origin': '*' },
       },
       module: {
         rules: [
@@ -79,6 +80,7 @@ export const createRspackConfig = ({
         new ModuleFederationPlugin({
           name,
           filename: 'remoteEntry.js',
+          manifest: true,
           exposes: {
             './routes': './routes',
             './sidebar': './sidebar',

@@ -678,6 +678,8 @@ const ROUTES: Route[] = [
   },
 ]
 
+const FETCH_ROUTES = ['system.clientInfo']
+
 const INSTANCES = {
   core: axiosInstance,
   public: notAuthenticatedAxiosInstance,
@@ -767,7 +769,8 @@ describe('coreApi routes', () => {
       Object.keys(endpoints).map((endpoint) => `${namespace}.${endpoint}`),
     )
 
-    expect([...new Set(ROUTES.map((route) => route.name))].sort()).toEqual(exposed.sort())
+    const covered = [...ROUTES.map((route) => route.name), ...FETCH_ROUTES]
+    expect([...new Set(covered)].sort()).toEqual(exposed.sort())
   })
 
   it('maps a 204 to a ready status on the two privacy reads that can answer empty', async () => {
@@ -829,5 +832,78 @@ describe('coreApi routes', () => {
 
     await expect(coreApi.mailCampaigns.list(COURSE)).resolves.toEqual([])
     await expect(coreApi.applications.additionalScoreNames(PHASE)).resolves.toEqual([])
+  })
+})
+
+describe('system.clientInfo', () => {
+  const remote = {
+    name: 'interview_component',
+    phaseTypeName: 'Interview',
+    url: 'http://interview.test',
+  }
+  const ENTRY = `${remote.url}/remoteEntry.js`
+  const MANIFEST = `${remote.url}/mf-manifest.json`
+
+  const stubFetch = (responses: Record<string, () => Response>) => {
+    const fetchMock = vi.fn(async (url: string, _init?: RequestInit) => {
+      const respond = responses[url]
+      return respond ? respond() : new Response(null, { status: 404 })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    return fetchMock
+  }
+  const manifest = (buildVersion: string) => () =>
+    Response.json({ metaData: { buildInfo: { buildVersion } } })
+  const entry = () => new Response('var interview_component;')
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('probes remoteEntry.js and the manifest past the browser cache', async () => {
+    const fetchMock = stubFetch({ [ENTRY]: entry, [MANIFEST]: manifest('v2.18.1') })
+
+    await coreApi.system.clientInfo(remote)
+
+    expect(fetchMock.mock.calls.map(([url]) => url).sort()).toEqual([MANIFEST, ENTRY])
+    for (const [, init] of fetchMock.mock.calls) {
+      expect(init?.cache).toBe('no-store')
+      expect(init?.signal).toBeInstanceOf(AbortSignal)
+    }
+  })
+
+  it('checks remoteEntry.js without downloading it', async () => {
+    const fetchMock = stubFetch({ [ENTRY]: entry, [MANIFEST]: manifest('v2.18.1') })
+
+    await coreApi.system.clientInfo(remote)
+
+    const methodOf = (target: string) =>
+      fetchMock.mock.calls.find(([url]) => url === target)?.[1]?.method
+    expect(methodOf(ENTRY)).toBe('HEAD')
+    expect(methodOf(MANIFEST)).toBe('GET')
+  })
+
+  it('reads the build version from the manifest', async () => {
+    stubFetch({ [ENTRY]: entry, [MANIFEST]: manifest('v2.18.1') })
+
+    await expect(coreApi.system.clientInfo(remote)).resolves.toEqual({ buildVersion: 'v2.18.1' })
+  })
+
+  it('stays online without a version when the remote has no manifest', async () => {
+    stubFetch({ [ENTRY]: entry })
+
+    await expect(coreApi.system.clientInfo(remote)).resolves.toEqual({ buildVersion: undefined })
+  })
+
+  it('stays online without a version when the manifest is not JSON', async () => {
+    stubFetch({ [ENTRY]: entry, [MANIFEST]: () => new Response('<html>') })
+
+    await expect(coreApi.system.clientInfo(remote)).resolves.toEqual({ buildVersion: undefined })
+  })
+
+  it('fails when remoteEntry.js does not load', async () => {
+    stubFetch({ [MANIFEST]: manifest('v2.18.1') })
+
+    await expect(coreApi.system.clientInfo(remote)).rejects.toThrow('remoteEntry.js answered 404')
   })
 })

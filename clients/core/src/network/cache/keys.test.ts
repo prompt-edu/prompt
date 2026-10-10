@@ -154,6 +154,13 @@ describe('coreKeys', () => {
     expect(coreKeys.serviceInfo.ofService('assessment')).toEqual(['serviceInfo-assessment'])
   })
 
+  it('builds the client info key per remote', () => {
+    expect(coreKeys.clientInfo.ofRemote('interview_component')).toEqual([
+      'clientInfo',
+      'interview_component',
+    ])
+  })
+
   it('carries the audit log paging inputs in the key, so each page caches separately', () => {
     const filters = { outcome: 'denied' }
     const cursor = { createdAt: '2026-08-28T12:23:28Z', id: 'entry-1' }

@@ -1,6 +1,7 @@
 x-client-build-args: &client-build-args
   IMAGE_TAG: local
   NODE_ENV: development
+  MF_BUILD_VERSION: local
 
 x-client-additional-contexts: &client-additional-contexts
   "ghcr.io/prompt-edu/prompt/prompt-clients-base:local": "service:clients-base"
@@ -377,6 +378,8 @@ services:
     build:
       context: ./clients/assessment_component
       dockerfile: Dockerfile
+      args: *client-build-args
+      additional_contexts: *client-additional-contexts
     container_name: prompt-client-assessment-component
     ports:
       - "3002:80"

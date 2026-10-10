@@ -48,16 +48,22 @@ silently dropped.
 ## Register (core host)
 
 ```js
-const yourComponentURL = IS_DEV ? `http://localhost:3011` : `/your-component`
-
-remotes: {
-  your_component: `your_component@${yourComponentURL}/remoteEntry.js?${Date.now()}`,
-}
+// clients/core/remotes.config.mjs
+export const REMOTES = [
+  {
+    name: 'your_component', // the federation name, also the core remotes key
+    phaseTypeName: 'Your Phase', // the course phase type it renders: its PhaseRouterMapping key
+    devPort: 3011,
+    prodPath: '/your-component',
+  },
+]
 ```
 
-Remote URLs are resolved in `clients/core/rspack.config.mjs` from `IS_DEV`, not from environment
-variables: the dev port in development, the reverse-proxy path in production. The `?${Date.now()}`
-cache-buster forces a reload after redeploy.
+`clients/core/remotes.config.mjs` is the single list of remotes core loads. `rspack.config.mjs`
+resolves each entry from `IS_DEV`, not from environment variables: the dev port in development, the
+reverse-proxy path in production, with a `?${Date.now()}` cache-buster that forces a reload after
+redeploy. The list also reaches the app as `__PROMPT_REMOTES__` for the admin System Status page,
+and `remotes.config.test.ts` keeps it in step with the `PhaseRouterMapping` keys.
 
 Core consumes a remote lazily, one file per remote under
 `src/managementConsole/PhaseMapping/ExternalRoutes/` (and `ExternalSidebars/`):

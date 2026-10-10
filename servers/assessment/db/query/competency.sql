@@ -9,8 +9,10 @@ INSERT INTO competency (id,
                         description_ok,
                         description_good,
                         description_very_good,
-                        weight)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11);
+                        weight,
+                        sort_order)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,
+        (SELECT COALESCE(MAX(sort_order) + 1, 0) FROM competency WHERE category_id = $2));
 
 -- name: CheckCompetencyNameExists :one
 -- Check if a competency name already exists within a given category
@@ -56,7 +58,8 @@ ORDER BY comp.name;
 -- name: ListCompetenciesByCategory :many
 SELECT *
 FROM competency
-WHERE category_id = $1;
+WHERE category_id = $1
+ORDER BY sort_order, name;
 
 -- name: UpdateCompetency :exec
 UPDATE competency
@@ -74,4 +77,10 @@ WHERE id = $1;
 -- name: DeleteCompetency :exec
 DELETE
 FROM competency
+WHERE id = $1;
+
+-- name: UpdateCompetencyCategoryAndSortOrder :exec
+UPDATE competency
+SET category_id = $2,
+    sort_order  = $3
 WHERE id = $1;

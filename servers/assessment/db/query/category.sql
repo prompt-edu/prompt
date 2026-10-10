@@ -1,6 +1,7 @@
 -- name: CreateCategory :exec
-INSERT INTO category (id, name, short_name, description, weight, assessment_schema_id)
-VALUES ($1, $2, $3, $4, $5, $6);
+INSERT INTO category (id, name, short_name, description, weight, assessment_schema_id, sort_order)
+VALUES ($1, $2, $3, $4, $5, $6,
+        (SELECT COALESCE(MAX(sort_order) + 1, 0) FROM category WHERE assessment_schema_id = $6));
 
 -- name: CheckCategoryNameExists :one
 -- Check if a category name already exists within a given assessment schema
@@ -17,7 +18,7 @@ WHERE id = $1;
 -- name: ListCategories :many
 SELECT *
 FROM category
-ORDER BY name ASC;
+ORDER BY sort_order ASC, name ASC;
 
 -- name: UpdateCategory :exec
 UPDATE category
@@ -65,6 +66,7 @@ SELECT c.id,
                                'weight',
                                cmp.weight
                        )
+                       ORDER BY cmp.sort_order, cmp.name
                                ) FILTER (
                            WHERE cmp.id IS NOT NULL
                            ),
@@ -73,5 +75,10 @@ SELECT c.id,
 FROM category c
          LEFT JOIN competency cmp ON c.id = cmp.category_id
 WHERE c.assessment_schema_id = $1
-GROUP BY c.id, c.name, c.short_name, c.description, c.weight
-ORDER BY c.name ASC;
+GROUP BY c.id, c.name, c.short_name, c.description, c.weight, c.sort_order
+ORDER BY c.sort_order ASC, c.name ASC;
+
+-- name: UpdateCategorySortOrder :exec
+UPDATE category
+SET sort_order = $2
+WHERE id = $1;

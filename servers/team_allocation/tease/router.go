@@ -11,6 +11,7 @@ import (
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	"github.com/prompt-edu/prompt-sdk/audit"
 	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
+	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/team_allocation/tease/teaseDTO"
 	log "github.com/sirupsen/logrus"
 )
@@ -39,13 +40,13 @@ func (s *TeaseService) getAllCoursePhases(c *gin.Context) {
 
 	rolesVal, exists := c.Get("userRoles")
 	if !exists {
-		handleError(c, http.StatusForbidden, errors.New("missing user roles"))
+		sdkUtils.HandleError(c, http.StatusForbidden, errors.New("missing user roles"))
 		return
 	}
 
 	userRoles, ok := rolesVal.(map[string]bool)
 	if !ok {
-		handleError(c, http.StatusInternalServerError, errors.New("invalid user roles format"))
+		sdkUtils.HandleError(c, http.StatusInternalServerError, errors.New("invalid user roles format"))
 		return
 	}
 
@@ -56,7 +57,7 @@ func (s *TeaseService) getAllCoursePhases(c *gin.Context) {
 	)
 
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 	c.JSON(http.StatusOK, teasePhases)
@@ -66,14 +67,14 @@ func (s *TeaseService) getTeaseStudentsForCoursePhase(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.Error("Error parsing coursePhaseID: ", err)
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 	authHeader := c.GetHeader("Authorization")
 
 	students, err := s.GetTeaseStudentsForCoursePhase(c, authHeader, coursePhaseID)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 	c.JSON(http.StatusOK, students)
@@ -83,13 +84,13 @@ func (s *TeaseService) getTeaseSkillsByCoursePhase(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.Error("Error parsing coursePhaseID: ", err)
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	skills, err := s.GetTeaseSkillsByCoursePhase(c, coursePhaseID)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -100,34 +101,30 @@ func (s *TeaseService) getTeaseTeamsByCoursePhase(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.Error("Error parsing coursePhaseID: ", err)
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	teams, err := s.GetTeaseTeamsByCoursePhase(c, coursePhaseID)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
 	c.JSON(http.StatusOK, teams)
 }
 
-func handleError(c *gin.Context, statusCode int, err error) {
-	c.JSON(statusCode, gin.H{"error": err.Error()})
-}
-
 func (s *TeaseService) getAllocations(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 
 	if err != nil {
-		handleError(c, http.StatusBadRequest, errors.New("invalid course phase ID"))
+		sdkUtils.HandleError(c, http.StatusBadRequest, errors.New("invalid course phase ID"))
 		return
 	}
 
 	allocations, err := s.GetAllocationsByCoursePhase(c, coursePhaseID)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -149,13 +146,13 @@ func (s *TeaseService) getTeaseWorkspace(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.Error("Error parsing coursePhaseID: ", err)
-		handleError(c, http.StatusBadRequest, errors.New("invalid course phase ID"))
+		sdkUtils.HandleError(c, http.StatusBadRequest, errors.New("invalid course phase ID"))
 		return
 	}
 
 	workspace, err := s.GetTeaseWorkspace(c, coursePhaseID)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -181,7 +178,7 @@ func (s *TeaseService) putTeaseWorkspace(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.Error("Error parsing coursePhaseID: ", err)
-		handleError(c, http.StatusBadRequest, errors.New("invalid course phase ID"))
+		sdkUtils.HandleError(c, http.StatusBadRequest, errors.New("invalid course phase ID"))
 		return
 	}
 
@@ -192,13 +189,13 @@ func (s *TeaseService) putTeaseWorkspace(c *gin.Context) {
 
 	updatedBy, err := getAuthenticatedUserID(c)
 	if err != nil {
-		handleError(c, http.StatusUnauthorized, err)
+		sdkUtils.HandleError(c, http.StatusUnauthorized, err)
 		return
 	}
 
 	workspace, err := s.UpsertTeaseWorkspace(c, coursePhaseID, req, updatedBy)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -224,7 +221,7 @@ func (s *TeaseService) postTeaseSave(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.Error("Error parsing coursePhaseID: ", err)
-		handleError(c, http.StatusBadRequest, errors.New("invalid course phase ID"))
+		sdkUtils.HandleError(c, http.StatusBadRequest, errors.New("invalid course phase ID"))
 		return
 	}
 
@@ -235,17 +232,17 @@ func (s *TeaseService) postTeaseSave(c *gin.Context) {
 
 	updatedBy, err := getAuthenticatedUserID(c)
 	if err != nil {
-		handleError(c, http.StatusUnauthorized, err)
+		sdkUtils.HandleError(c, http.StatusUnauthorized, err)
 		return
 	}
 
 	workspace, err := s.SaveTeaseWorkspaceAndAllocations(c, coursePhaseID, req, updatedBy)
 	if err != nil {
 		if errors.Is(err, errInvalidAllocation) {
-			handleError(c, http.StatusBadRequest, err)
+			sdkUtils.HandleError(c, http.StatusBadRequest, err)
 			return
 		}
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -257,14 +254,14 @@ func bindTeaseJSON(c *gin.Context, dst any) bool {
 	if err := c.ShouldBindJSON(dst); err != nil {
 		var maxBytesErr *http.MaxBytesError
 		if errors.As(err, &maxBytesErr) {
-			handleError(c, http.StatusRequestEntityTooLarge, fmt.Errorf("request body exceeds %d bytes", maxTeaseWorkspaceBodyBytes))
+			sdkUtils.HandleError(c, http.StatusRequestEntityTooLarge, fmt.Errorf("request body exceeds %d bytes", maxTeaseWorkspaceBodyBytes))
 			return false
 		}
 		if errors.Is(err, io.EOF) {
-			handleError(c, http.StatusBadRequest, errors.New("request body is required"))
+			sdkUtils.HandleError(c, http.StatusBadRequest, errors.New("request body is required"))
 			return false
 		}
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return false
 	}
 	return true

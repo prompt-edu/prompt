@@ -57,7 +57,7 @@ func setupCoursePhaseParticipationRouter(routerGroup *gin.RouterGroup, s *Course
 func (s *CoursePhaseParticipationService) getOwnCoursePhaseParticipation(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
@@ -65,17 +65,17 @@ func (s *CoursePhaseParticipationService) getOwnCoursePhaseParticipation(c *gin.
 	universityLogin := c.GetString("universityLogin")
 
 	if matriculationNumber == "" || universityLogin == "" {
-		handleError(c, http.StatusUnauthorized, errors.New("missing matriculation number or university login"))
+		sdkUtils.HandleError(c, http.StatusUnauthorized, errors.New("missing matriculation number or university login"))
 		return
 	}
 
 	coursePhaseParticipation, err := s.GetOwnCoursePhaseParticipation(c, id, matriculationNumber, universityLogin)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			handleError(c, http.StatusNotFound, errors.New("course phase participation not found"))
+			sdkUtils.HandleError(c, http.StatusNotFound, errors.New("course phase participation not found"))
 			return
 		}
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -95,13 +95,13 @@ func (s *CoursePhaseParticipationService) getOwnCoursePhaseParticipation(c *gin.
 func (s *CoursePhaseParticipationService) getParticipationsForCoursePhase(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	courseParticipations, err := s.GetAllParticipationsForCoursePhase(c, id)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -123,21 +123,21 @@ func (s *CoursePhaseParticipationService) getParticipation(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
 		log.Error("Error parsing course phase ID: ", err)
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	courseParticipationID, err := uuid.Parse(c.Param("course_participation_id"))
 	if err != nil {
 		log.Error("Error parsing course participation ID: ", err)
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	courseParticipation, err := s.GetCoursePhaseParticipation(c, coursePhaseID, courseParticipationID)
 	if err != nil {
 		log.Error(err)
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -160,19 +160,19 @@ func (s *CoursePhaseParticipationService) getParticipation(c *gin.Context) {
 func (s *CoursePhaseParticipationService) updateCoursePhaseParticipation(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	courseParticipationID, err := uuid.Parse(c.Param("course_participation_id"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	var newCourseParticipation coursePhaseParticipationDTO.CreateCoursePhaseParticipation
 	if err := c.BindJSON(&newCourseParticipation); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
@@ -180,13 +180,13 @@ func (s *CoursePhaseParticipationService) updateCoursePhaseParticipation(c *gin.
 	newCourseParticipation.CourseParticipationID = courseParticipationID
 
 	if err := Validate(newCourseParticipation); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	courseParticipation, err := s.CreateOrUpdateCoursePhaseParticipation(c, nil, newCourseParticipation)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 	c.IndentedJSON(http.StatusCreated, courseParticipation)
@@ -207,21 +207,21 @@ func (s *CoursePhaseParticipationService) updateCoursePhaseParticipation(c *gin.
 func (s *CoursePhaseParticipationService) updateBatchCoursePhaseParticipation(c *gin.Context) {
 	coursePhaseId, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	// we expect an array of updates
 	var updatedCourseParticipationRequest []coursePhaseParticipationDTO.UpdateCoursePhaseParticipationRequest
 	if err := c.BindJSON(&updatedCourseParticipationRequest); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	var createOrUpdateCourseParticipationDTOs []coursePhaseParticipationDTO.CreateCoursePhaseParticipation
 	for _, update := range updatedCourseParticipationRequest {
 		if update.CoursePhaseID != coursePhaseId {
-			handleError(c, http.StatusBadRequest, errors.New("coursePhaseID in request does not match coursePhaseID in URL"))
+			sdkUtils.HandleError(c, http.StatusBadRequest, errors.New("coursePhaseID in request does not match coursePhaseID in URL"))
 			return
 		}
 
@@ -235,7 +235,7 @@ func (s *CoursePhaseParticipationService) updateBatchCoursePhaseParticipation(c 
 
 		// Validate for complete new participations
 		if err := Validate(dbParticipation); err != nil {
-			handleError(c, http.StatusBadRequest, err)
+			sdkUtils.HandleError(c, http.StatusBadRequest, err)
 			return
 		}
 		createOrUpdateCourseParticipationDTOs = append(createOrUpdateCourseParticipationDTOs, dbParticipation)
@@ -243,7 +243,7 @@ func (s *CoursePhaseParticipationService) updateBatchCoursePhaseParticipation(c 
 
 	ids, err := s.UpdateBatchCoursePhaseParticipation(c, createOrUpdateCourseParticipationDTOs)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -263,21 +263,15 @@ func (s *CoursePhaseParticipationService) updateBatchCoursePhaseParticipation(c 
 func (s *CoursePhaseParticipationService) getStudentsOfCoursePhase(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	students, err := s.GetStudentsOfCoursePhase(c, coursePhaseID)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
 	c.IndentedJSON(http.StatusOK, students)
-}
-
-func handleError(c *gin.Context, statusCode int, err error) {
-	c.JSON(statusCode, sdkUtils.ErrorResponse{
-		Error: err.Error(),
-	})
 }

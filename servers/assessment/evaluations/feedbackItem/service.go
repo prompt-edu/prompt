@@ -93,6 +93,7 @@ func (s *FeedbackItemService) ListFeedbackItemsByAuthorInPhase(ctx context.Conte
 func (s *FeedbackItemService) CreateFeedbackItem(ctx context.Context, authHeader string, req feedbackItemDTO.CreateFeedbackItemRequest) error {
 	tx, err := s.conn.Begin(ctx)
 	if err != nil {
+		log.Error("could not begin feedback item creation transaction: ", err)
 		return err
 	}
 	defer promptSDK.DeferDBRollback(tx, ctx)
@@ -129,6 +130,7 @@ func (s *FeedbackItemService) CreateFeedbackItem(ctx context.Context, authHeader
 func (s *FeedbackItemService) UpdateFeedbackItem(ctx context.Context, authHeader string, feedbackItemID, coursePhaseID, authorCourseParticipationID uuid.UUID, req feedbackItemDTO.UpdateFeedbackItemRequest) error {
 	tx, err := s.conn.Begin(ctx)
 	if err != nil {
+		log.Error("could not begin feedback item update transaction: ", err)
 		return err
 	}
 	defer promptSDK.DeferDBRollback(tx, ctx)

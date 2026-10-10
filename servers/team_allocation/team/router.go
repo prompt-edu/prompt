@@ -11,6 +11,7 @@ import (
 	"github.com/prompt-edu/prompt-sdk/audit"
 	"github.com/prompt-edu/prompt-sdk/promptTypes"
 	"github.com/prompt-edu/prompt-sdk/tutorscope"
+	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/team_allocation/team/teamDTO"
 	log "github.com/sirupsen/logrus"
 )
@@ -49,13 +50,13 @@ func (s *TeamsService) getAllTeams(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.Error("Error parsing coursePhaseID: ", err)
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	teams, err := s.GetAllTeams(c, coursePhaseID)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -92,14 +93,14 @@ func (s *TeamsService) getTeamByID(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.Error("Error parsing coursePhaseID: ", err)
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	teamID, err := uuid.Parse(c.Param("teamID"))
 	if err != nil {
 		log.Error("Error parsing teamID: ", err)
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
@@ -111,9 +112,9 @@ func (s *TeamsService) getTeamByID(c *gin.Context) {
 	team, err := s.GetTeamByID(c, coursePhaseID, teamID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			handleError(c, http.StatusNotFound, err)
+			sdkUtils.HandleError(c, http.StatusNotFound, err)
 		} else {
-			handleError(c, http.StatusInternalServerError, err)
+			sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		}
 		return
 	}
@@ -137,19 +138,19 @@ func (s *TeamsService) createTeams(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.Error("Error parsing coursePhaseID: ", err)
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	var request teamDTO.CreateTeamsRequest
 	if err := c.BindJSON(&request); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	err = s.CreateNewTeams(c, request.TeamNames, coursePhaseID)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 	c.Status(http.StatusCreated)
@@ -173,26 +174,26 @@ func (s *TeamsService) updateTeam(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.Error("Error parsing coursePhaseID: ", err)
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	teamID, err := uuid.Parse(c.Param("teamID"))
 	if err != nil {
 		log.Error("Error parsing teamID: ", err)
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	var request teamDTO.UpdateTeamRequest
 	if err := c.BindJSON(&request); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	err = s.UpdateTeam(c, coursePhaseID, teamID, request.NewTeamName)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 	c.Status(http.StatusOK)
@@ -214,27 +215,23 @@ func (s *TeamsService) deleteTeam(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.Error("Error parsing coursePhaseID: ", err)
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	teamID, err := uuid.Parse(c.Param("teamID"))
 	if err != nil {
 		log.Error("Error parsing teamID: ", err)
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	err = s.DeleteTeam(c, coursePhaseID, teamID)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 	c.Status(http.StatusOK)
-}
-
-func handleError(c *gin.Context, statusCode int, err error) {
-	c.JSON(statusCode, gin.H{"error": err.Error()})
 }
 
 // addStudentNamesToTeams godoc
@@ -253,19 +250,19 @@ func handleError(c *gin.Context, statusCode int, err error) {
 func (s *TeamsService) addStudentNamesToTeams(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	var req teamDTO.StudentNameUpdateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	if err := s.AddStudentNamesToAllocations(c, coursePhaseID, req); err != nil {
 		log.Error("Error adding student names to allocations: ", err)
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -290,14 +287,14 @@ func (s *TeamsService) importTutors(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.Error("Error parsing coursePhaseID: ", err)
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	var tutors []teamDTO.Tutor
 	if err := c.BindJSON(&tutors); err != nil {
 		log.Error("Error binding tutors: ", err)
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
@@ -307,7 +304,7 @@ func (s *TeamsService) importTutors(c *gin.Context) {
 			return
 		}
 		log.Error("Error importing tutors: ", err)
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -333,7 +330,7 @@ func (s *TeamsService) updateTutorTeam(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.Error("Error parsing coursePhaseID: ", err)
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
@@ -345,7 +342,7 @@ func (s *TeamsService) updateTutorTeam(c *gin.Context) {
 
 	var req teamDTO.UpdateTutorTeamRequest
 	if err := c.BindJSON(&req); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
@@ -359,7 +356,7 @@ func (s *TeamsService) updateTutorTeam(c *gin.Context) {
 			return
 		}
 		log.Error("Error updating tutor team: ", err)
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 

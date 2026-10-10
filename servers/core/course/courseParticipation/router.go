@@ -47,7 +47,7 @@ func setupCourseParticipationRouter(router *gin.RouterGroup, s *CourseParticipat
 func (s *CourseParticipationService) getOwnCourseParticipation(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
@@ -65,7 +65,7 @@ func (s *CourseParticipationService) getOwnCourseParticipation(c *gin.Context) {
 
 	courseParticipation, err := s.GetOwnCourseParticipation(c, id, matriculationNumber, universityLogin)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -85,13 +85,13 @@ func (s *CourseParticipationService) getOwnCourseParticipation(c *gin.Context) {
 func (s *CourseParticipationService) getCourseParticipationsForCourse(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	courseParticipations, err := s.GetAllCourseParticipationsForCourse(c, id)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -113,13 +113,13 @@ func (s *CourseParticipationService) getCourseParticipationsForCourse(c *gin.Con
 func (s *CourseParticipationService) createCourseParticipation(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	var newCourseParticipation courseParticipationDTO.CreateCourseParticipation
 	if err := c.BindJSON(&newCourseParticipation); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
@@ -127,21 +127,15 @@ func (s *CourseParticipationService) createCourseParticipation(c *gin.Context) {
 	newCourseParticipation.CourseID = id
 
 	if err := Validate(newCourseParticipation); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	courseParticipation, err := s.CreateCourseParticipation(c, nil, newCourseParticipation)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
 	c.IndentedJSON(http.StatusOK, courseParticipation)
-}
-
-func handleError(c *gin.Context, statusCode int, err error) {
-	c.JSON(statusCode, sdkUtils.ErrorResponse{
-		Error: err.Error(),
-	})
 }

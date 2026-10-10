@@ -75,19 +75,19 @@ func setupKeycloakRouter(router *gin.RouterGroup, s *KeycloakRealmService, authM
 func (s *KeycloakRealmService) createCustomGroup(c *gin.Context) {
 	courseID, err := uuid.Parse(c.Param("courseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	var newGroupName keycloakRealmDTO.CreateGroup
 	if err := c.BindJSON(&newGroupName); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	id, err := s.AddCustomGroup(c, courseID, newGroupName.GroupName)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -110,25 +110,25 @@ func (s *KeycloakRealmService) createCustomGroup(c *gin.Context) {
 func (s *KeycloakRealmService) addStudentsToGroup(c *gin.Context) {
 	courseID, err := uuid.Parse(c.Param("courseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	groupName := c.Param("groupName")
 	if groupName == "" {
-		handleError(c, http.StatusBadRequest, errors.New("group name is required"))
+		sdkUtils.HandleError(c, http.StatusBadRequest, errors.New("group name is required"))
 		return
 	}
 
 	var request keycloakRealmDTO.AddStudentsToGroup
 	if err := c.BindJSON(&request); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	addingReport, err := s.AddStudentsToGroup(c, courseID, request.StudentsToAdd, groupName)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -150,19 +150,19 @@ func (s *KeycloakRealmService) addStudentsToGroup(c *gin.Context) {
 func (s *KeycloakRealmService) addStudentsToEditorGroup(c *gin.Context) {
 	courseID, err := uuid.Parse(c.Param("courseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	var request keycloakRealmDTO.AddStudentsToGroup
 	if err := c.BindJSON(&request); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	addingReport, err := s.AddStudentsToEditorGroup(c, courseID, request.StudentsToAdd)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -183,30 +183,24 @@ func (s *KeycloakRealmService) addStudentsToEditorGroup(c *gin.Context) {
 func (s *KeycloakRealmService) getStudentsInGroup(c *gin.Context) {
 	courseID, err := uuid.Parse(c.Param("courseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	groupName := c.Param("groupName")
 	if groupName == "" {
-		handleError(c, http.StatusBadRequest, errors.New("group name is required"))
+		sdkUtils.HandleError(c, http.StatusBadRequest, errors.New("group name is required"))
 		return
 	}
 
 	students, err := s.GetStudentsInGroup(c, courseID, groupName)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
 	c.IndentedJSON(http.StatusOK, students)
 
-}
-
-func handleError(c *gin.Context, statusCode int, err error) {
-	c.JSON(statusCode, sdkUtils.ErrorResponse{
-		Error: err.Error(),
-	})
 }
 
 // getCourseStaff godoc
@@ -221,13 +215,13 @@ func handleError(c *gin.Context, statusCode int, err error) {
 func (s *KeycloakRealmService) getCourseStaff(c *gin.Context) {
 	courseID, err := uuid.Parse(c.Param("courseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	staff, err := s.GetCourseStaff(c, courseID)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -249,14 +243,14 @@ func (s *KeycloakRealmService) getCourseStaff(c *gin.Context) {
 func (s *KeycloakRealmService) addCourseStaffMember(c *gin.Context) {
 	courseID, err := uuid.Parse(c.Param("courseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	groupName := c.Param("groupName")
 	targetUserID := c.Param("userID")
 	if targetUserID == "" {
-		handleError(c, http.StatusBadRequest, errors.New("userID is required"))
+		sdkUtils.HandleError(c, http.StatusBadRequest, errors.New("userID is required"))
 		return
 	}
 
@@ -265,7 +259,7 @@ func (s *KeycloakRealmService) addCourseStaffMember(c *gin.Context) {
 		// Defence in depth: the auth middleware should always set the caller's
 		// Keycloak `sub` here. If it didn't, refuse the mutation rather than
 		// silently writing audit lines with an empty caller.
-		handleError(c, http.StatusUnauthorized, errors.New("missing caller identity"))
+		sdkUtils.HandleError(c, http.StatusUnauthorized, errors.New("missing caller identity"))
 		return
 	}
 
@@ -291,14 +285,14 @@ func (s *KeycloakRealmService) addCourseStaffMember(c *gin.Context) {
 func (s *KeycloakRealmService) removeCourseStaffMember(c *gin.Context) {
 	courseID, err := uuid.Parse(c.Param("courseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	groupName := c.Param("groupName")
 	targetUserID := c.Param("userID")
 	if targetUserID == "" {
-		handleError(c, http.StatusBadRequest, errors.New("userID is required"))
+		sdkUtils.HandleError(c, http.StatusBadRequest, errors.New("userID is required"))
 		return
 	}
 
@@ -307,7 +301,7 @@ func (s *KeycloakRealmService) removeCourseStaffMember(c *gin.Context) {
 		// Defence in depth: the auth middleware should always set the caller's
 		// Keycloak `sub` here. If it didn't, refuse the mutation - an empty
 		// callerUserID would also defeat the self-removal guard.
-		handleError(c, http.StatusUnauthorized, errors.New("missing caller identity"))
+		sdkUtils.HandleError(c, http.StatusUnauthorized, errors.New("missing caller identity"))
 		return
 	}
 
@@ -336,7 +330,7 @@ func (s *KeycloakRealmService) searchKeycloakUsers(c *gin.Context) {
 	if raw := c.Query("limit"); raw != "" {
 		parsed, err := strconv.Atoi(raw)
 		if err != nil {
-			handleError(c, http.StatusBadRequest, errors.New("limit must be an integer"))
+			sdkUtils.HandleError(c, http.StatusBadRequest, errors.New("limit must be an integer"))
 			return
 		}
 		limit = parsed
@@ -365,10 +359,10 @@ func (s *KeycloakRealmService) getKeycloakStatus(c *gin.Context) {
 func writeServiceError(c *gin.Context, err error) {
 	switch {
 	case errors.Is(err, ErrInvalidGroupName), errors.Is(err, ErrSelfRemoval), errors.Is(err, ErrInvalidQuery):
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 	case errors.Is(err, ErrUserNotFound):
-		handleError(c, http.StatusNotFound, err)
+		sdkUtils.HandleError(c, http.StatusNotFound, err)
 	default:
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 	}
 }

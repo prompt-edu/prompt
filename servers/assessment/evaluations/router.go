@@ -9,6 +9,7 @@ import (
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	"github.com/prompt-edu/prompt-sdk/audit"
 	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
+	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/assessment/assessmentType"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	"github.com/prompt-edu/prompt/servers/assessment/evaluations/evaluationCompletion"
@@ -52,13 +53,13 @@ func RegisterRoutes(routerGroup *gin.RouterGroup, service *EvaluationService, au
 func (s *EvaluationService) getAllEvaluationsByPhase(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	evaluations, err := s.GetEvaluationsByPhase(c, coursePhaseID)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 	c.JSON(http.StatusOK, evaluations)
@@ -78,18 +79,18 @@ func (s *EvaluationService) getAllEvaluationsByPhase(c *gin.Context) {
 func (s *EvaluationService) getEvaluationsForTutorInPhase(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 	tutorID, err := uuid.Parse(c.Param("courseParticipationID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	evaluations, err := s.GetEvaluationsForTutorInPhase(c, tutorID, coursePhaseID)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -129,18 +130,18 @@ func (s *EvaluationService) getPeerEvaluationsForParticipantInPhase(c *gin.Conte
 func (s *EvaluationService) getEvaluationsForParticipantInPhaseByType(c *gin.Context, evalType assessmentType.AssessmentType) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 	courseParticipationID, err := uuid.Parse(c.Param("courseParticipationID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	evaluations, err := s.GetEvaluationsForParticipantInPhaseByType(c, courseParticipationID, coursePhaseID, evalType)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -161,19 +162,19 @@ func (s *EvaluationService) getMyEvaluations(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.Error("Error parsing coursePhaseID: ", err)
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	courseParticipationID, err := keycloakTokenVerifier.GetUserCourseParticipationID(c)
 	if err != nil {
-		handleError(c, keycloakTokenVerifier.GetUserCourseParticipationIDErrorStatus(err), err)
+		sdkUtils.HandleError(c, keycloakTokenVerifier.GetUserCourseParticipationIDErrorStatus(err), err)
 		return
 	}
 
 	evaluations, err := s.GetEvaluationsForAuthorInPhase(c, courseParticipationID, coursePhaseID)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 	c.JSON(http.StatusOK, evaluations)
@@ -194,13 +195,13 @@ func (s *EvaluationService) getMyEvaluationResults(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.Error("Error parsing coursePhaseID: ", err)
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	config, err := s.coursePhaseConfig.GetStoredCoursePhaseConfig(c, coursePhaseID)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -211,13 +212,13 @@ func (s *EvaluationService) getMyEvaluationResults(c *gin.Context) {
 
 	courseParticipationID, err := keycloakTokenVerifier.GetUserCourseParticipationID(c)
 	if err != nil {
-		handleError(c, keycloakTokenVerifier.GetUserCourseParticipationIDErrorStatus(err), err)
+		sdkUtils.HandleError(c, keycloakTokenVerifier.GetUserCourseParticipationIDErrorStatus(err), err)
 		return
 	}
 
 	results, err := s.GetStudentEvaluationResults(c, coursePhaseID, courseParticipationID, config)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -241,13 +242,13 @@ func (s *EvaluationService) createOrUpdateEvaluation(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.Error("Error parsing coursePhaseID: ", err)
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	var request evaluationDTO.CreateOrUpdateEvaluationRequest
 	if err := c.BindJSON(&request); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
@@ -259,7 +260,7 @@ func (s *EvaluationService) createOrUpdateEvaluation(c *gin.Context) {
 
 	err = s.CreateOrUpdateEvaluation(c, c.GetHeader("Authorization"), coursePhaseID, request)
 	if err != nil {
-		handleError(c, evaluationErrorStatus(err), err)
+		sdkUtils.HandleError(c, evaluationErrorStatus(err), err)
 		return
 	}
 	c.Status(http.StatusCreated)
@@ -281,14 +282,14 @@ func (s *EvaluationService) deleteEvaluation(c *gin.Context) {
 	evaluationID, err := uuid.Parse(c.Param("evaluationID"))
 	if err != nil {
 		log.Error("Error parsing evaluationID: ", err)
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	courseParticipationID, er := keycloakTokenVerifier.GetUserCourseParticipationID(c)
 	if er != nil {
 		log.Error("Error getting student courseParticipationID: ", er)
-		handleError(c, keycloakTokenVerifier.GetUserCourseParticipationIDErrorStatus(er), er)
+		sdkUtils.HandleError(c, keycloakTokenVerifier.GetUserCourseParticipationIDErrorStatus(er), er)
 		return
 	}
 
@@ -300,7 +301,7 @@ func (s *EvaluationService) deleteEvaluation(c *gin.Context) {
 
 	err = s.DeleteEvaluation(c, c.GetHeader("Authorization"), evaluationID)
 	if err != nil {
-		handleError(c, evaluationErrorStatus(err), err)
+		sdkUtils.HandleError(c, evaluationErrorStatus(err), err)
 		return
 	}
 	c.Status(http.StatusOK)
@@ -329,9 +330,4 @@ func (s *EvaluationService) isEvaluationAuthor(c *gin.Context, evaluationID, aut
 	}
 
 	return evaluation.AuthorCourseParticipationID == authorID
-}
-
-func handleError(c *gin.Context, statusCode int, err error) {
-	log.Error(err)
-	c.JSON(statusCode, gin.H{"error": err.Error()})
 }

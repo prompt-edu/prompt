@@ -43,6 +43,8 @@ import sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 - `sdkUtils.GetCoreUrl() string` — core base URL from `SERVER_CORE_HOST`
 - `sdkUtils.RunMigrations(databaseURL, migrationPath string) error` — startup migrations
 - `sdkUtils.InitSentry(dsn string) error`
+- `sdkUtils.HandleError(c *gin.Context, statusCode int, err error)`: writes the shared
+  `sdkUtils.ErrorResponse` body. It does not log, so log where the error is handled
 
 ## Test helpers (`testutils` subpackage)
 

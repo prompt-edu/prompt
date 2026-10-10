@@ -9,6 +9,7 @@ import (
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	"github.com/prompt-edu/prompt-sdk/audit"
 	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
+	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/assessment/assessmentSchemas/assessmentSchemaDTO"
 	log "github.com/sirupsen/logrus"
 )
@@ -42,13 +43,13 @@ func RegisterRoutes(routerGroup *gin.RouterGroup, service *AssessmentSchemaServi
 func (s *AssessmentSchemaService) getAllAssessmentSchemas(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	schemas, err := s.ListAssessmentSchemasForCoursePhase(c, coursePhaseID)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 	c.JSON(http.StatusOK, schemas)
@@ -68,23 +69,23 @@ func (s *AssessmentSchemaService) getAllAssessmentSchemas(c *gin.Context) {
 func (s *AssessmentSchemaService) getAssessmentSchema(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	schemaID, err := uuid.Parse(c.Param("schemaID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	schema, err := s.GetAssessmentSchemaForCoursePhase(c, coursePhaseID, schemaID)
 	if err != nil {
 		if errors.Is(err, ErrSchemaNotAccessible) {
-			handleError(c, http.StatusForbidden, err)
+			sdkUtils.HandleError(c, http.StatusForbidden, err)
 			return
 		}
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 	c.JSON(http.StatusOK, schema)
@@ -151,19 +152,19 @@ func (s *AssessmentSchemaService) checkSchemaHasAssessmentData(c *gin.Context) {
 func (s *AssessmentSchemaService) createAssessmentSchema(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	var request assessmentSchemaDTO.CreateAssessmentSchemaRequest
 	if err := c.ShouldBindJSON(&request); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	schema, err := s.CreateAssessmentSchemaForCoursePhase(c, coursePhaseID, request)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 	c.JSON(http.StatusCreated, schema)
@@ -186,25 +187,25 @@ func (s *AssessmentSchemaService) createAssessmentSchema(c *gin.Context) {
 func (s *AssessmentSchemaService) updateAssessmentSchema(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	schemaID, err := uuid.Parse(c.Param("schemaID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	var request assessmentSchemaDTO.UpdateAssessmentSchemaRequest
 	if err := c.ShouldBindJSON(&request); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	tokenUser, ok := keycloakTokenVerifier.GetTokenUser(c)
 	if !ok {
-		handleError(c, http.StatusUnauthorized, errors.New("authenticated user not found in context"))
+		sdkUtils.HandleError(c, http.StatusUnauthorized, errors.New("authenticated user not found in context"))
 		return
 	}
 	isAdmin := tokenUser.Roles[promptSDK.PromptAdmin]
@@ -212,14 +213,14 @@ func (s *AssessmentSchemaService) updateAssessmentSchema(c *gin.Context) {
 	err = s.UpdateAssessmentSchema(c, coursePhaseID, schemaID, request, isAdmin)
 	if err != nil {
 		if errors.Is(err, ErrSchemaNotAccessible) {
-			handleError(c, http.StatusForbidden, err)
+			sdkUtils.HandleError(c, http.StatusForbidden, err)
 			return
 		}
 		if errors.Is(err, ErrSchemaNotFound) {
-			handleError(c, http.StatusNotFound, err)
+			sdkUtils.HandleError(c, http.StatusNotFound, err)
 			return
 		}
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Assessment schema updated successfully"})
@@ -238,23 +239,14 @@ func (s *AssessmentSchemaService) updateAssessmentSchema(c *gin.Context) {
 func (s *AssessmentSchemaService) deleteAssessmentSchema(c *gin.Context) {
 	schemaID, err := uuid.Parse(c.Param("schemaID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	err = s.DeleteAssessmentSchema(c, schemaID)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Assessment schema deleted successfully"})
-}
-
-func handleError(c *gin.Context, statusCode int, err error) {
-	if statusCode >= http.StatusInternalServerError {
-		log.WithError(err).Error("Error in assessment schema handler")
-	} else {
-		log.WithError(err).Warn("Client error in assessment schema handler")
-	}
-	c.JSON(statusCode, gin.H{"error": err.Error()})
 }

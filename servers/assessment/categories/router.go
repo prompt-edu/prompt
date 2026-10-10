@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
+	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/assessment/assessmentSchemas"
 	"github.com/prompt-edu/prompt/servers/assessment/categories/categoryDTO"
 	log "github.com/sirupsen/logrus"
@@ -45,13 +46,13 @@ func RegisterRoutes(routerGroup *gin.RouterGroup, service *CategoryService, auth
 func (s *CategoryService) getAllCategories(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	categories, err := s.ListCategoriesForCoursePhase(c, coursePhaseID)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 	c.JSON(http.StatusOK, categories)
@@ -71,22 +72,22 @@ func (s *CategoryService) getAllCategories(c *gin.Context) {
 func (s *CategoryService) createCategory(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	var request categoryDTO.CreateCategoryRequest
 	if err := c.BindJSON(&request); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 	category, err := s.CreateCategory(c, coursePhaseID, request)
 	if err != nil {
 		if errors.Is(err, assessmentSchemas.ErrSchemaNotAccessible) {
-			handleError(c, http.StatusForbidden, err)
+			sdkUtils.HandleError(c, http.StatusForbidden, err)
 			return
 		}
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 	c.JSON(http.StatusCreated, category)
@@ -107,30 +108,30 @@ func (s *CategoryService) createCategory(c *gin.Context) {
 func (s *CategoryService) updateCategory(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	categoryID, err := uuid.Parse(c.Param("categoryID"))
 	if err != nil {
 		log.Error("Error parsing categoryID: ", err)
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	var request categoryDTO.UpdateCategoryRequest
 	if err := c.BindJSON(&request); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	err = s.UpdateCategory(c, categoryID, coursePhaseID, request)
 	if err != nil {
 		if errors.Is(err, assessmentSchemas.ErrSchemaNotAccessible) {
-			handleError(c, http.StatusForbidden, err)
+			sdkUtils.HandleError(c, http.StatusForbidden, err)
 			return
 		}
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 	c.Status(http.StatusOK)
@@ -149,24 +150,24 @@ func (s *CategoryService) updateCategory(c *gin.Context) {
 func (s *CategoryService) deleteCategory(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	categoryID, err := uuid.Parse(c.Param("categoryID"))
 	if err != nil {
 		log.Error("Error parsing categoryID: ", err)
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	err = s.DeleteCategory(c, categoryID, coursePhaseID)
 	if err != nil {
 		if errors.Is(err, assessmentSchemas.ErrSchemaNotAccessible) {
-			handleError(c, http.StatusForbidden, err)
+			sdkUtils.HandleError(c, http.StatusForbidden, err)
 			return
 		}
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 	c.Status(http.StatusOK)
@@ -186,26 +187,26 @@ func (s *CategoryService) deleteCategory(c *gin.Context) {
 func (s *CategoryService) getCategoriesWithCompetencies(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	config, err := s.coursePhaseConfig.GetCoursePhaseConfig(c, coursePhaseID)
 	if err != nil {
 		log.Error("Error getting course phase config: ", err)
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
 	if isStudent(c) && (!config.ResultsReleased || !config.GradingSheetVisible) {
-		handleError(c, http.StatusForbidden, fmt.Errorf("assessment results are not released yet"))
+		sdkUtils.HandleError(c, http.StatusForbidden, fmt.Errorf("assessment results are not released yet"))
 		return
 	}
 
 	result, err := s.GetCategoriesWithCompetencies(c, config.AssessmentSchemaID)
 	if err != nil {
 		log.Error("Error getting categories with competencies: ", err)
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 	c.JSON(http.StatusOK, result)
@@ -224,21 +225,21 @@ func (s *CategoryService) getCategoriesWithCompetencies(c *gin.Context) {
 func (s *CategoryService) getSelfEvaluationCategoriesWithCompetencies(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	config, err := s.coursePhaseConfig.GetCoursePhaseConfig(c, coursePhaseID)
 	if err != nil {
 		log.Error("Error getting course phase config: ", err)
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
 	result, err := s.GetCategoriesWithCompetencies(c, config.SelfEvaluationSchema)
 	if err != nil {
 		log.Error("Error getting self evaluation categories with competencies: ", err)
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 	c.JSON(http.StatusOK, result)
@@ -257,21 +258,21 @@ func (s *CategoryService) getSelfEvaluationCategoriesWithCompetencies(c *gin.Con
 func (s *CategoryService) getPeerEvaluationCategoriesWithCompetencies(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	config, err := s.coursePhaseConfig.GetCoursePhaseConfig(c, coursePhaseID)
 	if err != nil {
 		log.Error("Error getting course phase config: ", err)
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
 	result, err := s.GetCategoriesWithCompetencies(c, config.PeerEvaluationSchema)
 	if err != nil {
 		log.Error("Error getting peer evaluation categories with competencies: ", err)
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 	c.JSON(http.StatusOK, result)
@@ -290,28 +291,24 @@ func (s *CategoryService) getPeerEvaluationCategoriesWithCompetencies(c *gin.Con
 func (s *CategoryService) getTutorEvaluationCategoriesWithCompetencies(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	config, err := s.coursePhaseConfig.GetCoursePhaseConfig(c, coursePhaseID)
 	if err != nil {
 		log.Error("Error getting course phase config: ", err)
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
 	result, err := s.GetCategoriesWithCompetencies(c, config.TutorEvaluationSchema)
 	if err != nil {
 		log.Error("Error getting tutor evaluation categories with competencies: ", err)
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 	c.JSON(http.StatusOK, result)
-}
-
-func handleError(c *gin.Context, statusCode int, err error) {
-	c.JSON(statusCode, gin.H{"error": err.Error()})
 }
 
 func isStudent(c *gin.Context) bool {

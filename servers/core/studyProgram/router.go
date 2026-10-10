@@ -39,7 +39,7 @@ func (s *StudyProgramService) getAllStudyPrograms(c *gin.Context) {
 	studyPrograms, err := s.ListStudyPrograms(c)
 	if err != nil {
 		log.Error(err)
-		handleError(c, http.StatusInternalServerError, errors.New("failed to get study programs"))
+		sdkUtils.HandleError(c, http.StatusInternalServerError, errors.New("failed to get study programs"))
 		return
 	}
 	c.IndentedJSON(http.StatusOK, studyPrograms)
@@ -57,7 +57,7 @@ func (s *StudyProgramService) getStudentCounts(c *gin.Context) {
 	counts, err := s.GetStudentCounts(c)
 	if err != nil {
 		log.Error(err)
-		handleError(c, http.StatusInternalServerError, errors.New("failed to count students per study program"))
+		sdkUtils.HandleError(c, http.StatusInternalServerError, errors.New("failed to count students per study program"))
 		return
 	}
 	c.IndentedJSON(http.StatusOK, counts)
@@ -78,11 +78,11 @@ func (s *StudyProgramService) getStudentCounts(c *gin.Context) {
 func (s *StudyProgramService) createStudyProgram(c *gin.Context) {
 	var input studyProgramDTO.CreateStudyProgram
 	if err := c.BindJSON(&input); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 	if err := validateStudyProgram(input.Name, input.ShortName); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
@@ -111,17 +111,17 @@ func (s *StudyProgramService) createStudyProgram(c *gin.Context) {
 func (s *StudyProgramService) updateStudyProgram(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("study-program-uuid"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	var input studyProgramDTO.UpdateStudyProgram
 	if err := c.BindJSON(&input); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 	if err := validateStudyProgram(input.Name, input.ShortName); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
@@ -146,7 +146,7 @@ func (s *StudyProgramService) updateStudyProgram(c *gin.Context) {
 func (s *StudyProgramService) deleteStudyProgram(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("study-program-uuid"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
@@ -160,17 +160,11 @@ func (s *StudyProgramService) deleteStudyProgram(c *gin.Context) {
 func handleServiceError(c *gin.Context, err error, fallbackMessage string) {
 	switch {
 	case errors.Is(err, ErrStudyProgramNotFound):
-		handleError(c, http.StatusNotFound, err)
+		sdkUtils.HandleError(c, http.StatusNotFound, err)
 	case errors.Is(err, ErrDuplicateStudyProgram), errors.Is(err, ErrDuplicateStudyProgramLabel):
-		handleError(c, http.StatusConflict, err)
+		sdkUtils.HandleError(c, http.StatusConflict, err)
 	default:
 		log.Error(err)
-		handleError(c, http.StatusInternalServerError, errors.New(fallbackMessage))
+		sdkUtils.HandleError(c, http.StatusInternalServerError, errors.New(fallbackMessage))
 	}
-}
-
-func handleError(c *gin.Context, statusCode int, err error) {
-	c.JSON(statusCode, sdkUtils.ErrorResponse{
-		Error: err.Error(),
-	})
 }

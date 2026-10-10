@@ -10,10 +10,10 @@ import (
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	"github.com/prompt-edu/prompt-sdk/audit"
 	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
+	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentCompletion"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentDTO"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
-	log "github.com/sirupsen/logrus"
 )
 
 // RegisterRoutes sets up assessment endpoints.
@@ -56,12 +56,12 @@ func RegisterRoutes(routerGroup *gin.RouterGroup, service *AssessmentService, gu
 func (s *AssessmentService) listAssessmentsByCoursePhase(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 	assessments, err := s.ListAssessmentsByCoursePhase(c, coursePhaseID)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 	c.JSON(http.StatusOK, assessmentDTO.GetAssessmentDTOsFromDBModels(assessments))
@@ -106,19 +106,19 @@ func (s *AssessmentService) createOrUpdateIndependentAssessment(c *gin.Context) 
 func saveScoreFromRequest(c *gin.Context, save func(context.Context, assessmentDTO.CreateOrUpdateAssessmentRequest) error) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	var req assessmentDTO.CreateOrUpdateAssessmentRequest
 	if err := c.BindJSON(&req); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	tokenUser, ok := keycloakTokenVerifier.GetTokenUser(c)
 	if !ok {
-		handleError(c, http.StatusUnauthorized, errors.New("authenticated user not found in context"))
+		sdkUtils.HandleError(c, http.StatusUnauthorized, errors.New("authenticated user not found in context"))
 		return
 	}
 	req.Author = tokenUser.FirstName + " " + tokenUser.LastName
@@ -130,11 +130,11 @@ func saveScoreFromRequest(c *gin.Context, save func(context.Context, assessmentD
 	if err != nil {
 		switch {
 		case errors.Is(err, ErrInvalidScoreLevel), errors.Is(err, ErrCompetencyNotInPhase):
-			handleError(c, http.StatusBadRequest, err)
+			sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		case errors.Is(err, assessmentCompletion.ErrAssessmentCompleted), errors.Is(err, coursePhaseConfig.ErrNotStarted):
-			handleError(c, http.StatusConflict, err)
+			sdkUtils.HandleError(c, http.StatusConflict, err)
 		default:
-			handleError(c, http.StatusInternalServerError, err)
+			sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		}
 		return
 	}
@@ -155,24 +155,24 @@ func saveScoreFromRequest(c *gin.Context, save func(context.Context, assessmentD
 func (s *AssessmentService) getStudentAssessment(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 	courseParticipationID, err := uuid.Parse(c.Param("courseParticipationID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	tokenUser, ok := keycloakTokenVerifier.GetTokenUser(c)
 	if !ok {
-		handleError(c, http.StatusUnauthorized, errors.New("authenticated user not found in context"))
+		sdkUtils.HandleError(c, http.StatusUnauthorized, errors.New("authenticated user not found in context"))
 		return
 	}
 
 	studentAssessment, err := s.GetStudentAssessment(c, coursePhaseID, courseParticipationID, tokenUser.ID)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 	c.JSON(http.StatusOK, studentAssessment)
@@ -193,12 +193,12 @@ func (s *AssessmentService) getStudentAssessment(c *gin.Context) {
 func (s *AssessmentService) exportStudentAssessment(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 	courseParticipationID, err := uuid.Parse(c.Param("courseParticipationID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
@@ -206,10 +206,10 @@ func (s *AssessmentService) exportStudentAssessment(c *gin.Context) {
 	export, err := s.ExportStudentAssessment(c, coursePhaseID, courseParticipationID, format)
 	if err != nil {
 		if errors.Is(err, ErrUnsupportedAssessmentExportFormat) {
-			handleError(c, http.StatusBadRequest, err)
+			sdkUtils.HandleError(c, http.StatusBadRequest, err)
 			return
 		}
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -231,13 +231,13 @@ func (s *AssessmentService) exportStudentAssessment(c *gin.Context) {
 func (s *AssessmentService) getMyAssessmentResults(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	config, err := s.coursePhaseConfig.GetStoredCoursePhaseConfig(c, coursePhaseID)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -249,14 +249,14 @@ func (s *AssessmentService) getMyAssessmentResults(c *gin.Context) {
 
 	courseParticipationID, err := keycloakTokenVerifier.GetUserCourseParticipationID(c)
 	if err != nil {
-		handleError(c, keycloakTokenVerifier.GetUserCourseParticipationIDErrorStatus(err), err)
+		sdkUtils.HandleError(c, keycloakTokenVerifier.GetUserCourseParticipationIDErrorStatus(err), err)
 		return
 	}
 
 	// Students can only see results after they have a completed assessment
 	exists, err := s.assessmentCompletion.CheckAssessmentCompletionExists(c, courseParticipationID, coursePhaseID)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 	if !exists {
@@ -265,7 +265,7 @@ func (s *AssessmentService) getMyAssessmentResults(c *gin.Context) {
 	}
 	completion, err := s.assessmentCompletion.GetAssessmentCompletion(c, courseParticipationID, coursePhaseID)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 	if !completion.Completed {
@@ -275,7 +275,7 @@ func (s *AssessmentService) getMyAssessmentResults(c *gin.Context) {
 
 	results, err := s.GetStudentAssessmentResults(c, coursePhaseID, courseParticipationID, config)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -296,20 +296,20 @@ func (s *AssessmentService) getMyAssessmentResults(c *gin.Context) {
 func (s *AssessmentService) deleteAssessment(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 	assessmentID, err := uuid.Parse(c.Param("assessmentID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 	if err := s.DeleteAssessment(c, assessmentID, coursePhaseID); err != nil {
 		if errors.Is(err, ErrAssessmentNotInPhase) || errors.Is(err, ErrAssessmentNotFound) {
-			handleError(c, http.StatusNotFound, err)
+			sdkUtils.HandleError(c, http.StatusNotFound, err)
 			return
 		}
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 	c.String(http.StatusOK, "OK")
@@ -331,17 +331,17 @@ func (s *AssessmentService) deleteAssessment(c *gin.Context) {
 func (s *AssessmentService) deleteOwnIndependentAssessment(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 	independentAssessmentID, err := uuid.Parse(c.Param("independentAssessmentID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 	tokenUser, ok := keycloakTokenVerifier.GetTokenUser(c)
 	if !ok {
-		handleError(c, http.StatusUnauthorized, errors.New("authenticated user not found in context"))
+		sdkUtils.HandleError(c, http.StatusUnauthorized, errors.New("authenticated user not found in context"))
 		return
 	}
 
@@ -350,11 +350,11 @@ func (s *AssessmentService) deleteOwnIndependentAssessment(c *gin.Context) {
 	case err == nil:
 		c.Status(http.StatusNoContent)
 	case errors.Is(err, ErrAssessmentNotFound):
-		handleError(c, http.StatusNotFound, err)
+		sdkUtils.HandleError(c, http.StatusNotFound, err)
 	case errors.Is(err, assessmentCompletion.ErrAssessmentCompleted), errors.Is(err, coursePhaseConfig.ErrNotStarted):
-		handleError(c, http.StatusConflict, err)
+		sdkUtils.HandleError(c, http.StatusConflict, err)
 	default:
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 	}
 }
 
@@ -372,23 +372,18 @@ func (s *AssessmentService) deleteOwnIndependentAssessment(c *gin.Context) {
 func (s *AssessmentService) listAssessmentsByStudentInPhase(c *gin.Context) {
 	courseParticipationID, err := uuid.Parse(c.Param("courseParticipationID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 	assessments, err := s.ListAssessmentsByStudentInPhase(c, courseParticipationID, coursePhaseID)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 	c.JSON(http.StatusOK, assessmentDTO.GetAssessmentDTOsFromDBModels(assessments))
-}
-
-func handleError(c *gin.Context, statusCode int, err error) {
-	log.Error(err)
-	c.JSON(statusCode, gin.H{"error": err.Error()})
 }

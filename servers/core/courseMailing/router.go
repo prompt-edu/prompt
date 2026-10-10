@@ -80,7 +80,7 @@ func parseCourseAndCampaign(c *gin.Context) (uuid.UUID, uuid.UUID, error) {
 func (s *CourseMailingService) listCampaigns(c *gin.Context) {
 	courseID, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 	campaigns, err := s.ListCampaigns(c, courseID)
@@ -105,12 +105,12 @@ func (s *CourseMailingService) listCampaigns(c *gin.Context) {
 func (s *CourseMailingService) createCampaign(c *gin.Context) {
 	courseID, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 	req, err := bindCampaignRequest(c)
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 	created, err := s.CreateCampaign(c, courseID, actorFromContext(c), req)
@@ -135,7 +135,7 @@ func (s *CourseMailingService) createCampaign(c *gin.Context) {
 func (s *CourseMailingService) getCampaign(c *gin.Context) {
 	courseID, campaignID, err := parseCourseAndCampaign(c)
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 	detail, err := s.GetCampaignDetail(c, courseID, campaignID)
@@ -163,12 +163,12 @@ func (s *CourseMailingService) getCampaign(c *gin.Context) {
 func (s *CourseMailingService) updateCampaign(c *gin.Context) {
 	courseID, campaignID, err := parseCourseAndCampaign(c)
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 	req, err := bindCampaignRequest(c)
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 	updated, err := s.UpdateCampaign(c, courseID, campaignID, actorFromContext(c), req)
@@ -192,7 +192,7 @@ func (s *CourseMailingService) updateCampaign(c *gin.Context) {
 func (s *CourseMailingService) deleteCampaign(c *gin.Context) {
 	courseID, campaignID, err := parseCourseAndCampaign(c)
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 	if err := s.DeleteCampaign(c, courseID, campaignID); err != nil {
@@ -216,7 +216,7 @@ func (s *CourseMailingService) deleteCampaign(c *gin.Context) {
 func (s *CourseMailingService) copyCampaign(c *gin.Context) {
 	courseID, campaignID, err := parseCourseAndCampaign(c)
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 	copied, err := s.CopyCampaign(c, courseID, campaignID, actorFromContext(c))
@@ -241,7 +241,7 @@ func (s *CourseMailingService) copyCampaign(c *gin.Context) {
 func (s *CourseMailingService) previewRecipients(c *gin.Context) {
 	courseID, campaignID, err := parseCourseAndCampaign(c)
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 	preview, err := s.PreviewRecipients(c, courseID, campaignID)
@@ -265,7 +265,7 @@ func (s *CourseMailingService) previewRecipients(c *gin.Context) {
 func (s *CourseMailingService) testSendCampaign(c *gin.Context) {
 	courseID, campaignID, err := parseCourseAndCampaign(c)
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 	if err := s.TestSend(c, courseID, campaignID, actorFromContext(c)); err != nil {
@@ -291,7 +291,7 @@ func (s *CourseMailingService) testSendCampaign(c *gin.Context) {
 func (s *CourseMailingService) sendCampaign(c *gin.Context) {
 	courseID, campaignID, err := parseCourseAndCampaign(c)
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 	count, err := s.SendCampaign(c, courseID, campaignID, actorFromContext(c))
@@ -318,7 +318,7 @@ func (s *CourseMailingService) sendCampaign(c *gin.Context) {
 func (s *CourseMailingService) resendFailedCampaign(c *gin.Context) {
 	courseID, campaignID, err := parseCourseAndCampaign(c)
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 	count, err := s.ResendFailed(c, courseID, campaignID, actorFromContext(c))
@@ -338,23 +338,19 @@ func bindCampaignRequest(c *gin.Context) (courseMailingDTO.MailCampaignRequest, 
 	return req, nil
 }
 
-func handleError(c *gin.Context, statusCode int, err error) {
-	c.JSON(statusCode, sdkUtils.ErrorResponse{Error: err.Error()})
-}
-
 func handleServiceError(c *gin.Context, err error) {
 	switch {
 	case errors.Is(err, ErrNotFound):
-		handleError(c, http.StatusNotFound, err)
+		sdkUtils.HandleError(c, http.StatusNotFound, err)
 	case errors.Is(err, ErrSendInProgress):
-		handleError(c, http.StatusConflict, err)
+		sdkUtils.HandleError(c, http.StatusConflict, err)
 	case errors.Is(err, ErrNoRecipients):
-		handleError(c, http.StatusUnprocessableEntity, err)
+		sdkUtils.HandleError(c, http.StatusUnprocessableEntity, err)
 	case errors.Is(err, ErrValidation):
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 	default:
 		// Do not leak wrapped database/internal error text to the client.
 		log.Error(err)
-		handleError(c, http.StatusInternalServerError, errors.New("internal server error"))
+		sdkUtils.HandleError(c, http.StatusInternalServerError, errors.New("internal server error"))
 	}
 }

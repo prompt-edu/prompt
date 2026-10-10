@@ -8,7 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
-	log "github.com/sirupsen/logrus"
+	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 )
 
 func RegisterRoutes(routerGroup *gin.RouterGroup, service *AllocationService, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
@@ -32,13 +32,13 @@ func RegisterRoutes(routerGroup *gin.RouterGroup, service *AllocationService, au
 func (s *AllocationService) getAllAllocations(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	allocations, err := s.GetAllAllocations(c, coursePhaseID)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -61,34 +61,25 @@ func (s *AllocationService) getAllAllocations(c *gin.Context) {
 func (s *AllocationService) getAllocationByCourseParticipationID(c *gin.Context) {
 	courseParticipationID, err := uuid.Parse(c.Param("courseParticipationID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	allocation, err := s.GetAllocationByCourseParticipationID(c, courseParticipationID, coursePhaseID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			handleError(c, http.StatusNotFound, err)
+			sdkUtils.HandleError(c, http.StatusNotFound, err)
 		} else {
-			handleError(c, http.StatusInternalServerError, err)
+			sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		}
 		return
 	}
 
 	c.JSON(http.StatusOK, allocation)
-}
-
-func handleError(c *gin.Context, statusCode int, err error) {
-	if statusCode < http.StatusInternalServerError {
-		log.Debug(err)
-	} else {
-		log.Error(err)
-	}
-	c.JSON(statusCode, gin.H{"error": err.Error()})
 }

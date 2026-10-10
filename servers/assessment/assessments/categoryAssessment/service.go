@@ -52,6 +52,7 @@ func wrapEditabilityError(err error) error {
 func (s *CategoryAssessmentService) CreateOrUpdateCategoryAssessment(ctx context.Context, coursePhaseID uuid.UUID, req categoryAssessmentDTO.CreateOrUpdateCategoryAssessmentRequest) error {
 	tx, err := s.conn.Begin(ctx)
 	if err != nil {
+		log.Error("could not begin category assessment transaction: ", err)
 		return err
 	}
 	defer promptSDK.DeferDBRollback(tx, ctx)

@@ -6,8 +6,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
+	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/scoreLevel/scoreLevelDTO"
-	log "github.com/sirupsen/logrus"
 )
 
 var _ = scoreLevelDTO.ScoreLevelWithParticipation{}
@@ -37,13 +37,13 @@ func RegisterRoutes(routerGroup *gin.RouterGroup, service *ScoreLevelService, au
 func (s *ScoreLevelService) getAllScoreLevels(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	scoreLevels, err := s.GetAllScoreLevels(c, coursePhaseID)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -64,26 +64,21 @@ func (s *ScoreLevelService) getAllScoreLevels(c *gin.Context) {
 func (s *ScoreLevelService) getScoreLevelByCourseParticipationID(c *gin.Context) {
 	courseParticipationID, err := uuid.Parse(c.Param("courseParticipationID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	scoreLevel, err := s.GetScoreLevelByCourseParticipationID(c, courseParticipationID, coursePhaseID)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
 	c.JSON(http.StatusOK, scoreLevel)
-}
-
-func handleError(c *gin.Context, statusCode int, err error) {
-	log.Error(err)
-	c.JSON(statusCode, gin.H{"error": err.Error()})
 }

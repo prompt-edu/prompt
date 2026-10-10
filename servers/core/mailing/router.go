@@ -47,19 +47,19 @@ func setupMailingRouter(router *gin.RouterGroup, s *MailingService, authMiddlewa
 func (s *MailingService) sendStatusMailManualTrigger(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	var mailingInfo mailingDTO.SendStatusMail
 	if err := c.BindJSON(&mailingInfo); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	response, err := s.SendStatusMailManualTrigger(c, coursePhaseID, mailingInfo.StatusMailToBeSend, mailingInfo.RecipientCourseParticipationIDs)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 	c.JSON(http.StatusOK, response)
@@ -80,13 +80,13 @@ func (s *MailingService) sendStatusMailManualTrigger(c *gin.Context) {
 func (s *MailingService) sendManualMailTrigger(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	var request mailingDTO.SendManualMailRequest
 	if err := c.BindJSON(&request); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
@@ -97,18 +97,12 @@ func (s *MailingService) sendManualMailTrigger(c *gin.Context) {
 	)
 	if err != nil {
 		if errors.Is(err, ErrManualMailValidation) {
-			handleError(c, http.StatusBadRequest, err)
+			sdkUtils.HandleError(c, http.StatusBadRequest, err)
 			return
 		}
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
 	c.JSON(http.StatusOK, report)
-}
-
-func handleError(c *gin.Context, statusCode int, err error) {
-	c.JSON(statusCode, sdkUtils.ErrorResponse{
-		Error: err.Error(),
-	})
 }

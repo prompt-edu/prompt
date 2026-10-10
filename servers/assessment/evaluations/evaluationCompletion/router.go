@@ -9,9 +9,9 @@ import (
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	"github.com/prompt-edu/prompt-sdk/audit"
 	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
+	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	"github.com/prompt-edu/prompt/servers/assessment/evaluations/evaluationCompletion/evaluationCompletionDTO"
-	log "github.com/sirupsen/logrus"
 )
 
 // RegisterRoutes sets up evaluation completion endpoints.
@@ -45,12 +45,12 @@ func RegisterRoutes(routerGroup *gin.RouterGroup, service *EvaluationCompletionS
 func (s *EvaluationCompletionService) listEvaluationCompletionsByCoursePhase(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 	completions, err := s.ListEvaluationCompletionsByCoursePhase(c, coursePhaseID)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 	c.JSON(http.StatusOK, evaluationCompletionDTO.GetEvaluationCompletionDTOsFromDBModels(completions))
@@ -73,13 +73,13 @@ func (s *EvaluationCompletionService) listEvaluationCompletionsByCoursePhase(c *
 func (s *EvaluationCompletionService) createOrUpdateMyEvaluationCompletion(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	var req evaluationCompletionDTO.EvaluationCompletion
 	if err := c.BindJSON(&req); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 	// The authorized phase is the one in the URL; ignore any client-sent phase.
@@ -87,21 +87,21 @@ func (s *EvaluationCompletionService) createOrUpdateMyEvaluationCompletion(c *gi
 
 	statusCode, err := keycloakTokenVerifier.ValidateStudentOwnership(c, req.AuthorCourseParticipationID, "evaluation completions")
 	if err != nil {
-		handleError(c, statusCode, err)
+		sdkUtils.HandleError(c, statusCode, err)
 		return
 	}
 
 	err = s.CreateOrUpdateEvaluationCompletion(c, c.GetHeader("Authorization"), req)
 	if err != nil {
 		if errors.Is(err, coursePhaseConfig.ErrNotStarted) || IsTargetAuthorizationError(err) {
-			handleError(c, http.StatusForbidden, err)
+			sdkUtils.HandleError(c, http.StatusForbidden, err)
 			return
 		}
 		if errors.Is(err, ErrEvaluationAlreadyCompleted) {
-			handleError(c, http.StatusConflict, err)
+			sdkUtils.HandleError(c, http.StatusConflict, err)
 			return
 		}
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Evaluation completion created/updated successfully"})
@@ -123,13 +123,13 @@ func (s *EvaluationCompletionService) createOrUpdateMyEvaluationCompletion(c *gi
 func (s *EvaluationCompletionService) markMyEvaluationAsCompleted(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	var req evaluationCompletionDTO.EvaluationCompletion
 	if err := c.BindJSON(&req); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 	// The authorized phase is the one in the URL; ignore any client-sent phase.
@@ -137,21 +137,21 @@ func (s *EvaluationCompletionService) markMyEvaluationAsCompleted(c *gin.Context
 
 	statusCode, err := keycloakTokenVerifier.ValidateStudentOwnership(c, req.AuthorCourseParticipationID, "evaluation completions")
 	if err != nil {
-		handleError(c, statusCode, err)
+		sdkUtils.HandleError(c, statusCode, err)
 		return
 	}
 
 	err = s.MarkEvaluationAsCompleted(c, c.GetHeader("Authorization"), req)
 	if err != nil {
 		if errors.Is(err, coursePhaseConfig.ErrNotStarted) || IsTargetAuthorizationError(err) {
-			handleError(c, http.StatusForbidden, err)
+			sdkUtils.HandleError(c, http.StatusForbidden, err)
 			return
 		}
 		if errors.Is(err, ErrEvaluationAlreadyCompleted) {
-			handleError(c, http.StatusConflict, err)
+			sdkUtils.HandleError(c, http.StatusConflict, err)
 			return
 		}
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Evaluation marked as completed successfully"})
@@ -172,7 +172,7 @@ func (s *EvaluationCompletionService) markMyEvaluationAsCompleted(c *gin.Context
 func (s *EvaluationCompletionService) unmarkMyEvaluationAsCompleted(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
@@ -182,7 +182,7 @@ func (s *EvaluationCompletionService) unmarkMyEvaluationAsCompleted(c *gin.Conte
 		AuthorCourseParticipationID uuid.UUID `json:"authorCourseParticipationID"`
 	}
 	if err := c.BindJSON(&req); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 	// The authorized phase is the one in the URL; ignore any client-sent phase.
@@ -190,15 +190,15 @@ func (s *EvaluationCompletionService) unmarkMyEvaluationAsCompleted(c *gin.Conte
 
 	statusCode, err := keycloakTokenVerifier.ValidateStudentOwnership(c, req.AuthorCourseParticipationID, "evaluation completions")
 	if err != nil {
-		handleError(c, statusCode, err)
+		sdkUtils.HandleError(c, statusCode, err)
 		return
 	}
 
 	if err := s.UnmarkEvaluationAsCompleted(c, req.CourseParticipationID, req.CoursePhaseID, req.AuthorCourseParticipationID); err != nil {
 		if errors.Is(err, coursePhaseConfig.ErrDeadlinePassed) {
-			handleError(c, http.StatusForbidden, err)
+			sdkUtils.HandleError(c, http.StatusForbidden, err)
 		} else {
-			handleError(c, http.StatusInternalServerError, err)
+			sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		}
 		return
 	}
@@ -218,26 +218,21 @@ func (s *EvaluationCompletionService) unmarkMyEvaluationAsCompleted(c *gin.Conte
 func (s *EvaluationCompletionService) getMyEvaluationCompletions(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	userCourseParticipationUUID, err := keycloakTokenVerifier.GetUserCourseParticipationID(c)
 	if err != nil {
-		handleError(c, keycloakTokenVerifier.GetUserCourseParticipationIDErrorStatus(err), err)
+		sdkUtils.HandleError(c, keycloakTokenVerifier.GetUserCourseParticipationIDErrorStatus(err), err)
 		return
 	}
 
 	evaluationCompletions, err := s.GetEvaluationCompletionsForAuthorInPhase(c, userCourseParticipationUUID, coursePhaseID)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
 	c.JSON(http.StatusOK, evaluationCompletionDTO.GetEvaluationCompletionDTOsFromDBModels(evaluationCompletions))
-}
-
-func handleError(c *gin.Context, statusCode int, err error) {
-	log.Error(err)
-	c.JSON(statusCode, gin.H{"error": err.Error()})
 }

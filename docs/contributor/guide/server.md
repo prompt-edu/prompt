@@ -196,7 +196,8 @@ func (c CreateCourse) GetDBModel() (db.CreateCourseParams, error) {/*...*/}
 
 - Use consistent error response format across all services
 - Log errors with appropriate context using logrus
-- Return structured `utils.ErrorResponse` for client-facing errors
+- Respond with `sdkUtils.HandleError`, which sends the shared `sdkUtils.ErrorResponse` body and
+  does not log
 - Never expose internal error details to clients; use generic user-friendly messages
 
 ### 6.2 Logging Levels

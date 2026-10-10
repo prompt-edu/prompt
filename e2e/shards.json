@@ -1,5 +1,5 @@
 {
-  "$comment": "Shard partition for CI. 'paths' are Playwright regexes matched against the absolute spec path, anchored on both ends. Run `npm run check-shards` after editing. See e2e/README.md.",
+  "$comment": "Shard partition for CI. 'paths' are Playwright regexes matched against the absolute spec path, anchored on both ends. 'aiEnabled' boots the shard's stack with AI_ENABLED=true and the compose profile ai. Run `npm run check-shards` after editing. See e2e/README.md.",
   "shards": [
     {
       "name": "core",
@@ -21,7 +21,8 @@
         "/tests/api/application-files\\.api\\.spec\\.ts$",
         "/tests/api/application-import\\.api\\.spec\\.ts$",
         "/tests/api/course-staff\\.api\\.spec\\.ts$",
-        "/tests/api/service-info\\.api\\.spec\\.ts$"
+        "/tests/api/service-info\\.api\\.spec\\.ts$",
+        "/tests/ai-disabled/.*\\.spec\\.ts$"
       ]
     },
     {
@@ -84,6 +85,14 @@
       "cacheWriter": false,
       "paths": [
         "/tests/infrastructure-setup/.*\\.spec\\.ts$"
+      ]
+    },
+    {
+      "name": "ai",
+      "cacheWriter": false,
+      "aiEnabled": true,
+      "paths": [
+        "/tests/ai/.*\\.spec\\.ts$"
       ]
     },
     {

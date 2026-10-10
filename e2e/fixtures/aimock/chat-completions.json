@@ -1,0 +1,57 @@
+{
+  "fixtures": [
+    {
+      "match": {
+        "userMessage": "Summarize the peer feedback",
+        "model": "prompt-test-model"
+      },
+      "response": {
+        "content": "The team communicates well and should record its decisions earlier.",
+        "usage": {
+          "prompt_tokens": 42,
+          "completion_tokens": 12,
+          "total_tokens": 54
+        },
+        "finishReason": "stop"
+      }
+    },
+    {
+      "match": {
+        "userMessage": "Stream slowly",
+        "model": "prompt-test-model"
+      },
+      "response": {
+        "content": "This answer arrives in many small chunks, so a caller can disconnect long before it ends.",
+        "usage": {
+          "prompt_tokens": 9,
+          "completion_tokens": 20,
+          "total_tokens": 29
+        },
+        "finishReason": "stop"
+      },
+      "chunkSize": 3,
+      "latency": 250
+    },
+    {
+      "match": {
+        "userMessage": "Break off",
+        "model": "prompt-test-model"
+      },
+      "response": {
+        "content": "This answer is cut off by the provider long before it would have ended on its own."
+      },
+      "chunkSize": 3,
+      "latency": 100,
+      "disconnectAfterMs": 500
+    },
+    {
+      "match": {
+        "userMessage": "Only offered by the cloud",
+        "model": "cloud-only-model"
+      },
+      "response": {
+        "content": "This model is not hosted locally."
+      }
+    }
+  ]
+}

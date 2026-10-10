@@ -12,6 +12,7 @@ window.env = {
   CERTIFICATE_HOST: 'http://localhost:8088',
   PRESENTATION_HOST: 'http://localhost:8089',
   INFRASTRUCTURE_SETUP_HOST: 'http://localhost:8091',
+  AI_HOST: 'http://localhost:8092',
   KEYCLOAK_HOST: 'http://localhost:8081',
   KEYCLOAK_REALM_NAME: 'prompt',
   CHAIR_NAME_LONG: 'TUM Research Group for Applied Education Technologies',

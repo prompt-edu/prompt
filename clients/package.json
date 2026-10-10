@@ -13,7 +13,8 @@
       "self_team_allocation_component",
       "certificate_component",
       "presentation_component",
-      "infrastructure_setup_component"
+      "infrastructure_setup_component",
+      "ai_component"
     ]
   },
   "scripts": {

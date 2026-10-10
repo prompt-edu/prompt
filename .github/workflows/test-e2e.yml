@@ -56,6 +56,9 @@ jobs:
       PW_SHARD_NAME: ${{ matrix.name }}
       # Bounds the Playwright phase only (~2-3 min per shard today).
       PW_GLOBAL_TIMEOUT_MIN: "20"
+      # A shard with aiEnabled boots the AI server, its database and aimock.
+      AI_ENABLED: ${{ matrix.aiEnabled && 'true' || 'false' }}
+      COMPOSE_PROFILES: ${{ matrix.aiEnabled && 'ai' || '' }}
     steps:
       - uses: actions/checkout@v7
 

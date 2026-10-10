@@ -60,6 +60,12 @@ on:
       infrastructure_setup_image_tag:
         required: true
         type: string
+      server_ai_image_tag:
+        required: true
+        type: string
+      ai_image_tag:
+        required: true
+        type: string
       release_tag:
         description: "Release being deployed; shown as the maintenance reason when set"
         required: false
@@ -149,7 +155,7 @@ jobs:
           proxy_port: ${{ vars.DEPLOYMENT_GATEWAY_PORT }}
           script: |
             # Define services to stop/remove (all except reverse-proxy and maintenance)
-            SERVICES="server-core server-team-allocation server-self-team-allocation server-assessment server-interview server-certificate server-presentation server-infrastructure-setup client-core client-assessment-component client-interview-component client-matching-component client-team-allocation-component client-self-team-allocation-component client-example-component client-certificate-component client-presentation-component client-infrastructure-setup-component"
+            SERVICES="server-core server-team-allocation server-self-team-allocation server-assessment server-interview server-certificate server-presentation server-infrastructure-setup server-ai client-core client-assessment-component client-interview-component client-matching-component client-team-allocation-component client-self-team-allocation-component client-example-component client-certificate-component client-presentation-component client-infrastructure-setup-component client-ai-component"
             # Stop all services except reverse-proxy and maintenance (keep fallback active)
             docker compose -f docker-compose.prod.yml --env-file=.env.prod stop $SERVICES
             # Remove stopped containers
@@ -231,6 +237,7 @@ jobs:
             echo "CERTIFICATE_HOST=${{ vars.CERTIFICATE_HOST != '' && vars.CERTIFICATE_HOST || vars.CORE_HOST }}" >> .env.prod
             echo "PRESENTATION_HOST=${{ vars.PRESENTATION_HOST != '' && vars.PRESENTATION_HOST || vars.CORE_HOST }}" >> .env.prod
             echo "INFRASTRUCTURE_SETUP_HOST=${{ vars.INFRASTRUCTURE_SETUP_HOST != '' && vars.INFRASTRUCTURE_SETUP_HOST || vars.CORE_HOST }}" >> .env.prod
+            echo "AI_HOST=${{ vars.AI_HOST != '' && vars.AI_HOST || vars.CORE_HOST }}" >> .env.prod
             echo "CHAIR_NAME_SHORT=${{ vars.CHAIR_NAME_SHORT }}" >> .env.prod
             echo "CHAIR_NAME_LONG=${{ vars.CHAIR_NAME_LONG }}" >> .env.prod
 
@@ -273,6 +280,7 @@ jobs:
             echo "SERVER_CERTIFICATE_IMAGE_TAG=${{ inputs.server_certificate_image_tag }}" >> .env.prod
             echo "SERVER_PRESENTATION_IMAGE_TAG=${{ inputs.server_presentation_image_tag }}" >> .env.prod
             echo "SERVER_INFRASTRUCTURE_SETUP_IMAGE_TAG=${{ inputs.server_infrastructure_setup_image_tag }}" >> .env.prod
+            echo "SERVER_AI_IMAGE_TAG=${{ inputs.server_ai_image_tag }}" >> .env.prod
 
             echo "CORE_IMAGE_TAG=${{ inputs.core_image_tag }}" >> .env.prod
             echo "EXAMPLE_IMAGE_TAG=${{ inputs.example_image_tag }}" >> .env.prod
@@ -284,6 +292,7 @@ jobs:
             echo "CERTIFICATE_IMAGE_TAG=${{ inputs.certificate_image_tag }}" >> .env.prod
             echo "PRESENTATION_IMAGE_TAG=${{ inputs.presentation_image_tag }}" >> .env.prod
             echo "INFRASTRUCTURE_SETUP_IMAGE_TAG=${{ inputs.infrastructure_setup_image_tag }}" >> .env.prod
+            echo "AI_IMAGE_TAG=${{ inputs.ai_image_tag }}" >> .env.prod
 
             echo "ENCRYPTION_KEY=${{ secrets.ENCRYPTION_KEY }}" >> .env.prod
 
@@ -305,6 +314,14 @@ jobs:
             echo "AUDIT_INGEST_KEY_CERTIFICATE=${{ secrets.AUDIT_INGEST_KEY_CERTIFICATE }}" >> .env.prod
             echo "AUDIT_INGEST_KEY_PRESENTATION=${{ secrets.AUDIT_INGEST_KEY_PRESENTATION }}" >> .env.prod
 
+            # AI_ENABLED is the one switch: it selects the compose profile with the AI server and its database.
+            echo "AI_ENABLED=${{ vars.AI_ENABLED == 'true' && 'true' || 'false' }}" >> .env.prod
+            echo "COMPOSE_PROFILES=${{ vars.AI_ENABLED == 'true' && 'ai' || '' }}" >> .env.prod
+            echo "AI_PROVIDER_BASE_URL=${{ vars.AI_PROVIDER_BASE_URL }}" >> .env.prod
+            echo "AI_ALLOWED_MODELS=${{ vars.AI_ALLOWED_MODELS }}" >> .env.prod
+            echo "AI_ENCRYPTION_KEY=${{ secrets.AI_ENCRYPTION_KEY }}" >> .env.prod
+            echo "AI_AUDIT_METADATA_RETENTION_DAYS=${{ vars.AI_AUDIT_METADATA_RETENTION_DAYS || '1825' }}" >> .env.prod
+
             echo "SENTRY_ENABLED=${{ vars.SENTRY_ENABLED || 'false' }}" >> .env.prod
             echo "SENTRY_DSN_CORE=${{ vars.SENTRY_DSN_CORE }}" >> .env.prod
             echo "SENTRY_DSN_TEAM_ALLOCATION=${{ vars.SENTRY_DSN_TEAM_ALLOCATION }}" >> .env.prod
@@ -315,6 +332,7 @@ jobs:
             echo "SENTRY_DSN_CERTIFICATE=${{ vars.SENTRY_DSN_CERTIFICATE }}" >> .env.prod
             echo "SENTRY_DSN_PRESENTATION=${{ vars.SENTRY_DSN_PRESENTATION }}" >> .env.prod
             echo "SENTRY_DSN_INFRASTRUCTURE_SETUP=${{ vars.SENTRY_DSN_INFRASTRUCTURE_SETUP }}" >> .env.prod
+            echo "SENTRY_DSN_AI=${{ vars.SENTRY_DSN_AI }}" >> .env.prod
 
             echo "ACME_EMAIL=${{ vars.ACME_EMAIL }}" >> .env.prod
 
@@ -342,5 +360,9 @@ jobs:
           proxy_port: ${{ vars.DEPLOYMENT_GATEWAY_PORT }}
           script: |
             docker compose -f docker-compose.prod.yml --env-file=.env.prod up --pull=always -d && rm -f /home/${{ vars.VM_USERNAME }}/maintenance/status.json
+            # Switching AI off must stop its database too, which the deploy otherwise keeps running.
+            if [ "${{ vars.AI_ENABLED }}" != "true" ]; then
+              docker compose -f docker-compose.prod.yml --env-file=.env.prod stop server-ai db-ai client-ai-component || true
+            fi
             # Clean up old/unused images after successful deployment
             docker image prune -a -f --filter "until=24h"

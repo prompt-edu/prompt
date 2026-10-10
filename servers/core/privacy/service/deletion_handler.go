@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"fmt"
-	"net/url"
 	"sync"
 	"time"
 
@@ -53,11 +52,8 @@ func (s *PrivacyService) PrepareDataDeletion(c context.Context, record privacyDT
 	}
 
 	externalDeletions := make([]ServiceDeletionRequest, 0)
-	for _, cpt := range coursePhaseTypes {
-		if _, err := url.ParseRequestURI(cpt.BaseUrl); err != nil {
-			continue
-		}
-		sub, err := CreateDeletionSubrequest(c, txQueries, record.ID, cpt.Name, cpt.BaseUrl+sdkTypes.PrivacyRouteDataDeletion)
+	for _, module := range s.externalModules(coursePhaseTypes) {
+		sub, err := CreateDeletionSubrequest(c, txQueries, record.ID, module.Name, module.BaseURL+sdkTypes.PrivacyRouteDataDeletion)
 		if err != nil {
 			return Deletion{}, err
 		}

@@ -1,0 +1,43 @@
+{{- if and (eq .Values.global.objectStorage.mode "in-cluster") .Values.networkPolicy.enabled }}
+{{/*
+The SeaweedFS master, volume and filer APIs are unauthenticated - only the S3
+gateway checks credentials. Compose kept them on a private bridge; here they
+would otherwise be reachable from every namespace in the cluster.
+
+This closes cross-namespace access. It is not a tenant boundary: any pod created
+in this namespace carrying the part-of label is still allowed, so run the release
+in a dedicated namespace. Enforcement requires a CNI that implements
+NetworkPolicy - without one the object is inert.
+*/}}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ printf "%s-seaweedfs-internal" .Release.Name }}
+  labels:
+    {{- include "prompt.labels" (dict "root" . "component" "seaweedfs-internal") | nindent 4 }}
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app.kubernetes.io/instance
+        operator: In
+        values: [{{ .Release.Name | quote }}]
+      - key: app.kubernetes.io/name
+        operator: In
+        values:
+          - seaweedfs-master
+          - seaweedfs-volume
+          - seaweedfs-filer
+  policyTypes: ["Ingress"]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/part-of: prompt
+      ports:
+        - protocol: TCP
+          port: 9333
+        - protocol: TCP
+          port: 8080
+        - protocol: TCP
+          port: 8888
+{{- end }}

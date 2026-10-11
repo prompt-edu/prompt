@@ -1,0 +1,17 @@
+# Overridden by the umbrella `assessment:` block; defaults for standalone use.
+enabled: true
+server:
+  enabled: true
+  image: prompt-server-assessment
+  replicas: 1
+  port: 8080
+  apiPath: /assessment/api
+  dbKey: assessment
+  rateLimited: true
+client:
+  enabled: true
+  image: prompt-clients-assessment-component
+  replicas: 1
+  port: 80
+  path: /assessment
+  stripPrefix: true

@@ -1,0 +1,39 @@
+name: Quality Helm Chart
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  quality-chart:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: azure/setup-helm@v4
+      - name: Lint chart
+        run: helm lint charts/prompt -f charts/prompt/ci/default-values.yaml
+      - name: Install kubeconform
+        run: |
+          curl -sSL -o /tmp/kubeconform.tar.gz \
+            https://github.com/yannh/kubeconform/releases/download/v0.7.0/kubeconform-linux-amd64.tar.gz
+          tar -xzf /tmp/kubeconform.tar.gz -C /tmp kubeconform
+          sudo install /tmp/kubeconform /usr/local/bin/kubeconform
+      - name: Validate rendered manifests
+        # -ignore-missing-schemas skips resources with no published schema, which
+        # means the CloudNativePG, Keycloak and Envoy Gateway custom resources are
+        # NOT field-validated here. Only core Kubernetes objects are.
+        run: |
+          for values in charts/prompt/ci/*-values.yaml; do
+            echo "::group::kubeconform $(basename "$values")"
+            helm template prompt charts/prompt -f "$values" |
+              kubeconform -strict -ignore-missing-schemas -summary -
+            echo "::endgroup::"
+          done
+      - name: Assert render properties
+        # Renders every mode combination and checks the properties a regression
+        # would silently break. Cannot cover anything the kubelet decides at
+        # container start; see docs/admin/kubernetes/installation.md.
+        run: charts/prompt/ci/assert-render.sh

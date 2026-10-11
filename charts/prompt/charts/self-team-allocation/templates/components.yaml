@@ -1,0 +1,3 @@
+{{ include "prompt.server" (dict "root" . "name" "self-team-allocation" "comp" .Values.server) }}
+---
+{{ include "prompt.client" (dict "root" . "name" "self-team-allocation" "comp" .Values.client) }}

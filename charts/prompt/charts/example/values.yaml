@@ -1,0 +1,9 @@
+# Overridden by the umbrella `example:` block; defaults for standalone use.
+enabled: true
+client:
+  enabled: true
+  image: prompt-clients-example-component
+  replicas: 1
+  port: 80
+  path: /example
+  stripPrefix: true

@@ -79,6 +79,8 @@ jobs:
     secrets: inherit
   quality-clients:
     uses: ./.github/workflows/quality-clients.yml
+  quality-chart:
+    uses: ./.github/workflows/quality-chart.yml
   e2e-tests:
     needs: [quality-servers, quality-clients]
     uses: ./.github/workflows/test-e2e.yml

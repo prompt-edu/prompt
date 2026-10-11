@@ -1,0 +1,8 @@
+# Bundled Keycloak. Requires in-cluster PostgreSQL (the chart fails otherwise).
+global:
+  host: prompt.ci.example.com
+  keycloak:
+    mode: in-cluster
+  appSecrets:
+    data:
+      S3_SECRET_KEY: ci-s3-secret

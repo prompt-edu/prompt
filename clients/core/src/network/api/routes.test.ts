@@ -4,6 +4,7 @@ import type { CoursePhaseType } from '@core/managementConsole/pages/SystemStatus
 import { axiosInstance, notAuthenticatedAxiosInstance } from '@tumaet/prompt-shared-state'
 import axios, { type AxiosResponse, type InternalAxiosRequestConfig } from 'axios'
 import { afterEach, beforeEach, describe, expect, it, type MockInstance, vi } from 'vitest'
+import { aiAxiosInstance } from '../client'
 import { coreApi } from './index'
 
 const CORE = 'http://core.test'
@@ -42,7 +43,7 @@ const serializedCopy = { ...copyCourse, startDate: '2026-09-01', endDate: '2026-
 
 const service = { id: 'assessment', baseUrl: 'http://assessment.test' } as CoursePhaseType
 
-type Instance = 'core' | 'public' | 'raw'
+type Instance = 'core' | 'public' | 'raw' | 'ai'
 
 interface Route {
   name: string
@@ -63,6 +64,13 @@ const studentsPath = `${CORE}/api/students`
 const studyProgramsPath = `${CORE}/api/study-programs`
 
 const ROUTES: Route[] = [
+  {
+    name: 'ai.info',
+    run: () => coreApi.ai.info(),
+    method: 'get',
+    url: 'http://ai.test/ai/api/info',
+    instance: 'ai',
+  },
   {
     name: 'applications.listParticipations',
     run: () => coreApi.applications.listParticipations(PHASE),
@@ -682,6 +690,7 @@ const INSTANCES = {
   core: axiosInstance,
   public: notAuthenticatedAxiosInstance,
   raw: axios,
+  ai: aiAxiosInstance,
 } as const
 
 let captured: InternalAxiosRequestConfig[]

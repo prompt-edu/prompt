@@ -5,6 +5,8 @@ import { ROLES, SEEDED_ROLES } from './data/roles'
 import { LoginPage } from './pages/LoginPage'
 import { authFile } from './fixtures/auth'
 import {
+  AI_API,
+  AI_ENABLED,
   ASSESSMENT_API,
   BASE_URL,
   CERTIFICATE_API,
@@ -99,6 +101,9 @@ export default async function globalSetup(_config: FullConfig) {
   await waitForServiceInfo(`${BASE_URL}${PRESENTATION_API}/info`, 'presentation')
   await waitForServiceInfo(`${BASE_URL}${TEAM_ALLOCATION_API}/info`, 'team-allocation')
   await waitForServiceInfo(`${BASE_URL}${INFRASTRUCTURE_SETUP_API}/info`, 'infrastructure-setup')
+  if (AI_ENABLED) {
+    await waitForServiceInfo(`${BASE_URL}${AI_API}/info`, 'ai')
+  }
 
   const browser = await chromium.launch()
   try {

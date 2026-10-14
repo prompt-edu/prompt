@@ -1,4 +1,8 @@
-import { axiosInstance, notAuthenticatedAxiosInstance } from '@tumaet/prompt-shared-state'
+import {
+  axiosInstance,
+  createAuthenticatedAxiosInstance,
+  notAuthenticatedAxiosInstance,
+} from '@tumaet/prompt-shared-state'
 import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios'
 import { isAxiosError } from 'axios'
 
@@ -9,6 +13,9 @@ import { isAxiosError } from 'axios'
 export const API_PREFIX = '/api'
 
 export const NO_CONTENT = 204
+
+/** Stands for a request that got no answer at all, such as a refused connection, in `quietStatuses`. */
+export const NO_ANSWER = 0
 
 /**
  * Every write announces plain JSON. The 41 write modules this replaces were split between
@@ -45,7 +52,7 @@ const send = async <T>(
     return await instance.request<T>(config)
   } catch (error) {
     const failure = describeError(error)
-    if (failure.status === undefined || !quietStatuses.includes(failure.status)) {
+    if (!quietStatuses.includes(failure.status ?? NO_ANSWER)) {
       console.error(`${description} request failed`, failure)
     }
     throw error
@@ -96,3 +103,10 @@ export const coreRequest = requestsThrough(axiosInstance, 'Core')
 
 /** The public application pages, which are reached before there is a token. */
 export const publicRequest = requestsThrough(notAuthenticatedAxiosInstance, 'Public core')
+
+// Read off window.env: the shared `env` object drops keys its EnvType does not know.
+export const aiAxiosInstance = createAuthenticatedAxiosInstance(
+  (window.env as { AI_HOST?: string }).AI_HOST ?? '',
+)
+
+export const aiRequest = requestsThrough(aiAxiosInstance, 'AI')

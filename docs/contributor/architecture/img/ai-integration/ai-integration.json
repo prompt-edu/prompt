@@ -1,0 +1,986 @@
+{
+  "id": "98714da3-e8e6-4d06-a9eb-36bebc36af58",
+  "version": "4.1.0",
+  "title": "PROMPT AI Integration",
+  "type": "ComponentDiagram",
+  "nodes": [
+    {
+      "id": "coreClient",
+      "width": 200,
+      "height": 90,
+      "type": "component",
+      "position": {
+        "x": 400,
+        "y": 0
+      },
+      "data": {
+        "name": "Core Client",
+        "isComponentHeaderShown": true
+      },
+      "measured": {
+        "width": 200,
+        "height": 90
+      }
+    },
+    {
+      "id": "client",
+      "width": 200,
+      "height": 90,
+      "type": "component",
+      "position": {
+        "x": 1520,
+        "y": 0
+      },
+      "data": {
+        "name": "Assessment Client",
+        "isComponentHeaderShown": true
+      },
+      "measured": {
+        "width": 200,
+        "height": 90
+      }
+    },
+    {
+      "id": "iCore",
+      "width": 30,
+      "height": 30,
+      "type": "componentInterface",
+      "position": {
+        "x": 485,
+        "y": 230
+      },
+      "data": {
+        "name": "Core API"
+      },
+      "measured": {
+        "width": 30,
+        "height": 30
+      }
+    },
+    {
+      "id": "iAiPhase",
+      "width": 30,
+      "height": 30,
+      "type": "componentInterface",
+      "position": {
+        "x": 1055,
+        "y": 230
+      },
+      "data": {
+        "name": "AI Course Phase API (events, audit)"
+      },
+      "measured": {
+        "width": 30,
+        "height": 30
+      }
+    },
+    {
+      "id": "iAssessment",
+      "width": 30,
+      "height": 30,
+      "type": "componentInterface",
+      "position": {
+        "x": 1605,
+        "y": 230
+      },
+      "data": {
+        "name": "Assessment API"
+      },
+      "measured": {
+        "width": 30,
+        "height": 30
+      }
+    },
+    {
+      "id": "iPrivacy",
+      "width": 30,
+      "height": 30,
+      "type": "componentInterface",
+      "position": {
+        "x": 695,
+        "y": 315
+      },
+      "data": {
+        "name": "Privacy & Deletion"
+      },
+      "measured": {
+        "width": 30,
+        "height": 30
+      }
+    },
+    {
+      "id": "keycloak",
+      "width": 200,
+      "height": 90,
+      "type": "component",
+      "position": {
+        "x": 0,
+        "y": 420
+      },
+      "data": {
+        "name": "Keycloak",
+        "isComponentHeaderShown": true
+      },
+      "measured": {
+        "width": 200,
+        "height": 90
+      }
+    },
+    {
+      "id": "core",
+      "width": 200,
+      "height": 90,
+      "type": "component",
+      "position": {
+        "x": 400,
+        "y": 420
+      },
+      "data": {
+        "name": "Core Server",
+        "isComponentHeaderShown": true
+      },
+      "measured": {
+        "width": 200,
+        "height": 90
+      }
+    },
+    {
+      "id": "iRoles",
+      "width": 30,
+      "height": 30,
+      "type": "componentInterface",
+      "position": {
+        "x": 695,
+        "y": 450
+      },
+      "data": {
+        "name": "Role Resolution"
+      },
+      "measured": {
+        "width": 30,
+        "height": 30
+      }
+    },
+    {
+      "id": "ai",
+      "width": 500,
+      "height": 330,
+      "type": "componentSubsystem",
+      "position": {
+        "x": 820,
+        "y": 380
+      },
+      "data": {
+        "name": "AI Server (AI_ENABLED)",
+        "isComponentSubsystemHeaderShown": true
+      },
+      "measured": {
+        "width": 500,
+        "height": 330
+      }
+    },
+    {
+      "id": "auth",
+      "width": 220,
+      "height": 90,
+      "type": "component",
+      "position": {
+        "x": 20,
+        "y": 70
+      },
+      "parentId": "ai",
+      "data": {
+        "name": "prompt-sdk Auth",
+        "isComponentHeaderShown": true
+      },
+      "measured": {
+        "width": 220,
+        "height": 90
+      }
+    },
+    {
+      "id": "gateway",
+      "width": 220,
+      "height": 90,
+      "type": "component",
+      "position": {
+        "x": 260,
+        "y": 70
+      },
+      "parentId": "ai",
+      "data": {
+        "name": "OpenAI-compatible Gateway (model allowlist)",
+        "isComponentHeaderShown": true
+      },
+      "measured": {
+        "width": 220,
+        "height": 90
+      }
+    },
+    {
+      "id": "keys",
+      "width": 220,
+      "height": 90,
+      "type": "component",
+      "position": {
+        "x": 20,
+        "y": 200
+      },
+      "parentId": "ai",
+      "data": {
+        "name": "Feature Registry (retention per feature)",
+        "isComponentHeaderShown": true
+      },
+      "measured": {
+        "width": 220,
+        "height": 90
+      }
+    },
+    {
+      "id": "audit",
+      "width": 220,
+      "height": 90,
+      "type": "component",
+      "position": {
+        "x": 260,
+        "y": 200
+      },
+      "parentId": "ai",
+      "data": {
+        "name": "Audit (fail-closed, retention per feature)",
+        "isComponentHeaderShown": true
+      },
+      "measured": {
+        "width": 220,
+        "height": 90
+      }
+    },
+    {
+      "id": "iAi",
+      "width": 30,
+      "height": 30,
+      "type": "componentInterface",
+      "position": {
+        "x": 1405,
+        "y": 450
+      },
+      "data": {
+        "name": "OpenAI-compatible API"
+      },
+      "measured": {
+        "width": 30,
+        "height": 30
+      }
+    },
+    {
+      "id": "assessment",
+      "width": 200,
+      "height": 90,
+      "type": "component",
+      "position": {
+        "x": 1520,
+        "y": 420
+      },
+      "data": {
+        "name": "Assessment Server",
+        "isComponentHeaderShown": true
+      },
+      "measured": {
+        "width": 200,
+        "height": 90
+      }
+    },
+    {
+      "id": "iLogos",
+      "width": 30,
+      "height": 30,
+      "type": "componentInterface",
+      "position": {
+        "x": 1855,
+        "y": 450
+      },
+      "data": {
+        "name": "Chat Completions"
+      },
+      "measured": {
+        "width": 30,
+        "height": 30
+      }
+    },
+    {
+      "id": "logos",
+      "width": 200,
+      "height": 90,
+      "type": "component",
+      "position": {
+        "x": 2020,
+        "y": 420
+      },
+      "data": {
+        "name": "Logos",
+        "isComponentHeaderShown": true
+      },
+      "measured": {
+        "width": 200,
+        "height": 90
+      }
+    },
+    {
+      "id": "iOidc",
+      "width": 30,
+      "height": 30,
+      "type": "componentInterface",
+      "position": {
+        "x": 285,
+        "y": 785
+      },
+      "data": {
+        "name": "OIDC"
+      },
+      "measured": {
+        "width": 30,
+        "height": 30
+      }
+    },
+    {
+      "id": "coreDb",
+      "width": 200,
+      "height": 90,
+      "type": "component",
+      "position": {
+        "x": 400,
+        "y": 900
+      },
+      "data": {
+        "name": "Core DB",
+        "isComponentHeaderShown": true
+      },
+      "measured": {
+        "width": 200,
+        "height": 90
+      }
+    },
+    {
+      "id": "aiDb",
+      "width": 200,
+      "height": 90,
+      "type": "component",
+      "position": {
+        "x": 970,
+        "y": 900
+      },
+      "data": {
+        "name": "AI DB (AI_ENABLED)",
+        "isComponentHeaderShown": true
+      },
+      "measured": {
+        "width": 200,
+        "height": 90
+      }
+    },
+    {
+      "id": "assessmentDb",
+      "width": 200,
+      "height": 90,
+      "type": "component",
+      "position": {
+        "x": 1520,
+        "y": 900
+      },
+      "data": {
+        "name": "Assessment DB",
+        "isComponentHeaderShown": true
+      },
+      "measured": {
+        "width": 200,
+        "height": 90
+      }
+    },
+    {
+      "id": "aiClient",
+      "width": 180,
+      "height": 90,
+      "type": "component",
+      "position": {
+        "x": 980,
+        "y": 0
+      },
+      "data": {
+        "name": "AI Client (ai_component)",
+        "isComponentHeaderShown": true
+      },
+      "measured": {
+        "width": 180,
+        "height": 90
+      }
+    },
+    {
+      "id": "planned",
+      "width": 440,
+      "height": 250,
+      "type": "componentSubsystem",
+      "position": {
+        "x": 1780,
+        "y": 620
+      },
+      "data": {
+        "name": "Planned (#2285, #2286)",
+        "isComponentSubsystemHeaderShown": true
+      },
+      "measured": {
+        "width": 440,
+        "height": 250
+      }
+    },
+    {
+      "id": "chatClient",
+      "width": 190,
+      "height": 90,
+      "type": "component",
+      "position": {
+        "x": 20,
+        "y": 110
+      },
+      "parentId": "planned",
+      "data": {
+        "name": "AI Chat Client (AI_CHAT)",
+        "isComponentHeaderShown": true
+      },
+      "measured": {
+        "width": 190,
+        "height": 90
+      }
+    },
+    {
+      "id": "mcp",
+      "width": 190,
+      "height": 90,
+      "type": "component",
+      "position": {
+        "x": 230,
+        "y": 110
+      },
+      "parentId": "planned",
+      "data": {
+        "name": "prompt-mcp (AI_MCP)",
+        "isComponentHeaderShown": true
+      },
+      "measured": {
+        "width": 190,
+        "height": 90
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e0-coreClient-iCore",
+      "source": "coreClient",
+      "target": "iCore",
+      "type": "ComponentRequiredInterface",
+      "sourceHandle": "bottom",
+      "targetHandle": "top",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "e1-core-iCore",
+      "source": "core",
+      "target": "iCore",
+      "type": "ComponentProvidedInterface",
+      "sourceHandle": "top",
+      "targetHandle": "bottom",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "e2-client-iAssessment",
+      "source": "client",
+      "target": "iAssessment",
+      "type": "ComponentRequiredInterface",
+      "sourceHandle": "bottom",
+      "targetHandle": "top",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "e3-assessment-iAssessment",
+      "source": "assessment",
+      "target": "iAssessment",
+      "type": "ComponentProvidedInterface",
+      "sourceHandle": "top",
+      "targetHandle": "bottom",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "e4-ai-iAiPhase",
+      "source": "ai",
+      "target": "iAiPhase",
+      "type": "ComponentProvidedInterface",
+      "sourceHandle": "top-between-left-mid-left",
+      "targetHandle": "left",
+      "data": {
+        "points": [
+          {
+            "x": 960,
+            "y": 379
+          },
+          {
+            "x": 960,
+            "y": 245
+          },
+          {
+            "x": 1054,
+            "y": 245
+          }
+        ]
+      }
+    },
+    {
+      "id": "e5-aiClient-iAiPhase",
+      "source": "aiClient",
+      "target": "iAiPhase",
+      "type": "ComponentRequiredInterface",
+      "sourceHandle": "bottom",
+      "targetHandle": "top",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "e6-client-iAiPhase",
+      "source": "client",
+      "target": "iAiPhase",
+      "type": "ComponentRequiredInterface",
+      "sourceHandle": "left",
+      "targetHandle": "right",
+      "data": {
+        "points": [
+          {
+            "x": 1519,
+            "y": 45
+          },
+          {
+            "x": 1170,
+            "y": 45
+          },
+          {
+            "x": 1170,
+            "y": 245
+          },
+          {
+            "x": 1090,
+            "y": 245
+          }
+        ]
+      }
+    },
+    {
+      "id": "e7-assessment-iAiPhase",
+      "source": "assessment",
+      "target": "iAiPhase",
+      "type": "ComponentRequiredInterface",
+      "sourceHandle": "top-left",
+      "targetHandle": "bottom",
+      "data": {
+        "points": [
+          {
+            "x": 1560,
+            "y": 419
+          },
+          {
+            "x": 1560,
+            "y": 330
+          },
+          {
+            "x": 1070,
+            "y": 330
+          },
+          {
+            "x": 1070,
+            "y": 265
+          }
+        ]
+      }
+    },
+    {
+      "id": "e8-ai-iPrivacy",
+      "source": "ai",
+      "target": "iPrivacy",
+      "type": "ComponentProvidedInterface",
+      "sourceHandle": "top-left",
+      "targetHandle": "right",
+      "data": {
+        "points": [
+          {
+            "x": 920,
+            "y": 379
+          },
+          {
+            "x": 920,
+            "y": 330
+          },
+          {
+            "x": 726,
+            "y": 330
+          }
+        ]
+      }
+    },
+    {
+      "id": "e9-core-iPrivacy",
+      "source": "core",
+      "target": "iPrivacy",
+      "type": "ComponentRequiredInterface",
+      "sourceHandle": "top-right",
+      "targetHandle": "left",
+      "data": {
+        "points": [
+          {
+            "x": 560,
+            "y": 419
+          },
+          {
+            "x": 560,
+            "y": 330
+          },
+          {
+            "x": 690,
+            "y": 330
+          }
+        ]
+      }
+    },
+    {
+      "id": "e10-core-iRoles",
+      "source": "core",
+      "target": "iRoles",
+      "type": "ComponentProvidedInterface",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "e11-auth-iRoles",
+      "source": "auth",
+      "target": "iRoles",
+      "type": "ComponentRequiredInterface",
+      "sourceHandle": "left-top",
+      "targetHandle": "right",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "e12-assessment-iRoles",
+      "source": "assessment",
+      "target": "iRoles",
+      "type": "ComponentRequiredInterface",
+      "sourceHandle": "bottom-left",
+      "targetHandle": "bottom",
+      "data": {
+        "points": [
+          {
+            "x": 1560,
+            "y": 511
+          },
+          {
+            "x": 1560,
+            "y": 760
+          },
+          {
+            "x": 710,
+            "y": 760
+          },
+          {
+            "x": 710,
+            "y": 485
+          }
+        ]
+      }
+    },
+    {
+      "id": "e13-keycloak-iOidc",
+      "source": "keycloak",
+      "target": "iOidc",
+      "type": "ComponentProvidedInterface",
+      "sourceHandle": "bottom",
+      "targetHandle": "left",
+      "data": {
+        "points": [
+          {
+            "x": 100,
+            "y": 511
+          },
+          {
+            "x": 100,
+            "y": 800
+          },
+          {
+            "x": 284,
+            "y": 800
+          }
+        ]
+      }
+    },
+    {
+      "id": "e14-core-iOidc",
+      "source": "core",
+      "target": "iOidc",
+      "type": "ComponentRequiredInterface",
+      "sourceHandle": "bottom-left",
+      "targetHandle": "top",
+      "data": {
+        "points": [
+          {
+            "x": 440,
+            "y": 511
+          },
+          {
+            "x": 440,
+            "y": 700
+          },
+          {
+            "x": 300,
+            "y": 700
+          },
+          {
+            "x": 300,
+            "y": 780
+          }
+        ]
+      }
+    },
+    {
+      "id": "e15-auth-iOidc",
+      "source": "auth",
+      "target": "iOidc",
+      "type": "ComponentRequiredInterface",
+      "sourceHandle": "left-bottom",
+      "targetHandle": "right",
+      "data": {
+        "points": [
+          {
+            "x": 839,
+            "y": 525
+          },
+          {
+            "x": 780,
+            "y": 525
+          },
+          {
+            "x": 780,
+            "y": 800
+          },
+          {
+            "x": 320,
+            "y": 800
+          }
+        ]
+      }
+    },
+    {
+      "id": "e16-assessment-iOidc",
+      "source": "assessment",
+      "target": "iOidc",
+      "type": "ComponentRequiredInterface",
+      "sourceHandle": "bottom-between-left-mid-left",
+      "targetHandle": "right",
+      "data": {
+        "points": [
+          {
+            "x": 1575,
+            "y": 510
+          },
+          {
+            "x": 1575,
+            "y": 800
+          },
+          {
+            "x": 315,
+            "y": 800
+          }
+        ]
+      }
+    },
+    {
+      "id": "e17-gateway-auth",
+      "source": "gateway",
+      "target": "auth",
+      "type": "ComponentDependency",
+      "sourceHandle": "left",
+      "targetHandle": "right",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "e18-gateway-audit",
+      "source": "gateway",
+      "target": "audit",
+      "type": "ComponentDependency",
+      "sourceHandle": "bottom",
+      "targetHandle": "top",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "e19-gateway-keys",
+      "source": "gateway",
+      "target": "keys",
+      "type": "ComponentDependency",
+      "sourceHandle": "bottom-left",
+      "targetHandle": "top-right",
+      "data": {
+        "points": [
+          {
+            "x": 1125,
+            "y": 541
+          },
+          {
+            "x": 1125,
+            "y": 560
+          },
+          {
+            "x": 1015,
+            "y": 560
+          },
+          {
+            "x": 1015,
+            "y": 579
+          }
+        ]
+      }
+    },
+    {
+      "id": "e20-gateway-iAi",
+      "source": "gateway",
+      "target": "iAi",
+      "type": "ComponentProvidedInterface",
+      "sourceHandle": "right-top",
+      "targetHandle": "left",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "e21-assessment-iAi",
+      "source": "assessment",
+      "target": "iAi",
+      "type": "ComponentRequiredInterface",
+      "sourceHandle": "left",
+      "targetHandle": "right",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "e22-gateway-iLogos",
+      "source": "gateway",
+      "target": "iLogos",
+      "type": "ComponentRequiredInterface",
+      "sourceHandle": "top-right",
+      "targetHandle": "top",
+      "data": {
+        "points": [
+          {
+            "x": 1255,
+            "y": 449
+          },
+          {
+            "x": 1255,
+            "y": 365
+          },
+          {
+            "x": 1870,
+            "y": 365
+          },
+          {
+            "x": 1870,
+            "y": 445
+          }
+        ]
+      }
+    },
+    {
+      "id": "e23-logos-iLogos",
+      "source": "logos",
+      "target": "iLogos",
+      "type": "ComponentProvidedInterface",
+      "sourceHandle": "left",
+      "targetHandle": "right",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "e24-core-coreDb",
+      "source": "core",
+      "target": "coreDb",
+      "type": "ComponentDependency",
+      "sourceHandle": "bottom",
+      "targetHandle": "top",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "e26-audit-aiDb",
+      "source": "audit",
+      "target": "aiDb",
+      "type": "ComponentDependency",
+      "sourceHandle": "bottom",
+      "targetHandle": "top",
+      "data": {
+        "points": [
+          {
+            "x": 1190,
+            "y": 671
+          },
+          {
+            "x": 1190,
+            "y": 691
+          },
+          {
+            "x": 1070,
+            "y": 691
+          },
+          {
+            "x": 1070,
+            "y": 899
+          }
+        ]
+      }
+    },
+    {
+      "id": "e27-assessment-assessmentDb",
+      "source": "assessment",
+      "target": "assessmentDb",
+      "type": "ComponentDependency",
+      "sourceHandle": "bottom",
+      "targetHandle": "top",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "e28-coreClient-aiClient",
+      "source": "coreClient",
+      "target": "aiClient",
+      "type": "ComponentDependency",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "points": []
+      }
+    }
+  ],
+  "assessments": {}
+}

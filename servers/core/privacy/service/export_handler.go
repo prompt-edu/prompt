@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"fmt"
-	"net/url"
 	"sync"
 	"time"
 
@@ -53,16 +52,12 @@ func (s *PrivacyService) PrepareDataExport(c *gin.Context) (Export, error) {
 	externalExportDocs := make([]ServiceExportRequest, 0)
 
 	// prepare External Exports
-	for _, cpt := range coursePhaseTypes {
-		_, err := url.ParseRequestURI(cpt.BaseUrl)
+	for _, module := range s.externalModules(coursePhaseTypes) {
+		doc, err := s.PrepareExportRecordDoc(c, exportRecord.ID, module.Name, module.BaseURL+sdkTypes.PrivacyRouteDataExport)
 		if err != nil {
-			continue
+			return Export{}, err
 		}
-		comparedoc, err := s.PrepareExportRecordDoc(c, exportRecord.ID, cpt.Name, cpt.BaseUrl+sdkTypes.PrivacyRouteDataExport)
-		if err != nil {
-			continue
-		}
-		externalExportDocs = append(externalExportDocs, comparedoc)
+		externalExportDocs = append(externalExportDocs, doc)
 	}
 
 	return Export{

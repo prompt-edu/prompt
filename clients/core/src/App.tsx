@@ -14,6 +14,7 @@ import { CourseOverview } from './managementConsole/courseOverview/CourseOvervie
 import { CourseSettingsPage } from './managementConsole/courseSettings/CourseSettingsPage'
 import { CourseUserManagementPage } from './managementConsole/courseUserManagement/pages/CourseUserManagementPage'
 import { ManagementRoot } from './managementConsole/ManagementConsole'
+import { AIRoutes } from './managementConsole/PhaseMapping/ExternalRoutes/AIRoutes'
 import { ExampleRoutes } from './managementConsole/PhaseMapping/ExternalRoutes/ExampleRoutes'
 import { PhaseRouterMapping } from './managementConsole/PhaseMapping/PhaseRouterMapping'
 import { ActiveCoursesPage } from './managementConsole/pages/ActiveCoursesPage'
@@ -291,6 +292,16 @@ export const App = () => {
               element={
                 <ManagementRoot>
                   <PhaseRouterMapping />
+                </ManagementRoot>
+              }
+            />
+            <Route
+              path='/management/course/:courseId/ai/*'
+              element={
+                <ManagementRoot>
+                  <Suspense fallback={<div>Fallback</div>}>
+                    <AIRoutes />
+                  </Suspense>
                 </ManagementRoot>
               }
             />

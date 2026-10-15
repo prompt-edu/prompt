@@ -104,13 +104,21 @@ These steps make core aware of your phase. All paths are under `clients/core`.
 
 ### 2.1 Module Federation remote
 
-In `clients/core/rspack.config.mjs`:
+Add an entry to `clients/core/remotes.config.mjs`:
 
 ```js
-const feedbackURL = IS_DEV ? `http://localhost:3011` : '/feedback'   // or an env-provided URL
-// in ModuleFederationPlugin > remotes — the Date.now() suffix busts the remote-entry cache:
-feedback_component: `feedback_component@${feedbackURL}/remoteEntry.js?${Date.now()}`,
+{
+  name: 'feedback_component',
+  phaseTypeName: 'feedback_component', // your course phase type name, see 2.3 and 2.4
+  devPort: 3011,
+  prodPath: '/feedback',
+},
 ```
+
+`clients/core/rspack.config.mjs` turns every entry into a federation remote, with a `Date.now()`
+suffix that busts the remote-entry cache, and the admin System Status page probes each entry.
+`clients/core/remotes.config.test.ts` fails when an entry's `phaseTypeName` has no matching key in
+`PhaseRouterMapping.tsx`.
 
 For external phases the production URL typically comes from an env var exposed via
 `core/public/env.template.js` (see 2.5).
@@ -160,7 +168,9 @@ core client's entrypoint) and to `env.js` for local dev. Note: the typed `EnvTyp
 1. `docker-compose.prod.yml`: add the client service with traefik labels (copy the
    `client-example-component` block: router rule `PathPrefix(/<name>)`, strip-prefix and compress
    middlewares) and the server + db services.
-2. `build-and-push-clients.yml`: add a build job and an `<name>_image_tag` output.
+2. `build-and-push-clients.yml`: add a build job and an `<name>_image_tag` output. Pass
+   `MF_BUILD_VERSION` in its `build-args` like the other remote jobs, so the System Status page
+   shows the client's version.
 3. `deploy-docker.yml`: add the image tag env var to the `.env.prod` step and the service to the
    `SERVICES` list; reference the new output in `dev.yml` and `prod.yml`.
 

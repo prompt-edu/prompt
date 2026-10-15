@@ -42,19 +42,28 @@ element id must match the `<div id="…">` in the component's `public/template.h
 
 ## Register in core (host)
 
-In `clients/core/rspack.config.mjs`, resolve the URL next to the other `*URL` constants and add the
-remote using the cache-busting query so a redeploy forces a reload:
+Add the remote to `clients/core/remotes.config.mjs`:
 
 ```js
-const yourComponentURL = IS_DEV ? `http://localhost:3011` : `/your-component`
-
-remotes: {
-  your_component: `your_component@${yourComponentURL}/remoteEntry.js?${Date.now()}`,
-}
+// clients/core/remotes.config.mjs
+export const REMOTES = [
+  {
+    name: 'your_component', // the federation name, also the core remotes key
+    phaseTypeName: 'Your Phase', // the course phase type it renders: its PhaseRouterMapping key
+    devPort: 3011,
+    prodPath: '/your-component',
+  },
+]
 ```
 
-The URL is derived from `IS_DEV`, not from an environment variable, so nothing needs to be added to
-`.env.template` or `.env.dev.template`. In production the path is served by the reverse proxy.
+`clients/core/rspack.config.mjs` builds the federation `remotes` from this list, resolving each entry
+to the dev port in development and the reverse-proxy path in production, with a cache-busting query
+so a redeploy forces a reload. The URL is derived from `IS_DEV`, not from an environment variable, so
+nothing needs to be added to `.env.template` or `.env.dev.template`.
+
+The same list reaches the app as `__PROMPT_REMOTES__`, and the admin System Status page probes each
+remote's `remoteEntry.js` and `mf-manifest.json`. `clients/core/remotes.config.test.ts` fails when
+the list and the `PhaseRouterMapping` keys drift apart.
 
 ## Load dynamically
 

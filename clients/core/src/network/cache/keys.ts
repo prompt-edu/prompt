@@ -115,6 +115,10 @@ export const coreKeys = {
     ofService: (serviceId: string) => [`serviceInfo-${serviceId}`] as const,
   },
 
+  clientInfo: {
+    ofRemote: (remoteName: string) => ['clientInfo', remoteName] as const,
+  },
+
   auditLog: {
     inCourse: (courseId: Id, filters: unknown, limit: number, cursor: unknown) =>
       ['auditLog', courseId, filters, limit, cursor] as const,

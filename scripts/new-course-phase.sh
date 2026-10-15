@@ -50,7 +50,7 @@ SERVER_DIR="servers/${NAME}"
 [[ ! -e "$CLIENT_DIR" ]] || die "$CLIENT_DIR already exists"
 [[ ! -e "$SERVER_DIR" ]] || die "$SERVER_DIR already exists"
 
-grep -q "localhost:${CLIENT_PORT}\`" clients/core/rspack.config.mjs \
+grep -q "devPort: ${CLIENT_PORT}," clients/core/remotes.config.mjs \
   && die "client port ${CLIENT_PORT} is already used by another remote"
 grep -q "\"${SERVER_PORT}:8080\"" docker-compose.yml \
   && die "server port ${SERVER_PORT} is already used in docker-compose.yml"
@@ -180,13 +180,9 @@ perl -pi -e "s/^(\s*)\"example_component\",\$/\$1\"example_component\",\n\$1\"${
 
 # ------------------------------------------------------------- 4. core client
 echo "-> core client registration"
-RSPACK=clients/core/rspack.config.mjs
-insert_after "$RSPACK" \
-  'const exampleURL = ' \
-  "  const ${CAMEL}URL = IS_DEV ? \`http://localhost:${CLIENT_PORT}\` : \`/${KEBAB}\`"
-insert_after "$RSPACK" \
-  'example_component: `example_component@' \
-  "          ${NAME}_component: \`${NAME}_component@\${${CAMEL}URL}/remoteEntry.js?\${Date.now()}\`,"
+insert_after clients/core/remotes.config.mjs \
+  'export const REMOTES = \[' \
+  "  { name: '${NAME}_component', phaseTypeName: '${NAME}_component', devPort: ${CLIENT_PORT}, prodPath: '/${KEBAB}' },"
 
 PM=clients/core/src/managementConsole/PhaseMapping
 for f in ExternalRoutes/ExampleRoutes.tsx ExternalSidebars/ExampleSidebar.tsx; do
@@ -290,7 +286,7 @@ echo "-> verifying"
   || die "yarn install failed"
 (cd clients && yarn tsc -p "${NAME}_component/tsconfig.json" --noEmit --pretty false) \
   || die "typecheck failed for ${NAME}_component"
-CORE_TOUCHED=(core/rspack.config.mjs core/src/App.tsx core/src/managementConsole/PhaseMapping)
+CORE_TOUCHED=(core/remotes.config.mjs core/src/App.tsx core/src/managementConsole/PhaseMapping)
 (cd clients && yarn biome check --write "${NAME}_component" "${CORE_TOUCHED[@]}" >/dev/null 2>&1) || true
 (cd clients && yarn biome check --diagnostic-level=error "${NAME}_component" "${CORE_TOUCHED[@]}" >/dev/null) \
   || die "biome check failed for ${NAME}_component or the touched core files"
@@ -303,7 +299,8 @@ Remaining manual steps (see docs/contributor/new_course_phase.md):
   1. Course phase type: add init${PASCAL}() in
      servers/core/coursePhaseType/initializeTypes.go (name key: '${NAME}_component').
   2. Deployment: docker-compose.prod.yml service + traefik labels, and the
-     build-and-push-clients.yml / deploy-docker.yml / dev.yml / prod.yml wiring.
+     build-and-push-clients.yml (pass MF_BUILD_VERSION like the other remotes) /
+     deploy-docker.yml / dev.yml / prod.yml wiring.
      For the audit log, add an AUDIT_INGEST_KEY_${UPPER}_SERVER secret to
      deploy-docker.yml and list the service in core's AUDIT_INGEST_KEYS.
   3. Optional: add ${UPPER}_HOST to the EnvType in @tumaet/prompt-shared-state.

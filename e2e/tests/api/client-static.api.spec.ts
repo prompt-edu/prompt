@@ -67,4 +67,11 @@ test.describe('client static serving', () => {
     expect(res.headers()['content-type']).toContain('javascript')
     expect(res.headers()['cache-control']).toContain('no-store')
   })
+
+  test("a remote's mf-manifest.json is proxied and served uncached", async () => {
+    const res = await client.get('/assessment/mf-manifest.json')
+    expect(res.status()).toBe(200)
+    expect(res.headers()['content-type']).toContain('json')
+    expect(res.headers()['cache-control']).toContain('no-store')
+  })
 })

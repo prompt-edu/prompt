@@ -4,6 +4,7 @@ import rspack from '@rspack/core'
 import CompressionPlugin from 'compression-webpack-plugin'
 import { BundleAnalyzerPlugin } from 'webpack-bundle-analyzer'
 import { federatedDependencies } from '../shared/rspack/federatedDependencies.mjs'
+import { resolveRemotes } from './remotes.config.mjs'
 
 const { ModuleFederationPlugin } = rspack.container
 
@@ -14,17 +15,7 @@ const config = (env = {}) => {
   const IS_DEV = env.NODE_ENV !== 'production'
   const IS_PERF = env.BUNDLE_SIZE === 'true'
 
-  const exampleURL = IS_DEV ? `http://localhost:3001` : `/example`
-  const interviewURL = IS_DEV ? `http://localhost:3002` : `/interview`
-  const matchingURL = IS_DEV ? `http://localhost:3003` : `/matching`
-  const introCourseDeveloperURL = IS_DEV ? `http://localhost:3005` : `/intro-course-developer`
-  const githubChallengeURL = IS_DEV ? `http://localhost:3006` : `/github-challenge`
-  const assessmentURL = IS_DEV ? `http://localhost:3007` : `/assessment`
-  const teamAllocationURL = IS_DEV ? `http://localhost:3008` : `/team-allocation`
-  const selfTeamAllocationURL = IS_DEV ? `http://localhost:3009` : `/self-team-allocation`
-  const certificateURL = IS_DEV ? `http://localhost:3010` : `/certificate`
-  const presentationURL = IS_DEV ? `http://localhost:3011` : `/presentation`
-  const infrastructureSetupURL = IS_DEV ? `http://localhost:3012` : `/infrastructure-setup`
+  const remotes = resolveRemotes(IS_DEV)
 
   return {
     target: 'web',
@@ -90,21 +81,12 @@ const config = (env = {}) => {
         exposes: {
           './provide': './src/provide',
         },
-        remotes: {
-          example_component: `example_component@${exampleURL}/remoteEntry.js?${Date.now()}`,
-          interview_component: `interview_component@${interviewURL}/remoteEntry.js?${Date.now()}`,
-          matching_component: `matching_component@${matchingURL}/remoteEntry.js?${Date.now()}`,
-          intro_course_developer_component: `intro_course_developer_component@${introCourseDeveloperURL}/remoteEntry.js?${Date.now()}`,
-          assessment_component: `assessment_component@${assessmentURL}/remoteEntry.js?${Date.now()}`,
-          github_challenge_component: `github_challenge_component@${githubChallengeURL}/remoteEntry.js?${Date.now()}`,
-          team_allocation_component: `team_allocation_component@${teamAllocationURL}/remoteEntry.js?${Date.now()}`,
-          self_team_allocation_component: `self_team_allocation_component@${selfTeamAllocationURL}/remoteEntry.js?${Date.now()}`,
-          certificate_component: `certificate_component@${certificateURL}/remoteEntry.js?${Date.now()}`,
-          presentation_component: `presentation_component@${presentationURL}/remoteEntry.js?${Date.now()}`,
-          infrastructure_setup_component: `infrastructure_setup_component@${infrastructureSetupURL}/remoteEntry.js?${Date.now()}`,
-        },
+        remotes: Object.fromEntries(
+          remotes.map(({ name, url }) => [name, `${name}@${url}/remoteEntry.js?${Date.now()}`]),
+        ),
         shared: federatedDependencies(),
       }),
+      new rspack.DefinePlugin({ __PROMPT_REMOTES__: JSON.stringify(remotes) }),
       new rspack.HtmlRspackPlugin({
         template: 'public/template.html',
         minify: !IS_DEV,

@@ -5,6 +5,8 @@ FROM ghcr.io/prompt-edu/prompt/prompt-clients-base:${IMAGE_TAG} AS core-base
 WORKDIR /app/self_team_allocation_component
 COPY . ./
 
+ARG MF_BUILD_VERSION
+ENV MF_BUILD_VERSION=$MF_BUILD_VERSION
 RUN yarn build
 
 # Build the final image

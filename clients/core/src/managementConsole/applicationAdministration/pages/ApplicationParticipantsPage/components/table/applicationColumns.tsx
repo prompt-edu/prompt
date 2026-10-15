@@ -1,6 +1,6 @@
 import type { ExportedAnswerColumn } from '@core/managementConsole/applicationAdministration/interfaces/exportedApplicationAnswers'
 import type { PassStatus } from '@tumaet/prompt-shared-state'
-import type { PromptTableColumnDef } from '@tumaet/prompt-ui-components'
+import { ProfilePicture, type PromptTableColumnDef } from '@tumaet/prompt-ui-components'
 import { type ApplicationRow, EXPORTED_ANSWER_COLUMN_PREFIX } from './applicationRow'
 import { getApplicationStatusBadge } from './getApplicationStatusBadge'
 
@@ -9,6 +9,19 @@ export function getApplicationColumns(
   exportedColumns?: ExportedAnswerColumn[],
 ): PromptTableColumnDef<ApplicationRow>[] {
   return [
+    {
+      id: 'profilePicture',
+      header: '',
+      enableSorting: false,
+      cell: ({ row }) => (
+        <ProfilePicture
+          courseParticipationId={row.original.courseParticipationID}
+          firstName={row.original.student.firstName}
+          lastName={row.original.student.lastName}
+          size='sm'
+        />
+      ),
+    },
     {
       id: 'firstName',
       header: 'First Name',

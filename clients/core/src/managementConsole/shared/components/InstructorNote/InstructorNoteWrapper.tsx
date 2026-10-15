@@ -42,7 +42,7 @@ export function NoteWrapper({
       onMouseLeave={() => setIsHovered(false)}
     >
       <ProfilePicture
-        email={note.authorEmail}
+        userId={note.author}
         firstName={names[0]}
         lastName={names[names.length - 1]}
         size='md'

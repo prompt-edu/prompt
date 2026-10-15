@@ -52,13 +52,23 @@ type PresignUploadRequest struct {
 	Filename      string
 	ContentType   string
 	CoursePhaseID *uuid.UUID
-	Description   string
-	Tags          []string
+	// StorageKeyPrefix scopes the key of an upload without a course phase, e.g. to its owner.
+	StorageKeyPrefix string
+	Description      string
+	Tags             []string
 }
 
 type PresignUploadResponse struct {
 	UploadURL  string `json:"uploadUrl"`
 	StorageKey string `json:"storageKey"`
+}
+
+// StoreFileRequest describes content the server stores itself, e.g. after it checked an upload.
+type StoreFileRequest struct {
+	StorageKeyPrefix string
+	Filename         string
+	ContentType      string
+	Description      string
 }
 
 type CreateFileFromStorageKeyRequest struct {
@@ -213,6 +223,9 @@ func (s *StorageService) PresignUpload(ctx context.Context, req PresignUploadReq
 	}
 	uniqueFilename := fmt.Sprintf("%s-%s", uuid.New().String(), safeOriginal)
 	storageKey := buildStorageKey(req.CoursePhaseID, uniqueFilename)
+	if req.CoursePhaseID == nil && req.StorageKeyPrefix != "" {
+		storageKey = fmt.Sprintf("%s/%s", req.StorageKeyPrefix, uniqueFilename)
+	}
 
 	uploadURL, err := s.storageAdapter.GetUploadURL(ctx, storageKey, req.ContentType, presignUploadTTLSeconds())
 	if err != nil {
@@ -329,6 +342,67 @@ func (s *StorageService) CreateFileFromStorageKey(ctx context.Context, req Creat
 	return s.convertToFileResponse(ctx, fileRecord), nil
 }
 
+// StoreFile uploads content under a fresh key below the prefix and registers it as a file.
+// Unlike a presigned upload, nobody outside the server ever holds a URL to write to that key.
+func (s *StorageService) StoreFile(ctx context.Context, req StoreFileRequest, content io.Reader, uploaderUserID, uploaderEmail string) (*FileResponse, error) {
+	uniqueFilename := fmt.Sprintf("%s-%s", uuid.New().String(), sanitizeFilename(req.Filename))
+	storageKey := fmt.Sprintf("%s/%s", req.StorageKeyPrefix, uniqueFilename)
+
+	uploadResult, err := s.storageAdapter.Upload(ctx, storageKey, req.ContentType, content)
+	if err != nil {
+		return nil, fmt.Errorf("failed to upload file: %w", err)
+	}
+
+	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
+	defer cancel()
+
+	var emailPgtype pgtype.Text
+	if uploaderEmail != "" {
+		emailPgtype = pgtype.Text{String: uploaderEmail, Valid: true}
+	}
+
+	var descriptionPgtype pgtype.Text
+	if req.Description != "" {
+		descriptionPgtype = pgtype.Text{String: req.Description, Valid: true}
+	}
+
+	fileRecord, err := s.queries.CreateFile(ctxWithTimeout, db.CreateFileParams{
+		Filename:         uniqueFilename,
+		OriginalFilename: req.Filename,
+		ContentType:      req.ContentType,
+		SizeBytes:        uploadResult.Size,
+		StorageKey:       uploadResult.StorageKey,
+		StorageProvider:  sdkUtils.GetEnv("STORAGE_PROVIDER", "seaweedfs"),
+		UploadedByUserID: uploaderUserID,
+		UploadedByEmail:  emailPgtype,
+		Description:      descriptionPgtype,
+	})
+	if err != nil {
+		if deleteErr := s.storageAdapter.Delete(ctx, uploadResult.StorageKey); deleteErr != nil {
+			log.WithError(deleteErr).WithField("storageKey", uploadResult.StorageKey).Warn("Failed to delete unregistered file")
+		}
+		return nil, fmt.Errorf("failed to save file metadata: %w", err)
+	}
+
+	return s.convertToFileResponse(ctx, fileRecord), nil
+}
+
+// DownloadUpload reads an object that was uploaded through a presigned URL but not registered.
+func (s *StorageService) DownloadUpload(ctx context.Context, storageKey string) (io.ReadCloser, error) {
+	if _, err := s.storageAdapter.GetMetadata(ctx, storageKey); err != nil {
+		if errors.Is(err, storage.ErrObjectNotFound) {
+			return nil, fmt.Errorf("no upload found for storage key: %w", ErrNotFound)
+		}
+		return nil, fmt.Errorf("failed to get metadata for storage key: %w", err)
+	}
+	return s.storageAdapter.Download(ctx, storageKey)
+}
+
+// DeleteUpload removes an object that was uploaded through a presigned URL but not registered.
+func (s *StorageService) DeleteUpload(ctx context.Context, storageKey string) error {
+	return s.storageAdapter.Delete(ctx, storageKey)
+}
+
 // GetFileByID retrieves a file by its ID
 func (s *StorageService) GetFileByID(ctx context.Context, fileID uuid.UUID) (*FileResponse, error) {
 	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
@@ -340,6 +414,11 @@ func (s *StorageService) GetFileByID(ctx context.Context, fileID uuid.UUID) (*Fi
 	}
 
 	return s.convertToFileResponse(ctx, fileRecord), nil
+}
+
+// GetDownloadURL returns a presigned download URL for a storage key that stays valid for ttlSeconds.
+func (s *StorageService) GetDownloadURL(ctx context.Context, storageKey string, ttlSeconds int) (string, error) {
+	return s.storageAdapter.GetURL(ctx, storageKey, ttlSeconds)
 }
 
 // DownloadFile retrieves a file's content from storage

@@ -1,4 +1,5 @@
 import { useCreateInstructorNote } from '@core/network/hooks/useInstructorNotes'
+import { useOwnProfilePicture } from '@core/network/hooks/useProfilePicture'
 import { useAuthStore } from '@tumaet/prompt-shared-state'
 import { getStudentName, ProfilePicture } from '@tumaet/prompt-ui-components'
 import { NoteComposer } from './InstructorNoteComposer'
@@ -13,13 +14,14 @@ export function InstructorNotesCreateForm({
   className = '',
 }: InstructorNotesCreateFormProps) {
   const { user } = useAuthStore()
+  const { data: ownPicture } = useOwnProfilePicture()
   const createNote = useCreateInstructorNote(studentId)
 
   return (
     <div className={`flex gap-3 ${className}`}>
       <div>
         <ProfilePicture
-          email={user?.email ?? ''}
+          src={ownPicture?.url}
           firstName={user?.firstName ?? ''}
           lastName={user?.lastName ?? ''}
         />

@@ -1,4 +1,10 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@tumaet/prompt-ui-components'
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  ProfilePicture,
+} from '@tumaet/prompt-ui-components'
 import { ChevronRight } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -6,9 +12,18 @@ import { useNavigate } from 'react-router-dom'
 import type { AssessmentType } from '../../../interfaces/assessmentType'
 import { AssessmentStatusBadge, DeadlineBadge, TeamBadge } from '../../components/badges'
 
+interface EvaluatedPerson {
+  courseParticipationId?: string
+  studentId?: string
+  firstName: string
+  lastName: string
+}
+
 export interface EvaluationTarget {
   id: string
   name: string
+  /** Shown with a profile picture; left out for the self evaluation */
+  person?: EvaluatedPerson
   navigationPath: string
   completed: boolean
   evaluationCount: number
@@ -73,7 +88,18 @@ export const EvaluationSection = ({
               onClick={() => navigate(target.navigationPath)}
               className='flex w-full items-center justify-between px-4 py-3 text-left transition-colors hover:bg-muted/50'
             >
-              <span className='text-sm font-medium'>{target.name}</span>
+              <span className='flex items-center gap-3'>
+                {target.person && (
+                  <ProfilePicture
+                    courseParticipationId={target.person.courseParticipationId}
+                    studentId={target.person.studentId}
+                    firstName={target.person.firstName}
+                    lastName={target.person.lastName}
+                    size='md'
+                  />
+                )}
+                <span className='text-sm font-medium'>{target.name}</span>
+              </span>
               <span className='flex items-center gap-2'>
                 <AssessmentStatusBadge
                   remainingAssessments={Math.max(0, competencyCount - target.evaluationCount)}

@@ -127,6 +127,18 @@ definitions:
       student:
         $ref: '#/definitions/studentDTO.Student'
     type: object
+  applicationDTO.ApplicationProfilePicture:
+    properties:
+      explanation:
+        type: string
+      hiddenUntilAccepted:
+        description: HiddenUntilAccepted tells applicants that reviewers do not see
+          their picture.
+        type: boolean
+      requirement:
+        description: Requirement is "off", "optional", or "required".
+        type: string
+    type: object
   applicationDTO.CreateAnswerFileUpload:
     properties:
       applicationQuestionID:
@@ -376,6 +388,12 @@ definitions:
         type: string
       longDescription:
         type: string
+      profilePicture:
+        allOf:
+        - $ref: '#/definitions/applicationDTO.ApplicationProfilePicture'
+        description: |-
+          ProfilePicture tells the form whether and why to ask logged-in applicants for a picture.
+          Only set on the form of one application, not in the list of open applications.
       shortDescription:
         type: string
       startDate:

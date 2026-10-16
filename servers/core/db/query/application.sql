@@ -128,7 +128,12 @@ SELECT
     (cp.restricted_data->>'universityLoginAvailable')::boolean AS university_login_available,
     -- deliberately public: rendered to applicants on the unauthenticated apply page.
     -- COALESCE keeps the column non-null, so an unset key does not fail the scan.
-    COALESCE(cp.restricted_data->>'welcomeText', '')::text AS welcome_text
+    COALESCE(cp.restricted_data->>'welcomeText', '')::text AS welcome_text,
+    -- deliberately public as well: the form asks for the picture and tells applicants who sees it.
+    COALESCE(cp.restricted_data->>'profilePictureRequirement', 'off')::text AS profile_picture_requirement,
+    COALESCE(cp.restricted_data->>'profilePictureExplanation', '')::text AS profile_picture_explanation,
+    -- hiding is on unless a lecturer turned it off
+    COALESCE((cp.restricted_data->>'hideProfilePicturesUntilAccepted')::boolean, true)::boolean AS hide_profile_pictures_until_accepted
 FROM
     course_phase cp
 JOIN

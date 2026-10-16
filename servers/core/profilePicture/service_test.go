@@ -475,6 +475,61 @@ func (suite *ProfilePictureServiceTestSuite) TestLookupPictureURLs() {
 	assert.Contains(suite.T(), urls.CourseParticipations[adaParticipationID], adaPictureStorageKey)
 }
 
+func (suite *ProfilePictureServiceTestSuite) TestLookupPictureURLs_HidesApplicantsUntilAccepted() {
+	userID := uuid.New()
+	studentID := suite.insertStudent("ap01pli")
+	key := suite.upload(userID, pictureContentType, validJPEG)
+	_, err := suite.service.CompleteUpload(suite.ctx, Uploader{UserID: userID, UniversityLogin: "ap01pli"}, key)
+	require.NoError(suite.T(), err)
+
+	courseID := uuid.MustParse("dddddddd-0000-0000-0000-000000000001")
+	participationID, phaseID, phaseTypeID := uuid.New(), uuid.New(), uuid.New()
+	for _, statement := range []struct {
+		sql  string
+		args []any
+	}{
+		{`INSERT INTO course_phase_type (id, name) VALUES ($1, 'Application')`, []any{phaseTypeID}},
+		{`INSERT INTO course_phase (id, course_id, name, restricted_data, is_initial_phase, course_phase_type_id)
+		  VALUES ($1, $2, 'Application', '{}', true, $3)`, []any{phaseID, courseID, phaseTypeID}},
+		{`INSERT INTO course_participation (id, course_id, student_id) VALUES ($1, $2, $3)`, []any{participationID, courseID, studentID}},
+		{`INSERT INTO course_phase_participation (course_participation_id, course_phase_id, restricted_data, pass_status)
+		  VALUES ($1, $2, '{}', 'not_assessed')`, []any{participationID, phaseID}},
+	} {
+		_, err := suite.conn.Exec(suite.ctx, statement.sql, statement.args...)
+		require.NoError(suite.T(), err)
+	}
+	lookup := func() profilePictureDTO.ProfilePictureURLs {
+		urls, err := suite.service.LookupPictureURLs(suite.ctx, profilePictureDTO.LookupRequest{
+			UserIDs:                []uuid.UUID{userID},
+			StudentIDs:             []uuid.UUID{studentID},
+			CourseParticipationIDs: []uuid.UUID{participationID},
+		})
+		require.NoError(suite.T(), err)
+		return urls
+	}
+
+	hidden := lookup()
+	assert.Empty(suite.T(), hidden.Users, "an applicant's picture must not resolve by user id before acceptance")
+	assert.Empty(suite.T(), hidden.Students)
+	assert.Empty(suite.T(), hidden.CourseParticipations)
+
+	_, err = suite.conn.Exec(suite.ctx, `UPDATE course_phase SET restricted_data = '{"hideProfilePicturesUntilAccepted": false}' WHERE id = $1`, phaseID)
+	require.NoError(suite.T(), err)
+	shownWithoutHiding := lookup()
+	assert.Len(suite.T(), shownWithoutHiding.Users, 1)
+	assert.Len(suite.T(), shownWithoutHiding.Students, 1)
+	assert.Len(suite.T(), shownWithoutHiding.CourseParticipations, 1)
+
+	_, err = suite.conn.Exec(suite.ctx, `UPDATE course_phase SET restricted_data = '{}' WHERE id = $1`, phaseID)
+	require.NoError(suite.T(), err)
+	_, err = suite.conn.Exec(suite.ctx, `UPDATE course_phase_participation SET pass_status = 'passed' WHERE course_participation_id = $1`, participationID)
+	require.NoError(suite.T(), err)
+	shownAfterAcceptance := lookup()
+	assert.Len(suite.T(), shownAfterAcceptance.Users, 1)
+	assert.Len(suite.T(), shownAfterAcceptance.Students, 1)
+	assert.Len(suite.T(), shownAfterAcceptance.CourseParticipations, 1)
+}
+
 func (suite *ProfilePictureServiceTestSuite) TestLookupPictureURLs_EmptyRequest() {
 	urls, err := suite.service.LookupPictureURLs(suite.ctx, profilePictureDTO.LookupRequest{})
 

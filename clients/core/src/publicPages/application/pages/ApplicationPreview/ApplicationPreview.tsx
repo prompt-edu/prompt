@@ -1,6 +1,7 @@
 import type { ApplicationQuestionFileUpload } from '@core/interfaces/application/applicationQuestion/applicationQuestionFileUpload'
 import type { ApplicationQuestionMultiSelect } from '@core/interfaces/application/applicationQuestion/applicationQuestionMultiSelect'
 import type { ApplicationQuestionText } from '@core/interfaces/application/applicationQuestion/applicationQuestionText'
+import type { ApplicationProfilePictureConfig } from '@core/interfaces/application/openApplicationDetails'
 import type { Student } from '@tumaet/prompt-shared-state'
 import {
   Button,
@@ -19,12 +20,14 @@ interface ApplicationPreviewProps {
   questionsText: ApplicationQuestionText[]
   questionsMultiSelect: ApplicationQuestionMultiSelect[]
   questionsFileUpload: ApplicationQuestionFileUpload[]
+  profilePicture?: ApplicationProfilePictureConfig
 }
 
 export const ApplicationPreview = ({
   questionsText,
   questionsMultiSelect,
   questionsFileUpload,
+  profilePicture,
 }: ApplicationPreviewProps) => {
   const [dialogOpen, setDialogOpen] = useState(false)
 
@@ -52,6 +55,8 @@ export const ApplicationPreview = ({
             questionsMultiSelect={questionsMultiSelect}
             questionsFileUpload={questionsFileUpload}
             student={initialStudent}
+            profilePicture={profilePicture}
+            isPreview
             onSubmit={() => {}}
           />
         </ScrollArea>

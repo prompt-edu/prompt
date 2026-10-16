@@ -1,6 +1,11 @@
-import { useOwnProfilePicture } from '@core/network/hooks/useProfilePicture'
 import { useAuthStore } from '@tumaet/prompt-shared-state'
-import { Avatar, AvatarFallback, AvatarImage, getStudentName } from '@tumaet/prompt-ui-components'
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+  getStudentName,
+  useOwnProfilePicture,
+} from '@tumaet/prompt-ui-components'
 
 interface NavAvatarProps {
   avatarOnly?: boolean

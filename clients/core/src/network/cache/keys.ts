@@ -81,6 +81,12 @@ export const coreKeys = {
     },
   },
 
+  announcements: {
+    all: () => ['announcements'] as const,
+    active: () => ['announcements', 'active'] as const,
+    list: (includeExpired: boolean) => ['announcements', 'list', includeExpired] as const,
+  },
+
   instructorNotes: {
     ofStudent: (studentId: Id) => ['instructorNotes', studentId] as const,
     tags: () => ['noteTags'] as const,

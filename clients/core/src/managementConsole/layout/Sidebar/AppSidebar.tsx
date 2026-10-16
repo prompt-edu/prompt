@@ -21,7 +21,7 @@ export function AppSidebar({ ...props }: AppSidebarProps) {
   return (
     <Sidebar
       collapsible='icon'
-      className='overflow-hidden [&>[data-sidebar=sidebar]]:flex-row'
+      className='top-[var(--announcement-bar-height,0px)] h-[calc(100svh-var(--announcement-bar-height,0px))] overflow-hidden [&>[data-sidebar=sidebar]]:flex-row'
       {...props}
     >
       <AppSidebarContent />

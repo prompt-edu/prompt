@@ -1,5 +1,49 @@
 basePath: /api/
 definitions:
+  announcementDTO.Announcement:
+    properties:
+      createdAt:
+        type: string
+      enabled:
+        type: boolean
+      expiresAt:
+        type: string
+      id:
+        type: string
+      linkLabel:
+        type: string
+      linkUrl:
+        type: string
+      message:
+        type: string
+      severity:
+        type: string
+      startsAt:
+        type: string
+      title:
+        type: string
+      updatedAt:
+        type: string
+    type: object
+  announcementDTO.UpsertAnnouncement:
+    properties:
+      enabled:
+        type: boolean
+      expiresAt:
+        type: string
+      linkLabel:
+        type: string
+      linkUrl:
+        type: string
+      message:
+        type: string
+      severity:
+        type: string
+      startsAt:
+        type: string
+      title:
+        type: string
+    type: object
   applicationAdministration.applicationCompleteUploadRequest:
     properties:
       contentType:
@@ -2061,6 +2105,150 @@ info:
   title: PROMPT Core API
   version: "1.0"
 paths:
+  /announcements:
+    get:
+      description: Get all announcements for administration. Expired announcements
+        are only included when requested.
+      parameters:
+      - description: Include expired announcements
+        in: query
+        name: includeExpired
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/announcementDTO.Announcement'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: Get all announcements
+      tags:
+      - announcements
+    post:
+      consumes:
+      - application/json
+      description: Create a new announcement banner
+      parameters:
+      - description: Announcement to create
+        in: body
+        name: announcement
+        required: true
+        schema:
+          $ref: '#/definitions/announcementDTO.UpsertAnnouncement'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/announcementDTO.Announcement'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: Create an announcement
+      tags:
+      - announcements
+  /announcements/{id}:
+    delete:
+      description: Permanently delete an announcement banner
+      parameters:
+      - description: Announcement UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: Delete an announcement
+      tags:
+      - announcements
+    put:
+      consumes:
+      - application/json
+      description: Update an existing announcement banner, including whether it is
+        enabled
+      parameters:
+      - description: Announcement UUID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Updated announcement
+        in: body
+        name: announcement
+        required: true
+        schema:
+          $ref: '#/definitions/announcementDTO.UpsertAnnouncement'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/announcementDTO.Announcement'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: Update an announcement
+      tags:
+      - announcements
+  /announcements/active:
+    get:
+      description: Get all enabled announcements whose schedule includes the current
+        time. Public endpoint.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/announcementDTO.Announcement'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: Get active announcements
+      tags:
+      - announcements
   /applications/{coursePhaseID}:
     delete:
       consumes:

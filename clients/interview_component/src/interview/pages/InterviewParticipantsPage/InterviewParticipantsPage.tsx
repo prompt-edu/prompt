@@ -27,7 +27,7 @@ export const InterviewParticipantsPage = () => {
   const { participations, interviewSlots, interviewReviews } = useParticipationStore()
   const { courses } = useCourseStore()
 
-  const openInterview = (row: ParticipantRow) => {
+  const openInterview = (row: ParticipantRow, orderedRows: ParticipantRow[]) => {
     if (!row.student.id) return
     const target = `/management/course/${courseId}/${phaseId}/participants/${row.student.id}`
     if (openInNewTabRef.current) {
@@ -35,7 +35,10 @@ export const InterviewParticipantsPage = () => {
       return
     }
     navigate(target, {
-      state: { tableSearch: window.location.search } satisfies ProfileDetailLocationState,
+      state: {
+        tableSearch: window.location.search,
+        orderedParticipationIds: orderedRows.map((r) => r.courseParticipationID),
+      } satisfies ProfileDetailLocationState,
     })
   }
 

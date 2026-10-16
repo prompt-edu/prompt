@@ -24,6 +24,7 @@ export const coreKeys = {
     // The archive dialog caches the same phase under its own literal, so it shares neither the
     // entry above nor its invalidations
     byIdInArchiveDialog: (phaseId: Id) => ['coursePhase', phaseId] as const,
+    participations: (phaseId: Id) => ['course_phase_participations', phaseId] as const,
     types: () => ['course_phase_types'] as const,
     typesForScope: (scope: 'self' | 'all') => ['coursePhaseType', scope] as const,
   },

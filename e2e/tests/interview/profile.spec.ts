@@ -35,10 +35,13 @@ test.describe('interview: profile', () => {
 
     await expect(page).toHaveURL(PROFILE_URL)
     await expect(phase.breadcrumb().getByText('Participants', { exact: true })).toBeVisible()
+    await expect(
+      phase.breadcrumb().getByText(`${STUDENT.firstName} ${STUDENT.lastName}`, { exact: true }),
+    ).toBeVisible()
     await expect(phase.breadcrumb().getByText('Details', { exact: true })).toHaveCount(0)
   })
 
-  test('Back from a profile keeps the table search', async ({ page }) => {
+  test('the breadcrumb from a profile keeps the table search', async ({ page }) => {
     const phase = new InterviewPage(page)
     await phase.gotoParticipants(COURSE_ID, PHASE_ID)
     await phase.expectParticipantsLoaded()

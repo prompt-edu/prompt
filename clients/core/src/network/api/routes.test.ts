@@ -251,6 +251,12 @@ const ROUTES: Route[] = [
     url: `${CORE}/api/course_phases/${PHASE}`,
   },
   {
+    name: 'coursePhases.participations',
+    run: () => coreApi.coursePhases.participations(PHASE),
+    method: 'get',
+    url: `${CORE}/api/course_phases/${PHASE}/participations`,
+  },
+  {
     name: 'coursePhases.create',
     run: () => coreApi.coursePhases.create({ courseID: COURSE, name: 'New' } as never),
     method: 'post',

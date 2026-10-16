@@ -1,7 +1,5 @@
-import { cn } from '@tumaet/prompt-ui-components'
+import { cn, StickyHeader } from '@tumaet/prompt-ui-components'
 import type { ReactNode } from 'react'
-
-import { StickyHeader } from './StickyHeader'
 
 interface EvaluationHeaderProps {
   children: ReactNode

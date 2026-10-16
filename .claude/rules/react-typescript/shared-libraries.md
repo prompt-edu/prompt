@@ -39,6 +39,8 @@ import { Button, Card, ManagementPageHeader } from '@tumaet/prompt-ui-components
   `@tumaet/prompt-ui-components` one is deprecated and returns no URL, while the
   `@tumaet/prompt-shared-state` one still sends the email hash to Gravatar.
 - **Rich text:** `MinimalTiptapEditor`, `MailingTiptapEditor`, `DescriptionMinimalTiptapEditor`.
+- **Detail page header:** `StickyHeader` (docks below the management header while scrolling); put
+  `ParticipantNavigation` inside it for previous / next with the current name between the buttons.
 - **Hooks:** `useToast`, `useIsMobile`, `useCustomElementWidth`, `useScreenSize`.
 - **Utilities:** `cn` (clsx + tailwind-merge), `getStatusBadge`, `getStatusColor`,
   `getCountries`, `formatFileSize`, `openFileDownload`.

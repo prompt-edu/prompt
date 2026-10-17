@@ -6516,7 +6516,7 @@ __metadata:
     "@docusaurus/types": "npm:3.10.2"
     "@mdx-js/react": "npm:^3.1.1"
     clsx: "npm:^2.1.1"
-    lucide-react: "npm:^1.52.0"
+    lucide-react: "npm:^1.55.0"
     prism-react-renderer: "npm:^2.4.1"
     react: "npm:^19.3.0"
     react-dom: "npm:^19.3.0"
@@ -8796,16 +8796,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"lucide-react@npm:^1.52.0":
-  version: 1.55.0
-  resolution: "lucide-react@npm:1.55.0"
+"lucide-react@npm:^1.55.0":
+  version: 1.58.0
+  resolution: "lucide-react@npm:1.58.0"
   peerDependencies:
     "@types/react": "*"
     react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
   peerDependenciesMeta:
     "@types/react":
       optional: true
-  checksum: 10c0/0618af0eb06e0ea71a7c66b39b89158ff357093714fff5f4bfc1b4851af890ffc49092956b08daf89f38c7ff48f783bb14e7b52756aae4f6bed06da4cf297821
+  checksum: 10c0/2206d52aef1224292bf41285b7c1d224e3718bc9bbb1ae57fbaba346ec7600793b594730288ed065aa3165c98966bee275c8765ab1802620867a18787bfdf20c
   languageName: node
   linkType: hard
 
@@ -13204,12 +13204,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"uuid@npm:^14.0.2":
-  version: 14.0.2
-  resolution: "uuid@npm:14.0.2"
+"uuid@npm:^14.0.3":
+  version: 14.0.3
+  resolution: "uuid@npm:14.0.3"
   bin:
     uuid: dist-node/bin/uuid
-  checksum: 10c0/88906237004db370b013129c8372a2149f6fa1aad7a5f78fa65ddf2ba0a8663097022300d81fa01f551efee9d6bbe8c7ab140dc6d49f1b03d289f855096990c9
+  checksum: 10c0/e56e610ae3bd1ca099244e01ee5eff502675ede4601d971b80fff993ad97236c80197340113f759e6ead501ee6a8d52648f6deef1332ce9f192c4720f4891f62
   languageName: node
   linkType: hard
 

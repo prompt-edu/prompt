@@ -52,8 +52,12 @@ github.com/gabriel-vasile/mimetype v1.4.15 h1:05iP/CYtZ/w455R/KZM6rZ5ieAdh99UPtd
 github.com/gabriel-vasile/mimetype v1.4.15/go.mod h1:azpTcoLcDZRNgFou5j+APrqQx9HqVPWa6ijYQIIVswQ=
 github.com/getsentry/sentry-go v0.49.0 h1:Ehejknu1l023Ub7QoRBVLAI7g3Jnhqku4oWx4B4Sh5s=
 github.com/getsentry/sentry-go v0.49.0/go.mod h1:nuMJAoCfe1u0Bts2ocyNI+TW8HT84vRMqwA5Qq/SKUI=
+github.com/getsentry/sentry-go v0.50.0 h1:gkO59rn/i0RCAXUUTflC5QVbTQGPXbaFabs2olVzc9g=
+github.com/getsentry/sentry-go v0.50.0/go.mod h1:+xsDuN+SoRN/xfs1hdq78wnrE3omIZf+FCuh9FOW1C8=
 github.com/getsentry/sentry-go/gin v0.49.0 h1:PGvRtmaQvDTspf5ltbpyAO3f2B3TfHRIlciPd/Bjxt4=
 github.com/getsentry/sentry-go/gin v0.49.0/go.mod h1:jSZV8BST6coCpwWUMWJzFy74t1xoKL0kJPWFPCAr3Yo=
+github.com/getsentry/sentry-go/gin v0.50.0 h1:HqbA/kyum1IGH3rxvZzkg8VSOK13U42w+Lb1DGLflOE=
+github.com/getsentry/sentry-go/gin v0.50.0/go.mod h1:KcoYQKSq4o6Mi7Jr3ldOUgPNTsopcklG1KaE7tCoHzI=
 github.com/getsentry/sentry-go/logrus v0.49.0 h1:8Samwv5Ol/v7W/l0gc/4s/EBzhKAM/uGrx+sXDYimiE=
 github.com/getsentry/sentry-go/logrus v0.49.0/go.mod h1:2SI0YcRW46n5c/vO+4Mvy9EmXCu9wMp5cVpNtS+Zaq8=
 github.com/gin-contrib/sse v1.1.0 h1:n0w2GMuUpWDVp7qSpvze6fAu9iRxJY4Hmj6AmBOU05w=

@@ -917,19 +917,19 @@
         "clientId": "prompt-client",
         "name": "prompt-client",
         "description": "",
-        "rootUrl": "http://localhost:3000",
+        "rootUrl": "http://localhost:${PROMPT_PORT_3000:3000}",
         "adminUrl": "",
-        "baseUrl": "http://localhost:3000",
+        "baseUrl": "http://localhost:${PROMPT_PORT_3000:3000}",
         "surrogateAuthRequired": false,
         "enabled": true,
         "alwaysDisplayInConsole": false,
         "clientAuthenticatorType": "client-secret",
         "redirectUris": [
-          "http://localhost:3000/*",
-          "http://localhost:3001/*"
+          "http://localhost:${PROMPT_PORT_3000:3000}/*",
+          "http://localhost:${PROMPT_PORT_3001:3001}/*"
         ],
         "webOrigins": [
-          "http://localhost:3000"
+          "http://localhost:${PROMPT_PORT_3000:3000}"
         ],
         "notBefore": 0,
         "bearerOnly": false,
@@ -944,7 +944,7 @@
         "attributes": {
           "access.token.lifespan": "60",
           "client.secret.creation.time": "1690570212",
-          "post.logout.redirect.uris": "http://localhost:3000/*",
+          "post.logout.redirect.uris": "http://localhost:${PROMPT_PORT_3000:3000}/*",
           "oauth2.device.authorization.grant.enabled": "false",
           "backchannel.logout.revoke.offline.tokens": "false",
           "use.refresh.tokens": "true",
@@ -1013,16 +1013,16 @@
         "clientId": "prompt-server",
         "name": "prompt-server",
         "description": "",
-        "rootUrl": "http://localhost:8080/*",
+        "rootUrl": "http://localhost:${PROMPT_PORT_8080:8080}/*",
         "adminUrl": "",
-        "baseUrl": "http://localhost:8080/*",
+        "baseUrl": "http://localhost:${PROMPT_PORT_8080:8080}/*",
         "surrogateAuthRequired": false,
         "enabled": true,
         "alwaysDisplayInConsole": false,
         "clientAuthenticatorType": "client-secret",
         "secret": "**********",
         "redirectUris": [
-          "http://localhost:8080/*"
+          "http://localhost:${PROMPT_PORT_8080:8080}/*"
         ],
         "webOrigins": [],
         "notBefore": 0,
@@ -1037,7 +1037,7 @@
         "protocol": "openid-connect",
         "attributes": {
           "client.secret.creation.time": "1690570774",
-          "post.logout.redirect.uris": "http://localhost:8080/*##",
+          "post.logout.redirect.uris": "http://localhost:${PROMPT_PORT_8080:8080}/*##",
           "oauth2.device.authorization.grant.enabled": "false",
           "backchannel.logout.revoke.offline.tokens": "false",
           "use.refresh.tokens": "true",

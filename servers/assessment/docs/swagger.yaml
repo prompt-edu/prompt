@@ -3391,6 +3391,12 @@ paths:
             additionalProperties:
               type: string
             type: object
+        "502":
+          description: Bad Gateway
+          schema:
+            additionalProperties:
+              type: string
+            type: object
       summary: Create action item
       tags:
       - action_items

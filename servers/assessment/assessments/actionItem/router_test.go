@@ -40,7 +40,7 @@ func (suite *ActionItemRouterTestSuite) SetupSuite() {
 	suite.cleanup = cleanup
 
 	suite.coursePhaseConfigService = coursePhaseConfig.NewCoursePhaseConfigService(*testDB.Queries, testDB.Conn, assessmentSchemas.NewAssessmentSchemaService(*testDB.Queries, testDB.Conn))
-	suite.service = NewActionItemService(*testDB.Queries, assessmentCompletion.NewAssessmentCompletionService(*testDB.Queries, testDB.Conn, suite.coursePhaseConfigService), suite.coursePhaseConfigService)
+	suite.service = NewActionItemService(*testDB.Queries, assessmentCompletion.NewAssessmentCompletionService(*testDB.Queries, testDB.Conn, suite.coursePhaseConfigService), suite.coursePhaseConfigService, checkTestParticipant)
 
 	suite.router = gin.Default()
 	api := suite.router.Group("/api/course_phase/:coursePhaseID")
@@ -82,6 +82,36 @@ func (suite *ActionItemRouterTestSuite) TestCreateActionItemValid() {
 
 	suite.router.ServeHTTP(resp, req)
 	assert.Equal(suite.T(), http.StatusCreated, resp.Code)
+}
+
+func (suite *ActionItemRouterTestSuite) postActionItem(pathPhaseID, courseParticipationID uuid.UUID) *httptest.ResponseRecorder {
+	body, _ := json.Marshal(actionItemDTO.CreateActionItemRequest{
+		CourseParticipationID: courseParticipationID,
+		Action:                "Test action item",
+	})
+	req, _ := http.NewRequest("POST", "/api/course_phase/"+pathPhaseID.String()+"/student-assessment/action-item", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp := httptest.NewRecorder()
+	suite.router.ServeHTTP(resp, req)
+	return resp
+}
+
+func (suite *ActionItemRouterTestSuite) TestCreateActionItemForParticipantOutsidePhase() {
+	phaseID := uuid.MustParse("24461b6b-3c3a-4bc6-ba42-69eeb1514da9")
+
+	resp := suite.postActionItem(phaseID, outsideParticipationID)
+	assert.Equal(suite.T(), http.StatusBadRequest, resp.Code)
+
+	items, err := suite.service.ListActionItemsForStudentInPhase(suite.suiteCtx, outsideParticipationID, phaseID)
+	assert.NoError(suite.T(), err)
+	assert.Empty(suite.T(), items)
+}
+
+func (suite *ActionItemRouterTestSuite) TestCreateActionItemWhenParticipantLookupFails() {
+	phaseID := uuid.MustParse("24461b6b-3c3a-4bc6-ba42-69eeb1514da9")
+
+	resp := suite.postActionItem(phaseID, unverifiableParticipationID)
+	assert.Equal(suite.T(), http.StatusBadGateway, resp.Code)
 }
 
 func (suite *ActionItemRouterTestSuite) TestCreateActionItemIgnoresBodyCoursePhase() {
@@ -157,7 +187,7 @@ func (suite *ActionItemRouterTestSuite) TestUpdateActionItemTakesAuthorFromToken
 
 func (suite *ActionItemRouterTestSuite) createActionItemIn(phaseID uuid.UUID) actionItemDTO.ActionItem {
 	partID := uuid.New()
-	err := suite.service.CreateActionItem(suite.suiteCtx, phaseID, actionItemDTO.CreateActionItemRequest{
+	err := suite.service.CreateActionItem(suite.suiteCtx, "", phaseID, actionItemDTO.CreateActionItemRequest{
 		CourseParticipationID: partID,
 		Action:                "Original action",
 		Author:                "tester",

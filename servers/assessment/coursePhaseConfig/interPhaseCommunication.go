@@ -2,7 +2,9 @@ package coursePhaseConfig
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"net/url"
 
 	"github.com/google/uuid"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
@@ -11,6 +13,44 @@ import (
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig/coursePhaseConfigDTO"
 	log "github.com/sirupsen/logrus"
 )
+
+var ErrParticipantNotInPhase = errors.New("course participation is not part of this course phase")
+var ErrParticipantLookup = errors.New("could not verify course participation")
+
+// participationIDsResponse mirrors only the ids of core's participations payload. The
+// resolutions it also returns are not followed, so an unrelated phase cannot fail a write.
+type participationIDsResponse struct {
+	Participations []struct {
+		CourseParticipationID uuid.UUID `json:"courseParticipationID"`
+	} `json:"participations"`
+}
+
+// CheckParticipantInPhase returns ErrParticipantNotInPhase when core does not list the
+// course participation as a participant of the course phase.
+func CheckParticipantInPhase(ctx context.Context, authHeader string, coursePhaseID, courseParticipationID uuid.UUID) error {
+	requestURL, err := url.JoinPath(sdkUtils.GetCoreUrl(), "api/course_phases", coursePhaseID.String(), "participations")
+	if err != nil {
+		log.Error("could not build course phase participations url: ", err)
+		return ErrParticipantLookup
+	}
+	data, err := promptSDK.FetchJSON(requestURL, authHeader)
+	if err != nil {
+		log.Error("could not fetch course phase participations: ", err)
+		return ErrParticipantLookup
+	}
+
+	var response participationIDsResponse
+	if err := json.Unmarshal(data, &response); err != nil {
+		log.Error("could not parse course phase participations: ", err)
+		return ErrParticipantLookup
+	}
+	for _, participation := range response.Participations {
+		if participation.CourseParticipationID == courseParticipationID {
+			return nil
+		}
+	}
+	return ErrParticipantNotInPhase
+}
 
 func GetParticipationsForCoursePhase(ctx context.Context, authHeader string, coursePhaseID uuid.UUID) ([]coursePhaseConfigDTO.AssessmentParticipationWithStudent, error) {
 	coreURL := sdkUtils.GetCoreUrl()

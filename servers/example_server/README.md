@@ -20,8 +20,8 @@ another service's DB). Auth, CORS, and inter-service communication come from
 ## File map
 
 ```text
-main.go              Wiring: env config, migrations, DB pool, Keycloak auth, route groups,
-                     service info endpoint (capabilities), Sentry (optional)
+main.go              promptSDK.Bootstrap options (name, base path, DB env prefix, port,
+                     capabilities) plus registerRoutes, the only per-service wiring
 example/             The actual phase module — the part you replace with your logic
   router.go          RegisterRoutes plus Gin routes under /api/course_phase/:coursePhaseID
                      with role middleware; handlers are methods on the service
@@ -42,8 +42,10 @@ sqlc.yaml            sqlc config (postgresql, pgx/v5, output db/sqlc)
 
 ## What the code demonstrates
 
-- **SDK auth wiring** — `initKeycloak` + `promptSDK.InitAuthenticationMiddleware` once in
-  `main.go`, then per-route `promptSDK.AuthenticationMiddleware(promptSDK.PromptAdmin, ...)`.
+- **SDK bootstrap**: `promptSDK.Bootstrap` runs Sentry, migrations, the DB pool, CORS, audit,
+  Keycloak, the `/info` endpoint and graceful shutdown; `main.go` only passes the service's
+  options and a `registerRoutes` callback, which protects each route with
+  `promptSDK.AuthenticationMiddleware(promptSDK.PromptAdmin, ...)`.
 - **Module layout** — `example/` follows the repo convention `router.go` (thin handlers) /
   `service.go` (constructor and logic); add `validation.go` for input validation.
 - **Construction separate from routing** — `NewExampleService(...)` builds the service and

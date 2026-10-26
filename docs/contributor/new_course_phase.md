@@ -59,8 +59,10 @@ types remotes by that suffix):
 
 1. `cp -R servers/example_server servers/<name>`; rename the `example/` module package.
 2. `go.mod`: module path `github.com/prompt-edu/prompt/servers/<name>`; update all imports.
-3. `main.go`: route prefix `<name>-service`, env vars `DB_HOST_<NAME>_SERVER` /
-   `DB_PORT_<NAME>_SERVER` / `SENTRY_DSN_<NAME>_SERVER`, server port, swagger annotations.
+3. `main.go`: the `promptSDK.Bootstrap` options (route prefix `<name>-service`, `DBEnvPrefix`
+   `<NAME>_SERVER` for `DB_HOST_<NAME>_SERVER` / `DB_PORT_<NAME>_SERVER`, `DefaultDBPort`,
+   `SENTRY_DSN_<NAME>_SERVER`, server port), swagger annotations, and your routes in
+   `registerRoutes`.
 4. Keep the `config/` and `copy/` packages — they implement the SDK phase config/copy contracts
    that course templating and deep copy rely on.
 5. Schema in `db/migration/`, queries in `db/query/`, then `sqlc generate` (see the

@@ -8,23 +8,95 @@
 	test-team-allocation test-self-team-allocation test-example \
 	test-certificate test-presentation test-infrastructure-setup \
 	test-e2e test-e2e-shard test-e2e-ui test-e2e-down \
-	verify-up verify-down \
+	verify-up verify-down stack stack-down s3 \
 	sqlc sqlc-core sqlc-assessment sqlc-interview \
 	sqlc-team-allocation sqlc-self-team-allocation sqlc-example \
 	sqlc-certificate sqlc-presentation sqlc-infrastructure-setup \
 	swagger install-clients install-hooks setup-skills new-phase \
 	seed seed-check
 
+# A linked worktree has no .env or .env.dev of its own (both are gitignored),
+# so it falls back to the main checkout's copy of each.
+MAIN_CHECKOUT := $(patsubst %/.git,%,$(shell git rev-parse --path-format=absolute --git-common-dir 2>/dev/null))
+ENV_FILE := $(firstword $(wildcard .env $(MAIN_CHECKOUT)/.env))
+ENV_DEV_FILE := $(firstword $(wildcard .env.dev $(MAIN_CHECKOUT)/.env.dev))
+
 # Load .env file if it exists (base configuration)
-ifneq (,$(wildcard ./.env))
-    include .env
+ifneq (,$(ENV_FILE))
+    include $(ENV_FILE)
     export
 endif
 
 # Load .env.dev file if it exists (local development overrides)
-ifneq (,$(wildcard ./.env.dev))
-    include .env.dev
+ifneq (,$(ENV_DEV_FILE))
+    include $(ENV_DEV_FILE)
     export
+endif
+
+# ─── Stack ─────────────────────────────────────────────────────────────────────
+
+# Every worktree can run its own stack next to the others. The main checkout is
+# stack 0 and keeps the ports and container names in the Compose files. A linked
+# worktree gets its own number n on first use (scripts/stack-number.sh), and
+# PROMPT_STACK=<n> overrides it. Stack n shifts every published host port by
+# n * 100, names its containers prompt-<n>-* and runs under the Compose projects
+# prompt-<n> and prompt-<n>-e2e. Docs: docs/contributor/setup.md.
+#
+# Only the targets that touch a stack ask for a number, so `make lint` or
+# `make test` in a fresh worktree never takes one.
+STACK_GOALS := stack stack-down server servers server-% clients client-% db db-down s3 \
+	seed test-e2e test-e2e-shard test-e2e-down test-e2e-ui verify-up verify-down
+
+ifneq (,$(filter $(STACK_GOALS),$(MAKECMDGOALS)))
+STACK := $(shell PROMPT_STACK='$(PROMPT_STACK)' ./scripts/stack-number.sh)
+ifeq (,$(STACK))
+$(error No stack number for this checkout, see the message above)
+endif
+export PROMPT_STACK := $(STACK)
+STACK_OFFSET := $(shell echo $$(($(STACK) * 100)))
+
+# Every PROMPT_PORT_<port> these files mention is <port> shifted to this stack.
+# The Compose files fall back to <port> itself when the variable is unset.
+STACK_PORT_FILES := Makefile docker-compose.yml docker-compose.stack.yml \
+	docker-compose.e2e.yml e2e/docker-compose.browser.yml
+$(foreach port,$(shell grep -ohsE 'PROMPT_PORT_[0-9]+' $(STACK_PORT_FILES) | sort -u | \
+	awk -F_ '{ print $$0 "=" $$3 + $(STACK_OFFSET) }'),$(eval export $(port)))
+
+# Read by core to register the phase services of a development stack, and by
+# the client dev servers (clients/shared/rspack/devPorts.mjs).
+export PROMPT_PORT_OFFSET := $(STACK_OFFSET)
+export PROMPT_CLIENT_PORT := $(PROMPT_PORT_3000)
+
+ifeq ($(STACK),0)
+STACK_PREFIX := prompt
+DEV_COMPOSE := docker compose
+else
+STACK_PREFIX := prompt-$(STACK)
+DEV_COMPOSE := docker compose -p $(STACK_PREFIX) -f docker-compose.yml -f docker-compose.stack.yml
+export PROMPT_CONTAINER_PREFIX := $(STACK_PREFIX)
+
+# The host-run servers reach this stack's databases, Keycloak and S3 on its own
+# ports. These are the port settings of .env.dev, which stack 0 keeps as is.
+export DB_PORT := $(PROMPT_PORT_5432)
+export DB_CORE_PORT := $(PROMPT_PORT_5432)
+export DB_PORT_TEAM_ALLOCATION := $(PROMPT_PORT_5434)
+export DB_PORT_SELF_TEAM_ALLOCATION := $(PROMPT_PORT_5436)
+export DB_PORT_ASSESSMENT := $(PROMPT_PORT_5435)
+export DB_PORT_CERTIFICATE := $(PROMPT_PORT_5439)
+export DB_PORT_EXAMPLE_SERVER := $(PROMPT_PORT_5437)
+export DB_PORT_INTERVIEW := $(PROMPT_PORT_5438)
+export DB_PORT_PRESENTATION := $(PROMPT_PORT_5440)
+export DB_PORT_INFRASTRUCTURE_SETUP := $(PROMPT_PORT_5441)
+export KEYCLOAK_HOST := http://localhost:$(PROMPT_PORT_8081)
+# The stack's Keycloak imports keycloakConfig.json on its first start, which
+# stores this placeholder as the prompt-server secret.
+export KEYCLOAK_CLIENT_SECRET := **********
+export S3_ENDPOINT := http://localhost:$(PROMPT_PORT_8334)
+export S3_PUBLIC_ENDPOINT := http://localhost:$(PROMPT_PORT_8334)
+export SERVER_CORE_HOST := http://localhost:$(PROMPT_PORT_8080)
+export CORE_HOST := http://localhost:$(PROMPT_PORT_3000)
+endif
+E2E_PROJECT := $(STACK_PREFIX)-e2e
 endif
 
 help: ## Show this help
@@ -113,6 +185,20 @@ seed: ## Load the demo course into every service database (re-runnable)
 
 seed-check: ## Verify the cross-database references in seed/ resolve
 	./scripts/seed-check.sh
+
+stack: ## Show this checkout's stack number, ports and the allocated stacks
+	@echo "stack       $(STACK) (containers $(STACK_PREFIX)-*, e2e containers $(STACK_PREFIX)-e2e-*)"
+	@echo "client      http://localhost:$(PROMPT_PORT_3000) (remotes up to $(PROMPT_PORT_3012))"
+	@echo "core API    http://localhost:$(PROMPT_PORT_8080)"
+	@echo "servers     team allocation $(PROMPT_PORT_8083), self team allocation $(PROMPT_PORT_8084), assessment $(PROMPT_PORT_8085),"
+	@echo "            example $(PROMPT_PORT_8086), interview $(PROMPT_PORT_8087), certificate $(PROMPT_PORT_8088),"
+	@echo "            presentation $(PROMPT_PORT_8089), infrastructure setup $(PROMPT_PORT_8091)"
+	@echo "keycloak    http://localhost:$(PROMPT_PORT_8081)"
+	@echo "postgres    core $(PROMPT_PORT_5432), keycloak $(PROMPT_PORT_5431), phase services $(PROMPT_PORT_5434)-$(PROMPT_PORT_5441)"
+	@echo "s3          http://localhost:$(PROMPT_PORT_8334)"
+	@echo "e2e/verify  client $(PROMPT_PORT_4000), core API $(PROMPT_PORT_18090), keycloak $(PROMPT_PORT_18081), mailpit $(PROMPT_PORT_18025), s3 $(PROMPT_PORT_18333)"
+	@echo "allocated   (<git common dir>/prompt-stacks)"
+	@./scripts/stack-number.sh --list | sed 's/^/            /'
 
 # ─── Code Quality ──────────────────────────────────────────────────────────────
 

@@ -9,8 +9,9 @@
 #   db_port      unique published Postgres port (default: next free 54xx in docker-compose.yml)
 #
 # Copies clients/example_component and servers/example_server, renames every identifier,
-# and registers the phase in the workspaces, core client, docker-compose, env templates,
-# Makefile, and CI matrices. Prints the remaining manual steps at the end.
+# and registers the phase in the workspaces, core client, docker-compose (plus its stack
+# overlay), env templates, Makefile, and CI matrices. Prints the remaining manual steps
+# at the end.
 # Full documentation: docs/contributor/new_course_phase.md
 #
 # Run on a clean working tree. If a step fails midway, revert with:
@@ -52,14 +53,16 @@ SERVER_DIR="servers/${NAME}"
 
 grep -q "devPort: ${CLIENT_PORT}," clients/core/remotes.config.mjs \
   && die "client port ${CLIENT_PORT} is already used by another remote"
-grep -q "\"${SERVER_PORT}:8080\"" docker-compose.yml \
+# Host ports in docker-compose.yml read "${PROMPT_PORT_<port>:-<port>}:<container port>"
+# so a parallel stack can shift them (docs/contributor/setup.md).
+grep -qF ":-${SERVER_PORT}}:8080\"" docker-compose.yml \
   && die "server port ${SERVER_PORT} is already used in docker-compose.yml"
 
 if [[ -z "$DB_PORT" ]]; then
-  DB_PORT="$(grep -o '"54[0-9][0-9]:5432"' docker-compose.yml | tr -d '"' | cut -d: -f1 | sort -n | tail -1)"
+  DB_PORT="$(grep -oE ':-54[0-9]{2}\}:5432"' docker-compose.yml | grep -oE '54[0-9]{2}' | sort -n | tail -1)"
   DB_PORT=$((DB_PORT + 1))
 fi
-grep -q "\"${DB_PORT}:5432\"" docker-compose.yml \
+grep -qF ":-${DB_PORT}}:5432\"" docker-compose.yml \
   && die "db port ${DB_PORT} is already used in docker-compose.yml"
 
 echo "Scaffolding phase '${NAME}' (client :${CLIENT_PORT}, server :${SERVER_PORT}, db :${DB_PORT})"
@@ -125,9 +128,9 @@ copy_block() {
   [[ -s "$tmp" ]] || die "block anchor not found in $file: $anchor"
   rename_tokens "$tmp"
   perl -pi -e "
-    s/\"8086:8080\"/\"${SERVER_PORT}:8080\"/;
-    s/\"3001:80\"/\"${CLIENT_PORT}:80\"/;
-    s/\"5437:5432\"/\"${DB_PORT}:5432\"/;
+    s/PROMPT_PORT_8086:-8086\\}:8080/PROMPT_PORT_${SERVER_PORT}:-${SERVER_PORT}}:8080/;
+    s/PROMPT_PORT_3001:-3001\\}:80/PROMPT_PORT_${CLIENT_PORT}:-${CLIENT_PORT}}:80/;
+    s/PROMPT_PORT_5437:-5437\\}:5432/PROMPT_PORT_${DB_PORT}:-${DB_PORT}}:5432/;
   " "$tmp"
   BLOCK_FILE="$tmp" awk -v anchor="$anchor" '
     { print }
@@ -224,11 +227,17 @@ insert_after clients/core/public/env.template.js \
   "  ${UPPER}_HOST: '\$${UPPER}_HOST',"
 
 # ------------------------------------------------------------ 5. docker-compose
-echo "-> docker-compose.yml"
+echo "-> docker-compose.yml, docker-compose.stack.yml"
 copy_block docker-compose.yml '^  server-example:$'
 copy_block docker-compose.yml '^  client-example-component:$'
 copy_block docker-compose.yml '^  db-example-server:$'
 insert_after docker-compose.yml '^      - EXAMPLE_HOST$' "      - ${UPPER}_HOST"
+# A parallel stack keeps the new database in a named volume, like the others.
+insert_after docker-compose.stack.yml '^      - postgres_example_server_data:/var/lib/postgresql/data$' \
+  "  db-${KEBAB}-server:
+    volumes:
+      - postgres_${NAME}_data:/var/lib/postgresql/data"
+insert_after docker-compose.stack.yml '^  postgres_example_server_data:$' "  postgres_${NAME}_data:"
 
 # ------------------------------------------------------------- 6. env templates
 echo "-> env templates"
@@ -260,11 +269,13 @@ perl -pi -e "s/\bserver-example\b/server-example server-${KEBAB}/ if \$. < 15" M
 perl -pi -e "s/\btest-example\b/test-example test-${KEBAB}/ if \$. < 15" Makefile
 perl -pi -e "s/\bsqlc-example\b/sqlc-example sqlc-${KEBAB}/ if \$. < 15" Makefile
 insert_after Makefile '^\t@\$\(MAKE\) server-example &$' "	@\$(MAKE) server-${KEBAB} &"
+insert_after Makefile '^export DB_PORT_EXAMPLE_SERVER := ' \
+  "export DB_PORT_${UPPER}_SERVER := \$(PROMPT_PORT_${DB_PORT})"
 insert_after Makefile '^\tcd servers/example_server && go vet' "	cd servers/${NAME} && go vet ./..."
 perl -pi -e "s/^(test: .*test-example)/\$1 test-${KEBAB}/" Makefile
 perl -pi -e "s/^(sqlc: .*sqlc-example)/\$1 sqlc-${KEBAB}/" Makefile
-printf '\nserver-%s: ## Start %s server (port %s)\n\tcd servers/%s && go run main.go\n' \
-  "$KEBAB" "$NAME" "$SERVER_PORT" "$NAME" >> Makefile
+printf '\nserver-%s: ## Start %s server (port %s)\n\t$(call run-server,%s,$(PROMPT_PORT_%s))\n' \
+  "$KEBAB" "$NAME" "$SERVER_PORT" "$NAME" "$SERVER_PORT" >> Makefile
 printf '\ntest-%s: ## Run %s server tests\n\tcd servers/%s && go test ./...\n' \
   "$KEBAB" "$NAME" "$NAME" >> Makefile
 printf '\nsqlc-%s: ## Generate sqlc code for %s server\n\tcd servers/%s && sqlc generate\n' \

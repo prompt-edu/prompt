@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/getsentry/sentry-go"
@@ -25,21 +24,6 @@ import (
 	"github.com/prompt-edu/prompt/servers/infrastructure_setup/resourceconfig"
 	log "github.com/sirupsen/logrus"
 )
-
-var (
-	dbUser     = promptSDK.GetEnv("DB_USER", "prompt-postgres")
-	dbPassword = promptSDK.GetEnv("DB_PASSWORD", "prompt-postgres")
-	dbHost     = promptSDK.GetEnv("DB_HOST_INFRASTRUCTURE_SETUP", "localhost")
-	dbPort     = promptSDK.GetEnv("DB_PORT_INFRASTRUCTURE_SETUP", "5441")
-	dbName     = promptSDK.GetEnv("DB_NAME", "prompt")
-	sslMode    = promptSDK.GetEnv("SSL_MODE", "disable")
-	timeZone   = promptSDK.GetEnv("DB_TIMEZONE", "Europe/Berlin")
-)
-
-func getDatabaseURL() string {
-	return fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s&TimeZone=%s",
-		dbUser, dbPassword, dbHost, dbPort, dbName, sslMode, timeZone)
-}
 
 // registerProviderFactories wires provider constructors into the execution registry.
 func registerProviderFactories() {
@@ -71,9 +55,7 @@ func main() {
 	_ = sdkUtils.InitSentry(promptSDK.GetEnv("SENTRY_DSN_INFRASTRUCTURE_SETUP", ""))
 	defer sentry.Flush(2 * time.Second)
 
-	databaseURL := getDatabaseURL()
-	log.Debugf("Connecting to database at host=%s port=%s db=%s user=%s sslmode=%s",
-		dbHost, dbPort, dbName, dbUser, sslMode)
+	databaseURL := sdkUtils.GetDatabaseURLForPrefix("INFRASTRUCTURE_SETUP", "5441")
 
 	if err := sdkUtils.RunMigrations(databaseURL, "./db/migration"); err != nil {
 		log.Fatalf("Failed to run migrations: %v", err)

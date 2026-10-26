@@ -275,7 +275,9 @@ test-infrastructure-setup: ## Run infrastructure setup server tests
 
 # ─── End-to-End Tests ──────────────────────────────────────────────────────────
 
-E2E_COMPOSE = docker compose -f docker-compose.e2e.yml --env-file e2e/.env.e2e
+# The e2e stack runs under its own Compose project (prompt-e2e, or prompt-<n>-e2e
+# in stack n), so it never touches a dev stack's containers.
+E2E_COMPOSE = docker compose -p $(E2E_PROJECT) -f docker-compose.e2e.yml --env-file e2e/.env.e2e
 
 # The Makefile exports .env / .env.dev (host-mode overrides like DB_CORE_HOST=localhost),
 # which Compose ranks above --env-file. Unset the keys e2e/.env.e2e defines so it stays authoritative.
@@ -314,11 +316,11 @@ test-e2e-shard: ## Run one CI module shard locally, e.g. make test-e2e-shard SHA
 test-e2e-down: ## Tear down the e2e stack and remove volumes
 	unset $(E2E_ENV_KEYS); $(E2E_COMPOSE) down -v
 
-test-e2e-ui: ## Interactive Playwright UI in Docker - then open http://127.0.0.1:8123
+test-e2e-ui: ## Interactive Playwright UI in Docker - then open http://127.0.0.1:8123 (shifted in stack n)
 	@mkdir -p e2e/playwright-report e2e/test-results
-	@echo "Starting the interactive Playwright UI - open http://127.0.0.1:8123 once it prints 'Listening'."
+	@echo "Starting the interactive Playwright UI - open http://127.0.0.1:$(PROMPT_PORT_8123) once it prints 'Listening'."
 	unset $(E2E_ENV_KEYS); \
-		$(E2E_COMPOSE) run --rm --build -p 8123:8123 \
+		$(E2E_COMPOSE) run --rm --build -p $(PROMPT_PORT_8123):8123 \
 		-v "$(CURDIR)/e2e/tests:/work/tests" \
 		-v "$(CURDIR)/e2e/src:/work/src" \
 		-v "$(CURDIR)/e2e/playwright-report:/work/playwright-report" \
@@ -332,17 +334,19 @@ test-e2e-ui: ## Interactive Playwright UI in Docker - then open http://127.0.0.1
 # core API are reachable as localhost:<published port>. That lets a browser on
 # the host complete the login redirect and mint a token the servers accept.
 # Driven by the `verify` skill.
-VERIFY_COMPOSE = docker compose -f docker-compose.e2e.yml -f e2e/docker-compose.browser.yml --env-file e2e/.env.e2e
+VERIFY_COMPOSE = docker compose -p $(E2E_PROJECT) -f docker-compose.e2e.yml -f e2e/docker-compose.browser.yml --env-file e2e/.env.e2e
 
 verify-up: ## Boot the seeded stack for host-browser verification (SKIP_BUILD=1 reuses existing images)
 	set -e; unset $(E2E_ENV_KEYS); \
 		$(if $(SKIP_BUILD),true,$(VERIFY_COMPOSE) build); \
 		$(VERIFY_COMPOSE) up -d client-core server-core seed
 	@echo ""
-	@echo "client    http://localhost:4000/management"
-	@echo "core API  http://localhost:18090"
-	@echo "keycloak  http://localhost:18081"
-	@echo "mailpit   http://localhost:18025"
+	@echo "client    http://localhost:$(PROMPT_PORT_4000)/management"
+	@echo "core API  http://localhost:$(PROMPT_PORT_18090)"
+	@echo "keycloak  http://localhost:$(PROMPT_PORT_18081)"
+	@echo "mailpit   http://localhost:$(PROMPT_PORT_18025)"
+	@echo "s3        http://localhost:$(PROMPT_PORT_18333)"
+	@echo "seed log  docker logs $(STACK_PREFIX)-e2e-seed"
 	@echo "logins    username == password (lecturer, admin, student, ...)"
 
 verify-down: ## Tear down the host-browser stack and remove volumes

@@ -1,18 +1,11 @@
 package main
 
 import (
-	"context"
-	"fmt"
 	"net/http"
-	"os"
-	"time"
 
-	"github.com/getsentry/sentry-go"
-	sentrygin "github.com/getsentry/sentry-go/gin"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
-	"github.com/prompt-edu/prompt-sdk/audit"
 	"github.com/prompt-edu/prompt-sdk/promptTypes"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/certificate/bodyLimit"
@@ -26,60 +19,36 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func getDatabaseURL() string {
-	dbUser := promptSDK.GetEnv("DB_USER", "prompt-postgres")
-	dbPassword := promptSDK.GetEnv("DB_PASSWORD", "prompt-postgres")
-	dbHost := promptSDK.GetEnv("DB_HOST_CERTIFICATE", "localhost")
-	dbPort := promptSDK.GetEnv("DB_PORT_CERTIFICATE", "5439")
-	dbName := promptSDK.GetEnv("DB_NAME", "prompt")
-	sslMode := promptSDK.GetEnv("SSL_MODE", "disable")
-	timeZone := promptSDK.GetEnv("DB_TIMEZONE", "Europe/Berlin")
-
-	return fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s&TimeZone=%s", dbUser, dbPassword, dbHost, dbPort, dbName, sslMode, timeZone)
+func main() {
+	err := promptSDK.Bootstrap(promptSDK.ServiceOptions{
+		ServiceName:    "certificate",
+		BasePath:       "/certificate/api",
+		DBEnvPrefix:    "CERTIFICATE",
+		DefaultDBPort:  "5439",
+		SentryDSNEnv:   "SENTRY_DSN_CERTIFICATE",
+		DefaultAddress: "localhost:8088",
+		Capabilities: map[string]bool{
+			promptTypes.CapabilityPrivacyExport:   true,
+			promptTypes.CapabilityPrivacyDeletion: true,
+			promptTypes.CapabilityPhaseCopy:       true,
+			promptTypes.CapabilityPhaseConfig:     true,
+			promptTypes.CapabilityPhaseDeletion:   true,
+		},
+		RegisterRoutes: registerRoutes,
+	})
+	if err != nil {
+		log.Fatalf("Certificate server stopped: %v", err)
+	}
 }
 
-func main() {
-	sentryEnabled := promptSDK.GetEnv("SENTRY_ENABLED", "false") == "true"
-	if sentryEnabled {
-		_ = sdkUtils.InitSentry(promptSDK.GetEnv("SENTRY_DSN_CERTIFICATE", ""))
-		defer sentry.Flush(2 * time.Second)
-	}
-
-	databaseURL := getDatabaseURL()
-	log.Debug("Connecting to database")
-
-	if err := sdkUtils.RunMigrations(databaseURL, "./db/migration"); err != nil {
-		log.Fatalf("Failed to run migrations: %v", err)
-	}
-
-	ctx := context.Background()
-	conn, err := pgxpool.New(ctx, databaseURL)
-	if err != nil {
-		log.Fatalf("Unable to create connection pool: %v\n", err)
-		os.Exit(1)
-	}
-	defer conn.Close()
+func registerRoutes(api, coursePhaseApi *gin.RouterGroup, conn *pgxpool.Pool) error {
+	// Bootstrap creates coursePhaseApi before calling back, and Gin snapshots a group's chain when
+	// a subgroup is created, so the cap goes on both groups. Routes that need more raise it with
+	// bodyLimit.WithLimit.
+	api.Use(bodyLimit.Middleware(bodyLimit.DefaultMaxBytes))
+	coursePhaseApi.Use(bodyLimit.Middleware(bodyLimit.DefaultMaxBytes))
 
 	query := db.New(conn)
-
-	clientHost := promptSDK.GetEnv("CORE_HOST", "http://localhost:3000")
-
-	router := gin.Default()
-	if sentryEnabled {
-		router.Use(sentrygin.New(sentrygin.Options{}))
-	}
-	router.Use(promptSDK.CORSMiddleware(clientHost))
-	// Cap request bodies before any route is registered, so the cap is part of every route's
-	// chain. Routes that need more raise it with bodyLimit.WithLimit.
-	router.Use(bodyLimit.Middleware(bodyLimit.DefaultMaxBytes))
-
-	api := router.Group("certificate/api")
-	// Gin snapshots the handler chain when a subgroup is created, so this must run before coursePhaseApi.
-	api.Use(audit.Middleware(audit.NewCoreSink(sdkUtils.GetCoreUrl(), "certificate")))
-	coursePhaseApi := api.Group("/course_phase/:coursePhaseID")
-	if err := promptSDK.InitPhaseKeycloak(); err != nil {
-		log.Fatalf("Failed to initialize keycloak: %v", err)
-	}
 
 	coursePhaseApi.GET("/hello", helloCertificate)
 
@@ -96,31 +65,7 @@ func main() {
 	privacy.RegisterRoutes(api, privacyService)
 	copy.RegisterRoutes(api, copyService)
 	coursePhaseDeletion.RegisterRoutes(coursePhaseApi, coursePhaseDeletionService)
-
-	promptTypes.RegisterInfoEndpoint(api, promptTypes.ServiceInfo{
-		ServiceName: "certificate",
-		Version:     promptSDK.GetEnv("SERVER_IMAGE_TAG", ""),
-		Capabilities: map[string]bool{
-			promptTypes.CapabilityPrivacyExport:   true,
-			promptTypes.CapabilityPrivacyDeletion: true,
-			promptTypes.CapabilityPhaseCopy:       true,
-			promptTypes.CapabilityPhaseConfig:     true,
-			promptTypes.CapabilityPhaseDeletion:   true,
-			promptTypes.CapabilityAuditLog:        audit.Enabled(),
-		},
-	}, func() bool {
-		ctt, cancel := context.WithTimeout(ctx, 500*time.Millisecond)
-		defer cancel()
-		return conn.Ping(ctt) == nil
-	},
-	)
-
-	serverAddress := promptSDK.GetEnv("SERVER_ADDRESS", "localhost:8088")
-	log.Info("Certificate Server started")
-	err = router.Run(serverAddress)
-	if err != nil {
-		log.Fatalf("Failed to start server: %v", err)
-	}
+	return nil
 }
 
 func helloCertificate(c *gin.Context) {

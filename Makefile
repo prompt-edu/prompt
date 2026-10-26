@@ -173,15 +173,19 @@ DB_SERVICES = db db-team-allocation db-assessment db-self-team-allocation \
 	db-infrastructure-setup
 
 db: ## Start every service database and Keycloak
-	docker compose up -d $(DB_SERVICES) keycloak
+	$(DEV_COMPOSE) up -d $(DB_SERVICES) keycloak
 
 db-down: ## Stop every service database and Keycloak
-	docker compose stop $(DB_SERVICES) keycloak
+	$(DEV_COMPOSE) stop $(DB_SERVICES) keycloak
+
+# The core and presentation servers refuse to start without their bucket store.
+s3: ## Start the SeaweedFS S3 storage for file uploads
+	$(DEV_COMPOSE) up -d seaweedfs-volume seaweedfs-s3
 
 # Runs in a container so no host psql is needed and the code path matches the
 # one the e2e stack uses. The servers own the schemas, so start them once first.
 seed: ## Load the demo course into every service database (re-runnable)
-	docker compose run --rm seed
+	$(DEV_COMPOSE) run --rm seed
 
 seed-check: ## Verify the cross-database references in seed/ resolve
 	./scripts/seed-check.sh
@@ -199,6 +203,17 @@ stack: ## Show this checkout's stack number, ports and the allocated stacks
 	@echo "e2e/verify  client $(PROMPT_PORT_4000), core API $(PROMPT_PORT_18090), keycloak $(PROMPT_PORT_18081), mailpit $(PROMPT_PORT_18025), s3 $(PROMPT_PORT_18333)"
 	@echo "allocated   (<git common dir>/prompt-stacks)"
 	@./scripts/stack-number.sh --list | sed 's/^/            /'
+
+# Also works for the stack of a worktree that is already gone:
+# make stack-down PROMPT_STACK=<n> from any checkout.
+stack-down: ## Remove this stack's dev and e2e containers and volumes (stack 1 and up)
+	@if [ "$(STACK)" = 0 ]; then \
+		echo "make stack-down: stack 0 is the main checkout's stack, which keeps its data in bind-mounted"; \
+		echo "directories. Use make db-down and make test-e2e-down there, or PROMPT_STACK=<n> for another stack."; \
+		exit 2; \
+	fi
+	$(DEV_COMPOSE) down -v --remove-orphans
+	unset $(E2E_ENV_KEYS); $(E2E_COMPOSE) down -v --remove-orphans
 
 # ─── Code Quality ──────────────────────────────────────────────────────────────
 

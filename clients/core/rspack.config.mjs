@@ -1,8 +1,15 @@
+import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import rspack from '@rspack/core'
 import CompressionPlugin from 'compression-webpack-plugin'
 import { BundleAnalyzerPlugin } from 'webpack-bundle-analyzer'
+import {
+  DEFAULT_CLIENT_PORT,
+  devPort,
+  devPortOffset,
+  shiftLocalhostPorts,
+} from '../shared/rspack/devPorts.mjs'
 import { federatedDependencies } from '../shared/rspack/federatedDependencies.mjs'
 import { resolveRemotes } from './remotes.config.mjs'
 
@@ -16,6 +23,7 @@ const config = (env = {}) => {
   const IS_PERF = env.BUNDLE_SIZE === 'true'
 
   const remotes = resolveRemotes(IS_DEV)
+  const portOffset = devPortOffset()
 
   return {
     target: 'web',
@@ -27,9 +35,25 @@ const config = (env = {}) => {
       compress: true,
       hot: true,
       historyApiFallback: true,
-      port: 3000,
+      port: devPort(DEFAULT_CLIENT_PORT),
       client: { progress: true },
       open: false,
+      // public/env.js points at stack 0's APIs and Keycloak; a parallel stack
+      // serves it with its own ports instead.
+      ...(portOffset !== 0 && {
+        setupMiddlewares: (middlewares) => [
+          {
+            name: 'stack-env-js',
+            path: '/env.js',
+            middleware: (_req, res) => {
+              const envJs = readFileSync(path.join(__dirname, 'public/env.js'), 'utf8')
+              res.setHeader('Content-Type', 'application/javascript; charset=utf-8')
+              res.end(shiftLocalhostPorts(envJs, portOffset))
+            },
+          },
+          ...middlewares,
+        ],
+      }),
     },
     module: {
       rules: [

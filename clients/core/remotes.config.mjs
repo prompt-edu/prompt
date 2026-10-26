@@ -1,3 +1,6 @@
+import { devPort } from '../shared/rspack/devPorts.mjs'
+
+// devPort is the remote's dev server port in stack 0; see devPorts.mjs.
 export const REMOTES = [
   {
     name: 'example_component',
@@ -68,8 +71,8 @@ export const REMOTES = [
 ]
 
 export const resolveRemotes = (isDev) =>
-  REMOTES.map(({ name, phaseTypeName, devPort, prodPath }) => ({
+  REMOTES.map(({ name, phaseTypeName, devPort: port, prodPath }) => ({
     name,
     phaseTypeName,
-    url: isDev ? `http://localhost:${devPort}` : prodPath,
+    url: isDev ? `http://localhost:${devPort(port)}` : prodPath,
   }))

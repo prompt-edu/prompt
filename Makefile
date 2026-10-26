@@ -206,6 +206,8 @@ stack: ## Show this checkout's stack number, ports and the allocated stacks
 	@echo "postgres    core $(PROMPT_PORT_5432), keycloak $(PROMPT_PORT_5431), phase services $(PROMPT_PORT_5434)-$(PROMPT_PORT_5441)"
 	@echo "s3          http://localhost:$(PROMPT_PORT_8334)"
 	@echo "e2e/verify  client $(PROMPT_PORT_4000), core API $(PROMPT_PORT_18090), keycloak $(PROMPT_PORT_18081), mailpit $(PROMPT_PORT_18025), s3 $(PROMPT_PORT_18333)"
+	@echo "compose     $(DEV_COMPOSE)"
+	@echo "            $(E2E_COMPOSE)"
 	@echo "allocated   (<git common dir>/prompt-stacks)"
 	@./scripts/stack-number.sh --list | sed 's/^/            /'
 

@@ -69,6 +69,13 @@ make db
 # Stop every service database and Keycloak
 make db-down
 
+# Start the SeaweedFS S3 storage the core and presentation servers need
+make s3
+
+# Show this checkout's stack number and ports; remove a worktree's stack
+make stack
+make stack-down
+
 # Load the demo course into every service database (start the servers first)
 make seed
 
@@ -100,6 +107,12 @@ make setup-skills
 
 `make help` lists every target, including the per-service `server-*`, `client-*`, `test-*`, and
 `sqlc-*` ones.
+
+**Parallel stacks:** every git worktree runs its own stack (databases, Keycloak, servers, clients,
+e2e/verify stack). The main checkout is stack 0 with the ports listed above; a linked worktree gets its own
+stack number `n` on first use and every host port shifts by `n * 100`. Run `make stack` in a
+worktree for its ports, and `make stack-down` before removing it. Details: "Run Several Stacks Side
+by Side" in `docs/contributor/setup.md`.
 
 **Environment Setup:** Copy `.env.template` to `.env` and `.env.dev.template` to `.env.dev`. The `.env.dev` file contains localhost overrides for local development (vs Docker hostnames in `.env`). Each microservice has separate DB configuration (e.g., `DB_CORE_*`, `DB_TEAM_ALLOCATION_*`). For auth/Keycloak setup and common failures, use the `keycloak-local-setup` skill.
 
@@ -161,7 +174,8 @@ and are documented in `e2e/README.md`. Details: `.claude/rules/common/testing.md
 
 To observe a change in a real browser rather than through tests, use the `verify` skill:
 `make verify-up` boots the same seeded stack in host-browser mode (client
-<http://localhost:4000>), which is then driven with the Playwright MCP browser.
+<http://localhost:4000>, shifted by `n * 100` in a worktree's stack `n`), which is then driven
+with the Playwright MCP browser.
 
 ## Definition of Done
 
@@ -191,7 +205,8 @@ make test-e2e-down                     # stop the stack and remove volumes
 - Boots core server + client + Keycloak + Postgres + SeaweedFS via `docker-compose.e2e.yml`
 - Uses the seeded Keycloak users and the shared DB seed (`seed/`, see `make seed`)
 - Runs on non-default host ports (client 4000 / API 18090 / Keycloak 18081), so
-  it coexists with a running dev stack
+  it coexists with a running dev stack. A worktree's stack `n` shifts them by `n * 100`
+  and names its containers `prompt-<n>-e2e-*`, so worktrees can run shards in parallel
 
 ## UI Guidelines
 

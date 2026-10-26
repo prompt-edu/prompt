@@ -131,7 +131,7 @@ The `.env` file contains Docker/production configuration. The `.env.dev` file co
 # every service database and Keycloak (make db-down stops them again)
 make db
 # object storage
-docker compose up -d seaweedfs-volume seaweedfs-s3
+make s3
 ```
 
 #### 4. Configure Keycloak (first time only)

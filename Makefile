@@ -104,6 +104,11 @@ help: ## Show this help
 
 # ─── Development ───────────────────────────────────────────────────────────────
 
+# run-server <directory> <port>: each server listens on its own port, shifted to
+# this stack. SERVER_ADDRESS from .env only contributes the interface to bind.
+SERVER_BIND = $(or $(firstword $(subst :, ,$(SERVER_ADDRESS))),0.0.0.0)
+run-server = cd servers/$(1) && SERVER_ADDRESS=$(SERVER_BIND):$(2) go run main.go
+
 server: server-core ## Start the core server (alias)
 
 servers: ## Start all servers (core + all microservices)
@@ -121,31 +126,31 @@ servers: ## Start all servers (core + all microservices)
 	@echo "All servers started."
 
 server-core: ## Start core server (port 8080)
-	cd servers/core && go run main.go
+	$(call run-server,core,$(PROMPT_PORT_8080))
 
 server-assessment: ## Start assessment server (port 8085)
-	cd servers/assessment && go run main.go
+	$(call run-server,assessment,$(PROMPT_PORT_8085))
 
 server-interview: ## Start interview server (port 8087)
-	cd servers/interview && go run main.go
+	$(call run-server,interview,$(PROMPT_PORT_8087))
 
 server-team-allocation: ## Start team allocation server (port 8083)
-	cd servers/team_allocation && go run main.go
+	$(call run-server,team_allocation,$(PROMPT_PORT_8083))
 
 server-self-team-allocation: ## Start self team allocation server (port 8084)
-	cd servers/self_team_allocation && go run main.go
+	$(call run-server,self_team_allocation,$(PROMPT_PORT_8084))
 
 server-example: ## Start example server (port 8086)
-	cd servers/example_server && go run main.go
+	$(call run-server,example_server,$(PROMPT_PORT_8086))
 
 server-certificate: ## Start certificate server (port 8088)
-	cd servers/certificate && go run main.go
+	$(call run-server,certificate,$(PROMPT_PORT_8088))
 
 server-presentation: ## Start presentation server (port 8089)
-	cd servers/presentation && go run main.go
+	$(call run-server,presentation,$(PROMPT_PORT_8089))
 
 server-infrastructure-setup: ## Start infrastructure setup server (port 8091)
-	cd servers/infrastructure_setup && go run main.go
+	$(call run-server,infrastructure_setup,$(PROMPT_PORT_8091))
 
 clients: ## Start all client micro-frontends
 	cd clients && yarn install && yarn run dev

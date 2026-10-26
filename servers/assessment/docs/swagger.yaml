@@ -1437,6 +1437,12 @@ paths:
             additionalProperties:
               type: string
             type: object
+        "502":
+          description: Bad Gateway
+          schema:
+            additionalProperties:
+              type: string
+            type: object
       summary: Create or update category assessment comment
       tags:
       - categoryAssessments

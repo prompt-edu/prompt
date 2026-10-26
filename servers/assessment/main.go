@@ -133,7 +133,7 @@ func main() {
 	feedbackItemService := feedbackItem.NewFeedbackItemService(*query, conn, evaluationCompletionService)
 
 	assessmentCompletionService := assessmentCompletion.NewAssessmentCompletionService(*query, conn, coursePhaseConfigService)
-	categoryAssessmentService := categoryAssessment.NewCategoryAssessmentService(*query, conn, assessmentCompletionService)
+	categoryAssessmentService := categoryAssessment.NewCategoryAssessmentService(*query, conn, assessmentCompletionService, coursePhaseConfig.CheckParticipantInPhase)
 	actionItemService := actionItem.NewActionItemService(*query, assessmentCompletionService, coursePhaseConfigService, coursePhaseConfig.CheckParticipantInPhase)
 	scoreLevelService := scoreLevel.NewScoreLevelService(*query)
 	assessmentService := assessments.NewAssessmentService(*query, conn, assessmentCompletionService, categoryAssessmentService, actionItemService, scoreLevelService, evaluationService, coursePhaseConfigService)

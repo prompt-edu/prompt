@@ -16,10 +16,21 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
+// The stubbed core lists every participation in every phase except this one.
+var outsideParticipationID = uuid.MustParse("6f1c2a4e-3b5d-4e7f-8a9b-0c1d2e3f4a5b")
+
+func checkTestParticipant(_ context.Context, _ string, _, courseParticipationID uuid.UUID) error {
+	if courseParticipationID == outsideParticipationID {
+		return coursePhaseConfig.ErrParticipantNotInPhase
+	}
+	return nil
+}
+
 type CategoryAssessmentServiceTestSuite struct {
 	suite.Suite
 	suiteCtx context.Context
 	cleanup  func()
+	queries  db.Queries
 	service  *CategoryAssessmentService
 }
 
@@ -30,8 +41,9 @@ func (suite *CategoryAssessmentServiceTestSuite) SetupSuite() {
 		suite.T().Fatalf("Failed to set up test database: %v", err)
 	}
 	suite.cleanup = cleanup
+	suite.queries = *testDB.Queries
 	coursePhaseConfigService := coursePhaseConfig.NewCoursePhaseConfigService(*testDB.Queries, testDB.Conn, assessmentSchemas.NewAssessmentSchemaService(*testDB.Queries, testDB.Conn))
-	suite.service = NewCategoryAssessmentService(*testDB.Queries, testDB.Conn, assessmentCompletion.NewAssessmentCompletionService(*testDB.Queries, testDB.Conn, coursePhaseConfigService))
+	suite.service = NewCategoryAssessmentService(*testDB.Queries, testDB.Conn, assessmentCompletion.NewAssessmentCompletionService(*testDB.Queries, testDB.Conn, coursePhaseConfigService), checkTestParticipant)
 }
 
 func (suite *CategoryAssessmentServiceTestSuite) TearDownSuite() {
@@ -50,7 +62,7 @@ func (suite *CategoryAssessmentServiceTestSuite) TestCreateOrUpdateCategoryAsses
 		AuthorID:              "test-author-id",
 	}
 
-	err := suite.service.CreateOrUpdateCategoryAssessment(suite.suiteCtx, coursePhaseID, req)
+	err := suite.service.CreateOrUpdateCategoryAssessment(suite.suiteCtx, "", coursePhaseID, req)
 	assert.NoError(suite.T(), err)
 
 	items, err := suite.service.ListCategoryAssessmentsByStudentInPhase(suite.suiteCtx, req.CourseParticipationID, coursePhaseID)
@@ -72,7 +84,7 @@ func (suite *CategoryAssessmentServiceTestSuite) TestListCategoryAssessmentsBySt
 		AuthorID:              "test-author-id",
 	}
 
-	err := suite.service.CreateOrUpdateCategoryAssessment(suite.suiteCtx, coursePhaseID, req)
+	err := suite.service.CreateOrUpdateCategoryAssessment(suite.suiteCtx, "", coursePhaseID, req)
 	assert.NoError(suite.T(), err)
 
 	items, err := suite.service.ListCategoryAssessmentsByStudentInPhase(suite.suiteCtx, req.CourseParticipationID, coursePhaseID)
@@ -81,6 +93,53 @@ func (suite *CategoryAssessmentServiceTestSuite) TestListCategoryAssessmentsBySt
 	assert.Equal(suite.T(), req.CourseParticipationID, items[0].CourseParticipationID)
 	assert.Equal(suite.T(), coursePhaseID, items[0].CoursePhaseID)
 	assert.Equal(suite.T(), req.CategoryID, items[0].CategoryID)
+}
+
+func (suite *CategoryAssessmentServiceTestSuite) TestCreateOrUpdateRejectsCategoryOfOtherSchema() {
+	coursePhaseID := uuid.MustParse("4179d58a-d00d-4fa7-94a5-397bc69fab02")
+	selfEvaluationCategoryID := uuid.New()
+	err := suite.queries.CreateCategory(suite.suiteCtx, db.CreateCategoryParams{
+		ID:                 selfEvaluationCategoryID,
+		Name:               "Self Reflection",
+		Weight:             1,
+		AssessmentSchemaID: uuid.MustParse("550e8400-e29b-41d4-a716-446655440001"),
+	})
+	suite.Require().NoError(err)
+
+	for _, categoryID := range []uuid.UUID{selfEvaluationCategoryID, uuid.New()} {
+		req := categoryAssessmentDTO.CreateOrUpdateCategoryAssessmentRequest{
+			CategoryID:            categoryID,
+			CourseParticipationID: uuid.New(),
+			Comment:               "Comment on a category the phase does not assess",
+			Author:                "Test Author",
+			AuthorID:              "test-author-id",
+		}
+
+		err := suite.service.CreateOrUpdateCategoryAssessment(suite.suiteCtx, "", coursePhaseID, req)
+		assert.ErrorIs(suite.T(), err, ErrCategoryNotInPhase)
+
+		items, err := suite.service.ListCategoryAssessmentsByStudentInPhase(suite.suiteCtx, req.CourseParticipationID, coursePhaseID)
+		assert.NoError(suite.T(), err)
+		assert.Empty(suite.T(), items)
+	}
+}
+
+func (suite *CategoryAssessmentServiceTestSuite) TestCreateOrUpdateRejectsParticipantOutsidePhase() {
+	coursePhaseID := uuid.MustParse("4179d58a-d00d-4fa7-94a5-397bc69fab02")
+	req := categoryAssessmentDTO.CreateOrUpdateCategoryAssessmentRequest{
+		CategoryID:            uuid.MustParse("25f1c984-ba31-4cf2-aa8e-5662721bf44e"),
+		CourseParticipationID: outsideParticipationID,
+		Comment:               "Comment on a student outside the phase",
+		Author:                "Test Author",
+		AuthorID:              "test-author-id",
+	}
+
+	err := suite.service.CreateOrUpdateCategoryAssessment(suite.suiteCtx, "", coursePhaseID, req)
+	assert.ErrorIs(suite.T(), err, coursePhaseConfig.ErrParticipantNotInPhase)
+
+	items, err := suite.service.ListCategoryAssessmentsByStudentInPhase(suite.suiteCtx, outsideParticipationID, coursePhaseID)
+	assert.NoError(suite.T(), err)
+	assert.Empty(suite.T(), items)
 }
 
 func TestCategoryAssessmentServiceTestSuite(t *testing.T) {

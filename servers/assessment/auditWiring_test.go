@@ -131,7 +131,7 @@ func auditRouter(sink audit.Sink, authMiddleware func(allowedRoles ...string) gi
 	feedbackItemService := feedbackItem.NewFeedbackItemService(*queries, conn, evaluationCompletionService)
 
 	assessmentCompletionService := assessmentCompletion.NewAssessmentCompletionService(*queries, conn, coursePhaseConfigService)
-	categoryAssessmentService := categoryAssessment.NewCategoryAssessmentService(*queries, conn, assessmentCompletionService)
+	categoryAssessmentService := categoryAssessment.NewCategoryAssessmentService(*queries, conn, assessmentCompletionService, coursePhaseConfig.CheckParticipantInPhase)
 	actionItemService := actionItem.NewActionItemService(*queries, assessmentCompletionService, coursePhaseConfigService, coursePhaseConfig.CheckParticipantInPhase)
 	scoreLevelService := scoreLevel.NewScoreLevelService(*queries)
 	assessmentService := assessments.NewAssessmentService(*queries, conn, assessmentCompletionService, categoryAssessmentService, actionItemService, scoreLevelService, evaluationService, coursePhaseConfigService)

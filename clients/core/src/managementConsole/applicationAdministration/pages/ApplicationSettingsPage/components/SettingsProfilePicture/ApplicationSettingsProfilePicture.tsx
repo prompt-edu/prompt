@@ -20,6 +20,7 @@ import {
   type ApplicationProfilePictureSettings,
   parseProfilePictureSettings,
 } from '../../../../utils/profilePictureSettings'
+import { ShowProfilePicturesConfirmation } from './ShowProfilePicturesConfirmation'
 
 interface ApplicationSettingsProfilePictureProps {
   initialData: ApplicationMetaData
@@ -42,6 +43,7 @@ export function ApplicationSettingsProfilePicture({
 
   const [settings, setSettings] = useState(() => fromMetaData(initialData))
   const [savedSettings, setSavedSettings] = useState(() => fromMetaData(initialData))
+  const [isShowConfirmationOpen, setShowConfirmationOpen] = useState(false)
 
   // The metadata is parsed asynchronously, so the first render can precede it.
   useEffect(() => {
@@ -81,6 +83,14 @@ export function ApplicationSettingsProfilePicture({
 
   const update = (changes: Partial<ApplicationProfilePictureSettings>) =>
     setSettings((current) => ({ ...current, ...changes }))
+
+  const handleHideUntilAcceptedChange = (hideUntilAccepted: boolean) => {
+    if (hideUntilAccepted) {
+      update({ hideUntilAccepted })
+    } else {
+      setShowConfirmationOpen(true)
+    }
+  }
 
   return (
     <div data-testid='application-profile-picture-settings'>
@@ -130,9 +140,15 @@ export function ApplicationSettingsProfilePicture({
           <Switch
             id='hide-profile-pictures'
             checked={settings.hideUntilAccepted}
-            onCheckedChange={(hideUntilAccepted) => update({ hideUntilAccepted })}
+            onCheckedChange={handleHideUntilAcceptedChange}
           />
         </div>
+
+        <ShowProfilePicturesConfirmation
+          isOpen={isShowConfirmationOpen}
+          setOpen={setShowConfirmationOpen}
+          onConfirm={() => update({ hideUntilAccepted: false })}
+        />
 
         <div className='flex items-center justify-end gap-3'>
           {isError && <p className='text-sm text-destructive'>The settings could not be saved.</p>}

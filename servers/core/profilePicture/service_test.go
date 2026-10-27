@@ -365,7 +365,7 @@ func (suite *ProfilePictureServiceTestSuite) TestCompleteUpload_URLFailureKeepsP
 	storedKey := suite.storedKey(userID)
 
 	adapter := suite.store.adapter()
-	adapter.GetURLFunc = func(context.Context, string, int) (string, error) {
+	adapter.GetURLFunc = func(context.Context, string, int, string) (string, error) {
 		return "", errors.New("presigner unavailable")
 	}
 	secondKey := suite.upload(userID, pictureContentType, validJPEG)
@@ -400,6 +400,20 @@ func (suite *ProfilePictureServiceTestSuite) TestCompleteUpload_RejectsForeignSt
 	key := suite.upload(owner, pictureContentType, validJPEG)
 
 	_, err := suite.service.CompleteUpload(suite.ctx, Uploader{UserID: uuid.New()}, key)
+
+	assert.ErrorIs(suite.T(), err, ErrInvalidInput)
+}
+
+func (suite *ProfilePictureServiceTestSuite) TestCompleteUpload_RejectsKeyEscapingTheOwnPrefix() {
+	victim := uuid.New()
+	key := suite.upload(victim, pictureContentType, validJPEG)
+	_, err := suite.service.CompleteUpload(suite.ctx, Uploader{UserID: victim}, key)
+	require.NoError(suite.T(), err)
+
+	caller := uuid.New()
+	escapingKey := fmt.Sprintf("profile-picture-upload/%s/../../%s", caller, suite.storedKey(victim))
+
+	_, err = suite.service.CompleteUpload(suite.ctx, Uploader{UserID: caller}, escapingKey)
 
 	assert.ErrorIs(suite.T(), err, ErrInvalidInput)
 }

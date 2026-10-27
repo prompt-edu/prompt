@@ -263,9 +263,18 @@ func (s *FeedbackItemService) updateFeedbackItem(c *gin.Context) {
 // @Success 200 {string} string "OK"
 // @Failure 400 {object} map[string]string
 // @Failure 403 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Failure 409 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/evaluation/feedback-items/{feedbackItemID} [delete]
 func (s *FeedbackItemService) deleteFeedbackItem(c *gin.Context) {
+	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
+	if err != nil {
+		log.Error("Error parsing coursePhaseID: ", err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
+		return
+	}
+
 	feedbackItemID, err := uuid.Parse(c.Param("feedbackItemID"))
 	if err != nil {
 		log.Error("Error parsing feedbackItemID: ", err)
@@ -278,14 +287,10 @@ func (s *FeedbackItemService) deleteFeedbackItem(c *gin.Context) {
 		sdkUtils.HandleError(c, keycloakTokenVerifier.GetUserCourseParticipationIDErrorStatus(err), err)
 		return
 	}
-	if !s.IsFeedbackItemAuthor(c, feedbackItemID, courseParticipationID) {
-		c.JSON(http.StatusForbidden, gin.H{"error": "You do not have permission to delete this feedback item"})
-		return
-	}
 
-	err = s.DeleteFeedbackItem(c, feedbackItemID)
+	err = s.DeleteFeedbackItem(c, c.GetHeader("Authorization"), feedbackItemID, coursePhaseID, courseParticipationID)
 	if err != nil {
-		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, feedbackItemErrorStatus(err), err)
 		return
 	}
 	c.Status(http.StatusOK)

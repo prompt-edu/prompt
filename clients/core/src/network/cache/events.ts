@@ -107,6 +107,9 @@ export const coreCache = {
       coreKeys.mailCampaigns.byId(courseId, campaignId),
     ]),
 
+  announcementsChanged: (queryClient: QueryClient): void =>
+    invalidate(queryClient, [coreKeys.announcements.all()]),
+
   noteTagsChanged: (queryClient: QueryClient): void =>
     invalidate(queryClient, [coreKeys.instructorNotes.tags()]),
 

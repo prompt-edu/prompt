@@ -4,8 +4,8 @@ import { StudentNotesAndHistory } from '@core/managementConsole/shared/component
 import { coreApi } from '@core/network/api'
 import { coreKeys } from '@core/network/cache'
 import { useQuery } from '@tanstack/react-query'
-import { Button, ErrorPage, getStudentName, StudentProfile } from '@tumaet/prompt-ui-components'
-import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
+import { ErrorPage, ParticipantNavigation, StudentProfile } from '@tumaet/prompt-ui-components'
+import { Loader2 } from 'lucide-react'
 import { useMemo } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import type { ApplicationForm } from '../../../../interfaces/form/applicationForm'
@@ -14,13 +14,13 @@ import {
   parseProfilePictureSettings,
 } from '../../../../utils/profilePictureSettings'
 import { ApplicationAnswers } from '../applicationAnswers/ApplicationAnswers'
-import { getApplicationNavigationButtonColorClass } from '../table/getApplicationStatusBadge'
 import { ApplicationDetailPageLayout } from './components/ApplicationDetailPageLayout'
 import { AssessmentCard } from './components/AssessmentCard'
 import { CustomScoresCard } from './components/CustomScoresCard'
 import { MissingUniversityData } from './components/MissingUniversityData'
 
 interface ApplicationDetailsLocationState {
+  tableSearch?: string
   filteredApplicationIds?: string[]
 }
 
@@ -53,22 +53,18 @@ export const ApplicationDetailsPage = () => {
 
     return participations.map((p) => p.courseParticipationID)
   }, [filteredApplicationIds, participationById, participations])
-  const currentIndex = navigationOrder.findIndex((id) => id === participationId)
-  const previousParticipation =
-    currentIndex === -1 || navigationOrder.length <= 1
-      ? undefined
-      : participationById.get(
-          navigationOrder[(currentIndex - 1 + navigationOrder.length) % navigationOrder.length],
-        )
-  const nextParticipation =
-    currentIndex === -1 || navigationOrder.length <= 1
-      ? undefined
-      : participationById.get(navigationOrder[(currentIndex + 1) % navigationOrder.length])
+  const orderedParticipations = useMemo(
+    () => navigationOrder.flatMap((id) => participationById.get(id) ?? []),
+    [navigationOrder, participationById],
+  )
 
   const navigateToParticipation = (nextParticipationId: string) => {
     navigate(`../${nextParticipationId}`, {
       relative: 'path',
-      state: { filteredApplicationIds: navigationOrder },
+      state: {
+        tableSearch: navigationState?.tableSearch,
+        filteredApplicationIds: navigationOrder,
+      } satisfies ApplicationDetailsLocationState,
     })
   }
 
@@ -128,27 +124,12 @@ export const ApplicationDetailsPage = () => {
 
   return (
     <div className='space-y-6'>
-      {previousParticipation && nextParticipation && (
-        <div className='flex justify-between'>
-          <Button
-            variant='outline'
-            className={`gap-2 ${getApplicationNavigationButtonColorClass(previousParticipation.passStatus)}`}
-            onClick={() => navigateToParticipation(previousParticipation.courseParticipationID)}
-          >
-            <ChevronLeft className='h-4 w-4' />
-            {getStudentName(previousParticipation.student)}
-          </Button>
-
-          <Button
-            variant='outline'
-            className={`gap-2 ${getApplicationNavigationButtonColorClass(nextParticipation.passStatus)}`}
-            onClick={() => navigateToParticipation(nextParticipation.courseParticipationID)}
-          >
-            {getStudentName(nextParticipation.student)}
-            <ChevronRight className='h-4 w-4' />
-          </Button>
-        </div>
-      )}
+      <ParticipantNavigation
+        participants={orderedParticipations}
+        currentId={participationId}
+        onNavigate={(p) => navigateToParticipation(p.courseParticipationID)}
+        colorByStatus
+      />
 
       {fetchedApplication?.student && status && (
         <StudentProfile

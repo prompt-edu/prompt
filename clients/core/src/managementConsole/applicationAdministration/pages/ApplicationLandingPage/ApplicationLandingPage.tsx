@@ -35,7 +35,7 @@ export const ApplicationLandingPage = () => {
       <div className='flex items-center justify-between gap-4'>
         <ManagementPageHeader>Application Administration</ManagementPageHeader>
         {coursePhase?.id && (
-          <Button asChild variant='outline'>
+          <Button asChild variant='outline' className='mb-6'>
             <Link to={`/apply/${coursePhase.id}`} target='_blank' rel='noopener noreferrer'>
               <ExternalLink className='h-4 w-4' />
               Open Application Form

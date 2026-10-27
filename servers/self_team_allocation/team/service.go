@@ -4,9 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	"github.com/prompt-edu/prompt-sdk/promptTypes"
@@ -14,6 +19,27 @@ import (
 	"github.com/prompt-edu/prompt/servers/self_team_allocation/team/teamDTO"
 	"github.com/prompt-edu/prompt/servers/self_team_allocation/timeframe/timeframeDTO"
 	log "github.com/sirupsen/logrus"
+)
+
+const (
+	// MaxTeamNameLength bounds team names in characters. The column allows 255, and the
+	// client input enforces the same limit as here.
+	MaxTeamNameLength = 100
+	// MaxTeamsCreatedPerStudent caps how many teams a single student can create in a phase.
+	// Students cannot delete teams, so the cap keeps one student from flooding the phase.
+	MaxTeamsCreatedPerStudent = 2
+	// MaxTeamsPerPhase stops students from creating further teams once a phase holds this
+	// many. Lecturers are not limited by it.
+	MaxTeamsPerPhase = 200
+
+	uniqueViolationCode = "23505"
+)
+
+var (
+	ErrInvalidTeamName   = errors.New("invalid team name")
+	ErrDuplicateTeamName = errors.New("a team with this name already exists")
+	ErrTeamLimitReached  = errors.New("team creation limit reached")
+	ErrOutsideTimeframe  = errors.New("request is outside the allowed timeframe")
 )
 
 type timeframeProvider interface {
@@ -34,13 +60,23 @@ func NewTeamsService(queries db.Queries, conn *pgxpool.Pool, timeframe timeframe
 	}
 }
 
+// MaxTeamSize is the number of students a self-allocated team can hold.
+const MaxTeamSize = 3
+
+var (
+	ErrTeamFull     = errors.New("team is already full")
+	ErrTeamNotFound = errors.New("team not found")
+)
+
 type AssignmentService struct {
 	queries db.Queries
+	conn    *pgxpool.Pool
 }
 
-func NewAssignmentService(queries db.Queries) *AssignmentService {
+func NewAssignmentService(queries db.Queries, conn *pgxpool.Pool) *AssignmentService {
 	return &AssignmentService{
 		queries: queries,
+		conn:    conn,
 	}
 }
 
@@ -75,12 +111,13 @@ func (s *TeamsService) GetTeamByID(ctx context.Context, coursePhaseID uuid.UUID,
 	return dto, nil
 }
 
-func (s *TeamsService) CreateNewTeams(ctx context.Context, teamNames []string, coursePhaseID uuid.UUID) error {
-	// Validate team names
-	for _, name := range teamNames {
-		if name == "" {
-			return errors.New("team name cannot be empty")
-		}
+// CreateNewTeams creates the given teams in a course phase. creatorCourseParticipationID is the
+// creating student, or uuid.Nil when a lecturer creates the teams. Student creations are
+// recorded and limited per student and per phase.
+func (s *TeamsService) CreateNewTeams(ctx context.Context, teamNames []string, coursePhaseID, creatorCourseParticipationID uuid.UUID) error {
+	names, err := normalizeTeamNames(teamNames)
+	if err != nil {
+		return err
 	}
 
 	tx, err := s.conn.Begin(ctx)
@@ -90,12 +127,24 @@ func (s *TeamsService) CreateNewTeams(ctx context.Context, teamNames []string, c
 	defer promptSDK.DeferDBRollback(tx, ctx)
 	qtx := s.queries.WithTx(tx)
 
-	for _, teamName := range teamNames {
+	var creator pgtype.UUID
+	if creatorCourseParticipationID != uuid.Nil {
+		creator = pgtype.UUID{Bytes: creatorCourseParticipationID, Valid: true}
+		if err := checkStudentCreationLimits(ctx, qtx, coursePhaseID, creatorCourseParticipationID, len(names)); err != nil {
+			return err
+		}
+	}
+
+	for _, teamName := range names {
 		err := qtx.CreateTeam(ctx, db.CreateTeamParams{
-			ID:            uuid.New(),
-			Name:          teamName,
-			CoursePhaseID: coursePhaseID,
+			ID:                             uuid.New(),
+			Name:                           teamName,
+			CoursePhaseID:                  coursePhaseID,
+			CreatedByCourseParticipationID: creator,
 		})
+		if isUniqueViolation(err) {
+			return fmt.Errorf("team %q: %w", teamName, ErrDuplicateTeamName)
+		}
 		if err != nil {
 			log.Error("error creating the teams ", err)
 			return errors.New("error creating the teams")
@@ -109,12 +158,90 @@ func (s *TeamsService) CreateNewTeams(ctx context.Context, teamNames []string, c
 	return nil
 }
 
+// checkStudentCreationLimits must run inside the creating transaction: it takes a per-phase
+// lock so concurrent requests cannot both pass the counts.
+func checkStudentCreationLimits(ctx context.Context, qtx *db.Queries, coursePhaseID, creatorCourseParticipationID uuid.UUID, newTeams int) error {
+	if err := qtx.LockTeamCreation(ctx, coursePhaseID); err != nil {
+		log.Error("could not lock team creation: ", err)
+		return errors.New("error creating the teams")
+	}
+
+	createdByStudent, err := qtx.CountTeamsCreatedByParticipation(ctx, db.CountTeamsCreatedByParticipationParams{
+		CoursePhaseID:                  coursePhaseID,
+		CreatedByCourseParticipationID: pgtype.UUID{Bytes: creatorCourseParticipationID, Valid: true},
+	})
+	if err != nil {
+		log.Error("could not count the teams created by the student: ", err)
+		return errors.New("error creating the teams")
+	}
+	if createdByStudent+int64(newTeams) > MaxTeamsCreatedPerStudent {
+		return fmt.Errorf("a student can create at most %d teams: %w", MaxTeamsCreatedPerStudent, ErrTeamLimitReached)
+	}
+
+	inPhase, err := qtx.CountTeamsByCoursePhase(ctx, coursePhaseID)
+	if err != nil {
+		log.Error("could not count the teams of the phase: ", err)
+		return errors.New("error creating the teams")
+	}
+	if inPhase+int64(newTeams) > MaxTeamsPerPhase {
+		return fmt.Errorf("the phase already has the maximum of %d teams: %w", MaxTeamsPerPhase, ErrTeamLimitReached)
+	}
+	return nil
+}
+
+func normalizeTeamNames(teamNames []string) ([]string, error) {
+	if len(teamNames) == 0 {
+		return nil, fmt.Errorf("at least one team name is required: %w", ErrInvalidTeamName)
+	}
+	names := make([]string, 0, len(teamNames))
+	seen := make(map[string]struct{}, len(teamNames))
+	for _, raw := range teamNames {
+		name, err := normalizeTeamName(raw)
+		if err != nil {
+			return nil, err
+		}
+		if _, duplicate := seen[name]; duplicate {
+			return nil, fmt.Errorf("team %q: %w", name, ErrDuplicateTeamName)
+		}
+		seen[name] = struct{}{}
+		names = append(names, name)
+	}
+	return names, nil
+}
+
+// normalizeTeamName trims the name and rejects empty, overlong or control-character names.
+func normalizeTeamName(raw string) (string, error) {
+	name := strings.TrimSpace(raw)
+	if name == "" {
+		return "", fmt.Errorf("team name cannot be empty: %w", ErrInvalidTeamName)
+	}
+	if utf8.RuneCountInString(name) > MaxTeamNameLength {
+		return "", fmt.Errorf("team name cannot be longer than %d characters: %w", MaxTeamNameLength, ErrInvalidTeamName)
+	}
+	if strings.ContainsFunc(name, unicode.IsControl) {
+		return "", fmt.Errorf("team name cannot contain control characters: %w", ErrInvalidTeamName)
+	}
+	return name, nil
+}
+
+func isUniqueViolation(err error) bool {
+	var pgErr *pgconn.PgError
+	return errors.As(err, &pgErr) && pgErr.Code == uniqueViolationCode
+}
+
 func (s *TeamsService) UpdateTeam(ctx context.Context, coursePhaseID, teamID uuid.UUID, newTeamName string) error {
-	err := s.queries.UpdateTeam(ctx, db.UpdateTeamParams{
+	name, err := normalizeTeamName(newTeamName)
+	if err != nil {
+		return err
+	}
+	err = s.queries.UpdateTeam(ctx, db.UpdateTeamParams{
 		ID:            teamID,
 		CoursePhaseID: coursePhaseID,
-		Name:          newTeamName,
+		Name:          name,
 	})
+	if isUniqueViolation(err) {
+		return fmt.Errorf("team %q: %w", name, ErrDuplicateTeamName)
+	}
 	if err != nil {
 		log.Error("could not update the team: ", err)
 		return errors.New("could not update the team")
@@ -122,8 +249,39 @@ func (s *TeamsService) UpdateTeam(ctx context.Context, coursePhaseID, teamID uui
 	return nil
 }
 
+// AssignTeam puts the student into the team unless it already holds MaxTeamSize members.
+// The team row is locked for the count and the insert, so concurrent joins cannot overfill it.
 func (s *AssignmentService) AssignTeam(ctx context.Context, coursePhaseID, teamID uuid.UUID, courseParticipationID uuid.UUID, studentFirstName, studentLastName string) error {
-	err := s.queries.CreateOrUpdateAssignment(ctx, db.CreateOrUpdateAssignmentParams{
+	tx, err := s.conn.Begin(ctx)
+	if err != nil {
+		log.Error("could not begin the team assignment: ", err)
+		return errors.New("could not assign student to team")
+	}
+	defer promptSDK.DeferDBRollback(tx, ctx)
+	qtx := s.queries.WithTx(tx)
+
+	locked, err := qtx.LockTeamForAssignment(ctx, db.LockTeamForAssignmentParams{
+		ID:            teamID,
+		CoursePhaseID: coursePhaseID,
+	})
+	if err != nil {
+		log.Error("could not lock the team: ", err)
+		return errors.New("could not assign student to team")
+	}
+	if len(locked) == 0 {
+		return ErrTeamNotFound
+	}
+
+	members, err := qtx.CountTeamMembers(ctx, teamID)
+	if err != nil {
+		log.Error("could not count the team members: ", err)
+		return errors.New("could not assign student to team")
+	}
+	if members >= MaxTeamSize {
+		return ErrTeamFull
+	}
+
+	err = qtx.CreateOrUpdateAssignment(ctx, db.CreateOrUpdateAssignmentParams{
 		ID:                    uuid.New(),
 		TeamID:                teamID,
 		CoursePhaseID:         coursePhaseID,
@@ -131,10 +289,14 @@ func (s *AssignmentService) AssignTeam(ctx context.Context, coursePhaseID, teamI
 		StudentFirstName:      studentFirstName,
 		StudentLastName:       studentLastName,
 	})
-
 	if err != nil {
 		log.Error("could not assign student to team: ", err)
 		return errors.New("could not assign student to team")
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		log.Error(err)
+		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 	return nil
 }
@@ -178,7 +340,7 @@ func (s *TeamsService) ValidateTimeframe(ctx context.Context, coursePhaseID uuid
 	}
 
 	if time.Now().Before(timeframe.StartTime) || time.Now().After(timeframe.EndTime) {
-		return false, errors.New("request is outside the allowed timeframe")
+		return false, ErrOutsideTimeframe
 	}
 	return true, nil
 }

@@ -8,6 +8,7 @@ import {
   File,
   FileText,
   GraduationCap,
+  Megaphone,
   ScrollText,
   Shield,
   Tag,
@@ -74,6 +75,11 @@ export const InsideGeneralSidebar = () => {
                 icon={<Shield />}
                 goToPath={'/management/admin/privacy'}
                 title='Privacy'
+              />
+              <InsideSidebarMenuItem
+                icon={<Megaphone />}
+                goToPath={'/management/admin/announcements'}
+                title='Announcements'
               />
               <InsideSidebarMenuItem
                 icon={<GraduationCap />}

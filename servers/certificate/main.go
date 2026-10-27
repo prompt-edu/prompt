@@ -15,6 +15,7 @@ import (
 	"github.com/prompt-edu/prompt-sdk/audit"
 	"github.com/prompt-edu/prompt-sdk/promptTypes"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
+	"github.com/prompt-edu/prompt/servers/certificate/bodyLimit"
 	"github.com/prompt-edu/prompt/servers/certificate/config"
 	"github.com/prompt-edu/prompt/servers/certificate/copy"
 	"github.com/prompt-edu/prompt/servers/certificate/coursePhaseDeletion"
@@ -68,6 +69,9 @@ func main() {
 		router.Use(sentrygin.New(sentrygin.Options{}))
 	}
 	router.Use(promptSDK.CORSMiddleware(clientHost))
+	// Cap request bodies before any route is registered, so the cap is part of every route's
+	// chain. Routes that need more raise it with bodyLimit.WithLimit.
+	router.Use(bodyLimit.Middleware(bodyLimit.DefaultMaxBytes))
 
 	api := router.Group("certificate/api")
 	// Gin snapshots the handler chain when a subgroup is created, so this must run before coursePhaseApi.

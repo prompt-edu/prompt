@@ -2,6 +2,7 @@ package interviewAssignment
 
 import (
 	"context"
+	"sync"
 	"testing"
 	"time"
 
@@ -76,6 +77,112 @@ func (suite *InterviewAssignmentServiceTestSuite) TestCreateInterviewAssignmentE
 	var serviceErr *ServiceError
 	require.ErrorAs(suite.T(), err, &serviceErr)
 	require.Equal(suite.T(), 409, serviceErr.StatusCode)
+}
+
+// Regression test for GHSA-w97v-vx5j-3gjj: parallel bookings of different slots by the
+// same participation must leave exactly one assignment in the phase.
+func (suite *InterviewAssignmentServiceTestSuite) TestCreateInterviewAssignmentConcurrentBookings() {
+	const slots = 8
+	slotIDs := make([]uuid.UUID, 0, slots)
+	for i := range slots {
+		slot, err := suite.testDB.Queries.CreateInterviewSlot(suite.ctx, db.CreateInterviewSlotParams{
+			CoursePhaseID: suite.activePhaseID,
+			StartTime:     pgtype.Timestamptz{Time: time.Now().Add(time.Duration(i+1) * time.Hour), Valid: true},
+			EndTime:       pgtype.Timestamptz{Time: time.Now().Add(time.Duration(i+2) * time.Hour), Valid: true},
+			Location:      pgtype.Text{String: "Race Room", Valid: true},
+			Capacity:      5,
+		})
+		require.NoError(suite.T(), err)
+		slotIDs = append(slotIDs, slot.ID)
+	}
+
+	participationID := uuid.New()
+	var wg sync.WaitGroup
+	errs := make(chan error, slots)
+	for _, slotID := range slotIDs {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			_, err := suite.service.CreateInterviewAssignment(suite.ctx, suite.activePhaseID, participationID, interviewAssignmentDTO.CreateInterviewAssignmentRequest{
+				InterviewSlotID: slotID,
+			})
+			errs <- err
+		}()
+	}
+	wg.Wait()
+	close(errs)
+
+	succeeded := 0
+	for err := range errs {
+		if err == nil {
+			succeeded++
+			continue
+		}
+		var serviceErr *ServiceError
+		require.ErrorAs(suite.T(), err, &serviceErr)
+		require.Equal(suite.T(), 409, serviceErr.StatusCode)
+	}
+	require.Equal(suite.T(), 1, succeeded)
+
+	booked := 0
+	for _, slotID := range slotIDs {
+		assignments, err := suite.testDB.Queries.GetInterviewAssignmentsBySlot(suite.ctx, slotID)
+		require.NoError(suite.T(), err)
+		booked += len(assignments)
+	}
+	require.Equal(suite.T(), 1, booked)
+}
+
+// A booking that races an uncommitted booking of the same participation for another slot
+// must fail with 409 once that booking commits, instead of creating a second assignment.
+func (suite *InterviewAssignmentServiceTestSuite) TestCreateInterviewAssignmentWaitsForRacingBooking() {
+	newSlot := func(offset time.Duration) uuid.UUID {
+		slot, err := suite.testDB.Queries.CreateInterviewSlot(suite.ctx, db.CreateInterviewSlotParams{
+			CoursePhaseID: suite.activePhaseID,
+			StartTime:     pgtype.Timestamptz{Time: time.Now().Add(offset), Valid: true},
+			EndTime:       pgtype.Timestamptz{Time: time.Now().Add(offset + time.Hour), Valid: true},
+			Location:      pgtype.Text{String: "Race Room", Valid: true},
+			Capacity:      5,
+		})
+		require.NoError(suite.T(), err)
+		return slot.ID
+	}
+	firstSlot, secondSlot := newSlot(20*time.Hour), newSlot(22*time.Hour)
+	participationID := uuid.New()
+
+	// Play the first booking by hand and keep it uncommitted.
+	tx, err := suite.testDB.Conn.Begin(suite.ctx)
+	require.NoError(suite.T(), err)
+	defer func() { _ = tx.Rollback(suite.ctx) }()
+	_, err = suite.testDB.Queries.WithTx(tx).CreateInterviewAssignment(suite.ctx, db.CreateInterviewAssignmentParams{
+		InterviewSlotID:       firstSlot,
+		CourseParticipationID: participationID,
+	})
+	require.NoError(suite.T(), err)
+
+	done := make(chan error, 1)
+	go func() {
+		_, err := suite.service.CreateInterviewAssignment(suite.ctx, suite.activePhaseID, participationID, interviewAssignmentDTO.CreateInterviewAssignmentRequest{
+			InterviewSlotID: secondSlot,
+		})
+		done <- err
+	}()
+
+	select {
+	case err := <-done:
+		suite.FailNow("booking did not wait for the racing booking", "returned %v", err)
+	case <-time.After(300 * time.Millisecond):
+	}
+
+	require.NoError(suite.T(), tx.Commit(suite.ctx))
+	err = <-done
+	var serviceErr *ServiceError
+	require.ErrorAs(suite.T(), err, &serviceErr)
+	require.Equal(suite.T(), 409, serviceErr.StatusCode)
+
+	assignments, err := suite.testDB.Queries.GetInterviewAssignmentsBySlot(suite.ctx, secondSlot)
+	require.NoError(suite.T(), err)
+	require.Empty(suite.T(), assignments)
 }
 
 func (suite *InterviewAssignmentServiceTestSuite) TestCreateInterviewAssignmentSlotNotInPhase() {

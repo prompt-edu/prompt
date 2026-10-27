@@ -38,7 +38,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
     CGO_ENABLED=0 GOOS=linux go build -o certificate-service
 
 # Stage 2: Final (distroless)
-FROM gcr.io/distroless/static-debian12
+FROM gcr.io/distroless/static-debian13
 
 WORKDIR /app
 

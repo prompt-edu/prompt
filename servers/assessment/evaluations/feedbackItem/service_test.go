@@ -62,6 +62,10 @@ func (suite *FeedbackItemServiceTestSuite) TearDownSuite() {
 // seedFeedbackItem inserts a self feedback item authored by the given participation
 // so tests that mutate rows do not depend on each other's ordering.
 func (suite *FeedbackItemServiceTestSuite) seedFeedbackItem(authorID uuid.UUID) uuid.UUID {
+	return suite.seedFeedbackItemInPhase(authorID, suite.testCoursePhaseID)
+}
+
+func (suite *FeedbackItemServiceTestSuite) seedFeedbackItemInPhase(authorID, coursePhaseID uuid.UUID) uuid.UUID {
 	feedbackItemID := uuid.New()
 
 	err := suite.feedbackItemService.queries.CreateFeedbackItem(suite.suiteCtx, db.CreateFeedbackItemParams{
@@ -69,7 +73,7 @@ func (suite *FeedbackItemServiceTestSuite) seedFeedbackItem(authorID uuid.UUID) 
 		FeedbackType:                db.FeedbackTypePositive,
 		FeedbackText:                "Original feedback text",
 		CourseParticipationID:       authorID,
-		CoursePhaseID:               suite.testCoursePhaseID,
+		CoursePhaseID:               coursePhaseID,
 		AuthorCourseParticipationID: authorID,
 		Type:                        db.AssessmentTypeSelf,
 	})
@@ -158,36 +162,66 @@ func (suite *FeedbackItemServiceTestSuite) TestGetFeedbackItem() {
 }
 
 func (suite *FeedbackItemServiceTestSuite) TestDeleteFeedbackItem() {
-	// First create a feedback item to delete
-	newID := uuid.New()
-	req := feedbackItemDTO.CreateFeedbackItemRequest{
-		FeedbackType:                db.FeedbackTypeNegative,
-		FeedbackText:                "Feedback to be deleted",
-		CourseParticipationID:       suite.testCourseParticipationID,
-		CoursePhaseID:               suite.testCoursePhaseID,
-		AuthorCourseParticipationID: suite.testAuthorID,
-		Type:                        assessmentType.Self,
-	}
+	feedbackItemID := suite.seedFeedbackItem(suite.testAuthorID)
 
-	// Insert directly using the database
-	err := suite.feedbackItemService.queries.CreateFeedbackItem(suite.suiteCtx, db.CreateFeedbackItemParams{
-		ID:                          newID,
-		FeedbackType:                req.FeedbackType,
-		FeedbackText:                req.FeedbackText,
-		CourseParticipationID:       req.CourseParticipationID,
-		CoursePhaseID:               req.CoursePhaseID,
-		AuthorCourseParticipationID: req.AuthorCourseParticipationID,
-		Type:                        assessmentType.MapDTOtoDBAssessmentType(req.Type),
-	})
+	err := suite.feedbackItemService.DeleteFeedbackItem(suite.suiteCtx, suite.testAuthHeader, feedbackItemID, suite.testCoursePhaseID, suite.testAuthorID)
 	assert.NoError(suite.T(), err)
 
-	// Now delete it
-	err = suite.feedbackItemService.DeleteFeedbackItem(suite.suiteCtx, newID)
-	assert.NoError(suite.T(), err)
-
-	// Verify it's deleted
-	_, err = suite.feedbackItemService.GetFeedbackItem(suite.suiteCtx, newID)
+	_, err = suite.feedbackItemService.GetFeedbackItem(suite.suiteCtx, feedbackItemID)
 	assert.Error(suite.T(), err)
+}
+
+// The tests below are regression tests for GHSA-h36r-xgjv-r8cx: deletion must be bound
+// to the phase in the URL and respect the evaluation lock, exactly like updates.
+
+func (suite *FeedbackItemServiceTestSuite) TestDeleteFeedbackItemRejectsWrongPhase() {
+	feedbackItemID := suite.seedFeedbackItem(suite.testAuthorID)
+	otherPhaseID := uuid.MustParse("34561b6b-3c3a-4bc6-ba42-69eeb1514da9")
+
+	err := suite.feedbackItemService.DeleteFeedbackItem(suite.suiteCtx, suite.testAuthHeader, feedbackItemID, otherPhaseID, suite.testAuthorID)
+	assert.ErrorIs(suite.T(), err, ErrFeedbackItemNotFound)
+
+	_, err = suite.feedbackItemService.GetFeedbackItem(suite.suiteCtx, feedbackItemID)
+	assert.NoError(suite.T(), err)
+}
+
+func (suite *FeedbackItemServiceTestSuite) TestDeleteFeedbackItemRejectsNonAuthor() {
+	// Feedback item 22222222 is authored by the lecturer, not testAuthorID
+	feedbackItemID := uuid.MustParse("22222222-2222-2222-2222-222222222222")
+
+	err := suite.feedbackItemService.DeleteFeedbackItem(suite.suiteCtx, suite.testAuthHeader, feedbackItemID, suite.testCoursePhaseID, suite.testAuthorID)
+	assert.ErrorIs(suite.T(), err, ErrNotFeedbackItemAuthor)
+
+	_, err = suite.feedbackItemService.GetFeedbackItem(suite.suiteCtx, feedbackItemID)
+	assert.NoError(suite.T(), err)
+}
+
+func (suite *FeedbackItemServiceTestSuite) TestDeleteFeedbackItemRejectsCompletedEvaluation() {
+	// The seed marks the self evaluation of testCourseParticipationID in phase 2 as completed.
+	lockedPhaseID := uuid.MustParse("34561b6b-3c3a-4bc6-ba42-69eeb1514da9")
+	feedbackItemID := suite.seedFeedbackItemInPhase(suite.testCourseParticipationID, lockedPhaseID)
+
+	err := suite.feedbackItemService.DeleteFeedbackItem(suite.suiteCtx, suite.testAuthHeader, feedbackItemID, lockedPhaseID, suite.testCourseParticipationID)
+	assert.ErrorIs(suite.T(), err, evaluationCompletion.ErrEvaluationAlreadyCompleted)
+
+	_, err = suite.feedbackItemService.GetFeedbackItem(suite.suiteCtx, feedbackItemID)
+	assert.NoError(suite.T(), err)
+}
+
+func (suite *FeedbackItemServiceTestSuite) TestDeleteFeedbackItemRejectsEvaluationNotStarted() {
+	notStartedPhaseID := uuid.MustParse("44561b6b-3c3a-4bc6-ba42-69eeb1514da9")
+	feedbackItemID := suite.seedFeedbackItemInPhase(suite.testAuthorID, notStartedPhaseID)
+
+	err := suite.feedbackItemService.DeleteFeedbackItem(suite.suiteCtx, suite.testAuthHeader, feedbackItemID, notStartedPhaseID, suite.testAuthorID)
+	assert.ErrorIs(suite.T(), err, coursePhaseConfig.ErrNotStarted)
+
+	_, err = suite.feedbackItemService.GetFeedbackItem(suite.suiteCtx, feedbackItemID)
+	assert.NoError(suite.T(), err)
+}
+
+func (suite *FeedbackItemServiceTestSuite) TestDeleteFeedbackItemUnknownID() {
+	err := suite.feedbackItemService.DeleteFeedbackItem(suite.suiteCtx, suite.testAuthHeader, uuid.New(), suite.testCoursePhaseID, suite.testAuthorID)
+	assert.ErrorIs(suite.T(), err, ErrFeedbackItemNotFound)
 }
 
 func (suite *FeedbackItemServiceTestSuite) TestListFeedbackItemsForCoursePhase() {
@@ -200,16 +234,6 @@ func (suite *FeedbackItemServiceTestSuite) TestListFeedbackItemsForParticipantIn
 	feedbackItems, err := suite.feedbackItemService.ListFeedbackItemsForParticipantInPhase(suite.suiteCtx, suite.testCourseParticipationID, suite.testCoursePhaseID)
 	assert.NoError(suite.T(), err)
 	assert.GreaterOrEqual(suite.T(), len(feedbackItems), 1)
-}
-
-func (suite *FeedbackItemServiceTestSuite) TestIsFeedbackItemAuthor() {
-	isAuthor := suite.feedbackItemService.IsFeedbackItemAuthor(suite.suiteCtx, suite.testFeedbackItemID, suite.testAuthorID)
-	assert.True(suite.T(), isAuthor)
-
-	// Test with wrong author
-	wrongAuthor := uuid.MustParse("03234567-1234-1234-1234-123456789012")
-	isAuthor = suite.feedbackItemService.IsFeedbackItemAuthor(suite.suiteCtx, suite.testFeedbackItemID, wrongAuthor)
-	assert.False(suite.T(), isAuthor)
 }
 
 func TestFeedbackItemServiceTestSuite(t *testing.T) {

@@ -2,6 +2,7 @@ package profilePicture
 
 import (
 	"fmt"
+	"path"
 	"strings"
 
 	"github.com/google/uuid"
@@ -22,7 +23,8 @@ func validateLookupRequest(req profilePictureDTO.LookupRequest) error {
 // validateUploadKeyOwner rejects keys that were not presigned for the caller, so nobody can claim
 // another user's upload, or an already stored picture, as their picture.
 func validateUploadKeyOwner(uploadKey string, userID uuid.UUID) error {
-	if !strings.HasPrefix(uploadKey, ownerKeyPrefix(uploadStorageKeyPrefix, userID)+"/") {
+	ownerPrefix := ownerKeyPrefix(uploadStorageKeyPrefix, userID) + "/"
+	if !strings.HasPrefix(uploadKey, ownerPrefix) || path.Clean(uploadKey) != uploadKey {
 		return fmt.Errorf("upload key does not belong to the caller: %w", ErrInvalidInput)
 	}
 	return nil

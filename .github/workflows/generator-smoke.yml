@@ -12,6 +12,7 @@ on:
       - "clients/shared/**"
       - "servers/example_server/**"
       - "clients/core/rspack.config.mjs"
+      - "clients/core/remotes.config.mjs"
       - "clients/core/src/App.tsx"
       - "clients/core/src/managementConsole/PhaseMapping/**"
       - "clients/core/public/env.js"
@@ -43,7 +44,7 @@ jobs:
       - run: corepack enable
       - uses: actions/setup-node@v7
         with:
-          node-version: "24.21.0"
+          node-version: "24.22.1"
           cache: "yarn"
           cache-dependency-path: ./clients/yarn.lock
       - name: Scaffold a throwaway phase

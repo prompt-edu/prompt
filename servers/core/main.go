@@ -13,10 +13,12 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
+	"github.com/prompt-edu/prompt/servers/core/announcement"
 	"github.com/prompt-edu/prompt/servers/core/applicationAdministration"
 	"github.com/prompt-edu/prompt/servers/core/auditLog"
 	"github.com/prompt-edu/prompt/servers/core/auth"
 	coreAuth "github.com/prompt-edu/prompt/servers/core/auth/service"
+	"github.com/prompt-edu/prompt/servers/core/bodyLimit"
 	"github.com/prompt-edu/prompt/servers/core/course"
 	"github.com/prompt-edu/prompt/servers/core/course/copy"
 	"github.com/prompt-edu/prompt/servers/core/course/courseParticipation"
@@ -68,6 +70,35 @@ func runMigrations(databaseURL string) {
 		log.Fatalf("Failed to run migrations: %v\n%s", err, sanitized)
 	}
 	fmt.Print(sanitized)
+}
+
+const (
+	uploadReaperInterval  = 15 * time.Minute
+	uploadReaperBatchSize = 100
+)
+
+// startUploadReaper periodically deletes presigned uploads that were never completed, so
+// abandoned or rejected objects do not fill the storage backend.
+func startUploadReaper(ctx context.Context, fileStorageService *files.StorageService) {
+	ticker := time.NewTicker(uploadReaperInterval)
+	go func() {
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				reclaimed, err := fileStorageService.ReclaimExpiredUploads(ctx, uploadReaperBatchSize)
+				if err != nil {
+					log.WithError(err).Warn("Could not reclaim expired uploads")
+					continue
+				}
+				if reclaimed > 0 {
+					log.WithField("count", reclaimed).Info("Reclaimed expired uploads")
+				}
+			}
+		}
+	}()
 }
 
 func initKeycloak(router *gin.RouterGroup, queries db.Queries, checkCoursePermission permissionValidation.PermissionCheck) (*keycloakTokenVerifier.KeycloakTokenVerifier, *keycloakRealmManager.KeycloakRealmService) {
@@ -176,6 +207,9 @@ func main() {
 	localHost := "http://localhost:3000"
 	clientHost := sdkUtils.GetEnv("CORE_HOST", localHost)
 	router.Use(sdkUtils.CORS(clientHost))
+	// Cap request bodies before any route is registered, so the cap is part of every route's
+	// chain. The few routes that need more raise it with bodyLimit.WithLimit.
+	router.Use(bodyLimit.Middleware(bodyLimit.DefaultMaxBytes))
 
 	api := router.Group("/api")
 	api.GET("/hello", func(c *gin.Context) {
@@ -232,6 +266,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to initialize prompt file storage: %v", err)
 	}
+	startUploadReaper(context.Background(), fileStorageService)
 	profilePictureService := profilePicture.NewProfilePictureService(*query, conn, fileStorageService)
 	profilePicture.RegisterRoutes(api, profilePictureService, tokenVerifier.KeycloakMiddleware)
 
@@ -242,6 +277,8 @@ func main() {
 	}
 	instructorNoteService := instructorNote.NewInstructorNoteService(*query, conn)
 	instructorNote.RegisterRoutes(api, instructorNoteService, tokenVerifier.KeycloakMiddleware)
+	announcementService := announcement.NewAnnouncementService(*query)
+	announcement.RegisterRoutes(api, announcementService, tokenVerifier.KeycloakMiddleware)
 	studyProgramService := studyProgram.NewStudyProgramService(*query, conn)
 	studyProgram.RegisterRoutes(api, studyProgramService, tokenVerifier.KeycloakMiddleware)
 

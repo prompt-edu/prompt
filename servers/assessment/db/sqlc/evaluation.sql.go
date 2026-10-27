@@ -104,15 +104,26 @@ func (q *Queries) CreateOrUpdateEvaluation(ctx context.Context, arg CreateOrUpda
 	return err
 }
 
-const deleteEvaluation = `-- name: DeleteEvaluation :exec
+const deleteEvaluation = `-- name: DeleteEvaluation :execrows
 DELETE
 FROM evaluation
 WHERE id = $1
+  AND course_phase_id = $2
+  AND author_course_participation_id = $3
 `
 
-func (q *Queries) DeleteEvaluation(ctx context.Context, id uuid.UUID) error {
-	_, err := q.db.Exec(ctx, deleteEvaluation, id)
-	return err
+type DeleteEvaluationParams struct {
+	ID                          uuid.UUID `json:"id"`
+	CoursePhaseID               uuid.UUID `json:"course_phase_id"`
+	AuthorCourseParticipationID uuid.UUID `json:"author_course_participation_id"`
+}
+
+func (q *Queries) DeleteEvaluation(ctx context.Context, arg DeleteEvaluationParams) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteEvaluation, arg.ID, arg.CoursePhaseID, arg.AuthorCourseParticipationID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const getEvaluationByID = `-- name: GetEvaluationByID :one

@@ -28,6 +28,14 @@ describe('coreKeys', () => {
     expect(coreKeys.coursePhases.byIdInArchiveDialog(PHASE)).toEqual(['coursePhase', PHASE])
   })
 
+  it('keeps the phase participations apart from the participants key remotes fill with their own shapes', () => {
+    expect(coreKeys.coursePhases.participations(PHASE)).toEqual([
+      'course_phase_participations',
+      PHASE,
+    ])
+    expect(coreKeys.coursePhases.participations(PHASE)).not.toEqual(['participants', PHASE])
+  })
+
   it('builds the course phase type keys', () => {
     expect(coreKeys.coursePhases.types()).toEqual(['course_phase_types'])
     expect(coreKeys.coursePhases.typesForScope('self')).toEqual(['coursePhaseType', 'self'])
@@ -152,6 +160,13 @@ describe('coreKeys', () => {
   it('names each service info cache in one element, so core is not their prefix', () => {
     expect(coreKeys.serviceInfo.core()).toEqual(['serviceInfo-core'])
     expect(coreKeys.serviceInfo.ofService('assessment')).toEqual(['serviceInfo-assessment'])
+  })
+
+  it('builds the client info key per remote', () => {
+    expect(coreKeys.clientInfo.ofRemote('interview_component')).toEqual([
+      'clientInfo',
+      'interview_component',
+    ])
   })
 
   it('carries the audit log paging inputs in the key, so each page caches separately', () => {

@@ -28,6 +28,18 @@ const SERVICES: ReadonlyArray<{ name: string; api: string }> = [
   { name: 'infrastructure-setup', api: INFRASTRUCTURE_SETUP_API },
 ]
 
+const CLIENTS: ReadonlyArray<{ name: string; path: string }> = [
+  { name: 'self_team_allocation_component', path: '/self-team-allocation' },
+  { name: 'assessment_component', path: '/assessment' },
+  { name: 'example_component', path: '/example' },
+  { name: 'matching_component', path: '/matching' },
+  { name: 'interview_component', path: '/interview' },
+  { name: 'certificate_component', path: '/certificate' },
+  { name: 'presentation_component', path: '/presentation' },
+  { name: 'team_allocation_component', path: '/team-allocation' },
+  { name: 'infrastructure_setup_component', path: '/infrastructure-setup' },
+]
+
 test.describe('service info', () => {
   let client: APIRequestContext
 
@@ -52,6 +64,23 @@ test.describe('service info', () => {
       expect(info.serviceName).toBe(name)
       expect(info.version).toBe(EXPECTED_VERSION)
       expect(info.healthy).toBe(true)
+    })
+  }
+
+  for (const { name, path } of CLIENTS) {
+    test(`${name} serves its remote entry and reports its version`, async () => {
+      const entry = await client.get(`${path}/remoteEntry.js`)
+      expect(entry.status()).toBe(200)
+
+      const res = await client.get(`${path}/mf-manifest.json`)
+      expect(res.status()).toBe(200)
+
+      const manifest = (await res.json()) as {
+        name: string
+        metaData: { buildInfo: { buildVersion: string } }
+      }
+      expect(manifest.name).toBe(name)
+      expect(manifest.metaData.buildInfo.buildVersion).toBe(EXPECTED_VERSION)
     })
   }
 })

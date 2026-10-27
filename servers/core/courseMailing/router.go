@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
+	"github.com/prompt-edu/prompt/servers/core/bodyLimit"
 	"github.com/prompt-edu/prompt/servers/core/courseMailing/courseMailingDTO"
 	"github.com/prompt-edu/prompt/servers/core/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
@@ -36,9 +37,9 @@ func setupCourseMailingRouter(router *gin.RouterGroup, s *CourseMailingService, 
 
 	campaigns := router.Group("/courses/:uuid/mail-campaigns", authMiddleware())
 	campaigns.GET("", permissionIDMiddleware(editRoles...), s.listCampaigns)
-	campaigns.POST("", permissionIDMiddleware(editRoles...), s.createCampaign)
+	campaigns.POST("", permissionIDMiddleware(editRoles...), bodyLimit.WithLimit(bodyLimit.LargeMaxBytes), s.createCampaign)
 	campaigns.GET("/:campaignID", permissionIDMiddleware(editRoles...), s.getCampaign)
-	campaigns.PUT("/:campaignID", permissionIDMiddleware(editRoles...), s.updateCampaign)
+	campaigns.PUT("/:campaignID", permissionIDMiddleware(editRoles...), bodyLimit.WithLimit(bodyLimit.LargeMaxBytes), s.updateCampaign)
 	campaigns.DELETE("/:campaignID", permissionIDMiddleware(editRoles...), s.deleteCampaign)
 	campaigns.POST("/:campaignID/copy", permissionIDMiddleware(editRoles...), s.copyCampaign)
 	campaigns.GET("/:campaignID/recipients-preview", permissionIDMiddleware(editRoles...), s.previewRecipients)

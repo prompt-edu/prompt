@@ -14,8 +14,8 @@ type MockStorageAdapter struct {
 	UploadFunc       func(ctx context.Context, storageKey string, contentType string, reader io.Reader) (*UploadResult, error)
 	DownloadFunc     func(ctx context.Context, storageKey string) (io.ReadCloser, error)
 	DeleteFunc       func(ctx context.Context, storageKey string) error
-	GetUploadURLFunc func(ctx context.Context, storageKey string, contentType string, ttl int) (string, error)
-	GetURLFunc       func(ctx context.Context, storageKey string, ttl int) (string, error)
+	GetUploadURLFunc func(ctx context.Context, storageKey string, contentType string, contentLength int64, ttl int) (string, error)
+	GetURLFunc       func(ctx context.Context, storageKey string, ttl int, contentDisposition string) (string, error)
 	GetMetadataFunc  func(ctx context.Context, storageKey string) (*FileMetadata, error)
 }
 
@@ -48,16 +48,16 @@ func (m *MockStorageAdapter) Delete(ctx context.Context, storageKey string) erro
 	return nil
 }
 
-func (m *MockStorageAdapter) GetUploadURL(ctx context.Context, storageKey string, contentType string, ttl int) (string, error) {
+func (m *MockStorageAdapter) GetUploadURL(ctx context.Context, storageKey string, contentType string, contentLength int64, ttl int) (string, error) {
 	if m.GetUploadURLFunc != nil {
-		return m.GetUploadURLFunc(ctx, storageKey, contentType, ttl)
+		return m.GetUploadURLFunc(ctx, storageKey, contentType, contentLength, ttl)
 	}
 	return "https://mock-s3.example.com/" + storageKey + "?presigned=upload", nil
 }
 
-func (m *MockStorageAdapter) GetURL(ctx context.Context, storageKey string, ttl int) (string, error) {
+func (m *MockStorageAdapter) GetURL(ctx context.Context, storageKey string, ttl int, contentDisposition string) (string, error) {
 	if m.GetURLFunc != nil {
-		return m.GetURLFunc(ctx, storageKey, ttl)
+		return m.GetURLFunc(ctx, storageKey, ttl, contentDisposition)
 	}
 	return "https://mock-s3.example.com/" + storageKey + "?presigned=true", nil
 }

@@ -1,22 +1,25 @@
 import type { ExportedApplicationAnswer } from '@tumaet/prompt-shared-state'
 import {
-  Button,
   Card,
   CardContent,
   CardHeader,
   CardTitle,
   ExportedApplicationAnswerTable,
+  ParticipantNavigation,
 } from '@tumaet/prompt-ui-components'
-import { ChevronLeft, FileUserIcon } from 'lucide-react'
-import { useLocation, useNavigate, useParams } from 'react-router-dom'
+import { FileUserIcon } from 'lucide-react'
+import { useParams } from 'react-router-dom'
 import { InterviewCard } from '../../components/InterviewCard'
 import { StudentCard } from '../../components/StudentCard'
 import { StudentHistoryCard } from '../../components/StudentHistoryCard'
+import { useInterviewNavigation } from '../../hooks/useInterviewNavigation'
 import { useCoursePhaseStore } from '../../zustand/useCoursePhaseStore'
 import { useParticipationStore } from '../../zustand/useParticipationStore'
 
 export interface ProfileDetailLocationState {
   tableSearch?: string
+  /** The participants table's order when the profile was opened, for previous / next. */
+  orderedParticipationIds?: string[]
 }
 
 export const ProfileDetailPage = () => {
@@ -25,27 +28,21 @@ export const ProfileDetailPage = () => {
   const { coursePhase } = useCoursePhaseStore()
   const showStudentHistory = coursePhase?.restrictedData?.showStudentHistory === true
   const participation = participations.find((p) => p.student.id === studentId)
-  const navigate = useNavigate()
-  const location = useLocation()
-  const navigationState = (location.state as ProfileDetailLocationState | null) ?? null
+  const { orderedParticipations, currentParticipationId, navigateToParticipation } =
+    useInterviewNavigation()
 
   const applicationAnswers =
     (participation?.prevData?.applicationAnswers as ExportedApplicationAnswer[]) ?? []
 
   return (
     <div className=''>
-      <div className='relative pb-4'>
-        <Button
-          onClick={() =>
-            navigate({ pathname: '..', search: navigationState?.tableSearch }, { relative: 'path' })
-          }
-          variant='ghost'
-          size='sm'
-          className='absolute top-0 left-0'
-        >
-          <ChevronLeft className='h-4 w-4' />
-          <span>Back</span>
-        </Button>
+      <div className='pb-4'>
+        <ParticipantNavigation
+          participants={orderedParticipations}
+          currentId={currentParticipationId}
+          onNavigate={navigateToParticipation}
+          colorByStatus
+        />
         {!participation && (
           <div className='flex justify-center items-center h-64'>
             <p className='text-lg text-muted-foreground'>Participant not found</p>

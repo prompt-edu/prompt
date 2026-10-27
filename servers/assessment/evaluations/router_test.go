@@ -217,8 +217,31 @@ func (suite *EvaluationRouterTestSuite) TestDeleteEvaluation() {
 	w := httptest.NewRecorder()
 	suite.router.ServeHTTP(w, req)
 
-	// Should return either 200 (if evaluation exists and was deleted) or 500 (if evaluation doesn't exist)
-	assert.True(suite.T(), w.Code == http.StatusOK || w.Code == http.StatusInternalServerError)
+	assert.Equal(suite.T(), http.StatusOK, w.Code)
+}
+
+// Regression test for GHSA-h36r-xgjv-r8cx: the phase in the URL must own the evaluation.
+func (suite *EvaluationRouterTestSuite) TestDeleteEvaluationWrongPhase() {
+	// e2234567 is the current student's own self evaluation in testCoursePhaseID
+	evaluationID := "e2234567-1234-1234-1234-123456789012"
+	otherPhaseID := "5179d58a-d00d-4fa7-94a5-397bc69fab03"
+	req, _ := http.NewRequest(http.MethodDelete, "/assessment/api/course_phase/"+otherPhaseID+"/evaluation/"+evaluationID, nil)
+
+	w := httptest.NewRecorder()
+	suite.router.ServeHTTP(w, req)
+
+	assert.Equal(suite.T(), http.StatusNotFound, w.Code)
+}
+
+func (suite *EvaluationRouterTestSuite) TestDeleteEvaluationNonAuthor() {
+	// e3234567 is authored by another student
+	evaluationID := "e3234567-1234-1234-1234-123456789012"
+	req, _ := http.NewRequest(http.MethodDelete, "/assessment/api/course_phase/"+suite.testCoursePhaseID.String()+"/evaluation/"+evaluationID, nil)
+
+	w := httptest.NewRecorder()
+	suite.router.ServeHTTP(w, req)
+
+	assert.Equal(suite.T(), http.StatusForbidden, w.Code)
 }
 
 // Test that deleting a peer evaluation whose subject is no longer in the author's team answers

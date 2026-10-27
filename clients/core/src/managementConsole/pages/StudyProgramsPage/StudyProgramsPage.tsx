@@ -68,7 +68,11 @@ export const StudyProgramsPage = () => {
     <div className='w-full'>
       <div className='flex items-center justify-between'>
         <ManagementPageHeader>Study Programs</ManagementPageHeader>
-        <Button onClick={() => setCreateOpen(true)} disabled={!studyPrograms.isSuccess}>
+        <Button
+          className='mb-6'
+          onClick={() => setCreateOpen(true)}
+          disabled={!studyPrograms.isSuccess}
+        >
           <Plus className='h-4 w-4 mr-2' />
           Add Study Program
         </Button>

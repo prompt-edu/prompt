@@ -181,21 +181,54 @@ func (s *FeedbackItemService) UpdateFeedbackItem(ctx context.Context, authHeader
 	return nil
 }
 
-func (s *FeedbackItemService) DeleteFeedbackItem(ctx context.Context, feedbackItemID uuid.UUID) error {
-	err := s.queries.DeleteFeedbackItem(ctx, feedbackItemID)
+func (s *FeedbackItemService) DeleteFeedbackItem(ctx context.Context, authHeader string, feedbackItemID, coursePhaseID, authorCourseParticipationID uuid.UUID) error {
+	tx, err := s.conn.Begin(ctx)
+	if err != nil {
+		log.Error("could not begin feedback item deletion transaction: ", err)
+		return err
+	}
+	defer promptSDK.DeferDBRollback(tx, ctx)
+
+	qtx := s.queries.WithTx(tx)
+
+	existing, err := qtx.GetFeedbackItem(ctx, feedbackItemID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ErrFeedbackItemNotFound
+		}
+		log.Error("could not get feedback item: ", err)
+		return errors.New("could not get feedback item")
+	}
+
+	if existing.CoursePhaseID != coursePhaseID {
+		return ErrFeedbackItemNotFound
+	}
+	if existing.AuthorCourseParticipationID != authorCourseParticipationID {
+		return ErrNotFeedbackItemAuthor
+	}
+
+	err = s.evaluationCompletion.CheckEvaluationIsEditable(ctx, qtx, authHeader, existing.CourseParticipationID, existing.CoursePhaseID, existing.AuthorCourseParticipationID, assessmentType.MapDBAssessmentTypeToDTO(existing.Type))
+	if err != nil {
+		return err
+	}
+
+	rows, err := qtx.DeleteFeedbackItem(ctx, db.DeleteFeedbackItemParams{
+		ID:                          feedbackItemID,
+		CoursePhaseID:               coursePhaseID,
+		AuthorCourseParticipationID: authorCourseParticipationID,
+	})
 	if err != nil {
 		log.Error("could not delete feedback item: ", err)
 		return errors.New("could not delete feedback item")
 	}
-	return nil
-}
-
-func (s *FeedbackItemService) IsFeedbackItemAuthor(ctx context.Context, feedbackItemID, authorID uuid.UUID) bool {
-	feedbackItem, err := s.queries.GetFeedbackItem(ctx, feedbackItemID)
-	if err != nil {
-		log.Error("Error fetching feedback item: ", err)
-		return false
+	if rows == 0 {
+		return ErrFeedbackItemNotFound
 	}
 
-	return feedbackItem.AuthorCourseParticipationID == authorID
+	if err := tx.Commit(ctx); err != nil {
+		log.Error(err)
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	return nil
 }

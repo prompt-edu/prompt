@@ -1,5 +1,7 @@
-import { useApplicationStore } from '@core/managementConsole/applicationAdministration/zustand/useApplicationStore'
 import { useStudentStore } from '@core/managementConsole/shared/store/student.store'
+import { coreApi } from '@core/network/api'
+import { coreKeys } from '@core/network/cache'
+import { useQuery } from '@tanstack/react-query'
 import { useCourseStore } from '@tumaet/prompt-shared-state'
 import {
   Breadcrumb,
@@ -18,10 +20,15 @@ import {
 import React, { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { collapseBreadcrumbs } from './collapseBreadcrumbs'
+import { participantName } from './participantName'
 
 interface BreadcrumbProps {
   title: string
   path: string
+}
+
+interface TableReturnState {
+  tableSearch?: string
 }
 
 const capitalizeFirstLetter = (string: string) => {
@@ -39,7 +46,20 @@ export const Breadcrumbs: React.FC = () => {
   const navigate = useNavigate()
   const { courses } = useCourseStore()
   const { studentsById } = useStudentStore()
-  const { participations } = useApplicationStore()
+
+  const segments = location.pathname.split('/').filter(Boolean)
+  const currentPhaseId = segments[1] === 'course' ? segments[3] : undefined
+  const hasParticipantSegment = segments.slice(4).some((segment) => segment.length >= 20)
+  const { data: phaseParticipations } = useQuery({
+    queryKey: coreKeys.coursePhases.participations(currentPhaseId),
+    queryFn: () => coreApi.coursePhases.participations(currentPhaseId ?? ''),
+    enabled: !!currentPhaseId && hasParticipantSegment,
+  })
+
+  const { tableSearch } = (location.state as TableReturnState | null) ?? {}
+  const parentPath = `/${segments.slice(0, -1).join('/')}`
+  const navigateToCrumb = (path: string) =>
+    navigate({ pathname: path, search: path === parentPath ? tableSearch : undefined })
 
   const breadcrumbList = useMemo(() => {
     const pathSegments = location.pathname.split('/').filter(Boolean)
@@ -99,26 +119,17 @@ export const Breadcrumbs: React.FC = () => {
               })
             }
             pathSegments.slice(4).forEach((segment, index) => {
-              // we assume that longer items are courseParticipationIDs
+              // we assume that longer items are courseParticipationIDs or student ids
               if (segment.length < 20) {
                 breadcrumbs.push({
                   title: segmentLabel(segment),
                   path: `/management/course/${courseId}/${phaseId}/${pathSegments.slice(4, index + 5).join('/')}`,
                 })
               } else {
-                // This is likely a courseParticipationID (long UUID)
-                const participation = participations.find(
-                  (p) => p.courseParticipationID === segment,
-                )
-                const fullName = [
-                  participation?.student?.firstName ?? '',
-                  participation?.student?.lastName ?? '',
-                ]
-                  .filter(Boolean)
-                  .join(' ')
-                const title = fullName || 'Participant'
                 breadcrumbs.push({
-                  title,
+                  title:
+                    participantName(segment, phaseParticipations?.participations ?? []) ??
+                    'Participant',
                   path: `/management/course/${courseId}/${phaseId}/${pathSegments.slice(4, index + 5).join('/')}`,
                 })
               }
@@ -129,7 +140,7 @@ export const Breadcrumbs: React.FC = () => {
     }
 
     return breadcrumbs
-  }, [location.pathname, courses, studentsById, participations])
+  }, [location.pathname, courses, studentsById, phaseParticipations])
 
   const { first, hidden, last } = collapseBreadcrumbs(breadcrumbList)
   const canCollapse = hidden.length > 0
@@ -192,7 +203,7 @@ export const Breadcrumbs: React.FC = () => {
           className='block truncate'
           title={crumb.title}
           style={{ cursor: 'pointer' }}
-          onClick={() => navigate(crumb.path)}
+          onClick={() => navigateToCrumb(crumb.path)}
         >
           {crumb.title}
         </BreadcrumbLink>
@@ -217,7 +228,7 @@ export const Breadcrumbs: React.FC = () => {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align='start'>
                   {hidden.map((crumb) => (
-                    <DropdownMenuItem key={crumb.path} onClick={() => navigate(crumb.path)}>
+                    <DropdownMenuItem key={crumb.path} onClick={() => navigateToCrumb(crumb.path)}>
                       {crumb.title}
                     </DropdownMenuItem>
                   ))}

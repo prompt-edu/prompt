@@ -94,28 +94,37 @@ func (q *Queries) CheckIfCoursePhaseIsApplicationPhase(ctx context.Context, id u
 const checkIfCoursePhaseIsOpenApplicationPhase = `-- name: CheckIfCoursePhaseIsOpenApplicationPhase :one
 SELECT
     cpt.name = 'Application' AS is_application,
-    (cp.restricted_data->>'universityLoginAvailable')::boolean AS university_login_available
+    (cp.restricted_data->>'universityLoginAvailable')::boolean AS university_login_available,
+    COALESCE((cp.restricted_data->>'externalStudentsAllowed')::boolean, false)::boolean AS external_students_allowed
 FROM
     course_phase cp
 JOIN
     course_phase_type cpt
 ON
     cp.course_phase_type_id = cpt.id
+JOIN
+    course c
+ON
+    cp.course_id = c.id
 WHERE
     cp.id = $1
+    AND cp.is_initial_phase = true
+    AND c.archived = false
     AND COALESCE(cp.restricted_data->>'applicationMode', 'apply') = 'apply'
     AND (cp.restricted_data->>'applicationEndDate')::timestamp > NOW()
+    AND (cp.restricted_data->>'applicationStartDate')::timestamp < NOW()
 `
 
 type CheckIfCoursePhaseIsOpenApplicationPhaseRow struct {
 	IsApplication            bool `json:"is_application"`
 	UniversityLoginAvailable bool `json:"university_login_available"`
+	ExternalStudentsAllowed  bool `json:"external_students_allowed"`
 }
 
 func (q *Queries) CheckIfCoursePhaseIsOpenApplicationPhase(ctx context.Context, id uuid.UUID) (CheckIfCoursePhaseIsOpenApplicationPhaseRow, error) {
 	row := q.db.QueryRow(ctx, checkIfCoursePhaseIsOpenApplicationPhase, id)
 	var i CheckIfCoursePhaseIsOpenApplicationPhaseRow
-	err := row.Scan(&i.IsApplication, &i.UniversityLoginAvailable)
+	err := row.Scan(&i.IsApplication, &i.UniversityLoginAvailable, &i.ExternalStudentsAllowed)
 	return i, err
 }
 

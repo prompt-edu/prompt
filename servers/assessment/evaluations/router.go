@@ -275,10 +275,18 @@ func (s *EvaluationService) createOrUpdateEvaluation(c *gin.Context) {
 // @Success 200 {string} string "OK"
 // @Failure 400 {object} map[string]string
 // @Failure 403 {object} map[string]string
+// @Failure 404 {object} map[string]string
 // @Failure 409 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/evaluation/{evaluationID} [delete]
 func (s *EvaluationService) deleteEvaluation(c *gin.Context) {
+	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
+	if err != nil {
+		log.Error("Error parsing coursePhaseID: ", err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
+		return
+	}
+
 	evaluationID, err := uuid.Parse(c.Param("evaluationID"))
 	if err != nil {
 		log.Error("Error parsing evaluationID: ", err)
@@ -293,13 +301,7 @@ func (s *EvaluationService) deleteEvaluation(c *gin.Context) {
 		return
 	}
 
-	// Ensure the user is the author of the evaluation or has the right permissions
-	if !s.isEvaluationAuthor(c, evaluationID, courseParticipationID) {
-		c.JSON(http.StatusForbidden, gin.H{"error": "You do not have permission to delete this evaluation"})
-		return
-	}
-
-	err = s.DeleteEvaluation(c, c.GetHeader("Authorization"), evaluationID)
+	err = s.DeleteEvaluation(c, c.GetHeader("Authorization"), evaluationID, coursePhaseID, courseParticipationID)
 	if err != nil {
 		sdkUtils.HandleError(c, evaluationErrorStatus(err), err)
 		return
@@ -309,7 +311,9 @@ func (s *EvaluationService) deleteEvaluation(c *gin.Context) {
 
 func evaluationErrorStatus(err error) int {
 	switch {
-	case errors.Is(err, coursePhaseConfig.ErrNotStarted),
+	case errors.Is(err, ErrEvaluationNotFound):
+		return http.StatusNotFound
+	case errors.Is(err, ErrNotEvaluationAuthor), errors.Is(err, coursePhaseConfig.ErrNotStarted),
 		evaluationCompletion.IsTargetAuthorizationError(err):
 		return http.StatusForbidden
 	case errors.Is(err, evaluationCompletion.ErrEvaluationAlreadyCompleted):
@@ -320,14 +324,4 @@ func evaluationErrorStatus(err error) int {
 	default:
 		return http.StatusInternalServerError
 	}
-}
-
-func (s *EvaluationService) isEvaluationAuthor(c *gin.Context, evaluationID, authorID uuid.UUID) bool {
-	evaluation, err := s.GetEvaluationByID(c, evaluationID)
-	if err != nil {
-		log.Error("Error fetching evaluation: ", err)
-		return false
-	}
-
-	return evaluation.AuthorCourseParticipationID == authorID
 }

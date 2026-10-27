@@ -12,6 +12,7 @@ import (
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	"github.com/prompt-edu/prompt-sdk/promptTypes"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
+	"github.com/prompt-edu/prompt/servers/infrastructure_setup/bodyLimit"
 	"github.com/prompt-edu/prompt/servers/infrastructure_setup/config"
 	"github.com/prompt-edu/prompt/servers/infrastructure_setup/copy"
 	"github.com/prompt-edu/prompt/servers/infrastructure_setup/coursePhaseDeletion"
@@ -98,6 +99,9 @@ func main() {
 	router := gin.Default()
 	router.Use(sentrygin.New(sentrygin.Options{}))
 	router.Use(promptSDK.CORSMiddleware(clientHost))
+	// Cap request bodies before any route is registered, so the cap is part of every route's
+	// chain. Routes that need more raise it with bodyLimit.WithLimit.
+	router.Use(bodyLimit.Middleware(bodyLimit.DefaultMaxBytes))
 
 	authMw := promptSDK.AuthenticationMiddleware
 

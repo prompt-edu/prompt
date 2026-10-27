@@ -3,8 +3,10 @@ package evaluations
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	"github.com/prompt-edu/prompt/servers/assessment/assessmentSchemas"
@@ -223,12 +225,75 @@ func (suite *EvaluationServiceTestSuite) TestDeleteEvaluation() {
 	assert.True(suite.T(), found, "Evaluation to delete should be found")
 
 	// Delete the evaluation
-	err = suite.evaluationService.DeleteEvaluation(suite.suiteCtx, suite.testAuthHeader, evaluationToDelete.ID)
+	err = suite.evaluationService.DeleteEvaluation(suite.suiteCtx, suite.testAuthHeader, evaluationToDelete.ID, suite.testCoursePhaseID, suite.testParticipantID1)
 	assert.NoError(suite.T(), err)
 
 	// Verify the evaluation was deleted
 	_, err = suite.evaluationService.GetEvaluationByID(suite.suiteCtx, evaluationToDelete.ID)
 	assert.Error(suite.T(), err)
+}
+
+// The delete tests below are regression tests for GHSA-h36r-xgjv-r8cx: deletion must be
+// bound to the phase in the URL and to the author, and respect the evaluation lock.
+
+func (suite *EvaluationServiceTestSuite) TestDeleteEvaluationRejectsWrongPhase() {
+	// existingEvaluationID2 is a self evaluation of testParticipantID1 in testCoursePhaseID
+	err := suite.evaluationService.DeleteEvaluation(suite.suiteCtx, suite.testAuthHeader, suite.existingEvaluationID2, suite.testCoursePhaseID2, suite.testParticipantID1)
+	assert.ErrorIs(suite.T(), err, ErrEvaluationNotFound)
+
+	_, err = suite.evaluationService.GetEvaluationByID(suite.suiteCtx, suite.existingEvaluationID2)
+	assert.NoError(suite.T(), err)
+}
+
+func (suite *EvaluationServiceTestSuite) TestDeleteEvaluationRejectsNonAuthor() {
+	// e3234567 is a peer evaluation authored by testParticipantID2
+	evaluationID := uuid.MustParse("e3234567-1234-1234-1234-123456789012")
+
+	err := suite.evaluationService.DeleteEvaluation(suite.suiteCtx, suite.testAuthHeader, evaluationID, suite.testCoursePhaseID, suite.testParticipantID1)
+	assert.ErrorIs(suite.T(), err, ErrNotEvaluationAuthor)
+
+	_, err = suite.evaluationService.GetEvaluationByID(suite.suiteCtx, evaluationID)
+	assert.NoError(suite.T(), err)
+}
+
+func (suite *EvaluationServiceTestSuite) TestDeleteEvaluationRejectsCompletedEvaluation() {
+	// A dedicated author keeps the completion row from locking other tests.
+	authorID := uuid.New()
+	err := suite.evaluationService.queries.CreateOrUpdateEvaluation(suite.suiteCtx, db.CreateOrUpdateEvaluationParams{
+		CourseParticipationID:       authorID,
+		CoursePhaseID:               suite.testCoursePhaseID2,
+		CompetencyID:                suite.testCompetencyID3,
+		ScoreLevel:                  db.ScoreLevelGood,
+		AuthorCourseParticipationID: authorID,
+		Type:                        db.AssessmentTypeSelf,
+	})
+	assert.NoError(suite.T(), err)
+
+	evaluations, err := suite.evaluationService.GetEvaluationsForParticipantInPhase(suite.suiteCtx, authorID, suite.testCoursePhaseID2)
+	assert.NoError(suite.T(), err)
+	if !assert.Len(suite.T(), evaluations, 1) {
+		return
+	}
+
+	err = suite.evaluationService.queries.MarkEvaluationAsFinished(suite.suiteCtx, db.MarkEvaluationAsFinishedParams{
+		CourseParticipationID:       authorID,
+		CoursePhaseID:               suite.testCoursePhaseID2,
+		AuthorCourseParticipationID: authorID,
+		CompletedAt:                 pgtype.Timestamptz{Time: time.Now(), Valid: true},
+		Type:                        db.AssessmentTypeSelf,
+	})
+	assert.NoError(suite.T(), err)
+
+	err = suite.evaluationService.DeleteEvaluation(suite.suiteCtx, suite.testAuthHeader, evaluations[0].ID, suite.testCoursePhaseID2, authorID)
+	assert.ErrorIs(suite.T(), err, evaluationCompletion.ErrEvaluationAlreadyCompleted)
+
+	_, err = suite.evaluationService.GetEvaluationByID(suite.suiteCtx, evaluations[0].ID)
+	assert.NoError(suite.T(), err)
+}
+
+func (suite *EvaluationServiceTestSuite) TestDeleteEvaluationUnknownID() {
+	err := suite.evaluationService.DeleteEvaluation(suite.suiteCtx, suite.testAuthHeader, uuid.New(), suite.testCoursePhaseID, suite.testParticipantID1)
+	assert.ErrorIs(suite.T(), err, ErrEvaluationNotFound)
 }
 
 // Test creating a peer evaluation

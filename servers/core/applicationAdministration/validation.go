@@ -399,6 +399,13 @@ func (s *ApplicationService) validateApplicationImport(ctx context.Context, cour
 	return nil
 }
 
+// externalRouteAllowed reports whether the unauthenticated apply routes may be used for a
+// phase. They serve external students and, when the phase offers no university login,
+// university students as well. Otherwise everyone must apply through the login.
+func externalRouteAllowed(applicationDetails db.CheckIfCoursePhaseIsOpenApplicationPhaseRow) bool {
+	return applicationDetails.ExternalStudentsAllowed || !applicationDetails.UniversityLoginAvailable
+}
+
 func (s *ApplicationService) validateApplication(ctx context.Context, coursePhaseID uuid.UUID, application applicationDTO.PostApplication, authenticatedRoute bool) error {
 	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
 	defer cancel()
@@ -413,8 +420,18 @@ func (s *ApplicationService) validateApplication(ctx context.Context, coursePhas
 		return errors.New("course phase is not an application phase")
 	}
 
-	if !authenticatedRoute && applicationDetails.UniversityLoginAvailable && application.Student.HasUniversityAccount {
-		return errors.New("student with university data MUST log in to apply")
+	if !authenticatedRoute {
+		if applicationDetails.UniversityLoginAvailable && application.Student.HasUniversityAccount {
+			return errors.New("student with university data MUST log in to apply")
+		}
+		if !externalRouteAllowed(applicationDetails) {
+			return errors.New("this course phase does not accept external applications")
+		}
+		// Without a university login, university students also use this route, so it stays
+		// open, but only for them unless the phase allows external students.
+		if !applicationDetails.ExternalStudentsAllowed && !application.Student.HasUniversityAccount {
+			return errors.New("this course phase does not accept external applications")
+		}
 	}
 
 	return s.validateAnswers(ctx, coursePhaseID, application)

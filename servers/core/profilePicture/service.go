@@ -49,7 +49,7 @@ type FileStore interface {
 	DeleteUpload(ctx context.Context, storageKey string) error
 	StoreFile(ctx context.Context, req files.StoreFileRequest, content io.Reader, uploaderUserID, uploaderEmail string) (*files.FileResponse, error)
 	DeleteFile(ctx context.Context, fileID uuid.UUID, hardDelete bool) error
-	GetDownloadURL(ctx context.Context, storageKey string, ttlSeconds int) (string, error)
+	GetInlineURL(ctx context.Context, storageKey string, ttlSeconds int) (string, error)
 }
 
 // Uploader identifies the logged-in user a picture belongs to.
@@ -111,7 +111,7 @@ func (s *ProfilePictureService) CompleteUpload(ctx context.Context, uploader Upl
 		return profilePictureDTO.ProfilePicture{}, fmt.Errorf("failed to store profile picture: %w", err)
 	}
 
-	url, err := s.files.GetDownloadURL(ctx, file.StorageKey, urlTTLSeconds)
+	url, err := s.files.GetInlineURL(ctx, file.StorageKey, urlTTLSeconds)
 	if err != nil {
 		s.discardFile(ctx, file.ID)
 		return profilePictureDTO.ProfilePicture{}, fmt.Errorf("failed to create profile picture URL: %w", err)
@@ -180,7 +180,7 @@ func (s *ProfilePictureService) GetOwnPicture(ctx context.Context, userID uuid.U
 		return profilePictureDTO.ProfilePicture{}, fmt.Errorf("failed to load profile picture: %w", err)
 	}
 
-	url, err := s.files.GetDownloadURL(ctx, picture.StorageKey, urlTTLSeconds)
+	url, err := s.files.GetInlineURL(ctx, picture.StorageKey, urlTTLSeconds)
 	if err != nil {
 		return profilePictureDTO.ProfilePicture{}, fmt.Errorf("failed to create profile picture URL: %w", err)
 	}
@@ -243,7 +243,7 @@ func (s *ProfilePictureService) LookupPictureURLs(ctx context.Context, req profi
 		if url, ok := urlsByStorageKey[storageKey]; ok {
 			return url, nil
 		}
-		url, err := s.files.GetDownloadURL(ctx, storageKey, urlTTLSeconds)
+		url, err := s.files.GetInlineURL(ctx, storageKey, urlTTLSeconds)
 		if err != nil {
 			return "", fmt.Errorf("failed to create profile picture URL: %w", err)
 		}

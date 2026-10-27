@@ -14,6 +14,7 @@ type InterviewAssignment struct {
 	InterviewSlotID       uuid.UUID          `json:"interview_slot_id"`
 	CourseParticipationID uuid.UUID          `json:"course_participation_id"`
 	AssignedAt            pgtype.Timestamptz `json:"assigned_at"`
+	CoursePhaseID         uuid.UUID          `json:"course_phase_id"`
 }
 
 type InterviewReview struct {

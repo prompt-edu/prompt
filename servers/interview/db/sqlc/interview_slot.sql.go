@@ -27,25 +27,30 @@ func (q *Queries) CountAssignmentsBySlot(ctx context.Context, interviewSlotID uu
 const createInterviewAssignment = `-- name: CreateInterviewAssignment :one
 INSERT INTO interview_assignment (
     interview_slot_id,
-    course_participation_id
-) VALUES (
-    $1, $2
-) RETURNING id, interview_slot_id, course_participation_id, assigned_at
+    course_participation_id,
+    course_phase_id
+)
+SELECT s.id, $1::uuid, s.course_phase_id
+FROM interview_slot s
+WHERE s.id = $2::uuid
+RETURNING id, interview_slot_id, course_participation_id, assigned_at, course_phase_id
 `
 
 type CreateInterviewAssignmentParams struct {
-	InterviewSlotID       uuid.UUID `json:"interview_slot_id"`
 	CourseParticipationID uuid.UUID `json:"course_participation_id"`
+	InterviewSlotID       uuid.UUID `json:"interview_slot_id"`
 }
 
+// The phase is taken from the slot, so it always matches the slot the assignment points at.
 func (q *Queries) CreateInterviewAssignment(ctx context.Context, arg CreateInterviewAssignmentParams) (InterviewAssignment, error) {
-	row := q.db.QueryRow(ctx, createInterviewAssignment, arg.InterviewSlotID, arg.CourseParticipationID)
+	row := q.db.QueryRow(ctx, createInterviewAssignment, arg.CourseParticipationID, arg.InterviewSlotID)
 	var i InterviewAssignment
 	err := row.Scan(
 		&i.ID,
 		&i.InterviewSlotID,
 		&i.CourseParticipationID,
 		&i.AssignedAt,
+		&i.CoursePhaseID,
 	)
 	return i, err
 }
@@ -123,7 +128,7 @@ func (q *Queries) DeleteInterviewSlot(ctx context.Context, id uuid.UUID) error {
 }
 
 const getInterviewAssignment = `-- name: GetInterviewAssignment :one
-SELECT id, interview_slot_id, course_participation_id, assigned_at FROM interview_assignment
+SELECT id, interview_slot_id, course_participation_id, assigned_at, course_phase_id FROM interview_assignment
 WHERE id = $1
 `
 
@@ -135,12 +140,13 @@ func (q *Queries) GetInterviewAssignment(ctx context.Context, id uuid.UUID) (Int
 		&i.InterviewSlotID,
 		&i.CourseParticipationID,
 		&i.AssignedAt,
+		&i.CoursePhaseID,
 	)
 	return i, err
 }
 
 const getInterviewAssignmentByParticipation = `-- name: GetInterviewAssignmentByParticipation :one
-SELECT ia.id, ia.interview_slot_id, ia.course_participation_id, ia.assigned_at FROM interview_assignment ia
+SELECT ia.id, ia.interview_slot_id, ia.course_participation_id, ia.assigned_at, ia.course_phase_id FROM interview_assignment ia
 JOIN interview_slot s ON ia.interview_slot_id = s.id
 WHERE ia.course_participation_id = $1 AND s.course_phase_id = $2
 `
@@ -158,12 +164,13 @@ func (q *Queries) GetInterviewAssignmentByParticipation(ctx context.Context, arg
 		&i.InterviewSlotID,
 		&i.CourseParticipationID,
 		&i.AssignedAt,
+		&i.CoursePhaseID,
 	)
 	return i, err
 }
 
 const getInterviewAssignmentsBySlot = `-- name: GetInterviewAssignmentsBySlot :many
-SELECT id, interview_slot_id, course_participation_id, assigned_at FROM interview_assignment
+SELECT id, interview_slot_id, course_participation_id, assigned_at, course_phase_id FROM interview_assignment
 WHERE interview_slot_id = $1
 `
 
@@ -181,6 +188,7 @@ func (q *Queries) GetInterviewAssignmentsBySlot(ctx context.Context, interviewSl
 			&i.InterviewSlotID,
 			&i.CourseParticipationID,
 			&i.AssignedAt,
+			&i.CoursePhaseID,
 		); err != nil {
 			return nil, err
 		}

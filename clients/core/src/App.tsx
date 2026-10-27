@@ -18,6 +18,7 @@ import { ExampleRoutes } from './managementConsole/PhaseMapping/ExternalRoutes/E
 import { PhaseRouterMapping } from './managementConsole/PhaseMapping/PhaseRouterMapping'
 import { ActiveCoursesPage } from './managementConsole/pages/ActiveCoursesPage'
 import { AdminPrivacyPage } from './managementConsole/pages/AdminPrivacyPage'
+import { AnnouncementsPage } from './managementConsole/pages/AnnouncementsPage/AnnouncementsPage'
 import { ArchivedCoursesPage } from './managementConsole/pages/ArchivedCoursesPage'
 import { StudentNoteTagsPage } from './managementConsole/pages/InstructorNoteTagsPage'
 import { PrivacyDataDeletionPage } from './managementConsole/pages/PrivacyDataDeletionPage'
@@ -194,6 +195,16 @@ export const App = () => {
                 <ManagementRoot>
                   <PermissionRestriction requiredPermissions={[Role.PROMPT_ADMIN]}>
                     <AdminAuditLogPage />
+                  </PermissionRestriction>
+                </ManagementRoot>
+              }
+            />
+            <Route
+              path='/management/admin/announcements'
+              element={
+                <ManagementRoot>
+                  <PermissionRestriction requiredPermissions={[Role.PROMPT_ADMIN]}>
+                    <AnnouncementsPage />
                   </PermissionRestriction>
                 </ManagementRoot>
               }

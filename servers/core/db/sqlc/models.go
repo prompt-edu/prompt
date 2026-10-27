@@ -12,6 +12,49 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type AnnouncementSeverity string
+
+const (
+	AnnouncementSeverityInfo     AnnouncementSeverity = "info"
+	AnnouncementSeverityWarning  AnnouncementSeverity = "warning"
+	AnnouncementSeverityCritical AnnouncementSeverity = "critical"
+)
+
+func (e *AnnouncementSeverity) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = AnnouncementSeverity(s)
+	case string:
+		*e = AnnouncementSeverity(s)
+	default:
+		return fmt.Errorf("unsupported scan type for AnnouncementSeverity: %T", src)
+	}
+	return nil
+}
+
+type NullAnnouncementSeverity struct {
+	AnnouncementSeverity AnnouncementSeverity `json:"announcement_severity"`
+	Valid                bool                 `json:"valid"` // Valid is true if AnnouncementSeverity is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullAnnouncementSeverity) Scan(value interface{}) error {
+	if value == nil {
+		ns.AnnouncementSeverity, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.AnnouncementSeverity.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullAnnouncementSeverity) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.AnnouncementSeverity), nil
+}
+
 type CourseType string
 
 const (
@@ -452,6 +495,20 @@ func (ns NullStudyDegree) Value() (driver.Value, error) {
 	return string(ns.StudyDegree), nil
 }
 
+type Announcement struct {
+	ID        uuid.UUID            `json:"id"`
+	Severity  AnnouncementSeverity `json:"severity"`
+	Title     string               `json:"title"`
+	Message   string               `json:"message"`
+	LinkUrl   string               `json:"link_url"`
+	LinkLabel string               `json:"link_label"`
+	StartsAt  pgtype.Timestamptz   `json:"starts_at"`
+	ExpiresAt pgtype.Timestamptz   `json:"expires_at"`
+	Enabled   bool                 `json:"enabled"`
+	CreatedAt pgtype.Timestamptz   `json:"created_at"`
+	UpdatedAt pgtype.Timestamptz   `json:"updated_at"`
+}
+
 type ApplicationAnswerFileUpload struct {
 	ID                    uuid.UUID `json:"id"`
 	ApplicationQuestionID uuid.UUID `json:"application_question_id"`
@@ -739,6 +796,11 @@ type ParticipationDataDependencyGraph struct {
 	ToCoursePhaseID      uuid.UUID `json:"to_course_phase_id"`
 	FromCoursePhaseDtoID uuid.UUID `json:"from_course_phase_dto_id"`
 	ToCoursePhaseDtoID   uuid.UUID `json:"to_course_phase_dto_id"`
+}
+
+type PendingUpload struct {
+	StorageKey string             `json:"storage_key"`
+	CreatedAt  pgtype.Timestamptz `json:"created_at"`
 }
 
 type PhaseDataDependencyGraph struct {

@@ -43,8 +43,8 @@ export const ApplicationProfilePictureSection = forwardRef<
       error={error}
       notice={
         config.hiddenUntilAccepted
-          ? 'Your picture is not shown to the people reviewing your application. It becomes visible to the course team once you are accepted.'
-          : 'Your picture is visible to the course team while they review your application.'
+          ? 'Your picture stays hidden from reviewers until you are accepted.'
+          : 'Reviewers can see your picture.'
       }
     />
   )

@@ -9,10 +9,11 @@ import {
   Label,
   type ProfilePictureRequirement,
   ProfilePictureRequirementSetting,
+  Separator,
   Switch,
   Textarea,
 } from '@tumaet/prompt-ui-components'
-import { AlertTriangle, Loader2 } from 'lucide-react'
+import { AlertTriangle, Info, Loader2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import type { ApplicationMetaData } from '../../../../interfaces/applicationMetaData'
@@ -24,6 +25,15 @@ import { ShowProfilePicturesConfirmation } from './ShowProfilePicturesConfirmati
 
 interface ApplicationSettingsProfilePictureProps {
   initialData: ApplicationMetaData
+}
+
+const DESCRIPTION =
+  'Ask applicants for a profile picture, so the course team can recognize them once they are accepted.'
+
+const OPTION_DESCRIPTIONS: Record<ProfilePictureRequirement, string> = {
+  off: 'Applicants are not asked for a picture.',
+  optional: 'Applicants are asked for a picture but can apply without one.',
+  required: 'Applicants must add a picture to apply.',
 }
 
 const EXPLANATION_PLACEHOLDER = 'Your picture helps the course team recognize you.'
@@ -84,64 +94,82 @@ export function ApplicationSettingsProfilePicture({
   const update = (changes: Partial<ApplicationProfilePictureSettings>) =>
     setSettings((current) => ({ ...current, ...changes }))
 
+  // Only switching off the saved hiding reveals pictures applicants were told are hidden
   const handleHideUntilAcceptedChange = (hideUntilAccepted: boolean) => {
-    if (hideUntilAccepted) {
-      update({ hideUntilAccepted })
-    } else {
+    if (!hideUntilAccepted && savedSettings.hideUntilAccepted) {
       setShowConfirmationOpen(true)
+    } else {
+      update({ hideUntilAccepted })
     }
   }
+
+  const asksForPicture = settings.requirement !== 'off'
 
   return (
     <div data-testid='application-profile-picture-settings'>
       <ProfilePictureRequirementSetting
         value={settings.requirement}
         onChange={(requirement: ProfilePictureRequirement) => update({ requirement })}
+        description={DESCRIPTION}
+        optionDescriptions={OPTION_DESCRIPTIONS}
       >
-        {settings.requirement !== 'off' && (
+        {asksForPicture &&
+          (initialData.universityLoginAvailable ? (
+            <Alert>
+              <AlertDescription className='flex items-start gap-3'>
+                <Info className='mt-0.5 h-4 w-4 shrink-0' />
+                Only applicants who log in with their university account are asked.
+              </AlertDescription>
+            </Alert>
+          ) : (
+            <Alert>
+              <AlertDescription className='flex items-start gap-3'>
+                <AlertTriangle className='mt-0.5 h-4 w-4 shrink-0' />
+                Applicants apply without logging in, so the form cannot ask them for a picture. To
+                ask for one, turn on Require Student Login in the general settings above.
+              </AlertDescription>
+            </Alert>
+          ))}
+
+        {asksForPicture && (
           <div className='space-y-2'>
-            <Label htmlFor='profile-picture-explanation'>Explanation for applicants</Label>
+            <div className='space-y-1'>
+              <Label htmlFor='profile-picture-explanation'>
+                Explanation for applicants (optional)
+              </Label>
+              <p className='text-sm text-muted-foreground'>
+                Shown next to the upload in the application form.
+              </p>
+            </div>
             <Textarea
               id='profile-picture-explanation'
+              rows={2}
               value={settings.explanation}
               placeholder={EXPLANATION_PLACEHOLDER}
               onChange={(event) => update({ explanation: event.target.value })}
               maxLength={500}
             />
-            <p className='text-sm text-muted-foreground'>
-              Shown next to the picture in the application form. Explain why you ask for a picture
-              and what it is used for. Only applicants who log in with their university account are
-              asked.
-            </p>
           </div>
         )}
 
-        {settings.requirement !== 'off' && !initialData.universityLoginAvailable && (
-          <Alert>
-            <AlertTriangle className='h-4 w-4' />
-            <AlertDescription>
-              Enforce Student Login is off, so applicants do not log in and nobody is asked for a
-              picture. Turn it on in the general settings to ask applicants.
-            </AlertDescription>
-          </Alert>
-        )}
+        <Separator />
 
-        <div className='flex items-start justify-between gap-4'>
-          <div className='space-y-1'>
-            <Label htmlFor='hide-profile-pictures'>
-              Hide profile pictures during the application review
-            </Label>
-            <p className='text-sm text-muted-foreground'>
-              Applicants' profile pictures stay hidden everywhere in PROMPT until they are accepted,
-              so pictures cannot influence the admission decision. Hidden pictures are marked in the
-              participant list and on the application page.
-            </p>
+        <div className='space-y-3'>
+          <h4 className='font-medium'>Application review</h4>
+          <div className='flex items-center justify-between gap-4'>
+            <div className='space-y-1'>
+              <Label htmlFor='hide-profile-pictures'>Hide pictures until acceptance</Label>
+              <p className='text-sm text-muted-foreground'>
+                Reviewers see no applicant pictures until the applicant is accepted, so pictures
+                cannot influence the decision.
+              </p>
+            </div>
+            <Switch
+              id='hide-profile-pictures'
+              checked={settings.hideUntilAccepted}
+              onCheckedChange={handleHideUntilAcceptedChange}
+            />
           </div>
-          <Switch
-            id='hide-profile-pictures'
-            checked={settings.hideUntilAccepted}
-            onCheckedChange={handleHideUntilAcceptedChange}
-          />
         </div>
 
         <ShowProfilePicturesConfirmation

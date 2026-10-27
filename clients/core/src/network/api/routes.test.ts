@@ -12,6 +12,7 @@ const PHASE = 'phase-1'
 const PARTICIPATION = 'participation-1'
 const STUDENT = 'student-1'
 const CAMPAIGN = 'campaign-1'
+const ORG = 'org-1'
 
 const BODY = { marker: 'body' }
 const body = <T>() => BODY as unknown as T
@@ -62,6 +63,7 @@ const ownProfilePicturePath = `${CORE}/api/profile-pictures/me`
 const privacyPath = `${CORE}/api/privacy`
 const studentsPath = `${CORE}/api/students`
 const announcementsPath = `${CORE}/api/announcements`
+const orgsPath = `${CORE}/api/orgs`
 const studyProgramsPath = `${CORE}/api/study-programs`
 
 const ROUTES: Route[] = [
@@ -555,6 +557,46 @@ const ROUTES: Route[] = [
     method: 'put',
     url: `${CORE}/api/mailing/${PHASE}`,
     data: BODY,
+  },
+
+  {
+    name: 'orgs.list',
+    run: () => coreApi.orgs.list(),
+    method: 'get',
+    url: `${orgsPath}/`,
+  },
+  {
+    name: 'orgs.get',
+    run: () => coreApi.orgs.get(ORG),
+    method: 'get',
+    url: `${orgsPath}/${ORG}`,
+  },
+  {
+    name: 'orgs.create',
+    run: () => coreApi.orgs.create(body()),
+    method: 'post',
+    url: `${orgsPath}/`,
+    data: BODY,
+  },
+  {
+    name: 'orgs.update',
+    run: () => coreApi.orgs.update(ORG, body()),
+    method: 'put',
+    url: `${orgsPath}/${ORG}`,
+    data: BODY,
+  },
+  {
+    name: 'orgs.updateParent',
+    run: () => coreApi.orgs.updateParent(ORG, { parentOrgID: null }),
+    method: 'put',
+    url: `${orgsPath}/${ORG}/parent`,
+    data: { parentOrgID: null },
+  },
+  {
+    name: 'orgs.remove',
+    run: () => coreApi.orgs.remove(ORG),
+    method: 'delete',
+    url: `${orgsPath}/${ORG}`,
   },
 
   {

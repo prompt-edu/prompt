@@ -104,6 +104,11 @@ export const coreKeys = {
     studentCounts: () => ['studyPrograms', 'studentCounts'] as const,
   },
 
+  orgs: {
+    all: () => ['orgs'] as const,
+    byId: (orgId: Id) => ['orgs', orgId] as const,
+  },
+
   privacy: {
     latest: (resource: string) => ['privacy', `${resource}-latest`] as const,
     create: (resource: string) => ['privacy', `${resource}-create`] as const,

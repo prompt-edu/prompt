@@ -2,6 +2,9 @@ package teams
 
 import (
 	"context"
+	"fmt"
+	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -29,7 +32,7 @@ type TeamsServiceTestSuite struct {
 
 func (suite *TeamsServiceTestSuite) SetupSuite() {
 	suite.ctx = context.Background()
-	testDB, cleanup, err := sdkTestUtils.SetupTestDB(suite.ctx, "../database_dumps/base.sql", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) })
+	testDB, cleanup, err := sdkTestUtils.SetupTestDBWithMigrations(suite.ctx, "../db/migration", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) }, "../database_dumps/base.sql")
 	require.NoError(suite.T(), err)
 	suite.testDB = testDB
 	suite.cleanup = cleanup
@@ -38,7 +41,7 @@ func (suite *TeamsServiceTestSuite) SetupSuite() {
 
 	timeframeService := timeframe.NewTimeframeService(*testDB.Queries)
 	suite.teamsService = NewTeamsService(*testDB.Queries, testDB.Conn, timeframeService)
-	suite.assignmentService = NewAssignmentService(*testDB.Queries)
+	suite.assignmentService = NewAssignmentService(*testDB.Queries, testDB.Conn)
 }
 
 func (suite *TeamsServiceTestSuite) TearDownSuite() {
@@ -75,7 +78,7 @@ func (suite *TeamsServiceTestSuite) TestCreateNewTeams() {
 	coursePhaseID := uuid.New()
 	names := []string{"Team-" + uuid.NewString()[0:8], "Team-" + uuid.NewString()[0:8]}
 
-	err := suite.teamsService.CreateNewTeams(suite.ctx, names, coursePhaseID)
+	err := suite.teamsService.CreateNewTeams(suite.ctx, names, coursePhaseID, uuid.Nil)
 
 	require.NoError(suite.T(), err)
 
@@ -85,9 +88,97 @@ func (suite *TeamsServiceTestSuite) TestCreateNewTeams() {
 }
 
 func (suite *TeamsServiceTestSuite) TestCreateNewTeamsRejectsEmptyName() {
-	err := suite.teamsService.CreateNewTeams(suite.ctx, []string{"", "Valid"}, uuid.New())
+	err := suite.teamsService.CreateNewTeams(suite.ctx, []string{"   ", "Valid"}, uuid.New(), uuid.Nil)
 
-	require.Error(suite.T(), err)
+	require.ErrorIs(suite.T(), err, ErrInvalidTeamName)
+}
+
+func (suite *TeamsServiceTestSuite) TestCreateNewTeamsRejectsInvalidNames() {
+	for _, name := range []string{strings.Repeat("a", MaxTeamNameLength+1), "Line\nBreak"} {
+		err := suite.teamsService.CreateNewTeams(suite.ctx, []string{name}, uuid.New(), uuid.Nil)
+		require.ErrorIs(suite.T(), err, ErrInvalidTeamName, name)
+	}
+}
+
+func (suite *TeamsServiceTestSuite) TestCreateNewTeamsTrimsNameAndRecordsCreator() {
+	coursePhaseID := uuid.New()
+	creatorID := uuid.New()
+
+	err := suite.teamsService.CreateNewTeams(suite.ctx, []string{"  Padded  "}, coursePhaseID, creatorID)
+	require.NoError(suite.T(), err)
+
+	dbTeams, err := suite.testDB.Queries.GetTeamsByCoursePhase(suite.ctx, coursePhaseID)
+	require.NoError(suite.T(), err)
+	require.Len(suite.T(), dbTeams, 1)
+	require.Equal(suite.T(), "Padded", dbTeams[0].Name)
+	require.Equal(suite.T(), pgtype.UUID{Bytes: creatorID, Valid: true}, dbTeams[0].CreatedByCourseParticipationID)
+}
+
+func (suite *TeamsServiceTestSuite) TestCreateNewTeamsRejectsDuplicateName() {
+	coursePhaseID := uuid.New()
+	suite.createTeam(coursePhaseID, "Taken")
+
+	err := suite.teamsService.CreateNewTeams(suite.ctx, []string{"Taken"}, coursePhaseID, uuid.Nil)
+	require.ErrorIs(suite.T(), err, ErrDuplicateTeamName)
+
+	err = suite.teamsService.CreateNewTeams(suite.ctx, []string{"Twice", "Twice"}, coursePhaseID, uuid.Nil)
+	require.ErrorIs(suite.T(), err, ErrDuplicateTeamName)
+}
+
+// Regression test for GHSA-6j73-qvgm-8p23: a student cannot create more than
+// MaxTeamsCreatedPerStudent teams, even with concurrent requests.
+func (suite *TeamsServiceTestSuite) TestCreateNewTeamsLimitsTeamsPerStudent() {
+	coursePhaseID := uuid.New()
+	creatorID := uuid.New()
+
+	const attempts = 10
+	var wg sync.WaitGroup
+	errs := make(chan error, attempts)
+	for i := range attempts {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			errs <- suite.teamsService.CreateNewTeams(suite.ctx, []string{fmt.Sprintf("Spam %d", i)}, coursePhaseID, creatorID)
+		}()
+	}
+	wg.Wait()
+	close(errs)
+
+	succeeded := 0
+	for err := range errs {
+		if err == nil {
+			succeeded++
+			continue
+		}
+		require.ErrorIs(suite.T(), err, ErrTeamLimitReached)
+	}
+	require.Equal(suite.T(), MaxTeamsCreatedPerStudent, succeeded)
+
+	dbTeams, err := suite.testDB.Queries.GetTeamsByCoursePhase(suite.ctx, coursePhaseID)
+	require.NoError(suite.T(), err)
+	require.Len(suite.T(), dbTeams, MaxTeamsCreatedPerStudent)
+
+	// Lecturers are not limited.
+	err = suite.teamsService.CreateNewTeams(suite.ctx, []string{"Lecturer 1", "Lecturer 2", "Lecturer 3"}, coursePhaseID, uuid.Nil)
+	require.NoError(suite.T(), err)
+}
+
+func (suite *TeamsServiceTestSuite) TestCreateNewTeamsLimitsTeamsPerPhaseForStudents() {
+	coursePhaseID := uuid.New()
+	for i := range MaxTeamsPerPhase {
+		suite.createTeam(coursePhaseID, fmt.Sprintf("Existing %d", i))
+	}
+
+	err := suite.teamsService.CreateNewTeams(suite.ctx, []string{"One too many"}, coursePhaseID, uuid.New())
+	require.ErrorIs(suite.T(), err, ErrTeamLimitReached)
+}
+
+func (suite *TeamsServiceTestSuite) TestUpdateTeamRejectsInvalidName() {
+	coursePhaseID := uuid.New()
+	teamID := suite.createTeam(coursePhaseID, "Before")
+
+	err := suite.teamsService.UpdateTeam(suite.ctx, coursePhaseID, teamID, " ")
+	require.ErrorIs(suite.T(), err, ErrInvalidTeamName)
 }
 
 func (suite *TeamsServiceTestSuite) TestUpdateTeam() {
@@ -158,7 +249,7 @@ func (suite *TeamsServiceTestSuite) TestValidateTimeframeOutsideWindow() {
 
 	allowed, err := suite.teamsService.ValidateTimeframe(suite.ctx, coursePhaseID)
 
-	require.Error(suite.T(), err)
+	require.ErrorIs(suite.T(), err, ErrOutsideTimeframe)
 	require.False(suite.T(), allowed)
 }
 

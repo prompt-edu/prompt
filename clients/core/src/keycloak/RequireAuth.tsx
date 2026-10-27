@@ -12,7 +12,7 @@ const readLoginAttempts = () => Number(sessionStorage.getItem(LOGIN_ATTEMPTS_KEY
 // Gate for every surface that needs a session. Children mount only once a token is
 // available, so no request can go out with a missing or expired one.
 export const RequireAuth = ({ children }: { children: ReactNode }) => {
-  const { isInitialized, isAuthenticated, initError, login } = useKeycloak()
+  const { isInitialized, isAuthenticated, isLoggingOut, initError, login } = useKeycloak()
   const loginRequested = useRef(false)
   const [loginAttemptsExhausted, setLoginAttemptsExhausted] = useState(false)
 
@@ -22,7 +22,8 @@ export const RequireAuth = ({ children }: { children: ReactNode }) => {
       loginRequested.current = false
       return
     }
-    if (!isInitialized || loginRequested.current) return
+    // A logout clears the session on its way to Keycloak; logging in here would cancel it.
+    if (!isInitialized || isLoggingOut || loginRequested.current) return
     loginRequested.current = true
 
     const attempts = readLoginAttempts()
@@ -32,7 +33,7 @@ export const RequireAuth = ({ children }: { children: ReactNode }) => {
     }
     sessionStorage.setItem(LOGIN_ATTEMPTS_KEY, String(attempts + 1))
     login()
-  }, [isInitialized, isAuthenticated, login])
+  }, [isInitialized, isAuthenticated, isLoggingOut, login])
 
   if (loginAttemptsExhausted) {
     return (

@@ -24,10 +24,12 @@ export const EvaluationHeader = ({
         // The undocked gap is padding on the row rather than a margin on the title, so it
         // is the same whether or not there are nav actions, it does not push the actions
         // out of line with the title, and it is included in the height StickyHeader freezes.
+        // Only docking animates: the undocked row is in flow, so growing it back over time
+        // would push the content below down while the user scrolls.
         <div
           className={cn(
-            'flex min-w-0 items-center gap-2 transition-all duration-300',
-            docked ? 'h-10 px-3' : 'pb-6',
+            'flex min-w-0 items-center gap-2',
+            docked ? 'h-10 px-3 transition-all duration-300' : 'pb-6',
           )}
         >
           {previousAction}
@@ -35,8 +37,8 @@ export const EvaluationHeader = ({
               className and this title also needs a condensed docked variant. */}
           <h1
             className={cn(
-              'min-w-0 flex-1 font-bold transition-all duration-300',
-              docked ? 'truncate text-base text-center' : 'text-4xl',
+              'min-w-0 flex-1 font-bold',
+              docked ? 'truncate text-base text-center transition-all duration-300' : 'text-4xl',
             )}
           >
             {children}

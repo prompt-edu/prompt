@@ -47,6 +47,17 @@ test.describe('assessment API auth', () => {
     expect(res.status()).toBe(403)
   })
 
+  test('lets only a lecturer read the reminder send times', async ({ apiAs }) => {
+    const lecturer = await apiAs('lecturer')
+    const lecturerRes = await lecturer.get(phaseUrl(PHASE_ID, 'config/reminders'))
+    expect(lecturerRes.status()).toBe(200)
+    expect(await lecturerRes.json()).toHaveProperty('lastSentAtByType')
+
+    const editor = await apiAs('course-editor')
+    const editorRes = await editor.get(phaseUrl(PHASE_ID, 'config/reminders'))
+    expect(editorRes.status()).toBe(403)
+  })
+
   test('accepts a course editor on a grading read endpoint', async ({ apiAs }) => {
     const api = await apiAs('course-editor')
     const res = await api.get(phaseUrl(PHASE_ID, 'student-assessment'))

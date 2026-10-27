@@ -189,6 +189,7 @@ type Category struct {
 	Weight             int32       `json:"weight"`
 	ShortName          pgtype.Text `json:"short_name"`
 	AssessmentSchemaID uuid.UUID   `json:"assessment_schema_id"`
+	SortOrder          int32       `json:"sort_order"`
 }
 
 type CategoryAssessment struct {
@@ -220,6 +221,7 @@ type Competency struct {
 	DescriptionOk       string      `json:"description_ok"`
 	DescriptionGood     string      `json:"description_good"`
 	DescriptionVeryGood string      `json:"description_very_good"`
+	SortOrder           int32       `json:"sort_order"`
 }
 
 type CompletedScoreLevel struct {
@@ -274,6 +276,12 @@ type EvaluationCompletion struct {
 	CompletedAt                 pgtype.Timestamptz `json:"completed_at"`
 	Completed                   bool               `json:"completed"`
 	Type                        AssessmentType     `json:"type"`
+}
+
+type EvaluationReminder struct {
+	CoursePhaseID  uuid.UUID          `json:"course_phase_id"`
+	EvaluationType AssessmentType     `json:"evaluation_type"`
+	LastSentAt     pgtype.Timestamptz `json:"last_sent_at"`
 }
 
 type FeedbackItem struct {

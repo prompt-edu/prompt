@@ -416,7 +416,7 @@ func TestHandlePhaseCopyProbeRecordsNothing(t *testing.T) {
 
 func TestHandlePhaseCopyRecordsScopedEvent(t *testing.T) {
 	ctx := context.Background()
-	testDB, cleanup, err := sdkTestUtils.SetupTestDB(ctx, "database_dumps/coursePhaseConfig.sql", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) })
+	testDB, cleanup, err := sdkTestUtils.SetupTestDBWithMigrations(ctx, "db/migration", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) }, "database_dumps/coursePhaseConfig.sql")
 	require.NoError(t, err)
 	defer cleanup()
 

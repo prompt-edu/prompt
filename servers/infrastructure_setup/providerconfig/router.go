@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/prompt-edu/prompt/servers/infrastructure_setup/provider"
 	"github.com/prompt-edu/prompt/servers/infrastructure_setup/providerconfig/providerconfigDTO"
 	log "github.com/sirupsen/logrus"
 )
@@ -151,7 +152,7 @@ func validateProviderConfig(svc *Service) gin.HandlerFunc {
 			// the two apart.
 			log.WithError(err).WithField("providerType", providerType).
 				Warn("provider credential validation failed")
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			c.JSON(http.StatusBadRequest, gin.H{"error": validationFailureMessage(err)})
 			return
 		}
 		c.JSON(http.StatusOK, gin.H{"valid": true})
@@ -201,4 +202,15 @@ func getResourceTypes() gin.HandlerFunc {
 		}
 		c.JSON(http.StatusOK, resourceTypes)
 	}
+}
+
+// validationFailureMessage is the text a lecturer sees for failed credentials.
+//
+// A transport error names the dialled address and the kind of network failure (refused,
+// timed out, unknown host), which would turn this endpoint into a probe for hosts and
+// ports reachable from the server. It is reduced to a generic message; the log keeps
+// the full error. Upstream status errors and configuration errors carry no network
+// detail and stay as they are, since they tell the lecturer what to fix.
+func validationFailureMessage(err error) string {
+	return provider.UserFacingMessage(err)
 }

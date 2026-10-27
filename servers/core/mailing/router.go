@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
+	"github.com/prompt-edu/prompt/servers/core/bodyLimit"
 	"github.com/prompt-edu/prompt/servers/core/mailing/mailingDTO"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 )
@@ -29,7 +30,7 @@ func checkAccessControlByIDWrapper(check permissionValidation.PermissionCheck) f
 func setupMailingRouter(router *gin.RouterGroup, s *MailingService, authMiddleware func() gin.HandlerFunc, permissionRoleMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
 	mailing := router.Group("/mailing", authMiddleware())
 	mailing.PUT("/:coursePhaseID", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer, permissionValidation.CourseLecturer), s.sendStatusMailManualTrigger)
-	mailing.POST("/:coursePhaseID/manual", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer, permissionValidation.CourseLecturer), s.sendManualMailTrigger)
+	mailing.POST("/:coursePhaseID/manual", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer, permissionValidation.CourseLecturer), bodyLimit.WithLimit(bodyLimit.LargeMaxBytes), s.sendManualMailTrigger)
 }
 
 // sendStatusMailManualTrigger godoc
@@ -47,19 +48,19 @@ func setupMailingRouter(router *gin.RouterGroup, s *MailingService, authMiddlewa
 func (s *MailingService) sendStatusMailManualTrigger(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	var mailingInfo mailingDTO.SendStatusMail
 	if err := c.BindJSON(&mailingInfo); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	response, err := s.SendStatusMailManualTrigger(c, coursePhaseID, mailingInfo.StatusMailToBeSend, mailingInfo.RecipientCourseParticipationIDs)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 	c.JSON(http.StatusOK, response)
@@ -80,13 +81,13 @@ func (s *MailingService) sendStatusMailManualTrigger(c *gin.Context) {
 func (s *MailingService) sendManualMailTrigger(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	var request mailingDTO.SendManualMailRequest
 	if err := c.BindJSON(&request); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
@@ -97,18 +98,12 @@ func (s *MailingService) sendManualMailTrigger(c *gin.Context) {
 	)
 	if err != nil {
 		if errors.Is(err, ErrManualMailValidation) {
-			handleError(c, http.StatusBadRequest, err)
+			sdkUtils.HandleError(c, http.StatusBadRequest, err)
 			return
 		}
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
 	c.JSON(http.StatusOK, report)
-}
-
-func handleError(c *gin.Context, statusCode int, err error) {
-	c.JSON(statusCode, sdkUtils.ErrorResponse{
-		Error: err.Error(),
-	})
 }

@@ -1,6 +1,7 @@
 import { ScoreLevel } from '@tumaet/prompt-shared-state'
 import {
   ScoreLevelSelector as BaseScoreLevelSelector,
+  cn,
   getLevelConfig,
   Tooltip,
   TooltipContent,
@@ -154,7 +155,9 @@ export const ScoreLevelSelector = ({
 
   return (
     <BaseScoreLevelSelector
-      className={className}
+      // The shared indicators are raised with `z-10`, which ties with the sticky management
+      // header and wins by DOM order. Isolating keeps them above their own card only.
+      className={cn('isolate', className)}
       selectedScore={selectedScore}
       onScoreChange={onScoreChange}
       completed={completed}

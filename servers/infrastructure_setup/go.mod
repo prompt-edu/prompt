@@ -1,15 +1,16 @@
 module github.com/prompt-edu/prompt/servers/infrastructure_setup
 
-go 1.27.1
+go 1.27.3
 
 require (
-	github.com/getsentry/sentry-go v0.49.0
-	github.com/getsentry/sentry-go/gin v0.49.0
+	github.com/getsentry/sentry-go v0.50.0
+	github.com/getsentry/sentry-go/gin v0.50.0
 	github.com/gin-gonic/gin v1.12.0
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.11.0
-	github.com/prompt-edu/prompt-sdk v1.4.1
+	github.com/prompt-edu/prompt-sdk v1.4.2
 	github.com/sirupsen/logrus v1.10.2
+	github.com/stretchr/testify v1.12.1
 	github.com/swaggo/swag v1.16.6
 )
 
@@ -38,7 +39,7 @@ require (
 	github.com/ebitengine/purego v0.10.1 // indirect
 	github.com/felixge/httpsnoop v1.1.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.15 // indirect
-	github.com/getsentry/sentry-go/logrus v0.49.0 // indirect
+	github.com/getsentry/sentry-go/logrus v0.50.0 // indirect
 	github.com/gin-contrib/sse v1.1.0 // indirect
 	github.com/go-jose/go-jose/v4 v4.1.4 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
@@ -83,7 +84,6 @@ require (
 	github.com/quic-go/qpack v0.6.0 // indirect
 	github.com/quic-go/quic-go v0.59.1 // indirect
 	github.com/shirou/gopsutil/v4 v4.26.6 // indirect
-	github.com/stretchr/testify v1.12.1 // indirect
 	github.com/testcontainers/testcontainers-go v0.44.0 // indirect
 	github.com/tklauser/go-sysconf v0.4.0 // indirect
 	github.com/tklauser/numcpus v0.12.0 // indirect

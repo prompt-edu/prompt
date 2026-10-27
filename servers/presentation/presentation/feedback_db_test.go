@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
+	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -42,7 +44,7 @@ type FeedbackDBTestSuite struct {
 
 func (s *FeedbackDBTestSuite) SetupSuite() {
 	s.ctx = context.Background()
-	testDB, cleanup, err := testutils.SetupTestDB(s.ctx, "../database_dumps/presentation_seed.sql")
+	testDB, cleanup, err := sdkTestUtils.SetupTestDBWithMigrations(s.ctx, "../db/migration", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) }, "../database_dumps/presentation_seed.sql")
 	require.NoError(s.T(), err)
 	s.cleanup = cleanup
 	s.service = NewService(

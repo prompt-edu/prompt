@@ -453,6 +453,21 @@ func (s *ApplicationService) PostApplicationExtern(ctx context.Context, coursePh
 
 	// this means that a student with this email exists
 	if err == nil {
+		// A record tied to a university account must not be reachable through the
+		// external route while the phase offers a university login: a matching first/last
+		// name is not proof of identity, so attaching to it would let an anonymous caller
+		// act in that student's name. Such students apply through the login instead.
+		if studentObj.HasUniversityAccount || studentObj.UniversityLogin != "" {
+			applicationDetails, err := qtx.CheckIfCoursePhaseIsOpenApplicationPhase(ctx, coursePhaseID)
+			if err != nil {
+				log.Error(err)
+				return uuid.Nil, errors.New("could not get the application phase")
+			}
+			if applicationDetails.UniversityLoginAvailable {
+				return uuid.Nil, ErrStudentDetailsDoNotMatch
+			}
+		}
+
 		// check if student details are the same
 		if studentObj.FirstName != application.Student.FirstName || studentObj.LastName != application.Student.LastName {
 			return uuid.Nil, ErrStudentDetailsDoNotMatch

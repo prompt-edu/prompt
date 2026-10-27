@@ -9,6 +9,7 @@ import (
 	"github.com/prompt-edu/prompt-sdk/audit"
 	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt-sdk/promptTypes"
+	"github.com/prompt-edu/prompt/servers/certificate/bodyLimit"
 	"github.com/prompt-edu/prompt/servers/certificate/config/configDTO"
 	log "github.com/sirupsen/logrus"
 )
@@ -23,9 +24,9 @@ func RegisterRoutes(routerGroup *gin.RouterGroup, service *ConfigService, authMi
 	// Students are deliberately absent: the payload carries the full Typst
 	// template. The student page reads its instructor text from /certificate/status.
 	settingsRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.getConfig)
-	settingsRouter.PUT("", audit.Describe("Updated the certificate configuration"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.updateConfig)
+	settingsRouter.PUT("", audit.Describe("Updated the certificate configuration"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), bodyLimit.WithLimit(bodyLimit.LargeMaxBytes), service.updateConfig)
 	settingsRouter.PUT("/release-date", audit.Describe("Updated the certificate release date"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.updateReleaseDate)
-	settingsRouter.PUT("/student-page-text", audit.Describe("Updated the certificate student page text"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.updateStudentPageText)
+	settingsRouter.PUT("/student-page-text", audit.Describe("Updated the certificate student page text"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), bodyLimit.WithLimit(bodyLimit.LargeMaxBytes), service.updateStudentPageText)
 	settingsRouter.GET("/template", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.getTemplate)
 }
 

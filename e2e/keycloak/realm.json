@@ -1057,7 +1057,7 @@
       "attributes": {
         "access.token.lifespan": "60",
         "client.secret.creation.time": "1690570212",
-        "post.logout.redirect.uris": "http://client-core/*+http://localhost:4000/*+http://127.0.0.1:4000/*",
+        "post.logout.redirect.uris": "http://client-core/*##http://localhost:4000/*##http://127.0.0.1:4000/*",
         "oauth2.device.authorization.grant.enabled": "false",
         "backchannel.logout.revoke.offline.tokens": "false",
         "use.refresh.tokens": "true",

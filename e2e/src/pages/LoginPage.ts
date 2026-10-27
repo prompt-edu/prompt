@@ -41,4 +41,27 @@ export class LoginPage {
   async expectLoginFormVisible() {
     await expect(this.page.locator('#kc-login')).toBeVisible()
   }
+
+  // The header's Login button on the public pages, shown only without a session.
+  async clickLoginButton() {
+    await this.page.getByRole('button', { name: 'Login' }).click()
+  }
+
+  // The header's avatar menu. The public pages ask for confirmation in a
+  // dialog first; the management console logs out straight away.
+  async logoutFromUserMenu({ confirm = false } = {}) {
+    await this.page.getByRole('button', { name: 'User menu' }).click()
+    await this.page.getByRole('menuitem', { name: 'Log out' }).click()
+    if (confirm) {
+      await this.page.getByRole('button', { name: 'Logout', exact: true }).click()
+    }
+  }
+
+  // Keycloak ended the session and sent the browser back to the landing page,
+  // instead of the app silently signing the user in again.
+  async expectLoggedOut() {
+    await expect(this.page).toHaveURL(new URL('/', BASE_URL).href)
+    await expect(this.page.getByRole('button', { name: 'Login' })).toBeVisible()
+    expect(await this.page.evaluate(() => localStorage.getItem('jwt_token'))).toBeNull()
+  }
 }

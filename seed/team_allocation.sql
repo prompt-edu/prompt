@@ -69,3 +69,36 @@ INSERT INTO allocations (id, course_participation_id, team_id, course_phase_id, 
            ('3c000004-0000-0000-0000-000000000004', 'cd000002-0000-0000-0000-000000000002', '3a000002-0000-0000-0000-000000000002', 'f0000004-0000-0000-0000-000000000004', 'Selma', 'Second'),
            ('3c000005-0000-0000-0000-000000000005', 'cd000004-0000-0000-0000-000000000004', '3a000002-0000-0000-0000-000000000002', 'f0000004-0000-0000-0000-000000000004', 'Bruno', 'Baumann'),
            ('3c000006-0000-0000-0000-000000000006', 'cd000006-0000-0000-0000-000000000006', '3a000002-0000-0000-0000-000000000002', 'f0000004-0000-0000-0000-000000000004', 'David', 'Doerr');
+
+-- The standalone Team Allocation phase of iPraktikumFull
+-- (b3000004-0000-0000-0000-000000000004) behind the e2e tutor scope spec: two
+-- teams feed the Assessment Tutor Scope phase, and course-editor (login co69edt)
+-- tutors Team Lovelace only. New Test user stays unallocated.
+DELETE FROM team WHERE course_phase_id = 'b3000004-0000-0000-0000-000000000004';
+
+INSERT INTO team (id, name, course_phase_id)
+    VALUES ('3a000003-0000-0000-0000-000000000003', 'Team Lovelace', 'b3000004-0000-0000-0000-000000000004'),
+           ('3a000004-0000-0000-0000-000000000004', 'Team Turing', 'b3000004-0000-0000-0000-000000000004');
+
+INSERT INTO allocations (id, course_participation_id, team_id, course_phase_id, student_first_name, student_last_name)
+    VALUES ('3c000007-0000-0000-0000-000000000007', 'a0000001-0000-0000-0000-000000000001', '3a000003-0000-0000-0000-000000000003', 'b3000004-0000-0000-0000-000000000004', 'Stan', 'Stan'),
+           ('3c000008-0000-0000-0000-000000000008', 'ca000008-0000-4000-8000-000000000008', '3a000003-0000-0000-0000-000000000003', 'b3000004-0000-0000-0000-000000000004', 'Selma', 'Second'),
+           ('3c000009-0000-0000-0000-000000000009', 'a0000002-0000-0000-0000-000000000002', '3a000004-0000-0000-0000-000000000004', 'b3000004-0000-0000-0000-000000000004', 'Niclas', 'Heun'),
+           ('3c00000a-0000-0000-0000-00000000000a', 'a0000004-0000-0000-0000-000000000004', '3a000004-0000-0000-0000-000000000004', 'b3000004-0000-0000-0000-000000000004', 'Test', 'Test');
+
+INSERT INTO tutor (course_phase_id, course_participation_id, first_name, last_name, team_id, university_login)
+    VALUES ('b3000004-0000-0000-0000-000000000004', 'a0000005-0000-0000-0000-000000000005', 'Eduard', 'Eduard', '3a000003-0000-0000-0000-000000000003', 'co69edt');
+
+-- The standalone Team Allocation phase of iPraktikumFull
+-- (b3000005-0000-0000-0000-000000000005) behind the e2e spec for an editor who
+-- tutors no team: its only tutor is Max Mustermann, so course-editor is denied.
+DELETE FROM team WHERE course_phase_id = 'b3000005-0000-0000-0000-000000000005';
+
+INSERT INTO team (id, name, course_phase_id)
+    VALUES ('3a000005-0000-0000-0000-000000000005', 'Team Hopper', 'b3000005-0000-0000-0000-000000000005');
+
+INSERT INTO allocations (id, course_participation_id, team_id, course_phase_id, student_first_name, student_last_name)
+    VALUES ('3c00000b-0000-0000-0000-00000000000b', 'a0000001-0000-0000-0000-000000000001', '3a000005-0000-0000-0000-000000000005', 'b3000005-0000-0000-0000-000000000005', 'Stan', 'Stan');
+
+INSERT INTO tutor (course_phase_id, course_participation_id, first_name, last_name, team_id, university_login)
+    VALUES ('b3000005-0000-0000-0000-000000000005', 'a0000005-0000-0000-0000-000000000005', 'Max', 'Mustermann', '3a000005-0000-0000-0000-000000000005', 'mu12ste');

@@ -43,14 +43,21 @@ import sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 - `sdkUtils.GetCoreUrl() string` — core base URL from `SERVER_CORE_HOST`
 - `sdkUtils.RunMigrations(databaseURL, migrationPath string) error` — startup migrations
 - `sdkUtils.InitSentry(dsn string) error`
+- `sdkUtils.HandleError(c *gin.Context, statusCode int, err error)`: writes the shared
+  `sdkUtils.ErrorResponse` body. It does not log, so log where the error is handled
 
 ## Test helpers (`testutils` subpackage)
 
 Import as `sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"`. Never fork these into a
 service-local `testutils` package.
 
-- `SetupTestDB(ctx, sqlDumpPath, queryFactory)` — testcontainers Postgres seeded from a dump:
-  `sdkTestUtils.SetupTestDB(ctx, "../database_dumps/x.sql", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) })`
+- `SetupTestDBWithMigrations(ctx, migrationsDir, queryFactory, seedPaths...)`: testcontainers
+  Postgres built from the service's real migrations, then loaded with data-only seeds:
+  `sdkTestUtils.SetupTestDBWithMigrations(ctx, "../db/migration", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) }, "../database_dumps/x.sql")`.
+  Seeds in `database_dumps/` hold data only (`INSERT`, or an `UPDATE` that pins a row a migration
+  creates), never DDL.
+- `SetupTestDB(ctx, sqlDumpPath, queryFactory)` loads one file with schema and data. Use it only for
+  tests that apply a migration by hand on top of an older schema (e.g. `timeframe/migration_test.go`).
 - `MockPermissionMiddleware(authRoles ...string) gin.HandlerFunc`, `MockAuthMiddleware(...)`
 
 ## Validation (`utils` subpackage)

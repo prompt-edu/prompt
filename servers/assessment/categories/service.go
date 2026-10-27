@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
@@ -269,4 +270,134 @@ func (s *CategoryService) GetCategoriesWithCompetencies(ctx context.Context, ass
 		return nil, errors.New("could not get categories with competencies")
 	}
 	return categoryDTO.MapToCategoryWithCompetenciesDTO(dbRows), nil
+}
+
+// UpdateSchemaOrder sets the display order of the categories of a schema and of the competencies within them,
+// moving competencies to the category they are listed under. It returns the schema that was written, which
+// differs from the one the categories belong to when the write copied a shared schema for this phase.
+func (s *CategoryService) UpdateSchemaOrder(ctx context.Context, coursePhaseID uuid.UUID, req categoryDTO.UpdateSchemaOrderRequest) (uuid.UUID, error) {
+	if len(req.Categories) == 0 {
+		return uuid.Nil, ErrIncompleteSchemaOrder
+	}
+
+	// Like the other category writes, take the schema from the entity rather than the client: after a
+	// copy-on-write the client may still hold the ID of the schema that was copied.
+	firstCategory, err := s.queries.GetCategory(ctx, req.Categories[0].ID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return uuid.Nil, ErrIncompleteSchemaOrder
+		}
+		return uuid.Nil, fmt.Errorf("failed to get category %s: %w", req.Categories[0].ID, err)
+	}
+	schemaID := firstCategory.AssessmentSchemaID
+
+	if err := s.ensureSchemaAccessible(ctx, coursePhaseID, schemaID); err != nil {
+		return uuid.Nil, err
+	}
+
+	current, err := s.GetCategoriesWithCompetencies(ctx, schemaID)
+	if err != nil {
+		return uuid.Nil, err
+	}
+	if err := validateSchemaOrder(current, req.Categories); err != nil {
+		return uuid.Nil, err
+	}
+
+	result, err := s.schemaModification.GetOrCopySchemaForWrite(ctx, schemaID, uuid.Nil, coursePhaseID)
+	if err != nil {
+		return uuid.Nil, err
+	}
+
+	order := req.Categories
+	if result.TargetSchemaID != schemaID {
+		order, err = s.mapSchemaOrderToCopy(ctx, req.Categories, result.TargetSchemaID)
+		if err != nil {
+			return uuid.Nil, err
+		}
+	}
+
+	categoryIDs := make([]uuid.UUID, 0, len(order))
+	var competencyIDs, competencyCategoryIDs []uuid.UUID
+	var competencySortOrders []int32
+	for _, category := range order {
+		categoryIDs = append(categoryIDs, category.ID)
+		for index, competencyID := range category.CompetencyIDs {
+			competencyIDs = append(competencyIDs, competencyID)
+			competencyCategoryIDs = append(competencyCategoryIDs, category.ID)
+			competencySortOrders = append(competencySortOrders, int32(index))
+		}
+	}
+
+	tx, err := s.conn.Begin(ctx)
+	if err != nil {
+		return uuid.Nil, fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer promptSDK.DeferDBRollback(tx, ctx)
+
+	qtx := s.queries.WithTx(tx)
+
+	// A row count below the order's size means an entry was deleted or moved concurrently
+	updatedCategories, err := qtx.UpdateCategorySortOrders(ctx, db.UpdateCategorySortOrdersParams{
+		AssessmentSchemaID: result.TargetSchemaID,
+		CategoryIds:        categoryIDs,
+	})
+	if err != nil {
+		return uuid.Nil, fmt.Errorf("failed to update category order: %w", err)
+	}
+	if updatedCategories != int64(len(categoryIDs)) {
+		return uuid.Nil, ErrIncompleteSchemaOrder
+	}
+
+	updatedCompetencies, err := qtx.UpdateCompetencyPlacements(ctx, db.UpdateCompetencyPlacementsParams{
+		AssessmentSchemaID: result.TargetSchemaID,
+		CompetencyIds:      competencyIDs,
+		CategoryIds:        competencyCategoryIDs,
+		SortOrders:         competencySortOrders,
+	})
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" && pgErr.ConstraintName == "competency_category_id_name_unique" {
+			return uuid.Nil, ErrDuplicateCompetencyName
+		}
+		return uuid.Nil, fmt.Errorf("failed to update competency order: %w", err)
+	}
+	if updatedCompetencies != int64(len(competencyIDs)) {
+		return uuid.Nil, ErrIncompleteSchemaOrder
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return uuid.Nil, fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	return result.TargetSchemaID, nil
+}
+
+// mapSchemaOrderToCopy translates an order given in the IDs of a schema into the IDs of its copy.
+func (s *CategoryService) mapSchemaOrderToCopy(ctx context.Context, order []categoryDTO.CategoryOrder, copySchemaID uuid.UUID) ([]categoryDTO.CategoryOrder, error) {
+	mapped := make([]categoryDTO.CategoryOrder, 0, len(order))
+	for _, category := range order {
+		categoryID, err := s.queries.GetCorrespondingCategoryInNewSchema(ctx, db.GetCorrespondingCategoryInNewSchemaParams{
+			OldCategoryID: category.ID,
+			NewSchemaID:   copySchemaID,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to find category %s in copied schema: %w", category.ID, err)
+		}
+
+		competencyIDs := make([]uuid.UUID, 0, len(category.CompetencyIDs))
+		for _, competencyID := range category.CompetencyIDs {
+			competency, err := s.queries.GetCorrespondingCompetencyInNewSchema(ctx, db.GetCorrespondingCompetencyInNewSchemaParams{
+				OldCompetencyID: competencyID,
+				NewSchemaID:     copySchemaID,
+			})
+			if err != nil {
+				return nil, fmt.Errorf("failed to find competency %s in copied schema: %w", competencyID, err)
+			}
+			competencyIDs = append(competencyIDs, competency.CompetencyID)
+		}
+
+		mapped = append(mapped, categoryDTO.CategoryOrder{ID: categoryID, CompetencyIDs: competencyIDs})
+	}
+
+	return mapped, nil
 }

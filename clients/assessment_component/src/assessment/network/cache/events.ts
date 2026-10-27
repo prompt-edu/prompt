@@ -31,6 +31,10 @@ export const assessmentCache = {
   schemaChanged: (queryClient: QueryClient, phaseId: Id): void =>
     invalidate(queryClient, [...categoryKeys(phaseId), assessmentKeys.assessments.all()]),
 
+  // Only the order changed, so the assessments that reference the competencies stay valid
+  schemaOrderChanged: (queryClient: QueryClient, phaseId: Id): void =>
+    invalidate(queryClient, categoryKeys(phaseId)),
+
   schemaListChanged: (queryClient: QueryClient, phaseId: Id): void =>
     invalidate(queryClient, [assessmentKeys.assessmentSchemas.inPhase(phaseId)]),
 
@@ -39,6 +43,9 @@ export const assessmentCache = {
 
   resultsReleaseChanged: (queryClient: QueryClient, phaseId: Id): void =>
     invalidate(queryClient, [assessmentKeys.coursePhaseConfig(phaseId)]),
+
+  evaluationReminderSent: (queryClient: QueryClient, phaseId: Id): void =>
+    invalidate(queryClient, [assessmentKeys.evaluationReminderStatus(phaseId)]),
 
   assessmentWritten: (queryClient: QueryClient, phaseId: Id): void =>
     invalidate(queryClient, [assessmentKeys.assessments.inPhase(phaseId)]),

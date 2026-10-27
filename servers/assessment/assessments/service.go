@@ -21,6 +21,7 @@ import (
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/assessment/evaluations"
 	"github.com/prompt-edu/prompt/servers/assessment/evaluations/evaluationDTO"
+	"github.com/prompt-edu/prompt/servers/assessment/teamScope"
 	"github.com/prompt-edu/prompt/servers/assessment/utils"
 	log "github.com/sirupsen/logrus"
 )
@@ -125,6 +126,7 @@ func (s *AssessmentService) saveScore(ctx context.Context, req assessmentDTO.Cre
 
 	tx, err := s.conn.Begin(ctx)
 	if err != nil {
+		log.Error("could not begin assessment creation/update transaction: ", err)
 		return err
 	}
 	defer promptSDK.DeferDBRollback(tx, ctx)
@@ -451,6 +453,7 @@ func (s *AssessmentService) GetStudentAssessmentResults(ctx context.Context, cou
 func (s *AssessmentService) DeleteAssessment(ctx context.Context, id, coursePhaseID uuid.UUID) error {
 	tx, err := s.conn.Begin(ctx)
 	if err != nil {
+		log.Error("could not begin assessment deletion transaction: ", err)
 		return err
 	}
 	defer promptSDK.DeferDBRollback(tx, ctx)
@@ -489,9 +492,10 @@ func (s *AssessmentService) DeleteAssessment(ctx context.Context, id, coursePhas
 	return nil
 }
 
-func (s *AssessmentService) DeleteOwnIndependentAssessment(ctx context.Context, id, coursePhaseID uuid.UUID, authorID string) error {
+func (s *AssessmentService) DeleteOwnIndependentAssessment(ctx context.Context, id, coursePhaseID uuid.UUID, authorID string, scope teamScope.Scope) error {
 	tx, err := s.conn.Begin(ctx)
 	if err != nil {
+		log.Error("could not begin independent assessment deletion transaction: ", err)
 		return err
 	}
 	defer promptSDK.DeferDBRollback(tx, ctx)
@@ -509,6 +513,9 @@ func (s *AssessmentService) DeleteOwnIndependentAssessment(ctx context.Context, 
 	if err != nil {
 		log.Error("could not delete independent assessment: ", err)
 		return errors.New("could not delete independent assessment")
+	}
+	if !scope.Allows(courseParticipationID) {
+		return teamScope.ErrOutsideScope
 	}
 
 	err = s.assessmentCompletion.CheckAssessmentIsEditable(ctx, qtx, courseParticipationID, coursePhaseID)

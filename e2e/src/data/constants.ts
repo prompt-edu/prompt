@@ -127,6 +127,23 @@ export const ASSESSMENT_FIXTURE_PHASES = {
   print: 'd0000009-0000-0000-0000-000000000009',
   gradeExport: 'd0000012-0000-0000-0000-000000000012',
   evaluationOnly: 'd0000013-0000-0000-0000-000000000013',
+  tutorScope: 'd0000018-0000-0000-0000-000000000018',
+  otherTutor: 'd0000019-0000-0000-0000-000000000019',
+}
+
+// Participants of ASSESSMENT_FIXTURE_PHASES.tutorScope. Its teams come from the
+// standalone Team Allocation phase b3000004, where course-editor tutors Team
+// Lovelace only and New Test user is unallocated.
+export const TUTOR_SCOPE_PARTICIPANTS = {
+  ownTeam: [
+    { name: 'Stan Stan', courseParticipationId: 'a0000001-0000-0000-0000-000000000001' },
+    { name: 'Selma Second', courseParticipationId: 'ca000008-0000-4000-8000-000000000008' },
+  ],
+  hidden: [
+    { name: 'Niclas Heun', courseParticipationId: 'a0000002-0000-0000-0000-000000000002' },
+    { name: 'Test Test', courseParticipationId: 'a0000004-0000-0000-0000-000000000004' },
+    { name: 'New Test user', courseParticipationId: 'a0000006-0000-0000-0000-000000000006' },
+  ],
 }
 
 // Assessment phase on TestCourse with NO participants: requests by the e2e

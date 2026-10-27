@@ -130,7 +130,7 @@ export class InterviewPage {
   }
 
   async backToParticipants() {
-    await this.page.getByRole('button', { name: 'Back', exact: true }).click()
+    await this.breadcrumb().getByText('Participants', { exact: true }).click()
   }
 
   breadcrumb(): Locator {

@@ -24,6 +24,7 @@ export const coreKeys = {
     // The archive dialog caches the same phase under its own literal, so it shares neither the
     // entry above nor its invalidations
     byIdInArchiveDialog: (phaseId: Id) => ['coursePhase', phaseId] as const,
+    participations: (phaseId: Id) => ['course_phase_participations', phaseId] as const,
     types: () => ['course_phase_types'] as const,
     typesForScope: (scope: 'self' | 'all') => ['coursePhaseType', scope] as const,
   },
@@ -81,6 +82,12 @@ export const coreKeys = {
     },
   },
 
+  announcements: {
+    all: () => ['announcements'] as const,
+    active: () => ['announcements', 'active'] as const,
+    list: (includeExpired: boolean) => ['announcements', 'list', includeExpired] as const,
+  },
+
   instructorNotes: {
     ofStudent: (studentId: Id) => ['instructorNotes', studentId] as const,
     tags: () => ['noteTags'] as const,
@@ -108,11 +115,24 @@ export const coreKeys = {
     },
   },
 
+  profilePictures: {
+    // Not a child of `lookedUp`: the own picture is read from its own endpoint
+    own: () => ['ownProfilePicture'] as const,
+    // Owned by @tumaet/prompt-ui-components (`profilePictureQueryKeys.all`), which caches every
+    // looked-up picture below it: react-query is a Module Federation singleton, so this entry is
+    // shared with every remote and must keep its literal
+    lookedUp: () => ['profilePicture'] as const,
+  },
+
   serviceInfo: {
     core: () => ['serviceInfo-core'] as const,
     // The id sits inside the literal rather than in a second element, so these are not one prefix
     // family and `serviceInfo.core` is not their parent
     ofService: (serviceId: string) => [`serviceInfo-${serviceId}`] as const,
+  },
+
+  clientInfo: {
+    ofRemote: (remoteName: string) => ['clientInfo', remoteName] as const,
   },
 
   auditLog: {

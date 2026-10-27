@@ -8,9 +8,11 @@ import (
 	"github.com/google/uuid"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
+	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	"github.com/prompt-edu/prompt/servers/assessment/evaluations/evaluationCompletion"
 	"github.com/prompt-edu/prompt/servers/assessment/evaluations/feedbackItem/feedbackItemDTO"
+	"github.com/prompt-edu/prompt/servers/assessment/teamScope"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -23,7 +25,7 @@ func RegisterRoutes(routerGroup *gin.RouterGroup, service *FeedbackItemService, 
 	feedbackItemRouter := routerGroup.Group("/evaluation/feedback-items")
 
 	feedbackItemRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.listFeedbackItemsForCoursePhase)
-	feedbackItemRouter.GET("/course-participation/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.getFeedbackItemsForParticipantInPhase)
+	feedbackItemRouter.GET("/course-participation/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), teamScope.RequireParticipant(), service.getFeedbackItemsForParticipantInPhase)
 	feedbackItemRouter.GET("/tutor/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.getFeedbackItemsForTutorInPhase)
 
 	// Student endpoints - access to own feedback items only
@@ -46,12 +48,12 @@ func RegisterRoutes(routerGroup *gin.RouterGroup, service *FeedbackItemService, 
 func (s *FeedbackItemService) listFeedbackItemsForCoursePhase(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 	feedbackItems, err := s.ListFeedbackItemsForCoursePhase(c, coursePhaseID)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 	c.JSON(http.StatusOK, feedbackItems)
@@ -71,18 +73,18 @@ func (s *FeedbackItemService) listFeedbackItemsForCoursePhase(c *gin.Context) {
 func (s *FeedbackItemService) getFeedbackItemsForParticipantInPhase(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 	courseParticipationID, err := uuid.Parse(c.Param("courseParticipationID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	feedbackItems, err := s.ListFeedbackItemsForParticipantInPhase(c, courseParticipationID, coursePhaseID)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 	c.JSON(http.StatusOK, feedbackItems)
@@ -102,18 +104,18 @@ func (s *FeedbackItemService) getFeedbackItemsForParticipantInPhase(c *gin.Conte
 func (s *FeedbackItemService) getFeedbackItemsForTutorInPhase(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 	courseParticipationID, err := uuid.Parse(c.Param("courseParticipationID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	feedbackItems, err := s.ListFeedbackItemsForTutorInPhase(c, courseParticipationID, coursePhaseID)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 	c.JSON(http.StatusOK, feedbackItems)
@@ -133,19 +135,19 @@ func (s *FeedbackItemService) getMyFeedbackItems(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.Error("Error parsing coursePhaseID: ", err)
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	courseParticipationID, err := keycloakTokenVerifier.GetUserCourseParticipationID(c)
 	if err != nil {
-		handleError(c, keycloakTokenVerifier.GetUserCourseParticipationIDErrorStatus(err), err)
+		sdkUtils.HandleError(c, keycloakTokenVerifier.GetUserCourseParticipationIDErrorStatus(err), err)
 		return
 	}
 
 	feedbackItems, err := s.ListFeedbackItemsByAuthorInPhase(c, courseParticipationID, coursePhaseID)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 	c.JSON(http.StatusOK, feedbackItems)
@@ -169,19 +171,19 @@ func (s *FeedbackItemService) createFeedbackItem(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.Error("Error parsing coursePhaseID: ", err)
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	var req feedbackItemDTO.CreateFeedbackItemRequest
 	if err := c.BindJSON(&req); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	courseParticipationID, err := keycloakTokenVerifier.GetUserCourseParticipationID(c)
 	if err != nil {
-		handleError(c, keycloakTokenVerifier.GetUserCourseParticipationIDErrorStatus(err), err)
+		sdkUtils.HandleError(c, keycloakTokenVerifier.GetUserCourseParticipationIDErrorStatus(err), err)
 		return
 	}
 
@@ -195,7 +197,7 @@ func (s *FeedbackItemService) createFeedbackItem(c *gin.Context) {
 
 	err = s.CreateFeedbackItem(c, c.GetHeader("Authorization"), req)
 	if err != nil {
-		handleError(c, feedbackItemErrorStatus(err), err)
+		sdkUtils.HandleError(c, feedbackItemErrorStatus(err), err)
 		return
 	}
 	c.JSON(http.StatusCreated, gin.H{"message": "Feedback item created successfully"})
@@ -221,32 +223,32 @@ func (s *FeedbackItemService) updateFeedbackItem(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.Error("Error parsing coursePhaseID: ", err)
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	feedbackItemID, err := uuid.Parse(c.Param("feedbackItemID"))
 	if err != nil {
 		log.Error("Error parsing feedbackItemID: ", err)
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	var req feedbackItemDTO.UpdateFeedbackItemRequest
 	if err := c.BindJSON(&req); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	courseParticipationID, err := keycloakTokenVerifier.GetUserCourseParticipationID(c)
 	if err != nil {
-		handleError(c, keycloakTokenVerifier.GetUserCourseParticipationIDErrorStatus(err), err)
+		sdkUtils.HandleError(c, keycloakTokenVerifier.GetUserCourseParticipationIDErrorStatus(err), err)
 		return
 	}
 
 	err = s.UpdateFeedbackItem(c, c.GetHeader("Authorization"), feedbackItemID, coursePhaseID, courseParticipationID, req)
 	if err != nil {
-		handleError(c, feedbackItemErrorStatus(err), err)
+		sdkUtils.HandleError(c, feedbackItemErrorStatus(err), err)
 		return
 	}
 	c.JSON(http.StatusCreated, gin.H{"message": "Feedback item updated successfully"})
@@ -261,29 +263,34 @@ func (s *FeedbackItemService) updateFeedbackItem(c *gin.Context) {
 // @Success 200 {string} string "OK"
 // @Failure 400 {object} map[string]string
 // @Failure 403 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Failure 409 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/evaluation/feedback-items/{feedbackItemID} [delete]
 func (s *FeedbackItemService) deleteFeedbackItem(c *gin.Context) {
+	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
+	if err != nil {
+		log.Error("Error parsing coursePhaseID: ", err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
+		return
+	}
+
 	feedbackItemID, err := uuid.Parse(c.Param("feedbackItemID"))
 	if err != nil {
 		log.Error("Error parsing feedbackItemID: ", err)
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	courseParticipationID, err := keycloakTokenVerifier.GetUserCourseParticipationID(c)
 	if err != nil {
-		handleError(c, keycloakTokenVerifier.GetUserCourseParticipationIDErrorStatus(err), err)
-		return
-	}
-	if !s.IsFeedbackItemAuthor(c, feedbackItemID, courseParticipationID) {
-		c.JSON(http.StatusForbidden, gin.H{"error": "You do not have permission to delete this feedback item"})
+		sdkUtils.HandleError(c, keycloakTokenVerifier.GetUserCourseParticipationIDErrorStatus(err), err)
 		return
 	}
 
-	err = s.DeleteFeedbackItem(c, feedbackItemID)
+	err = s.DeleteFeedbackItem(c, c.GetHeader("Authorization"), feedbackItemID, coursePhaseID, courseParticipationID)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, feedbackItemErrorStatus(err), err)
 		return
 	}
 	c.Status(http.StatusOK)
@@ -304,9 +311,4 @@ func feedbackItemErrorStatus(err error) int {
 	default:
 		return http.StatusInternalServerError
 	}
-}
-
-func handleError(c *gin.Context, statusCode int, err error) {
-	log.Error(err)
-	c.JSON(statusCode, gin.H{"error": err.Error()})
 }

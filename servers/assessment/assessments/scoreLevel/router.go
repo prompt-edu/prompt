@@ -6,8 +6,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
+	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/scoreLevel/scoreLevelDTO"
-	log "github.com/sirupsen/logrus"
+	"github.com/prompt-edu/prompt/servers/assessment/teamScope"
 )
 
 var _ = scoreLevelDTO.ScoreLevelWithParticipation{}
@@ -20,8 +21,8 @@ var _ = scoreLevelDTO.ScoreLevelWithParticipation{}
 func RegisterRoutes(routerGroup *gin.RouterGroup, service *ScoreLevelService, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
 	scoreLevelRouter := routerGroup.Group("/student-assessment/scoreLevel")
 
-	scoreLevelRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.getAllScoreLevels)
-	scoreLevelRouter.GET("/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.getScoreLevelByCourseParticipationID)
+	scoreLevelRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), teamScope.Resolve(), service.getAllScoreLevels)
+	scoreLevelRouter.GET("/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), teamScope.RequireParticipant(), service.getScoreLevelByCourseParticipationID)
 }
 
 // getAllScoreLevels godoc
@@ -37,17 +38,20 @@ func RegisterRoutes(routerGroup *gin.RouterGroup, service *ScoreLevelService, au
 func (s *ScoreLevelService) getAllScoreLevels(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	scoreLevels, err := s.GetAllScoreLevels(c, coursePhaseID)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
-	c.JSON(http.StatusOK, scoreLevels)
+	c.JSON(http.StatusOK, teamScope.Filter(c, scoreLevels, func(s scoreLevelDTO.ScoreLevelWithParticipation) uuid.UUID {
+		courseParticipationID, _ := uuid.Parse(s.CourseParticipationID)
+		return courseParticipationID
+	}))
 }
 
 // getScoreLevelByCourseParticipationID godoc
@@ -64,26 +68,21 @@ func (s *ScoreLevelService) getAllScoreLevels(c *gin.Context) {
 func (s *ScoreLevelService) getScoreLevelByCourseParticipationID(c *gin.Context) {
 	courseParticipationID, err := uuid.Parse(c.Param("courseParticipationID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	scoreLevel, err := s.GetScoreLevelByCourseParticipationID(c, courseParticipationID, coursePhaseID)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
 	c.JSON(http.StatusOK, scoreLevel)
-}
-
-func handleError(c *gin.Context, statusCode int, err error) {
-	log.Error(err)
-	c.JSON(statusCode, gin.H{"error": err.Error()})
 }

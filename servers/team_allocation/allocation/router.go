@@ -11,6 +11,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	"github.com/prompt-edu/prompt-sdk/tutorscope"
+	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/team_allocation/allocation/allocationDTO"
 	log "github.com/sirupsen/logrus"
 )
@@ -42,13 +43,13 @@ func RegisterRoutes(routerGroup *gin.RouterGroup, service *AllocationService, au
 func (s *AllocationService) getAllAllocations(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	allocations, err := s.GetAllAllocations(c, coursePhaseID)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -76,22 +77,22 @@ func (s *AllocationService) getAllAllocations(c *gin.Context) {
 func (s *AllocationService) getAllocationByCourseParticipationID(c *gin.Context) {
 	courseParticipationID, err := uuid.Parse(c.Param("courseParticipationID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	teamID, err := s.GetAllocationByCourseParticipationID(c, courseParticipationID, coursePhaseID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			handleError(c, http.StatusNotFound, err)
+			sdkUtils.HandleError(c, http.StatusNotFound, err)
 		} else {
-			handleError(c, http.StatusInternalServerError, err)
+			sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		}
 		return
 	}
@@ -143,7 +144,7 @@ func (s *AllocationService) updateAllocation(c *gin.Context) {
 		return
 	}
 	if request.TeamID == uuid.Nil {
-		handleError(c, http.StatusBadRequest, errors.New("teamID is required"))
+		sdkUtils.HandleError(c, http.StatusBadRequest, errors.New("teamID is required"))
 		return
 	}
 
@@ -163,11 +164,11 @@ func (s *AllocationService) updateAllocation(c *gin.Context) {
 	case errors.Is(err, tutorscope.ErrWriteDenied):
 		denyAllocationWrite(c)
 	case errors.Is(err, ErrParticipantNotInPhase), errors.Is(err, ErrInvalidTeamForPhase):
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 	case errors.Is(err, ErrParticipantLookup):
-		handleError(c, http.StatusBadGateway, err)
+		sdkUtils.HandleError(c, http.StatusBadGateway, err)
 	default:
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 	}
 }
 
@@ -206,22 +207,22 @@ func (s *AllocationService) deleteAllocation(c *gin.Context) {
 			denyAllocationWrite(c)
 			return
 		}
-		handleError(c, http.StatusNotFound, err)
+		sdkUtils.HandleError(c, http.StatusNotFound, err)
 	default:
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 	}
 }
 
 func parseAllocationParams(c *gin.Context) (coursePhaseID, courseParticipationID uuid.UUID, ok bool) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil || coursePhaseID == uuid.Nil {
-		handleError(c, http.StatusBadRequest, errors.New("invalid course phase id"))
+		sdkUtils.HandleError(c, http.StatusBadRequest, errors.New("invalid course phase id"))
 		return uuid.Nil, uuid.Nil, false
 	}
 
 	courseParticipationID, err = uuid.Parse(c.Param("courseParticipationID"))
 	if err != nil || courseParticipationID == uuid.Nil {
-		handleError(c, http.StatusBadRequest, errors.New("invalid course participation id"))
+		sdkUtils.HandleError(c, http.StatusBadRequest, errors.New("invalid course participation id"))
 		return uuid.Nil, uuid.Nil, false
 	}
 
@@ -235,11 +236,12 @@ func authorizeWrite(c *gin.Context) (tutorscope.Access, bool) {
 	case err == nil:
 		return access, true
 	case errors.Is(err, tutorscope.ErrNotAuthenticated):
-		handleError(c, http.StatusUnauthorized, err)
+		sdkUtils.HandleError(c, http.StatusUnauthorized, err)
 	case errors.Is(err, tutorscope.ErrWriteDenied):
 		denyAllocationWrite(c)
 	default:
-		handleError(c, http.StatusInternalServerError, err)
+		log.Error("could not authorize the allocation write: ", err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 	}
 	return tutorscope.Access{}, false
 }
@@ -263,20 +265,15 @@ func bindAllocationJSON(c *gin.Context, target any) bool {
 	if err := c.ShouldBindJSON(target); err != nil {
 		var maxBytesErr *http.MaxBytesError
 		if errors.As(err, &maxBytesErr) {
-			handleError(c, http.StatusRequestEntityTooLarge, fmt.Errorf("request body exceeds %d bytes", maxAllocationBodyBytes))
+			sdkUtils.HandleError(c, http.StatusRequestEntityTooLarge, fmt.Errorf("request body exceeds %d bytes", maxAllocationBodyBytes))
 			return false
 		}
 		if errors.Is(err, io.EOF) {
-			handleError(c, http.StatusBadRequest, errors.New("request body is required"))
+			sdkUtils.HandleError(c, http.StatusBadRequest, errors.New("request body is required"))
 			return false
 		}
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return false
 	}
 	return true
-}
-
-func handleError(c *gin.Context, statusCode int, err error) {
-	log.Error(err)
-	c.JSON(statusCode, gin.H{"error": err.Error()})
 }

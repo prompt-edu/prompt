@@ -41,8 +41,6 @@ export const PrintReport = ({
   className,
   children,
 }: PrintReportProps) => {
-  const sortedCategories = [...categories].sort((a, b) => a.name.localeCompare(b.name))
-
   return (
     <section className={cn('print-report hidden text-black print:block', className)}>
       <header className='mb-6 break-inside-avoid border-b border-gray-300 pb-4'>
@@ -53,15 +51,12 @@ export const PrintReport = ({
         )}
       </header>
 
-      {sortedCategories.map((category) => {
+      {categories.map((category) => {
         const categoryScores = scores.filter((score) =>
           category.competencies.some((competency) => competency.id === score.competencyID),
         )
         const categoryScore = getWeightedScoreLevel(categoryScores, [category])
         const comment = categoryComments?.[category.id]
-        const sortedCompetencies = [...category.competencies].sort((a, b) =>
-          a.name.localeCompare(b.name),
-        )
 
         return (
           <section key={category.id} className='mb-6'>
@@ -77,7 +72,7 @@ export const PrintReport = ({
             )}
 
             <div className='space-y-3'>
-              {sortedCompetencies.map((competency) => {
+              {category.competencies.map((competency) => {
                 const competencyScores = categoryScores.filter(
                   (score) => score.competencyID === competency.id,
                 )

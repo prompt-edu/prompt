@@ -9,6 +9,7 @@ import (
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/actionItem/actionItemDTO"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig/coursePhaseConfigDTO"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/assessment/teamScope"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -110,10 +111,13 @@ func (s *ActionItemService) UpdateActionItem(ctx context.Context, coursePhaseID 
 	return nil
 }
 
-func (s *ActionItemService) DeleteActionItem(ctx context.Context, coursePhaseID, actionItemID uuid.UUID) error {
+func (s *ActionItemService) DeleteActionItem(ctx context.Context, coursePhaseID, actionItemID uuid.UUID, scope teamScope.Scope) error {
 	actionItem, err := s.GetActionItem(ctx, coursePhaseID, actionItemID)
 	if err != nil {
 		return err
+	}
+	if !scope.Allows(actionItem.CourseParticipationID) {
+		return teamScope.ErrOutsideScope
 	}
 
 	err = s.assessmentCompletion.CheckAssessmentIsEditable(ctx, &s.queries, actionItem.CourseParticipationID, coursePhaseID)

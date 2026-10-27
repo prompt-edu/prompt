@@ -85,7 +85,7 @@ var (
 
 func TestDeleteCourseChecksForPhasesAddedDuringTheModuleCleanup(t *testing.T) {
 	ctx := context.Background()
-	testDB, cleanup, err := sdkTestUtils.SetupTestDB(ctx, "../database_dumps/course_test.sql", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) })
+	testDB, cleanup, err := sdkTestUtils.SetupTestDBWithMigrations(ctx, "../db/migration", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) }, "../database_dumps/course_test.sql")
 	require.NoError(t, err)
 	defer cleanup()
 

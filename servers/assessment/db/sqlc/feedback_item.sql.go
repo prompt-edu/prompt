@@ -45,15 +45,26 @@ func (q *Queries) CreateFeedbackItem(ctx context.Context, arg CreateFeedbackItem
 	return err
 }
 
-const deleteFeedbackItem = `-- name: DeleteFeedbackItem :exec
+const deleteFeedbackItem = `-- name: DeleteFeedbackItem :execrows
 DELETE
 FROM feedback_items
 WHERE id = $1
+  AND course_phase_id = $2
+  AND author_course_participation_id = $3
 `
 
-func (q *Queries) DeleteFeedbackItem(ctx context.Context, id uuid.UUID) error {
-	_, err := q.db.Exec(ctx, deleteFeedbackItem, id)
-	return err
+type DeleteFeedbackItemParams struct {
+	ID                          uuid.UUID `json:"id"`
+	CoursePhaseID               uuid.UUID `json:"course_phase_id"`
+	AuthorCourseParticipationID uuid.UUID `json:"author_course_participation_id"`
+}
+
+func (q *Queries) DeleteFeedbackItem(ctx context.Context, arg DeleteFeedbackItemParams) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteFeedbackItem, arg.ID, arg.CoursePhaseID, arg.AuthorCourseParticipationID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const getFeedbackItem = `-- name: GetFeedbackItem :one

@@ -37,7 +37,6 @@ servers/infrastructure_setup/
 │   │   └── 0006_instance_members.up.sql   # who each run was for, and who got in
 │   ├── query/                         # sqlc sources
 │   └── sqlc/                          # generated, committed
-├── database_dumps/base.sql            # schema for testcontainers-based tests
 ├── encryption/aes.go                  # AES-256-GCM credential encryption
 ├── provider/
 │   ├── interface.go                   # Provider interface and shared types
@@ -99,6 +98,25 @@ where a collection is adopted only if PROMPT created it (collections share one f
 namespace), and Slack, which cannot see every channel that holds a name (see
 [Slack adoption](#slack-adoption)). Because PROMPT can rarely prove ownership, it never deletes a
 resource (see [Delete semantics](#delete-semantics)).
+
+### Provider URLs
+
+`base_url`, `rancher_url` and `keycloak_url` are lecturer input that the service sends requests
+to, so they are treated as untrusted:
+
+- On save they must be absolute `https` URLs with a host and without credentials, a query or a
+  fragment (providers append API paths to the raw string). A literal internal address or a
+  `localhost` name is rejected.
+- The provider HTTP client checks the address every connection uses, after DNS resolution, and
+  refuses loopback, private, link-local (including the `169.254.169.254` metadata endpoint),
+  unspecified, multicast and carrier-grade NAT ranges. This also covers hostnames that resolve
+  internally, DNS changes after saving and every redirect hop. Redirects are re-validated and
+  capped at five, and `HTTP(S)_PROXY` is ignored.
+- The validate endpoint reports transport failures generically, so it cannot be used to probe
+  which internal hosts or ports answer. The log keeps the full error.
+
+A provider that really runs on an internal network is allowlisted with
+`INFRASTRUCTURE_SETUP_ALLOWED_PRIVATE_HOSTS`; an allowlisted host may also use plain `http`.
 
 ### Slack adoption
 
@@ -624,6 +642,7 @@ The SDK-registered routes below are not phase-scoped and protect themselves:
 | Variable | Required | Description |
 |---|---|---|
 | `ENCRYPTION_KEY` | Yes | Base64-encoded 32-byte AES key. Validated at startup. |
+| `INFRASTRUCTURE_SETUP_ALLOWED_PRIVATE_HOSTS` | No | Comma-separated hostnames, IPs or CIDR ranges of providers on an internal network. See [Provider URLs](#provider-urls). Empty by default. |
 | `DB_INFRASTRUCTURE_SETUP_HOST` / `DB_HOST_INFRASTRUCTURE_SETUP` | Yes | PostgreSQL host (the compose file maps the first onto the second) |
 | `DB_PORT_INFRASTRUCTURE_SETUP` | Yes | PostgreSQL port (5441 on the host in local dev) |
 | `DB_NAME`, `DB_USER`, `DB_PASSWORD` | Yes | Database credentials |
@@ -643,8 +662,8 @@ The SDK-registered routes below are not phase-scoped and protect themselves:
 make test-infrastructure-setup
 ```
 
-DB-backed tests use `testcontainers-go` with `database_dumps/base.sql`, which must be kept in step
-with the migrations.
+DB-backed tests use `testcontainers-go` and build their schema from `db/migration`, so the tests
+always run against the production schema.
 
 - **encryption** — round-trip, wrong key, nonce uniqueness, corrupted ciphertext.
 - **execution/template** — every placeholder and alias, sanitization, and rejection of unknown

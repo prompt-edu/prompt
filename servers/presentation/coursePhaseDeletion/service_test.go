@@ -10,6 +10,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
+	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
+	db "github.com/prompt-edu/prompt/servers/presentation/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/presentation/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -53,7 +55,7 @@ type CoursePhaseDeletionServiceTestSuite struct {
 
 func (suite *CoursePhaseDeletionServiceTestSuite) SetupTest() {
 	suite.suiteCtx = context.Background()
-	testDB, cleanup, err := testutils.SetupTestDB(suite.suiteCtx, "../database_dumps/coursePhaseDeletion.sql")
+	testDB, cleanup, err := sdkTestUtils.SetupTestDBWithMigrations(suite.suiteCtx, "../db/migration", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) }, "../database_dumps/coursePhaseDeletion.sql")
 	suite.Require().NoError(err, "Failed to set up test database")
 	suite.cleanup = cleanup
 	suite.conn = testDB.Conn

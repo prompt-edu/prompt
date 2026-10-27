@@ -12,6 +12,7 @@ import {
   SEEDED_COURSES,
   SELF_TEAM_ALLOCATION_PHASE_ID,
   FULL_COURSE_PHASES,
+  SEEDED_STUDENT,
 } from './constants'
 
 // The five task roles (student2 is an extra journey user, not part of the matrix).
@@ -73,6 +74,18 @@ export const SURFACES: Surface[] = [
     },
     api: {
       path: () => '/api/students/',
+      allowed: ['admin', 'lecturer'],
+    },
+  },
+  {
+    name: 'student detail',
+    browser: {
+      path: () => `/management/students/${SEEDED_STUDENT.id}`,
+      heading: `${SEEDED_STUDENT.firstName} ${SEEDED_STUDENT.lastName}`,
+      allowed: ['admin', 'lecturer'],
+    },
+    api: {
+      path: () => `/api/students/${SEEDED_STUDENT.id}`,
       allowed: ['admin', 'lecturer'],
     },
   },

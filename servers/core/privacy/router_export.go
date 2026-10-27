@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 	"github.com/prompt-edu/prompt/servers/core/privacy/service"
@@ -45,7 +46,7 @@ func (h *privacyHandler) registerExportRoutes(privacyRouter *gin.RouterGroup, pe
 func (h *privacyHandler) deleteExport(c *gin.Context) {
 	exportID, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
@@ -53,24 +54,24 @@ func (h *privacyHandler) deleteExport(c *gin.Context) {
 
 	exp, err := h.service.GetExportWithDocs(c, exportID)
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 	if exp.Status == db.ExportStatusArchived && !resetRateLimit {
-		handleError(c, http.StatusBadRequest, fmt.Errorf("export already archived"))
+		sdkUtils.HandleError(c, http.StatusBadRequest, fmt.Errorf("export already archived"))
 		return
 	}
 
 	if err := h.service.ArchiveExport(c, exportID); err != nil {
 		log.WithError(err).Error("failed to delete export")
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
 	if resetRateLimit {
 		if err := h.service.ResetExportRateLimit(c, exportID); err != nil {
 			log.WithError(err).Error("failed to reset rate limit")
-			handleError(c, http.StatusInternalServerError, err)
+			sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 			return
 		}
 	}
@@ -94,23 +95,23 @@ func (h *privacyHandler) deleteExport(c *gin.Context) {
 func (h *privacyHandler) handleNewSubjectDataExport(c *gin.Context) {
 	userID, err := coreutils.GetUserUUIDFromContext(c)
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	if valErr := h.service.ValidateNoValidExportExists(c, userID); valErr != nil {
-		handleError(c, http.StatusConflict, valErr)
+		sdkUtils.HandleError(c, http.StatusConflict, valErr)
 		return
 	}
 	if valErr := h.service.ValidateNotRateLimited(c, userID); valErr != nil {
-		handleError(c, http.StatusTooManyRequests, valErr)
+		sdkUtils.HandleError(c, http.StatusTooManyRequests, valErr)
 		return
 	}
 
 	export, err := h.service.PrepareDataExport(c)
 	if err != nil {
 		log.Error("student data export failed: ", err)
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -140,14 +141,14 @@ func (h *privacyHandler) handleNewSubjectDataExport(c *gin.Context) {
 func (h *privacyHandler) getLatestExport(c *gin.Context) {
 	userID, err := coreutils.GetUserUUIDFromContext(c)
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	availability, exp, err := h.service.GetExportAvailability(c, userID)
 	if err != nil {
 		log.Error("get latest export failed: ", err)
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -180,35 +181,35 @@ func (h *privacyHandler) getLatestExport(c *gin.Context) {
 func (h *privacyHandler) getExportDocDownloadURL(c *gin.Context) {
 	exportID, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	docID, err := uuid.Parse(c.Param("docID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	if valErr := h.service.ValidateExportBelongsToRequester(c, exportID); valErr != nil {
-		handleError(c, http.StatusForbidden, valErr)
+		sdkUtils.HandleError(c, http.StatusForbidden, valErr)
 		return
 	}
 
 	if valErr := h.service.ValidateExportDocBelongsToExport(c, docID, exportID); valErr != nil {
-		handleError(c, http.StatusForbidden, valErr)
+		sdkUtils.HandleError(c, http.StatusForbidden, valErr)
 		return
 	}
 
 	if valErr := h.service.ValidateExportValid(c, exportID); valErr != nil {
-		handleError(c, http.StatusForbidden, valErr)
+		sdkUtils.HandleError(c, http.StatusForbidden, valErr)
 		return
 	}
 
 	downloadURL, err := h.service.GetDownloadURLForDoc(c, docID)
 	if err != nil {
 		log.Error("get export doc download URL failed: ", err)
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -228,7 +229,7 @@ func (h *privacyHandler) getAllExports(c *gin.Context) {
 	exports, err := h.service.GetAllExports(c)
 	if err != nil {
 		log.Error("get all exports failed: ", err)
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -251,24 +252,24 @@ func (h *privacyHandler) getAllExports(c *gin.Context) {
 func (h *privacyHandler) getExport(c *gin.Context) {
 	exportID, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	valErr := h.service.ValidateExportBelongsToRequester(c, exportID)
 	if valErr != nil {
-		handleError(c, http.StatusForbidden, valErr)
+		sdkUtils.HandleError(c, http.StatusForbidden, valErr)
 		return
 	}
 
 	if valErr := h.service.ValidateExportValid(c, exportID); valErr != nil {
-		handleError(c, http.StatusForbidden, valErr)
+		sdkUtils.HandleError(c, http.StatusForbidden, valErr)
 		return
 	}
 
 	expWithDocs, expErr := h.service.GetExportWithDocs(c, exportID)
 	if expErr != nil {
-		handleError(c, http.StatusInternalServerError, expErr)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, expErr)
 		return
 	}
 

@@ -52,7 +52,7 @@ func (s *OrgService) getAllOrgs(c *gin.Context) {
 	orgs, err := s.GetAllOrgs(c)
 	if err != nil {
 		log.Error(err)
-		handleError(c, http.StatusInternalServerError, errors.New("failed to get orgs"))
+		sdkUtils.HandleError(c, http.StatusInternalServerError, errors.New("failed to get orgs"))
 		return
 	}
 	c.IndentedJSON(http.StatusOK, orgs)
@@ -72,7 +72,7 @@ func (s *OrgService) getAllOrgs(c *gin.Context) {
 func (s *OrgService) getOrg(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("orgID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
@@ -99,11 +99,11 @@ func (s *OrgService) getOrg(c *gin.Context) {
 func (s *OrgService) createOrg(c *gin.Context) {
 	var input orgDTO.CreateOrg
 	if err := c.ShouldBindJSON(&input); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 	if err := validateCreateOrg(input); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
@@ -132,17 +132,17 @@ func (s *OrgService) createOrg(c *gin.Context) {
 func (s *OrgService) updateOrg(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("orgID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	var input orgDTO.UpdateOrg
 	if err := c.ShouldBindJSON(&input); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 	if err := validateUpdateOrg(input); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
@@ -171,13 +171,13 @@ func (s *OrgService) updateOrg(c *gin.Context) {
 func (s *OrgService) updateOrgParent(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("orgID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	var input orgDTO.UpdateOrgParent
 	if err := c.ShouldBindJSON(&input); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
@@ -204,7 +204,7 @@ func (s *OrgService) updateOrgParent(c *gin.Context) {
 func (s *OrgService) deleteOrg(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("orgID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
@@ -226,19 +226,13 @@ func recordOrgAudit(c *gin.Context, orgID uuid.UUID, slug string) {
 func handleServiceError(c *gin.Context, err error, fallbackMessage string) {
 	switch {
 	case errors.Is(err, ErrOrgNotFound):
-		handleError(c, http.StatusNotFound, err)
+		sdkUtils.HandleError(c, http.StatusNotFound, err)
 	case errors.Is(err, ErrParentOrgNotFound), errors.Is(err, ErrOrgCycle):
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 	case errors.Is(err, ErrDuplicateOrgSlug), errors.Is(err, ErrOrgHasChildOrgs), errors.Is(err, ErrOrgHasCourses):
-		handleError(c, http.StatusConflict, err)
+		sdkUtils.HandleError(c, http.StatusConflict, err)
 	default:
 		log.Error(err)
-		handleError(c, http.StatusInternalServerError, errors.New(fallbackMessage))
+		sdkUtils.HandleError(c, http.StatusInternalServerError, errors.New(fallbackMessage))
 	}
-}
-
-func handleError(c *gin.Context, statusCode int, err error) {
-	c.JSON(statusCode, sdkUtils.ErrorResponse{
-		Error: err.Error(),
-	})
 }

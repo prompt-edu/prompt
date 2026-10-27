@@ -1,82 +1,62 @@
-SET statement_timeout = 0;
-SET lock_timeout = 0;
-SET idle_in_transaction_session_timeout = 0;
-SET client_encoding = 'UTF8';
-SET standard_conforming_strings = on;
-SELECT pg_catalog.set_config('search_path', 'public', false);
-SET check_function_bodies = false;
-SET xmloption = content;
-SET row_security = off;
+INSERT INTO public.student (
+    id,
+    first_name,
+    last_name,
+    email,
+    matriculation_number,
+    university_login,
+    study_degree,
+    current_semester,
+    study_program,
+    gender
+)
+VALUES
+  (
+    '66666666-6666-6666-6666-666666666666',
+    'Alice',
+    'Anderson',
+    'alice@example.com',
+    '100001',
+    'alice.a',
+    'bachelor',
+    3,
+    'Informatics',
+    'diverse'
+  ),
+  (
+    '77777777-7777-7777-7777-777777777777',
+    'Bob',
+    'Brown',
+    'bob@example.com',
+    '100002',
+    'bob.b',
+    'master',
+    2,
+    'Informatics',
+    'diverse'
+  ),
+  (
+    '88888888-8888-8888-8888-888888888888',
+    'Carol',
+    'Clark',
+    'carol@example.com',
+    '100003',
+    'carol.c',
+    'master',
+    1,
+    'Informatics',
+    'diverse'
+  );
 
-CREATE TYPE public.study_degree AS ENUM ('bachelor', 'master');
-
-CREATE TYPE public.pass_status AS ENUM ('passed', 'failed', 'not_assessed');
-
-CREATE TABLE public.course (
-    id uuid PRIMARY KEY,
-    name text NOT NULL,
-    start_date date NOT NULL,
-    end_date date NOT NULL,
-    restricted_data jsonb
-);
-
-CREATE TABLE public.course_phase_type (
-    id uuid PRIMARY KEY,
-    name text NOT NULL,
-    initial_phase boolean NOT NULL DEFAULT false,
-    base_url text NOT NULL,
-    description text
-);
-
-CREATE TABLE public.course_phase (
-    id uuid PRIMARY KEY,
-    course_id uuid NOT NULL,
-    name text,
-    restricted_data jsonb,
-    is_initial_phase boolean NOT NULL DEFAULT false,
-    course_phase_type_id uuid NOT NULL,
-    student_readable_data jsonb,
-    CONSTRAINT fk_course FOREIGN KEY (course_id) REFERENCES public.course(id),
-    CONSTRAINT fk_phase_type FOREIGN KEY (course_phase_type_id) REFERENCES public.course_phase_type(id)
-);
-
-CREATE TABLE public.student (
-    id uuid PRIMARY KEY,
-    first_name text,
-    last_name text,
-    email text,
-    matriculation_number text,
-    university_login text,
-    study_degree public.study_degree NOT NULL,
-    current_semester integer,
-    study_program text
-);
-
-CREATE TABLE public.course_participation (
-    id uuid PRIMARY KEY,
-    course_id uuid NOT NULL,
-    student_id uuid NOT NULL,
-    CONSTRAINT fk_course_participation_course FOREIGN KEY (course_id) REFERENCES public.course(id),
-    CONSTRAINT fk_course_participation_student FOREIGN KEY (student_id) REFERENCES public.student(id)
-);
-
-CREATE TABLE public.course_phase_participation (
-    course_participation_id uuid NOT NULL,
-    course_phase_id uuid NOT NULL,
-    pass_status public.pass_status NOT NULL DEFAULT 'not_assessed'::public.pass_status,
-    restricted_data jsonb,
-    PRIMARY KEY (course_participation_id, course_phase_id),
-    CONSTRAINT fk_cpp_participation FOREIGN KEY (course_participation_id) REFERENCES public.course_participation(id),
-    CONSTRAINT fk_cpp_phase FOREIGN KEY (course_phase_id) REFERENCES public.course_phase(id)
-);
-
-INSERT INTO public.course (id, name, start_date, end_date, restricted_data)
+INSERT INTO public.course (id, name, start_date, end_date, semester_tag, course_type, restricted_data)
 VALUES
   (
     '11111111-1111-1111-1111-111111111111',
     'Reminder Test Course',
     '2025-04-01',
     '2025-09-30',
+    'ss25',
+    'practical course',
     '{
       "mailingSettings": {
         "replyToEmail": "replyto@example.com",
@@ -127,52 +107,6 @@ VALUES
     false,
     '22222222-2222-2222-2222-222222222222',
     '{}'::jsonb
-  );
-
-INSERT INTO public.student (
-    id,
-    first_name,
-    last_name,
-    email,
-    matriculation_number,
-    university_login,
-    study_degree,
-    current_semester,
-    study_program
-)
-VALUES
-  (
-    '66666666-6666-6666-6666-666666666666',
-    'Alice',
-    'Anderson',
-    'alice@example.com',
-    '100001',
-    'alice.a',
-    'bachelor',
-    3,
-    'Informatics'
-  ),
-  (
-    '77777777-7777-7777-7777-777777777777',
-    'Bob',
-    'Brown',
-    'bob@example.com',
-    '100002',
-    'bob.b',
-    'master',
-    2,
-    'Informatics'
-  ),
-  (
-    '88888888-8888-8888-8888-888888888888',
-    'Carol',
-    'Clark',
-    'carol@example.com',
-    '100003',
-    'carol.c',
-    'master',
-    1,
-    'Informatics'
   );
 
 INSERT INTO public.course_participation (id, course_id, student_id)

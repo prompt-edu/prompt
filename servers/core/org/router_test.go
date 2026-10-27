@@ -13,8 +13,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/prompt-edu/prompt-sdk/audit"
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
+	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/core/org/orgDTO"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 	"github.com/stretchr/testify/assert"
@@ -37,7 +39,7 @@ type OrgRouterTestSuite struct {
 
 func (suite *OrgRouterTestSuite) SetupSuite() {
 	suite.ctx = context.Background()
-	testDB, cleanup, err := setupMigratedTestDB(suite.ctx)
+	testDB, cleanup, err := sdkTestUtils.SetupTestDBWithMigrations(suite.ctx, "../db/migration", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) })
 	if err != nil {
 		log.Fatalf("Failed to set up test database: %v", err)
 	}

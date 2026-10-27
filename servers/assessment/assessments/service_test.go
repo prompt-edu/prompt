@@ -25,6 +25,7 @@ import (
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/assessment/evaluations"
 	"github.com/prompt-edu/prompt/servers/assessment/evaluations/evaluationCompletion"
+	"github.com/prompt-edu/prompt/servers/assessment/teamScope"
 	"github.com/prompt-edu/prompt/servers/assessment/utils"
 )
 
@@ -56,7 +57,7 @@ type AssessmentServiceTestSuite struct {
 func (suite *AssessmentServiceTestSuite) SetupSuite() {
 	suite.suiteCtx = context.Background()
 	// initialize test database from dump
-	testDB, cleanup, err := sdkTestUtils.SetupTestDB(suite.suiteCtx, "../database_dumps/assessments.sql", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) })
+	testDB, cleanup, err := sdkTestUtils.SetupTestDBWithMigrations(suite.suiteCtx, "../db/migration", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) }, "../database_dumps/assessments.sql")
 	if err != nil {
 		suite.T().Fatalf("Failed to set up test database: %v", err)
 	}
@@ -255,22 +256,25 @@ func (suite *AssessmentServiceTestSuite) TestDeleteOwnIndependentAssessment() {
 	coachScoreID := scoresOf("coach")[0].ID
 	lecturerScoreID := scoresOf("lecturer")[0].ID
 
-	assert.ErrorIs(suite.T(), suite.service.DeleteOwnIndependentAssessment(suite.suiteCtx, lecturerScoreID, phaseID, "coach"), ErrAssessmentNotFound,
+	assert.ErrorIs(suite.T(), suite.service.DeleteOwnIndependentAssessment(suite.suiteCtx, lecturerScoreID, phaseID, "coach", teamScope.Scope{}), ErrAssessmentNotFound,
 		"Another assessor's score reads as not found")
-	assert.ErrorIs(suite.T(), suite.service.DeleteOwnIndependentAssessment(suite.suiteCtx, coachScoreID, uuid.New(), "coach"), ErrAssessmentNotFound,
+	assert.ErrorIs(suite.T(), suite.service.DeleteOwnIndependentAssessment(suite.suiteCtx, coachScoreID, uuid.New(), "coach", teamScope.Scope{}), ErrAssessmentNotFound,
 		"The phase in the URL scopes the delete")
+	assert.ErrorIs(suite.T(), suite.service.DeleteOwnIndependentAssessment(suite.suiteCtx, coachScoreID, phaseID, "coach", teamScope.ConfinedTo([]uuid.UUID{uuid.New()})), teamScope.ErrOutsideScope,
+		"A tutor cannot delete a score of a participant outside their team")
+	assert.Len(suite.T(), scoresOf("coach"), 1, "A delete outside the team is rolled back")
 
 	_, err = suite.service.conn.Exec(suite.suiteCtx,
 		`INSERT INTO assessment_completion (course_participation_id, course_phase_id, completed_at, author, completed)
 		 VALUES ($1, $2, NOW(), 'Lecturer', TRUE)`, partID, phaseID)
 	assert.NoError(suite.T(), err)
-	assert.ErrorIs(suite.T(), suite.service.DeleteOwnIndependentAssessment(suite.suiteCtx, coachScoreID, phaseID, "coach"), assessmentCompletion.ErrAssessmentCompleted)
+	assert.ErrorIs(suite.T(), suite.service.DeleteOwnIndependentAssessment(suite.suiteCtx, coachScoreID, phaseID, "coach", teamScope.Scope{}), assessmentCompletion.ErrAssessmentCompleted)
 	assert.Len(suite.T(), scoresOf("coach"), 1, "A rejected delete is rolled back")
 
 	_, err = suite.service.conn.Exec(suite.suiteCtx,
 		`UPDATE assessment_completion SET completed = FALSE WHERE course_participation_id = $1 AND course_phase_id = $2`, partID, phaseID)
 	assert.NoError(suite.T(), err)
-	assert.NoError(suite.T(), suite.service.DeleteOwnIndependentAssessment(suite.suiteCtx, coachScoreID, phaseID, "coach"))
+	assert.NoError(suite.T(), suite.service.DeleteOwnIndependentAssessment(suite.suiteCtx, coachScoreID, phaseID, "coach", teamScope.Scope{}))
 	assert.Empty(suite.T(), scoresOf("coach"))
 	assert.Len(suite.T(), scoresOf("lecturer"), 1, "Other assessors' scores stay")
 }

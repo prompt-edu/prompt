@@ -1,6 +1,8 @@
 ---
 paths:
   - "**/rspack.config.mjs"
+  - "clients/shared/rspack/**"
+  - "clients/core/remotes.config.mjs"
 ---
 
 # Module Federation
@@ -36,7 +38,7 @@ inside `src/`. It does not expose `./App`.
 
 `clients/shared/rspack/federatedDependencies.mjs` is the single source of the singleton share scope
 (`react`, `react-dom`, `react-router-dom`, `@tanstack/react-query`, `@tumaet/prompt-shared-state`,
-`@tumaet/prompt-ui-components`). Both the host and every remote import it, which is what keeps them
+`@tumaet/prompt-ui-components`, `recharts`). Both the host and every remote import it, which is what keeps them
 from drifting apart. Changing the set changes it for host and remotes at once, which is the only safe
 way to change it.
 
@@ -45,19 +47,33 @@ store is the visible case: core mounts the only `<Toaster />`, so a remote holdi
 library raises toasts into a store nothing renders, and every success and error message it shows is
 silently dropped.
 
+`recharts` is shared because the library's `ChartContainer` renders recharts' `ResponsiveContainer`,
+while each chart passes its own `BarChart`, `Bar` and axes as children. The container hands the
+measured size to the chart through a React context, so both halves must come from one recharts
+module. Whichever build ends up providing the shared UI library (core or any remote) would otherwise
+bring its own recharts copy, the chart never receives a size, and every diagram renders as an empty
+card. Recharts must therefore be listed in `clients/package.json` itself, not only as a transitive
+dependency of the UI library.
+
 ## Register (core host)
 
 ```js
-const yourComponentURL = IS_DEV ? `http://localhost:3011` : `/your-component`
-
-remotes: {
-  your_component: `your_component@${yourComponentURL}/remoteEntry.js?${Date.now()}`,
-}
+// clients/core/remotes.config.mjs
+export const REMOTES = [
+  {
+    name: 'your_component', // the federation name, also the core remotes key
+    phaseTypeName: 'Your Phase', // the course phase type it renders: its PhaseRouterMapping key
+    devPort: 3011,
+    prodPath: '/your-component',
+  },
+]
 ```
 
-Remote URLs are resolved in `clients/core/rspack.config.mjs` from `IS_DEV`, not from environment
-variables: the dev port in development, the reverse-proxy path in production. The `?${Date.now()}`
-cache-buster forces a reload after redeploy.
+`clients/core/remotes.config.mjs` is the single list of remotes core loads. `rspack.config.mjs`
+resolves each entry from `IS_DEV`, not from environment variables: the dev port in development, the
+reverse-proxy path in production, with a `?${Date.now()}` cache-buster that forces a reload after
+redeploy. The list also reaches the app as `__PROMPT_REMOTES__` for the admin System Status page,
+and `remotes.config.test.ts` keeps it in step with the `PhaseRouterMapping` keys.
 
 Core consumes a remote lazily, one file per remote under
 `src/managementConsole/PhaseMapping/ExternalRoutes/` (and `ExternalSidebars/`):
@@ -86,5 +102,5 @@ host overrode, and reversing the order just moves the breakage to the remote (is
 ## Rules
 
 - `react`, `react-dom`, `react-router-dom`, `@tanstack/react-query`, `@tumaet/prompt-shared-state`,
-  and `@tumaet/prompt-ui-components` must be `singleton: true` on both host and remote.
+  `@tumaet/prompt-ui-components`, and `recharts` must be `singleton: true` on both host and remote.
 - The federation `name`, the core `remotes` key, and the import specifier must all match exactly.

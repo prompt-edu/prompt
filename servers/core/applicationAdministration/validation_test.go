@@ -37,7 +37,7 @@ func (suite *ApplicationAdminValidationTestSuite) SetupSuite() {
 	suite.ctx = context.Background()
 
 	// Set up PostgreSQL container
-	testDB, cleanup, err := sdkTestUtils.SetupTestDB(suite.ctx, "../database_dumps/application_administration.sql", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) })
+	testDB, cleanup, err := sdkTestUtils.SetupTestDBWithMigrations(suite.ctx, "../db/migration", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) }, "../database_dumps/application_administration.sql")
 	if err != nil {
 		log.Fatalf("Failed to set up test database: %v", err)
 	}
@@ -208,6 +208,66 @@ func (suite *ApplicationAdminValidationTestSuite) TestValidateApplication_Invali
 	err := suite.applicationAdminService.validateApplication(suite.ctx, coursePhaseID, application, false)
 	assert.Error(suite.T(), err)
 	assert.Contains(suite.T(), err.Error(), "required question")
+}
+
+// TestValidateApplication_ExternalNotAllowed verifies the external (unauthenticated)
+// route is rejected on a phase that disables external students, while the same phase
+// is not rejected for that reason on the authenticated route. Regression test for
+// GHSA-5mjh-vmpg-g6xp.
+func (suite *ApplicationAdminValidationTestSuite) TestValidateApplication_ExternalNotAllowed() {
+	coursePhaseID := uuid.MustParse("d0000098-0000-0000-0000-000000000098")
+	application := applicationDTO.PostApplication{
+		Student: studentDTO.CreateStudent{
+			FirstName:            "John",
+			LastName:             "Doe",
+			Email:                "external-applicant@example.com",
+			HasUniversityAccount: false,
+			Nationality:          "DE",
+			CurrentSemester:      pgtype.Int4{Valid: true, Int32: 1},
+			StudyProgram:         "Computer Science",
+			StudyDegree:          "bachelor",
+		},
+	}
+
+	err := suite.applicationAdminService.validateApplication(suite.ctx, coursePhaseID, application, false)
+	assert.Error(suite.T(), err)
+	assert.Contains(suite.T(), err.Error(), "does not accept external applications")
+
+	// The authenticated route must not be rejected for the external-students reason.
+	if err := suite.applicationAdminService.validateApplication(suite.ctx, coursePhaseID, application, true); err != nil {
+		assert.NotContains(suite.T(), err.Error(), "does not accept external applications")
+	}
+}
+
+// TestValidateApplication_NoUniversityLogin verifies that on a phase without university
+// login, university students can still use the external route while external students
+// stay rejected because the phase does not allow them.
+func (suite *ApplicationAdminValidationTestSuite) TestValidateApplication_NoUniversityLogin() {
+	coursePhaseID := uuid.MustParse("d0000097-0000-0000-0000-000000000097")
+	application := applicationDTO.PostApplication{
+		Student: studentDTO.CreateStudent{
+			FirstName:            "Jane",
+			LastName:             "Doe",
+			Email:                "no-login-applicant@example.com",
+			HasUniversityAccount: true,
+			MatriculationNumber:  "03700055",
+			UniversityLogin:      "qq00qqs",
+			Nationality:          "DE",
+			CurrentSemester:      pgtype.Int4{Valid: true, Int32: 1},
+			StudyProgram:         "Computer Science",
+			StudyDegree:          "bachelor",
+		},
+	}
+
+	err := suite.applicationAdminService.validateApplication(suite.ctx, coursePhaseID, application, false)
+	assert.NoError(suite.T(), err)
+
+	application.Student.HasUniversityAccount = false
+	application.Student.MatriculationNumber = ""
+	application.Student.UniversityLogin = ""
+	err = suite.applicationAdminService.validateApplication(suite.ctx, coursePhaseID, application, false)
+	assert.Error(suite.T(), err)
+	assert.Contains(suite.T(), err.Error(), "does not accept external applications")
 }
 
 func (suite *ApplicationAdminValidationTestSuite) TestValidateTextAnswers_ExceedsAllowedLength() {
@@ -541,6 +601,33 @@ func (suite *ApplicationAdminValidationTestSuite) TestValidateAdditionalScore_Mi
 	err := validateAdditionalScore(invalidScore)
 	assert.Error(suite.T(), err)
 	assert.Equal(suite.T(), "scores must be positive", err.Error())
+}
+
+// TestValidateApplication_OutsideApplicationWindow verifies submissions are rejected before
+// the application start date and for archived courses, matching the public listing.
+// Regression test for GHSA-pv93-3r7g-rhpq.
+func (suite *ApplicationAdminValidationTestSuite) TestValidateApplication_OutsideApplicationWindow() {
+	application := applicationDTO.PostApplication{
+		Student: studentDTO.CreateStudent{
+			FirstName:       "Early",
+			LastName:        "Bird",
+			Email:           "early-bird@example.com",
+			Nationality:     "DE",
+			CurrentSemester: pgtype.Int4{Valid: true, Int32: 1},
+			StudyProgram:    "Computer Science",
+			StudyDegree:     "bachelor",
+		},
+	}
+
+	for _, coursePhaseID := range []string{
+		"d0000095-0000-0000-0000-000000000095", // start date in the future
+		"d0000094-0000-0000-0000-000000000094", // archived course
+	} {
+		for _, authenticatedRoute := range []bool{false, true} {
+			err := suite.applicationAdminService.validateApplication(suite.ctx, uuid.MustParse(coursePhaseID), application, authenticatedRoute)
+			assert.Error(suite.T(), err, coursePhaseID)
+		}
+	}
 }
 
 func TestValidateUpdateFormSuite(t *testing.T) {

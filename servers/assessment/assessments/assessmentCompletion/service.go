@@ -159,6 +159,7 @@ func (s *AssessmentCompletionService) CreateOrUpdateAssessmentCompletion(ctx con
 
 	tx, err := s.conn.Begin(ctx)
 	if err != nil {
+		log.Error("could not begin assessment completion transaction: ", err)
 		return err
 	}
 	defer promptSDK.DeferDBRollback(tx, ctx)
@@ -213,6 +214,7 @@ func (s *AssessmentCompletionService) MarkAssessmentAsCompleted(ctx context.Cont
 
 	tx, err := s.conn.Begin(ctx)
 	if err != nil {
+		log.Error("could not begin assessment completion transaction: ", err)
 		return err
 	}
 	defer promptSDK.DeferDBRollback(tx, ctx)
@@ -248,6 +250,7 @@ func (s *AssessmentCompletionService) MarkAssessmentsAsCompleted(ctx context.Con
 
 	tx, err := s.conn.Begin(ctx)
 	if err != nil {
+		log.Error("could not begin assessment completions transaction: ", err)
 		return result, err
 	}
 	defer promptSDK.DeferDBRollback(tx, ctx)
@@ -349,6 +352,7 @@ func (s *AssessmentCompletionService) UnmarkAssessmentsAsCompleted(ctx context.C
 
 	tx, err := s.conn.Begin(ctx)
 	if err != nil {
+		log.Error("could not begin assessment completions transaction: ", err)
 		return result, err
 	}
 	defer promptSDK.DeferDBRollback(tx, ctx)

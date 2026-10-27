@@ -3,6 +3,11 @@ export type EvaluationReminderType = 'self' | 'peer' | 'tutor'
 export interface AssessmentReminderMetaData {
   subject: string
   content: string
+  // Only written by earlier versions: the assessment server now keeps the send times
+  lastSentAtByType: Partial<Record<EvaluationReminderType, string>>
+}
+
+export interface EvaluationReminderStatus {
   lastSentAtByType: Partial<Record<EvaluationReminderType, string>>
 }
 

@@ -148,13 +148,3 @@ WHERE
     p.id = $1
 AND
     cpp.course_participation_id = ANY($2::uuid[]);
-
--- name: UpdateAssessmentReminderLastSentAt :exec
-UPDATE course_phase
-SET restricted_data = jsonb_set(
-  COALESCE(restricted_data, '{}'::jsonb),
-  ARRAY['mailingSettings', 'assessmentReminder', 'lastSentAtByType', $2::text],
-  to_jsonb($3::text),
-  true
-)
-WHERE id = $1;

@@ -2,6 +2,7 @@ package mailing
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
@@ -52,13 +53,14 @@ func (suite *StatusMailServiceTestSuite) SetupSuite() {
 	suite.failed = uuid.MustParse(failedParticipation)
 	suite.notAssessed = uuid.MustParse(notAssessedParticipation)
 
-	testDB, cleanup, err := testutils.SetupTestDB(
+	testDB, cleanup, err := testutils.SetupTestDBWithMigrations(
 		suite.ctx,
-		"../database_dumps/mailing_test.sql",
+		"../db/migration",
 		func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) },
+		"../database_dumps/mailing_test.sql",
 	)
 	if err != nil {
-		suite.T().Skipf("skipping db-backed status mail tests: %v", err)
+		suite.T().Fatalf("Failed to set up test database: %v", err)
 	}
 
 	suite.cleanup = cleanup
@@ -232,4 +234,34 @@ func TestValidateMailInputsRequiresInitializedService(t *testing.T) {
 
 	err := service.validateMailInputs("student@example.com", "subject", "body")
 	assert.ErrorContains(t, err, "not initialized")
+}
+
+// TestBuildBaseMailHeaderEncodesSubjectAgainstInjection verifies that CR/LF in a
+// subject (e.g. from a student-supplied placeholder value) cannot inject or
+// terminate mail headers. See GHSA-j577-qpm3-j2m7.
+func TestBuildBaseMailHeaderEncodesSubjectAgainstInjection(t *testing.T) {
+	service := NewMailingService(db.Queries{}, "", "", "", "", "Test", "noreply@example.com", "")
+
+	maliciousSubject := "Hello\r\nBcc: attacker@example.com\r\nContent-Type: text/plain"
+
+	var message strings.Builder
+	service.buildBaseMailHeader(&message, "student@example.com", maliciousSubject)
+	rendered := message.String()
+
+	subjectLines := 0
+	for _, line := range strings.Split(rendered, "\r\n") {
+		if strings.HasPrefix(line, "Subject:") {
+			subjectLines++
+		}
+		// No header line may originate from the injected payload.
+		assert.False(t, strings.HasPrefix(line, "Bcc:"), "subject injected a Bcc header: %q", rendered)
+	}
+	assert.Equal(t, 1, subjectLines, "expected exactly one Subject header")
+	// A subject carrying control characters must be RFC 2047 encoded.
+	assert.Contains(t, rendered, "Subject: =?utf-8?q?")
+
+	// A plain ASCII subject is emitted unchanged (no needless encoding).
+	var plain strings.Builder
+	service.buildBaseMailHeader(&plain, "student@example.com", "Application received")
+	assert.Contains(t, plain.String(), "Subject: Application received\r\n")
 }

@@ -7,6 +7,7 @@ const SINGLETON_PACKAGES = [
   '@tanstack/react-query',
   '@tumaet/prompt-shared-state',
   '@tumaet/prompt-ui-components',
+  'recharts',
 ]
 
 export const federatedDependencies = () =>

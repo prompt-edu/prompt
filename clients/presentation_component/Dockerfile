@@ -4,6 +4,8 @@ FROM ghcr.io/prompt-edu/prompt/prompt-clients-base:${IMAGE_TAG} AS core-base
 WORKDIR /app/presentation_component
 COPY . ./
 
+ARG MF_BUILD_VERSION
+ENV MF_BUILD_VERSION=$MF_BUILD_VERSION
 RUN yarn build
 
 FROM nginx:stable-alpine

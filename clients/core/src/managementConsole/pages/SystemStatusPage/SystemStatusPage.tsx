@@ -4,42 +4,56 @@ import { useQueries } from '@tanstack/react-query'
 import { KeycloakStatusCard } from './components/KeycloakStatusCard'
 import { ServiceStatusCard } from './components/ServiceStatusCard'
 import { useGetCoursePhaseTypes } from './hooks/useGetCoursePhaseTypes'
-import type { CoursePhaseType } from './interfaces/coursePhaseType'
-import type { ServiceInfo } from './interfaces/serviceCapabilities'
-import { isRealMicroservice } from './utils/isRealMicroservice'
+import {
+  buildPhaseStatusEntries,
+  type PhaseStatusEntry,
+  phaseCardStatus,
+  type ServiceStatus,
+} from './utils/phaseStatus'
 
 export const SystemStatusPage = () => {
   const { data: allCoursePhaseTypes = [] } = useGetCoursePhaseTypes()
-  // Only phase types backed by their own microservice expose an `/info` endpoint to probe.
-  // Core-handled phase types (Application, Matching, DevOps Challenge) are not separate services.
-  const coursePhaseTypes = allCoursePhaseTypes.filter((cpt) => isRealMicroservice(cpt.baseUrl))
+  const entries = buildPhaseStatusEntries(allCoursePhaseTypes, __PROMPT_REMOTES__)
+  const serverEntries = entries.filter((entry) => entry.hasServerInfo)
+  const clientEntries = entries.flatMap((entry) =>
+    entry.remote ? [{ entry, remote: entry.remote }] : [],
+  )
 
-  const results = useQueries({
-    queries: coursePhaseTypes.map((service) => {
-      return {
-        queryKey: coreKeys.serviceInfo.ofService(service.id),
-        queryFn: () => coreApi.system.serviceInfo(service),
-        retry: false,
-        staleTime: 30_000,
-      }
-    }),
+  const serverResults = useQueries({
+    queries: serverEntries.map(({ phaseType }) => ({
+      queryKey: coreKeys.serviceInfo.ofService(phaseType.id),
+      queryFn: () => coreApi.system.serviceInfo(phaseType),
+      retry: false,
+      staleTime: 30_000,
+    })),
   })
 
-  const availableServices = coursePhaseTypes.filter((_, i) => !results[i].isError)
-  const unavailableServices = coursePhaseTypes.filter((_, i) => results[i].isError)
+  const clientResults = useQueries({
+    queries: clientEntries.map(({ remote }) => ({
+      queryKey: coreKeys.clientInfo.ofRemote(remote.name),
+      queryFn: () => coreApi.system.clientInfo(remote),
+      retry: false,
+      staleTime: 30_000,
+    })),
+  })
 
-  const renderCard = (service: CoursePhaseType) => {
-    const i = coursePhaseTypes.indexOf(service)
-    return (
-      <ServiceStatusCard
-        key={service.id}
-        service={service}
-        data={results[i].data as ServiceInfo | undefined}
-        isPending={results[i].isPending}
-        isError={results[i].isError}
-      />
-    )
-  }
+  const probesOf = (entry: PhaseStatusEntry) => ({
+    server: serverResults[serverEntries.indexOf(entry)],
+    client: clientResults[clientEntries.findIndex((clientEntry) => clientEntry.entry === entry)],
+  })
+
+  const entriesWithStatus = (status: ServiceStatus) =>
+    entries.filter((entry) => {
+      const { server, client } = probesOf(entry)
+      return (phaseCardStatus(server, client) ?? 'Online') === status
+    })
+  const availableServices = entriesWithStatus('Online')
+  const degradedServices = entriesWithStatus('OnlineUnhealthy')
+  const unavailableServices = entriesWithStatus('Offline')
+
+  const renderCard = (entry: PhaseStatusEntry) => (
+    <ServiceStatusCard key={entry.phaseType.id} entry={entry} {...probesOf(entry)} />
+  )
 
   return (
     <div className='flex flex-col gap-8 w-full'>
@@ -66,6 +80,17 @@ export const SystemStatusPage = () => {
           <p className='text-sm text-muted-foreground'>None</p>
         )}
       </div>
+
+      {degradedServices.length > 0 && (
+        <div className='flex flex-col gap-3'>
+          <h2 className='text-sm font-semibold uppercase tracking-wide text-muted-foreground'>
+            Degraded
+          </h2>
+          <div className='grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3'>
+            {degradedServices.map(renderCard)}
+          </div>
+        </div>
+      )}
 
       {unavailableServices.length > 0 && (
         <div className='flex flex-col gap-3'>

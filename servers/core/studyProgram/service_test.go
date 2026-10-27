@@ -38,7 +38,7 @@ type ServiceTestSuite struct {
 
 func (suite *ServiceTestSuite) SetupSuite() {
 	suite.ctx = context.Background()
-	testDB, cleanup, err := sdkTestUtils.SetupTestDB(suite.ctx, "../database_dumps/study_program_test.sql", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) })
+	testDB, cleanup, err := sdkTestUtils.SetupTestDBWithMigrations(suite.ctx, "../db/migration", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) }, "../database_dumps/study_program_test.sql")
 	if err != nil {
 		log.Fatalf("Failed to set up test database: %v", err)
 	}
@@ -172,7 +172,7 @@ func (suite *ServiceTestSuite) TestUpdateStudyProgramCaseOnlyRenameUpdatesStuden
 	})
 	require.NoError(suite.T(), err)
 	studentID := uuid.New()
-	_, err = suite.conn.Exec(suite.ctx, "INSERT INTO student (id, study_program) VALUES ($1, $2)", studentID, " Mechanical Engineering ")
+	_, err = suite.conn.Exec(suite.ctx, "INSERT INTO student (id, gender, study_program) VALUES ($1, 'diverse', $2)", studentID, " Mechanical Engineering ")
 	require.NoError(suite.T(), err)
 
 	_, err = suite.service.UpdateStudyProgram(suite.ctx, created.ID, studyProgramDTO.UpdateStudyProgram{
@@ -247,7 +247,7 @@ func (suite *ServiceTestSuite) TestRenameStudyProgramToLabelOfAnotherProgramRoll
 	})
 	require.NoError(suite.T(), err)
 	studentID := uuid.New()
-	_, err = suite.conn.Exec(suite.ctx, "INSERT INTO student (id, study_program) VALUES ($1, $2)", studentID, "Bioinformatics")
+	_, err = suite.conn.Exec(suite.ctx, "INSERT INTO student (id, gender, study_program) VALUES ($1, 'diverse', $2)", studentID, "Bioinformatics")
 	require.NoError(suite.T(), err)
 
 	_, err = suite.service.UpdateStudyProgram(suite.ctx, bioinformatics.ID, studyProgramDTO.UpdateStudyProgram{

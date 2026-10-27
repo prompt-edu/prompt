@@ -99,6 +99,7 @@ func (s *CoursePhaseConfigService) GetCoursePhaseConfig(ctx context.Context, cou
 	if err != nil && errors.Is(err, sql.ErrNoRows) {
 		tx, err := s.conn.Begin(ctx)
 		if err != nil {
+			log.WithError(err).Error("Failed to begin transaction for course phase config creation")
 			return coursePhaseConfigDTO.CoursePhaseConfig{}, err
 		}
 		defer promptSDK.DeferDBRollback(tx, ctx)

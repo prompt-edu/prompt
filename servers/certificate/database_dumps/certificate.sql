@@ -1,31 +1,4 @@
--- Certificate test database seed
--- Creates the schema and populates test data
-
--- Course phase configuration for certificate settings
-CREATE TABLE IF NOT EXISTS course_phase_config (
-    course_phase_id uuid PRIMARY KEY,
-    template_content text,
-    created_at timestamp with time zone NOT NULL DEFAULT NOW(),
-    updated_at timestamp with time zone NOT NULL DEFAULT NOW(),
-    updated_by text,
-    release_date timestamp with time zone,
-    student_page_text text
-);
-
--- Certificate download tracking per student per course phase
-CREATE TABLE IF NOT EXISTS certificate_download (
-    id SERIAL PRIMARY KEY,
-    student_id uuid NOT NULL,
-    course_phase_id uuid NOT NULL,
-    first_download timestamp with time zone NOT NULL DEFAULT NOW(),
-    last_download timestamp with time zone NOT NULL DEFAULT NOW(),
-    download_count integer NOT NULL DEFAULT 1,
-    CONSTRAINT idx_certificate_download_student_phase UNIQUE (student_id, course_phase_id)
-);
-
-CREATE INDEX IF NOT EXISTS idx_certificate_download_student_id ON certificate_download (student_id);
-
-CREATE INDEX IF NOT EXISTS idx_certificate_download_course_phase_id ON certificate_download (course_phase_id);
+-- Certificate test data, loaded on top of the migrated schema
 
 -- Seed: course phase config with template
 INSERT INTO

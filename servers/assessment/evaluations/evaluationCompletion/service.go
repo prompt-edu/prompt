@@ -182,6 +182,7 @@ func (s *EvaluationCompletionService) CreateOrUpdateEvaluationCompletion(ctx con
 
 	tx, err := s.conn.Begin(ctx)
 	if err != nil {
+		log.Error("could not begin evaluation completion transaction: ", err)
 		return err
 	}
 	defer promptSDK.DeferDBRollback(tx, ctx)
@@ -233,6 +234,7 @@ func (s *EvaluationCompletionService) MarkEvaluationAsCompleted(ctx context.Cont
 
 	tx, err := s.conn.Begin(ctx)
 	if err != nil {
+		log.Error("could not begin evaluation completion transaction: ", err)
 		return err
 	}
 	defer promptSDK.DeferDBRollback(tx, ctx)

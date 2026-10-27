@@ -37,7 +37,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
     CGO_ENABLED=0 go build -o main .
 
 # Stage 2: Final (distroless)
-FROM gcr.io/distroless/static-debian12
+FROM gcr.io/distroless/static-debian13
 
 # Set the working directory
 WORKDIR /app

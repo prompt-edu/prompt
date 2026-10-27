@@ -57,7 +57,7 @@ func (p *Provider) GetType() string { return "keycloak" }
 func (p *Provider) GetAuthFields() []provider.AuthField {
 	return []provider.AuthField{
 		{Name: "keycloak_url", Label: "Keycloak URL", Type: "text", Required: true,
-			Description: "Keycloak server URL (e.g. https://auth.example.com)"},
+			Description: "Keycloak server URL (e.g. https://auth.example.com)", IsURL: true},
 		{Name: "realm", Label: "Realm", Type: "text", Required: true,
 			Description: "Keycloak realm name"},
 		{Name: "client_id", Label: "Client ID", Type: "text", Required: true,

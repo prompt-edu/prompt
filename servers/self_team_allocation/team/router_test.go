@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -13,6 +15,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
+	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt-sdk/promptTypes"
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	db "github.com/prompt-edu/prompt/servers/self_team_allocation/db/sqlc"
@@ -35,14 +39,14 @@ func (suite *TeamRouterTestSuite) SetupSuite() {
 	gin.SetMode(gin.TestMode)
 	suite.ctx = context.Background()
 
-	testDB, cleanup, err := sdkTestUtils.SetupTestDB(suite.ctx, "../database_dumps/base.sql", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) })
+	testDB, cleanup, err := sdkTestUtils.SetupTestDBWithMigrations(suite.ctx, "../db/migration", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) }, "../database_dumps/base.sql")
 	require.NoError(suite.T(), err)
 	suite.testDB = testDB
 	suite.cleanup = cleanup
 
 	timeframeService := timeframe.NewTimeframeService(*testDB.Queries)
 	suite.teamsService = NewTeamsService(*testDB.Queries, testDB.Conn, timeframeService)
-	suite.assignmentService = NewAssignmentService(*testDB.Queries)
+	suite.assignmentService = NewAssignmentService(*testDB.Queries, testDB.Conn)
 }
 
 func (suite *TeamRouterTestSuite) TearDownSuite() {
@@ -58,6 +62,75 @@ func (suite *TeamRouterTestSuite) newRouter(courseParticipationID uuid.UUID) *gi
 		return sdkTestUtils.MockAuthMiddlewareWithParticipation(allowedRoles, courseParticipationID)
 	})
 	return router
+}
+
+// newStudentRouter authenticates every request as a plain student of the course, without
+// the admin roles the shared mock grants.
+func (suite *TeamRouterTestSuite) newStudentRouter(courseParticipationID uuid.UUID) *gin.Engine {
+	router := gin.Default()
+	api := router.Group("/api/course_phase/:coursePhaseID")
+	RegisterRoutes(api, suite.teamsService, suite.assignmentService, func(allowedRoles ...string) gin.HandlerFunc {
+		return func(c *gin.Context) {
+			c.Set("courseParticipationID", courseParticipationID)
+			c.Set("firstName", "Student")
+			c.Set("lastName", "User")
+			keycloakTokenVerifier.SetTokenUser(c, keycloakTokenVerifier.TokenUser{
+				Roles:                 map[string]bool{promptSDK.CourseStudent: true},
+				IsStudentOfCourse:     true,
+				CourseParticipationID: courseParticipationID,
+			})
+			c.Next()
+		}
+	})
+	return router
+}
+
+func (suite *TeamRouterTestSuite) postTeams(router *gin.Engine, coursePhaseID uuid.UUID, names ...string) *httptest.ResponseRecorder {
+	payload, _ := json.Marshal(teamDTO.CreateTeamsRequest{TeamNames: names})
+	req, _ := http.NewRequest("POST", "/api/course_phase/"+coursePhaseID.String()+"/team", bytes.NewBuffer(payload))
+	req.Header.Set("Content-Type", "application/json")
+	resp := httptest.NewRecorder()
+	router.ServeHTTP(resp, req)
+	return resp
+}
+
+// Regression test for GHSA-6j73-qvgm-8p23: outside the window the request is rejected with
+// 400 instead of a 500 with a nil error.
+func (suite *TeamRouterTestSuite) TestCreateTeamsRouteOutsideTimeframe() {
+	coursePhaseID := uuid.New()
+	err := suite.testDB.Queries.SetTimeframe(suite.ctx, db.SetTimeframeParams{
+		CoursePhaseID: coursePhaseID,
+		Starttime:     pgtype.Timestamptz{Time: time.Now().Add(-2 * time.Hour), Valid: true},
+		Endtime:       pgtype.Timestamptz{Time: time.Now().Add(-time.Hour), Valid: true},
+	})
+	require.NoError(suite.T(), err)
+
+	resp := suite.postTeams(suite.newStudentRouter(uuid.New()), coursePhaseID, "Late Team")
+
+	require.Equal(suite.T(), http.StatusBadRequest, resp.Code)
+	require.Contains(suite.T(), resp.Body.String(), ErrOutsideTimeframe.Error())
+}
+
+// Regression test for GHSA-6j73-qvgm-8p23: a student hits the per-student limit with 409,
+// invalid names are rejected with 400, and the creator is recorded.
+func (suite *TeamRouterTestSuite) TestCreateTeamsRouteStudentLimits() {
+	coursePhaseID := suite.ensureTimeframePhase()
+	studentID := uuid.New()
+	router := suite.newStudentRouter(studentID)
+
+	require.Equal(suite.T(), http.StatusBadRequest, suite.postTeams(router, coursePhaseID, strings.Repeat("x", MaxTeamNameLength+1)).Code)
+
+	for i := range MaxTeamsCreatedPerStudent {
+		require.Equal(suite.T(), http.StatusCreated, suite.postTeams(router, coursePhaseID, fmt.Sprintf("Student Team %d", i)).Code)
+	}
+	require.Equal(suite.T(), http.StatusConflict, suite.postTeams(router, coursePhaseID, "Student Team extra").Code)
+
+	created, err := suite.testDB.Queries.CountTeamsCreatedByParticipation(suite.ctx, db.CountTeamsCreatedByParticipationParams{
+		CoursePhaseID:                  coursePhaseID,
+		CreatedByCourseParticipationID: pgtype.UUID{Bytes: studentID, Valid: true},
+	})
+	require.NoError(suite.T(), err)
+	require.Equal(suite.T(), int64(MaxTeamsCreatedPerStudent), created)
 }
 
 func (suite *TeamRouterTestSuite) TestGetAllTeamsRoute() {

@@ -23,7 +23,7 @@ import (
 // the org's transaction is open.
 const keycloakTimeout = 30 * time.Second
 
-// Postgres error codes and the constraint names of migration 0032_org.
+// Postgres error codes and the constraint names of migration 0035_org.
 const (
 	uniqueViolation      = "23505"
 	foreignKeyViolation  = "23503"

@@ -3,11 +3,18 @@ import { Page, Locator, expect } from '@playwright/test'
 export type ApplicationStatusBadge = 'Not Assessed' | 'Accepted' | 'Rejected'
 
 // The lecturer-facing admin surfaces of an Application phase under
-// /management/course/:courseId/:phaseId — the participants table (+ per-
-// application Accept/Reject details), the questions page's student preview,
-// and the mailing configuration page.
+// /management/course/:courseId/:phaseId: the overview diagrams, the
+// participants table (+ per-application Accept/Reject details), the questions
+// page's student preview, and the mailing configuration page.
 export class ApplicationAdminPage {
   constructor(private readonly page: Page) {}
+
+  async gotoOverview(courseId: string, phaseId: string) {
+    await this.page.goto(`/management/course/${courseId}/${phaseId}`)
+    await expect(
+      this.page.getByRole('heading', { name: 'Application Administration' }),
+    ).toBeVisible({ timeout: 15_000 })
+  }
 
   async gotoParticipants(courseId: string, phaseId: string) {
     await this.page.goto(`/management/course/${courseId}/${phaseId}/participants`)

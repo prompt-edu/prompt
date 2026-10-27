@@ -27,15 +27,22 @@ import { Button, Card, ManagementPageHeader } from '@tumaet/prompt-ui-components
   `FileList`.
 - **Data table:** `PromptTable<T>` — sorting, filtering, row selection, column visibility, search,
   row actions. `PromptTableURL<T>` mirrors it with the table state kept in the URL.
-- **Page components:** `CoursePhaseParticipationsTable`, `CoursePhaseMailing`.
-- **Student/course UI:** `StudentProfile`, `StudentAvatar`, `StudentProfilePicture`, `SettingsCard`,
+- **Page components:** `CoursePhaseParticipationsTable`, `CoursePhaseMailing`,
+  `ParticipantNavigation` (previous / next buttons on a participant's detail page).
+- **Student/course UI:** `StudentProfile`, `StudentAvatar`, `ProfilePicture`, `SettingsCard`,
   `FilterBadge`, `DynamicIcon`, `MissingConfig`, `MissingSettings`, `ExportedApplicationAnswerTable`,
   `ThemeToggle`.
+- **Profile pictures:** render every person with `ProfilePicture`, passing whichever id you have
+  (`userId`, `studentId` or `courseParticipationId`). It batches the lookups of one render into a
+  single request, loads only avatars near the viewport, and falls back to initials. Never build
+  avatar URLs yourself, and never use `getGravatarUrl` from either package: the
+  `@tumaet/prompt-ui-components` one is deprecated and returns no URL, while the
+  `@tumaet/prompt-shared-state` one still sends the email hash to Gravatar.
 - **Rich text:** `MinimalTiptapEditor`, `MailingTiptapEditor`, `DescriptionMinimalTiptapEditor`.
 - **Hooks:** `useToast`, `useIsMobile`, `useCustomElementWidth`, `useScreenSize`.
-- **Utilities:** `cn` (clsx + tailwind-merge), `getStatusBadge`, `getStatusColor`, `getGravatarUrl`,
-  `getCountries`, `formatFileSize`, `openFileDownload`. **Table types:** `WithId`, `RowAction<T>`,
-  `TableFilter`, `SortableHeader`.
+- **Utilities:** `cn` (clsx + tailwind-merge), `getStatusBadge`, `getStatusColor`,
+  `getCountries`, `formatFileSize`, `openFileDownload`.
+  **Table types:** `WithId`, `RowAction<T>`, `TableFilter`, `SortableHeader`.
 
 ## `@tumaet/prompt-shared-state` (source: `prompt-shared-state` repo)
 

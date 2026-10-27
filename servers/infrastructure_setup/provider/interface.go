@@ -84,6 +84,9 @@ type AuthField struct {
 	Type        string `json:"type"` // "text" or "password"
 	Required    bool   `json:"required"`
 	Description string `json:"description"`
+	// IsURL marks a provider base URL. The service sends requests to it, so it is
+	// validated as a provider URL (see ValidateURL) when the credentials are saved.
+	IsURL bool `json:"-"`
 }
 
 // Provider is the interface every provider implementation must satisfy.

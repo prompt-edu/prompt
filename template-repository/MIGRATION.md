@@ -76,7 +76,7 @@ Core-side registration steps (one small PR to the monorepo per phase) are docume
 Only after 1–5 are proven. Delete `clients/example_component`, `servers/example_server`, and
 `template-repository/`, then unwind the wiring (the file list mirrors PR #1861):
 
-- core: remote in `clients/core/rspack.config.mjs`, `ExampleRoutes`/`ExampleSidebar`, the three
+- core: remote in `clients/core/remotes.config.mjs`, `ExampleRoutes`/`ExampleSidebar`, the three
   `PhaseMapping` entries, the `App.tsx` route, `EXAMPLE_HOST` in `public/env.js` +
   `public/env.template.js`
 - workspaces: `clients/package.json`, `clients/lerna.json` (+ `yarn install` for the lockfile)

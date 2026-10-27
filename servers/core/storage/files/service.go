@@ -49,16 +49,28 @@ type FileUploadRequest struct {
 }
 
 type PresignUploadRequest struct {
-	Filename      string
-	ContentType   string
+	Filename    string
+	ContentType string
+	// SizeBytes, when set, is signed into the upload URL so storage rejects any other size.
+	SizeBytes     int64
 	CoursePhaseID *uuid.UUID
-	Description   string
-	Tags          []string
+	// StorageKeyPrefix scopes the key of an upload without a course phase, e.g. to its owner.
+	StorageKeyPrefix string
+	Description      string
+	Tags             []string
 }
 
 type PresignUploadResponse struct {
 	UploadURL  string `json:"uploadUrl"`
 	StorageKey string `json:"storageKey"`
+}
+
+// StoreFileRequest describes content the server stores itself, e.g. after it checked an upload.
+type StoreFileRequest struct {
+	StorageKeyPrefix string
+	Filename         string
+	ContentType      string
+	Description      string
 }
 
 type CreateFileFromStorageKeyRequest struct {
@@ -206,6 +218,10 @@ func (s *StorageService) PresignUpload(ctx context.Context, req PresignUploadReq
 		return nil, fmt.Errorf("file type %s is not allowed: %w", req.ContentType, ErrInvalidInput)
 	}
 
+	if req.SizeBytes < 0 || req.SizeBytes > s.maxFileSize {
+		return nil, fmt.Errorf("file size %d bytes exceeds maximum allowed size %d bytes: %w", req.SizeBytes, s.maxFileSize, ErrInvalidInput)
+	}
+
 	safeOriginal := sanitizeFilename(req.Filename)
 	if safeOriginal == "" {
 		ext := filepath.Ext(req.Filename)
@@ -213,8 +229,19 @@ func (s *StorageService) PresignUpload(ctx context.Context, req PresignUploadReq
 	}
 	uniqueFilename := fmt.Sprintf("%s-%s", uuid.New().String(), safeOriginal)
 	storageKey := buildStorageKey(req.CoursePhaseID, uniqueFilename)
+	if req.CoursePhaseID == nil && req.StorageKeyPrefix != "" {
+		storageKey = fmt.Sprintf("%s/%s", req.StorageKeyPrefix, uniqueFilename)
+	}
 
-	uploadURL, err := s.storageAdapter.GetUploadURL(ctx, storageKey, req.ContentType, presignUploadTTLSeconds())
+	// Track the upload before handing out the URL, so the reaper can remove it if it is
+	// never completed.
+	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
+	defer cancel()
+	if err := s.queries.CreatePendingUpload(ctxWithTimeout, storageKey); err != nil {
+		return nil, fmt.Errorf("failed to record pending upload: %w", err)
+	}
+
+	uploadURL, err := s.storageAdapter.GetUploadURL(ctx, storageKey, req.ContentType, req.SizeBytes, presignUploadTTLSeconds())
 	if err != nil {
 		return nil, err
 	}
@@ -250,6 +277,11 @@ func (s *StorageService) CreateFileFromStorageKey(ctx context.Context, req Creat
 		return nil, fmt.Errorf("failed to check existing file: %w", err)
 	}
 
+	// The prefix checks below would otherwise accept "course-phase/<id>/../<other key>".
+	if strings.Contains(req.StorageKey, "..") {
+		return nil, fmt.Errorf("storage key must not contain '..': %w", ErrInvalidInput)
+	}
+
 	if req.CoursePhaseID == nil {
 		if strings.HasPrefix(req.StorageKey, "course-phase/") {
 			return nil, fmt.Errorf("course phase id is required for course-phase storage keys: %w", ErrInvalidInput)
@@ -274,15 +306,20 @@ func (s *StorageService) CreateFileFromStorageKey(ctx context.Context, req Creat
 		contentType = req.ContentType
 	}
 
+	// A rejected upload is never registered, so its object is deleted right away instead of
+	// occupying storage until the reaper runs.
 	if contentType == "" {
+		s.discardUpload(ctx, req.StorageKey)
 		return nil, fmt.Errorf("content type is required: %w", ErrInvalidInput)
 	}
 
 	if metadata.Size > s.maxFileSize {
+		s.discardUpload(ctx, req.StorageKey)
 		return nil, fmt.Errorf("file size %d bytes exceeds maximum allowed size %d bytes: %w", metadata.Size, s.maxFileSize, ErrInvalidInput)
 	}
 
 	if len(s.allowedTypes) > 0 && !s.isAllowedType(contentType) {
+		s.discardUpload(ctx, req.StorageKey)
 		return nil, fmt.Errorf("file type %s is not allowed: %w", contentType, ErrInvalidInput)
 	}
 
@@ -325,8 +362,124 @@ func (s *StorageService) CreateFileFromStorageKey(ctx context.Context, req Creat
 	if err != nil {
 		return nil, fmt.Errorf("failed to save file metadata: %w", err)
 	}
+	s.clearPendingUpload(ctx, req.StorageKey)
 
 	return s.convertToFileResponse(ctx, fileRecord), nil
+}
+
+// StoreFile uploads content under a fresh key below the prefix and registers it as a file.
+// Unlike a presigned upload, nobody outside the server ever holds a URL to write to that key.
+func (s *StorageService) StoreFile(ctx context.Context, req StoreFileRequest, content io.Reader, uploaderUserID, uploaderEmail string) (*FileResponse, error) {
+	uniqueFilename := fmt.Sprintf("%s-%s", uuid.New().String(), sanitizeFilename(req.Filename))
+	storageKey := fmt.Sprintf("%s/%s", req.StorageKeyPrefix, uniqueFilename)
+
+	uploadResult, err := s.storageAdapter.Upload(ctx, storageKey, req.ContentType, content)
+	if err != nil {
+		return nil, fmt.Errorf("failed to upload file: %w", err)
+	}
+
+	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
+	defer cancel()
+
+	var emailPgtype pgtype.Text
+	if uploaderEmail != "" {
+		emailPgtype = pgtype.Text{String: uploaderEmail, Valid: true}
+	}
+
+	var descriptionPgtype pgtype.Text
+	if req.Description != "" {
+		descriptionPgtype = pgtype.Text{String: req.Description, Valid: true}
+	}
+
+	fileRecord, err := s.queries.CreateFile(ctxWithTimeout, db.CreateFileParams{
+		Filename:         uniqueFilename,
+		OriginalFilename: req.Filename,
+		ContentType:      req.ContentType,
+		SizeBytes:        uploadResult.Size,
+		StorageKey:       uploadResult.StorageKey,
+		StorageProvider:  sdkUtils.GetEnv("STORAGE_PROVIDER", "seaweedfs"),
+		UploadedByUserID: uploaderUserID,
+		UploadedByEmail:  emailPgtype,
+		Description:      descriptionPgtype,
+	})
+	if err != nil {
+		if deleteErr := s.storageAdapter.Delete(ctx, uploadResult.StorageKey); deleteErr != nil {
+			log.WithError(deleteErr).WithField("storageKey", uploadResult.StorageKey).Warn("Failed to delete unregistered file")
+		}
+		return nil, fmt.Errorf("failed to save file metadata: %w", err)
+	}
+
+	return s.convertToFileResponse(ctx, fileRecord), nil
+}
+
+// DownloadUpload reads an object that was uploaded through a presigned URL but not registered.
+func (s *StorageService) DownloadUpload(ctx context.Context, storageKey string) (io.ReadCloser, error) {
+	if _, err := s.storageAdapter.GetMetadata(ctx, storageKey); err != nil {
+		if errors.Is(err, storage.ErrObjectNotFound) {
+			return nil, fmt.Errorf("no upload found for storage key: %w", ErrNotFound)
+		}
+		return nil, fmt.Errorf("failed to get metadata for storage key: %w", err)
+	}
+	return s.storageAdapter.Download(ctx, storageKey)
+}
+
+// DeleteUpload removes an object that was uploaded through a presigned URL but not registered.
+func (s *StorageService) DeleteUpload(ctx context.Context, storageKey string) error {
+	if err := s.storageAdapter.Delete(ctx, storageKey); err != nil {
+		return err
+	}
+	s.clearPendingUpload(ctx, storageKey)
+	return nil
+}
+
+// discardUpload deletes a rejected presigned upload. A failure leaves the pending entry in
+// place, so the reaper retries later.
+func (s *StorageService) discardUpload(ctx context.Context, storageKey string) {
+	if err := s.DeleteUpload(ctx, storageKey); err != nil {
+		log.WithError(err).WithField("storageKey", storageKey).Warn("Failed to delete rejected upload")
+	}
+}
+
+// clearPendingUpload drops the pending entry of an upload that was registered or deleted.
+// A leftover entry is harmless: the reaper keeps the object of a registered file.
+func (s *StorageService) clearPendingUpload(ctx context.Context, storageKey string) {
+	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
+	defer cancel()
+	if err := s.queries.DeletePendingUpload(ctxWithTimeout, storageKey); err != nil {
+		log.WithError(err).WithField("storageKey", storageKey).Warn("Failed to clear pending upload")
+	}
+}
+
+// ReclaimExpiredUploads deletes the objects of presigned uploads that were not registered
+// as a file within the presign window plus a grace period, and returns how many it deleted.
+func (s *StorageService) ReclaimExpiredUploads(ctx context.Context, limit int32) (int, error) {
+	cutoff := time.Now().Add(-(time.Duration(presignUploadTTLSeconds())*time.Second + pendingUploadGracePeriod))
+	storageKeys, err := s.queries.ListExpiredPendingUploads(ctx, db.ListExpiredPendingUploadsParams{
+		CreatedAt: pgtype.Timestamptz{Time: cutoff, Valid: true},
+		Limit:     limit,
+	})
+	if err != nil {
+		return 0, fmt.Errorf("failed to list expired pending uploads: %w", err)
+	}
+
+	reclaimed := 0
+	for _, storageKey := range storageKeys {
+		_, err := s.queries.GetFileByStorageKey(ctx, storageKey)
+		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+			log.WithError(err).WithField("storageKey", storageKey).Warn("Failed to check expired pending upload")
+			continue
+		}
+		// A registered file owns its object; only the leftover entry has to go.
+		if errors.Is(err, pgx.ErrNoRows) {
+			if err := s.storageAdapter.Delete(ctx, storageKey); err != nil {
+				log.WithError(err).WithField("storageKey", storageKey).Warn("Failed to delete expired upload")
+				continue
+			}
+			reclaimed++
+		}
+		s.clearPendingUpload(ctx, storageKey)
+	}
+	return reclaimed, nil
 }
 
 // GetFileByID retrieves a file by its ID
@@ -340,6 +493,14 @@ func (s *StorageService) GetFileByID(ctx context.Context, fileID uuid.UUID) (*Fi
 	}
 
 	return s.convertToFileResponse(ctx, fileRecord), nil
+}
+
+// GetInlineURL returns a presigned URL for a storage key that stays valid for ttlSeconds
+// and is served inline. Use it only for content that is safe to render in the browser
+// (e.g. the always-JPEG profile pictures); file downloads go through the attachment URL
+// in convertToFileResponse.
+func (s *StorageService) GetInlineURL(ctx context.Context, storageKey string, ttlSeconds int) (string, error) {
+	return s.storageAdapter.GetURL(ctx, storageKey, ttlSeconds, "inline")
 }
 
 // DownloadFile retrieves a file's content from storage
@@ -491,9 +652,21 @@ func (s *StorageService) isAllowedType(contentType string) bool {
 	return false
 }
 
+// attachmentDisposition forces a download under the original filename. The browser ignores
+// the download attribute on cross-origin links, so the storage URL has to carry the name.
+func attachmentDisposition(filename string) string {
+	if filename == "" {
+		return "attachment"
+	}
+	if disposition := mime.FormatMediaType("attachment", map[string]string{"filename": filename}); disposition != "" {
+		return disposition
+	}
+	return "attachment"
+}
+
 // convertToFileResponse converts a database file record to an API response
 func (s *StorageService) convertToFileResponse(ctx context.Context, file db.File) *FileResponse {
-	downloadURL, err := s.storageAdapter.GetURL(ctx, file.StorageKey, presignDownloadTTLSeconds())
+	downloadURL, err := s.storageAdapter.GetURL(ctx, file.StorageKey, presignDownloadTTLSeconds(), attachmentDisposition(file.OriginalFilename))
 	if err != nil {
 		log.WithError(err).WithField("storageKey", file.StorageKey).Warn("Failed to generate download URL")
 		downloadURL = ""
@@ -532,6 +705,10 @@ func (s *StorageService) convertToFileResponse(ctx context.Context, file db.File
 
 	return response
 }
+
+// pendingUploadGracePeriod is how long after its URL expired an upload may still be completed
+// before the reaper deletes it.
+const pendingUploadGracePeriod = time.Hour
 
 func presignUploadTTLSeconds() int {
 	return resolvePresignTTLSeconds("S3_PRESIGN_UPLOAD_TTL_SECONDS", 60)

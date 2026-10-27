@@ -14,6 +14,7 @@
 -- deleted before them.
 
 DELETE FROM results_released_mail WHERE course_phase_id = 'f0000005-0000-0000-0000-000000000005';
+DELETE FROM evaluation_reminder WHERE course_phase_id = 'f0000005-0000-0000-0000-000000000005';
 DELETE FROM action_item WHERE course_phase_id = 'f0000005-0000-0000-0000-000000000005';
 DELETE FROM feedback_items WHERE course_phase_id = 'f0000005-0000-0000-0000-000000000005';
 DELETE FROM evaluation_completion WHERE course_phase_id = 'f0000005-0000-0000-0000-000000000005';

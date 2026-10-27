@@ -9,9 +9,11 @@ import (
 	"github.com/google/uuid"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	"github.com/prompt-edu/prompt-sdk/audit"
+	"github.com/prompt-edu/prompt-sdk/promptTypes"
 	"github.com/prompt-edu/prompt/servers/assessment/assessmentSchemas"
 	"github.com/prompt-edu/prompt/servers/assessment/assessmentType"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig/coursePhaseConfigDTO"
+	"github.com/prompt-edu/prompt/servers/assessment/teamScope"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -27,11 +29,12 @@ func RegisterRoutes(routerGroup *gin.RouterGroup, service *CoursePhaseConfigServ
 	coursePhaseRouter.PUT("", audit.Describe("Updated the assessment configuration"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.createOrUpdateCoursePhaseConfig)
 	coursePhaseRouter.POST("/release", audit.Describe("Released assessment results"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.releaseResults)
 	coursePhaseRouter.POST("/unrelease", audit.Describe("Withdrew released assessment results"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.unreleaseResults)
+	coursePhaseRouter.GET("/reminders", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.getEvaluationReminderStatus)
 	coursePhaseRouter.GET("/reminders/incomplete", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.getIncompleteReminderRecipients)
 	coursePhaseRouter.POST("/reminders/send", audit.Describe("Sent evaluation reminders"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.sendEvaluationReminder)
 
-	coursePhaseRouter.GET("participations", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.getParticipationsForCoursePhase)
-	coursePhaseRouter.GET("teams", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.CourseStudent), service.getTeamsForCoursePhase)
+	coursePhaseRouter.GET("participations", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), teamScope.Resolve(), service.getParticipationsForCoursePhase)
+	coursePhaseRouter.GET("teams", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.CourseStudent), teamScope.Resolve(), service.getTeamsForCoursePhase)
 
 }
 
@@ -193,6 +196,11 @@ func (s *CoursePhaseConfigService) getParticipationsForCoursePhase(c *gin.Contex
 		return
 	}
 
+	if teamScope.Get(c).AllowsNobody() {
+		c.JSON(http.StatusOK, []coursePhaseConfigDTO.AssessmentParticipationWithStudent{})
+		return
+	}
+
 	authHeader := c.GetHeader("Authorization")
 	participations, err := GetParticipationsForCoursePhase(c, authHeader, coursePhaseID)
 	if err != nil {
@@ -201,7 +209,9 @@ func (s *CoursePhaseConfigService) getParticipationsForCoursePhase(c *gin.Contex
 		return
 	}
 
-	c.JSON(http.StatusOK, participations)
+	c.JSON(http.StatusOK, teamScope.Filter(c, participations, func(p coursePhaseConfigDTO.AssessmentParticipationWithStudent) uuid.UUID {
+		return p.CourseParticipationID
+	}))
 }
 
 // getTeamsForCoursePhase godoc
@@ -222,6 +232,11 @@ func (s *CoursePhaseConfigService) getTeamsForCoursePhase(c *gin.Context) {
 		return
 	}
 
+	if teamScope.Get(c).AllowsNobody() {
+		c.JSON(http.StatusOK, []promptTypes.Team{})
+		return
+	}
+
 	authHeader := c.GetHeader("Authorization")
 	teams, err := GetTeamsForCoursePhase(c, authHeader, coursePhaseID)
 	if err != nil {
@@ -231,6 +246,34 @@ func (s *CoursePhaseConfigService) getTeamsForCoursePhase(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, teams)
+}
+
+// getEvaluationReminderStatus godoc
+// @Summary Get evaluation reminder status
+// @Description Returns when a reminder was last sent for each evaluation type.
+// @Tags course_phase_config
+// @Produce json
+// @Param coursePhaseID path string true "Course phase ID"
+// @Success 200 {object} coursePhaseConfigDTO.EvaluationReminderStatus
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /course_phase/{coursePhaseID}/config/reminders [get]
+func (s *CoursePhaseConfigService) getEvaluationReminderStatus(c *gin.Context) {
+	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
+	if err != nil {
+		log.WithError(err).Error("Failed to parse course phase ID")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid course phase ID"})
+		return
+	}
+
+	status, err := s.GetEvaluationReminderStatus(c, coursePhaseID)
+	if err != nil {
+		log.WithError(err).Error("Failed to get evaluation reminder status")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve evaluation reminder status"})
+		return
+	}
+
+	c.JSON(http.StatusOK, status)
 }
 
 // getIncompleteReminderRecipients godoc

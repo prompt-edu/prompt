@@ -1,6 +1,7 @@
 import type { CoursePhaseType } from '@core/managementConsole/courseConfigurator/interfaces/coursePhaseType'
 import type { CoursePhaseType as ServiceCoursePhaseType } from '@core/managementConsole/pages/SystemStatusPage/interfaces/coursePhaseType'
 import type {
+  CoursePhaseParticipationsWithResolution,
   CoursePhaseWithMetaData,
   CreateCoursePhase,
   UpdateCoursePhase,
@@ -13,6 +14,9 @@ const typesPath = `${API_PREFIX}/course_phase_types`
 export const coursePhases = {
   byID: (coursePhaseID: string): Promise<CoursePhaseWithMetaData> =>
     coreRequest.get(`${path}/${coursePhaseID}`),
+
+  participations: (coursePhaseID: string): Promise<CoursePhaseParticipationsWithResolution> =>
+    coreRequest.get(`${path}/${coursePhaseID}/participations`),
 
   create: async ({ courseID, ...coursePhase }: CreateCoursePhase): Promise<string | undefined> =>
     (await coreRequest.post<{ id?: string }>(`${path}/course/${courseID}`, coursePhase)).id,

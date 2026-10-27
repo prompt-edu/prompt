@@ -47,6 +47,7 @@ func (s *AssessmentSchemaService) insertAssessmentSchema(
 ) (assessmentSchemaDTO.AssessmentSchema, error) {
 	tx, err := s.conn.Begin(ctx)
 	if err != nil {
+		log.WithError(err).Error("Failed to begin assessment schema creation")
 		return assessmentSchemaDTO.AssessmentSchema{}, err
 	}
 	defer promptSDK.DeferDBRollback(tx, ctx)
@@ -73,6 +74,7 @@ func (s *AssessmentSchemaService) insertAssessmentSchema(
 
 	err = tx.Commit(ctx)
 	if err != nil {
+		log.WithError(err).Error("Failed to commit assessment schema creation")
 		return assessmentSchemaDTO.AssessmentSchema{}, err
 	}
 
@@ -204,6 +206,7 @@ func (s *AssessmentSchemaService) UpdateAssessmentSchema(ctx context.Context, co
 func (s *AssessmentSchemaService) DeleteAssessmentSchema(ctx context.Context, schemaID uuid.UUID) error {
 	tx, err := s.conn.Begin(ctx)
 	if err != nil {
+		log.WithError(err).Error("Failed to begin assessment schema deletion")
 		return err
 	}
 	defer promptSDK.DeferDBRollback(tx, ctx)
@@ -216,7 +219,11 @@ func (s *AssessmentSchemaService) DeleteAssessmentSchema(ctx context.Context, sc
 		return err
 	}
 
-	return tx.Commit(ctx)
+	if err := tx.Commit(ctx); err != nil {
+		log.WithError(err).Error("Failed to commit assessment schema deletion")
+		return err
+	}
+	return nil
 }
 
 func (s *AssessmentSchemaService) GetCoursePhasesByAssessmentSchema(ctx context.Context, assessmentSchemaID uuid.UUID) ([]uuid.UUID, error) {
@@ -250,6 +257,7 @@ func (s *AssessmentSchemaService) CopyAssessmentSchema(
 ) (assessmentSchemaDTO.AssessmentSchema, error) {
 	tx, err := s.conn.Begin(ctx)
 	if err != nil {
+		log.WithError(err).Error("Failed to begin assessment schema copy")
 		return assessmentSchemaDTO.AssessmentSchema{}, err
 	}
 	defer promptSDK.DeferDBRollback(tx, ctx)
@@ -268,6 +276,7 @@ func (s *AssessmentSchemaService) CopyAssessmentSchema(
 
 	err = tx.Commit(ctx)
 	if err != nil {
+		log.WithError(err).Error("Failed to commit assessment schema copy")
 		return assessmentSchemaDTO.AssessmentSchema{}, err
 	}
 
@@ -318,6 +327,7 @@ func (s *AssessmentSchemaService) CheckPhaseHasAssessmentData(ctx context.Contex
 func (s *AssessmentSchemaService) UpdateAssessmentAndEvaluationCompetencies(ctx context.Context, coursePhaseID uuid.UUID, oldCompetencyID uuid.UUID, newCompetencyID uuid.UUID) error {
 	tx, err := s.conn.Begin(ctx)
 	if err != nil {
+		log.WithError(err).Error("Failed to begin competency update")
 		return err
 	}
 	defer promptSDK.DeferDBRollback(tx, ctx)
@@ -354,7 +364,11 @@ func (s *AssessmentSchemaService) UpdateAssessmentAndEvaluationCompetencies(ctx 
 		return err
 	}
 
-	return tx.Commit(ctx)
+	if err := tx.Commit(ctx); err != nil {
+		log.WithError(err).Error("Failed to commit competency update")
+		return err
+	}
+	return nil
 }
 
 // UpdateCategoryAssessmentCategory remaps category_assessment rows in coursePhaseID

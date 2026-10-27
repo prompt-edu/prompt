@@ -60,13 +60,14 @@ func (suite *ManualMailServiceTestSuite) SetupSuite() {
 	suite.recipient1 = uuid.MustParse(testRecipientOne)
 	suite.recipient2 = uuid.MustParse(testRecipientTwo)
 
-	testDB, cleanup, err := testutils.SetupTestDB(
+	testDB, cleanup, err := testutils.SetupTestDBWithMigrations(
 		suite.ctx,
-		"../database_dumps/mailing_test.sql",
+		"../db/migration",
 		func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) },
+		"../database_dumps/mailing_test.sql",
 	)
 	if err != nil {
-		suite.T().Skipf("skipping db-backed manual mail tests: %v", err)
+		suite.T().Fatalf("Failed to set up test database: %v", err)
 	}
 
 	suite.cleanup = cleanup

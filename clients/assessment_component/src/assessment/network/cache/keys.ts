@@ -26,6 +26,7 @@ export const assessmentKeys = {
   evaluationCategories: (evaluationType: EvaluationType, phaseId: Id) =>
     [EVALUATION_CATEGORY_KEY[evaluationType], phaseId] as const,
   coursePhaseConfig: (phaseId: Id) => ['coursePhaseConfig', phaseId] as const,
+  evaluationReminderStatus: (phaseId: Id) => ['evaluationReminderStatus', phaseId] as const,
   actionItems: {
     inPhase: (phaseId: Id) => ['actionItems', phaseId] as const,
     ofParticipant: (phaseId: Id, courseParticipationId: Id) =>

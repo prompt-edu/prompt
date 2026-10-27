@@ -113,7 +113,7 @@ func auditRouter(sink audit.Sink) *gin.Engine {
 	var conn *pgxpool.Pool
 	timeframeService := timeframe.NewTimeframeService(*queries)
 	teamsService := teams.NewTeamsService(*queries, conn, timeframeService)
-	assignmentService := teams.NewAssignmentService(*queries)
+	assignmentService := teams.NewAssignmentService(*queries, conn)
 	allocationService := allocation.NewAllocationService(*queries)
 
 	teams.RegisterRoutes(coursePhaseApi, teamsService, assignmentService, promptSDK.AuthenticationMiddleware)

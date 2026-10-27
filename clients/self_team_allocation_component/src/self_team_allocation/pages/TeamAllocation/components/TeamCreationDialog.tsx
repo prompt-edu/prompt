@@ -13,6 +13,9 @@ import {
 import { PlusCircle } from 'lucide-react'
 import { useState } from 'react'
 
+// Matches MaxTeamNameLength in the self team allocation server.
+const MAX_TEAM_NAME_LENGTH = 100
+
 interface Props {
   disabled?: boolean
   teams: Team[]
@@ -61,6 +64,7 @@ export const TeamCreationDialog = ({ disabled, teams, onCreate }: Props) => {
               nameExists ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''
             }`}
             value={name}
+            maxLength={MAX_TEAM_NAME_LENGTH}
             onChange={(e) => setName(e.target.value)}
             disabled={disabled}
           />

@@ -86,7 +86,7 @@ type ModuleDeletionTestSuite struct {
 func (suite *ModuleDeletionTestSuite) SetupSuite() {
 	suite.ctx = context.Background()
 
-	testDB, cleanup, err := sdkTestUtils.SetupTestDB(suite.ctx, "../database_dumps/course_phase_test.sql", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) })
+	testDB, cleanup, err := sdkTestUtils.SetupTestDBWithMigrations(suite.ctx, "../db/migration", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) }, "../database_dumps/course_phase_test.sql")
 	require.NoError(suite.T(), err, "failed to set up test database")
 
 	suite.cleanup = cleanup
@@ -106,6 +106,16 @@ func (suite *ModuleDeletionTestSuite) newPhaseType(baseURL string) uuid.UUID {
 	_, err := suite.conn.Exec(suite.ctx,
 		`INSERT INTO course_phase_type (id, name, base_url) VALUES ($1, $2, $3)`,
 		id, "module-deletion-"+id.String(), baseURL)
+	require.NoError(suite.T(), err)
+	return id
+}
+
+func (suite *ModuleDeletionTestSuite) newCourse() uuid.UUID {
+	id := uuid.New()
+	_, err := suite.conn.Exec(suite.ctx,
+		`INSERT INTO course (id, name, start_date, end_date, semester_tag, course_type)
+		 VALUES ($1, $2, '2025-04-01', '2025-09-30', 'ss25', 'practical course')`,
+		id, "module-deletion-"+id.String())
 	require.NoError(suite.T(), err)
 	return id
 }
@@ -130,7 +140,7 @@ func (suite *ModuleDeletionTestSuite) phaseExists(id uuid.UUID) bool {
 func (suite *ModuleDeletionTestSuite) TestDeletesModuleDataThenPhase() {
 	module := newFakeModule(supportsDeletion, http.StatusOK)
 	defer module.server.Close()
-	phaseID := suite.newPhase(suite.newPhaseType(module.server.URL), uuid.New())
+	phaseID := suite.newPhase(suite.newPhaseType(module.server.URL), suite.newCourse())
 
 	err := suite.service.DeleteCoursePhase(suite.ctx, testAuthHeader, phaseID)
 
@@ -144,7 +154,7 @@ func (suite *ModuleDeletionTestSuite) TestDeletesModuleDataThenPhase() {
 func (suite *ModuleDeletionTestSuite) TestSkipsModuleWithoutTheCapability() {
 	module := newFakeModule(withoutDeletion, http.StatusOK)
 	defer module.server.Close()
-	phaseID := suite.newPhase(suite.newPhaseType(module.server.URL), uuid.New())
+	phaseID := suite.newPhase(suite.newPhaseType(module.server.URL), suite.newCourse())
 
 	err := suite.service.DeleteCoursePhase(suite.ctx, testAuthHeader, phaseID)
 
@@ -156,7 +166,7 @@ func (suite *ModuleDeletionTestSuite) TestSkipsModuleWithoutTheCapability() {
 func (suite *ModuleDeletionTestSuite) TestSkipsCoreImplementedPhase() {
 	module := newFakeModule(supportsDeletion, http.StatusOK)
 	defer module.server.Close()
-	phaseID := suite.newPhase(suite.newPhaseType("core"), uuid.New())
+	phaseID := suite.newPhase(suite.newPhaseType("core"), suite.newCourse())
 
 	err := suite.service.DeleteCoursePhase(suite.ctx, testAuthHeader, phaseID)
 
@@ -169,7 +179,7 @@ func (suite *ModuleDeletionTestSuite) TestProbesOnceForPhasesSharingAModule() {
 	module := newFakeModule(supportsDeletion, http.StatusOK)
 	defer module.server.Close()
 	phaseTypeID := suite.newPhaseType(module.server.URL)
-	courseID := uuid.New()
+	courseID := suite.newCourse()
 	first := suite.newPhase(phaseTypeID, courseID)
 	second := suite.newPhase(phaseTypeID, courseID)
 
@@ -187,7 +197,7 @@ func (suite *ModuleDeletionTestSuite) TestDeletesEveryModuleOfACourse() {
 	second := newFakeModule(supportsDeletion, http.StatusOK)
 	defer second.server.Close()
 
-	courseID := uuid.New()
+	courseID := suite.newCourse()
 	firstPhase := suite.newPhase(suite.newPhaseType(first.server.URL), courseID)
 	secondPhase := suite.newPhase(suite.newPhaseType(second.server.URL), courseID)
 
@@ -203,7 +213,7 @@ func (suite *ModuleDeletionTestSuite) TestResolvesTheCoreHostPlaceholder() {
 	defer module.server.Close()
 
 	service := NewCoursePhaseService(*suite.queries, suite.conn, resolution.NewResolutionService(module.server.URL))
-	phaseID := suite.newPhase(suite.newPhaseType("{CORE_HOST}"), uuid.New())
+	phaseID := suite.newPhase(suite.newPhaseType("{CORE_HOST}"), suite.newCourse())
 
 	err := service.DeleteCoursePhase(suite.ctx, testAuthHeader, phaseID)
 
@@ -223,7 +233,7 @@ func (suite *ModuleDeletionTestSuite) TestKeepsThePhaseWhenTheDeletionFails() {
 		suite.Run(name, func() {
 			module := newFakeModule(supportsDeletion, status)
 			defer module.server.Close()
-			phaseID := suite.newPhase(suite.newPhaseType(module.server.URL), uuid.New())
+			phaseID := suite.newPhase(suite.newPhaseType(module.server.URL), suite.newCourse())
 
 			err := suite.service.DeleteCoursePhase(suite.ctx, testAuthHeader, phaseID)
 
@@ -236,7 +246,7 @@ func (suite *ModuleDeletionTestSuite) TestKeepsThePhaseWhenTheDeletionFails() {
 func (suite *ModuleDeletionTestSuite) TestAnswersAModuleFailureWithAGenericBadGateway() {
 	module := newFakeModule(supportsDeletion, http.StatusInternalServerError)
 	defer module.server.Close()
-	phaseID := suite.newPhase(suite.newPhaseType(module.server.URL), uuid.New())
+	phaseID := suite.newPhase(suite.newPhaseType(module.server.URL), suite.newCourse())
 
 	req := httptest.NewRequest(http.MethodDelete, "/api/course_phases/"+phaseID.String(), nil)
 	req.Header.Set("Authorization", testAuthHeader)
@@ -257,7 +267,7 @@ func (suite *ModuleDeletionTestSuite) TestKeepsThePhaseWhenTheCapabilityIsUnknow
 		suite.Run(name, func() {
 			module := newFakeModule(info, http.StatusOK)
 			defer module.server.Close()
-			phaseID := suite.newPhase(suite.newPhaseType(module.server.URL), uuid.New())
+			phaseID := suite.newPhase(suite.newPhaseType(module.server.URL), suite.newCourse())
 
 			err := suite.service.DeleteCoursePhase(suite.ctx, testAuthHeader, phaseID)
 
@@ -273,7 +283,7 @@ func (suite *ModuleDeletionTestSuite) TestKeepsThePhaseWhenTheModuleIsUnreachabl
 	unreachableURL := module.server.URL
 	module.server.Close()
 
-	phaseID := suite.newPhase(suite.newPhaseType(unreachableURL), uuid.New())
+	phaseID := suite.newPhase(suite.newPhaseType(unreachableURL), suite.newCourse())
 
 	err := suite.service.DeleteCoursePhase(suite.ctx, testAuthHeader, phaseID)
 
@@ -282,7 +292,7 @@ func (suite *ModuleDeletionTestSuite) TestKeepsThePhaseWhenTheModuleIsUnreachabl
 }
 
 func (suite *ModuleDeletionTestSuite) TestKeepsThePhaseWhenTheBaseURLIsUnusable() {
-	phaseID := suite.newPhase(suite.newPhaseType("not a url"), uuid.New())
+	phaseID := suite.newPhase(suite.newPhaseType("not a url"), suite.newCourse())
 
 	err := suite.service.DeleteCoursePhase(suite.ctx, testAuthHeader, phaseID)
 
@@ -294,7 +304,7 @@ func (suite *ModuleDeletionTestSuite) TestAsksForEveryPhaseAfterAFailure() {
 	module := newFakeModule(supportsDeletion, http.StatusInternalServerError)
 	defer module.server.Close()
 	phaseTypeID := suite.newPhaseType(module.server.URL)
-	courseID := uuid.New()
+	courseID := suite.newCourse()
 	first := suite.newPhase(phaseTypeID, courseID)
 	second := suite.newPhase(phaseTypeID, courseID)
 
@@ -306,7 +316,7 @@ func (suite *ModuleDeletionTestSuite) TestAsksForEveryPhaseAfterAFailure() {
 }
 
 func (suite *ModuleDeletionTestSuite) TestKeepsThePhaseWhenTheBaseURLWouldLeakCredentials() {
-	phaseID := suite.newPhase(suite.newPhaseType("http://modules.example.com/api"), uuid.New())
+	phaseID := suite.newPhase(suite.newPhaseType("http://modules.example.com/api"), suite.newCourse())
 
 	err := suite.service.DeleteCoursePhase(suite.ctx, testAuthHeader, phaseID)
 

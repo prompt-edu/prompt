@@ -77,7 +77,10 @@ export const CourseMailingOverviewPage = () => {
     <div>
       <div className='flex items-center justify-between'>
         <ManagementPageHeader>Mailing</ManagementPageHeader>
-        <Button onClick={() => navigate(`/management/course/${courseId}/mailing/new`)}>
+        <Button
+          className='mb-6'
+          onClick={() => navigate(`/management/course/${courseId}/mailing/new`)}
+        >
           <Plus className='mr-2 h-4 w-4' />
           New mail
         </Button>

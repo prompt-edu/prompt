@@ -9,8 +9,9 @@ import (
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	"github.com/prompt-edu/prompt-sdk/audit"
 	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
+	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/categoryAssessment/categoryAssessmentDTO"
-	log "github.com/sirupsen/logrus"
+	"github.com/prompt-edu/prompt/servers/assessment/teamScope"
 )
 
 // RegisterRoutes sets up category-assessment endpoints.
@@ -25,7 +26,7 @@ type assessmentGuard interface {
 func RegisterRoutes(routerGroup *gin.RouterGroup, service *CategoryAssessmentService, guard assessmentGuard, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
 	r := routerGroup.Group("/category-assessment")
 
-	r.POST("", audit.Describe("Saved category assessment"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), guard.RequireAssessmentEnabled(), service.createOrUpdateCategoryAssessment)
+	r.POST("", audit.Describe("Saved category assessment"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), teamScope.RequireBodyParticipants(), guard.RequireAssessmentEnabled(), service.createOrUpdateCategoryAssessment)
 }
 
 // createOrUpdateCategoryAssessment godoc
@@ -44,19 +45,19 @@ func RegisterRoutes(routerGroup *gin.RouterGroup, service *CategoryAssessmentSer
 func (s *CategoryAssessmentService) createOrUpdateCategoryAssessment(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	var req categoryAssessmentDTO.CreateOrUpdateCategoryAssessmentRequest
 	if err := c.BindJSON(&req); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
 	tokenUser, ok := keycloakTokenVerifier.GetTokenUser(c)
 	if !ok {
-		handleError(c, http.StatusUnauthorized, errors.New("authenticated user not found in context"))
+		sdkUtils.HandleError(c, http.StatusUnauthorized, errors.New("authenticated user not found in context"))
 		return
 	}
 	// Server is the source of truth for author identity; ignore anything the client supplied.
@@ -65,16 +66,11 @@ func (s *CategoryAssessmentService) createOrUpdateCategoryAssessment(c *gin.Cont
 
 	if err := s.CreateOrUpdateCategoryAssessment(c, coursePhaseID, req); err != nil {
 		if errors.Is(err, ErrNotEditable) {
-			handleError(c, http.StatusForbidden, err)
+			sdkUtils.HandleError(c, http.StatusForbidden, err)
 			return
 		}
-		handleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Category assessment created/updated successfully"})
-}
-
-func handleError(c *gin.Context, statusCode int, err error) {
-	log.Error(err)
-	c.JSON(statusCode, gin.H{"error": err.Error()})
 }

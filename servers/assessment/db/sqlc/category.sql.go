@@ -33,8 +33,9 @@ func (q *Queries) CheckCategoryNameExists(ctx context.Context, arg CheckCategory
 }
 
 const createCategory = `-- name: CreateCategory :exec
-INSERT INTO category (id, name, short_name, description, weight, assessment_schema_id)
-VALUES ($1, $2, $3, $4, $5, $6)
+INSERT INTO category (id, name, short_name, description, weight, assessment_schema_id, sort_order)
+VALUES ($1, $2, $3, $4, $5, $6,
+        (SELECT COALESCE(MAX(sort_order) + 1, 0) FROM category WHERE assessment_schema_id = $6))
 `
 
 type CreateCategoryParams struct {
@@ -101,6 +102,7 @@ SELECT c.id,
                                'weight',
                                cmp.weight
                        )
+                       ORDER BY cmp.sort_order, cmp.name
                                ) FILTER (
                            WHERE cmp.id IS NOT NULL
                            ),
@@ -109,8 +111,8 @@ SELECT c.id,
 FROM category c
          LEFT JOIN competency cmp ON c.id = cmp.category_id
 WHERE c.assessment_schema_id = $1
-GROUP BY c.id, c.name, c.short_name, c.description, c.weight
-ORDER BY c.name ASC
+GROUP BY c.id, c.name, c.short_name, c.description, c.weight, c.sort_order
+ORDER BY c.sort_order ASC, c.name ASC
 `
 
 type GetCategoriesWithCompetenciesRow struct {
@@ -150,7 +152,7 @@ func (q *Queries) GetCategoriesWithCompetencies(ctx context.Context, assessmentS
 }
 
 const getCategory = `-- name: GetCategory :one
-SELECT id, name, description, weight, short_name, assessment_schema_id
+SELECT id, name, description, weight, short_name, assessment_schema_id, sort_order
 FROM category
 WHERE id = $1
 `
@@ -165,14 +167,15 @@ func (q *Queries) GetCategory(ctx context.Context, id uuid.UUID) (Category, erro
 		&i.Weight,
 		&i.ShortName,
 		&i.AssessmentSchemaID,
+		&i.SortOrder,
 	)
 	return i, err
 }
 
 const listCategories = `-- name: ListCategories :many
-SELECT id, name, description, weight, short_name, assessment_schema_id
+SELECT id, name, description, weight, short_name, assessment_schema_id, sort_order
 FROM category
-ORDER BY name ASC
+ORDER BY sort_order ASC, name ASC
 `
 
 func (q *Queries) ListCategories(ctx context.Context) ([]Category, error) {
@@ -191,6 +194,7 @@ func (q *Queries) ListCategories(ctx context.Context) ([]Category, error) {
 			&i.Weight,
 			&i.ShortName,
 			&i.AssessmentSchemaID,
+			&i.SortOrder,
 		); err != nil {
 			return nil, err
 		}
@@ -231,4 +235,26 @@ func (q *Queries) UpdateCategory(ctx context.Context, arg UpdateCategoryParams) 
 		arg.AssessmentSchemaID,
 	)
 	return err
+}
+
+const updateCategorySortOrders = `-- name: UpdateCategorySortOrders :execrows
+UPDATE category c
+SET sort_order = ordered.position - 1
+FROM unnest($2::uuid[]) WITH ORDINALITY AS ordered(id, position)
+WHERE c.id = ordered.id
+  AND c.assessment_schema_id = $1
+`
+
+type UpdateCategorySortOrdersParams struct {
+	AssessmentSchemaID uuid.UUID   `json:"assessment_schema_id"`
+	CategoryIds        []uuid.UUID `json:"category_ids"`
+}
+
+// Sets each listed category's sort_order to its position in category_ids
+func (q *Queries) UpdateCategorySortOrders(ctx context.Context, arg UpdateCategorySortOrdersParams) (int64, error) {
+	result, err := q.db.Exec(ctx, updateCategorySortOrders, arg.AssessmentSchemaID, arg.CategoryIds)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }

@@ -1,4 +1,3 @@
-import { useAuthStore } from '@tumaet/prompt-shared-state'
 import {
   Button,
   Card,
@@ -6,7 +5,6 @@ import {
   CardHeader,
   CardTitle,
   ErrorPage,
-  getStudentName,
   QueryGate,
 } from '@tumaet/prompt-ui-components'
 import { AlertCircle, Loader2, Plus } from 'lucide-react'
@@ -48,9 +46,6 @@ export function ActionItemPanel({ readOnly = false, actionItems }: ActionItemPan
   const { mutate: updateActionItem, isPending: isUpdatePending } = useUpdateActionItem(setError)
   const { mutate: deleteActionItem, isPending: isDeletePending } = useDeleteActionItem(setError)
 
-  const { user } = useAuthStore()
-  const userName = user ? getStudentName(user) : 'Unknown User'
-
   const resolvedActionItems = readOnly ? (actionItems ?? []) : fetchedActionItems
 
   const handleAddActionItem = async () => {
@@ -59,7 +54,6 @@ export function ActionItemPanel({ readOnly = false, actionItems }: ActionItemPan
     await createActionItem({
       courseParticipationID: courseParticipationID ?? '',
       action: '',
-      author: userName,
     })
   }
 
@@ -80,7 +74,6 @@ export function ActionItemPanel({ readOnly = false, actionItems }: ActionItemPan
         id: item.id,
         courseParticipationID: courseParticipationID ?? '',
         action: value.trim(),
-        author: userName,
       }
 
       updateActionItem(updateRequest, {

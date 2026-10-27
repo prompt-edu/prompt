@@ -793,6 +793,7 @@ func TestWorthRetrying(t *testing.T) {
 		{name: "request timeout", err: provider.HTTPError("gitlab", "POST", "/groups", 408, nil), want: true},
 		{name: "server error", err: provider.HTTPError("gitlab", "POST", "/groups", 503, nil), want: true},
 		{name: "wrapped 403", err: fmt.Errorf("adding member: %w", provider.HTTPError("keycloak", "POST", "/groups", 403, nil)), want: false},
+		{name: "blocked internal address", err: fmt.Errorf("Get \"https://gitlab.internal\": %w", provider.ErrBlockedAddress), want: false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			if got := worthRetrying(tc.err); got != tc.want {

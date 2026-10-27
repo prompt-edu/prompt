@@ -6,6 +6,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"mime"
 	"net"
 	"net/mail"
 	"net/smtp"
@@ -380,7 +381,11 @@ func generateMessageID() string {
 func (s *MailingService) buildBaseMailHeader(message *strings.Builder, recipient, subject string) {
 	fmt.Fprintf(message, "From: %s\r\n", s.senderEmail.String())
 	fmt.Fprintf(message, "To: %s\r\n", recipient)
-	fmt.Fprintf(message, "Subject: %s\r\n", subject)
+	// RFC 2047-encode the subject. The subject may contain student-supplied data
+	// substituted from placeholders (e.g. {{firstName}}); Q-encoding neutralizes any
+	// CR/LF so a crafted value cannot inject or terminate mail headers. Plain ASCII
+	// subjects without control characters are emitted unchanged.
+	fmt.Fprintf(message, "Subject: %s\r\n", mime.QEncoding.Encode("utf-8", subject))
 	fmt.Fprintf(message, "Date: %s\r\n", time.Now().Format(time.RFC1123Z))
 	fmt.Fprintf(message, "Message-ID: %s\r\n", generateMessageID())
 	message.WriteString("MIME-Version: 1.0\r\n")

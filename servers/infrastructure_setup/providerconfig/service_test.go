@@ -13,6 +13,7 @@ import (
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	db "github.com/prompt-edu/prompt/servers/infrastructure_setup/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/infrastructure_setup/encryption"
+	"github.com/prompt-edu/prompt/servers/infrastructure_setup/provider"
 	"github.com/prompt-edu/prompt/servers/infrastructure_setup/providerconfig/providerconfigDTO"
 )
 
@@ -162,6 +163,59 @@ func TestValidateUpsertRequestAcceptsValidCredentials(t *testing.T) {
 		ProviderType: "gitlab",
 		Credentials: map[string]interface{}{
 			"base_url":      "https://gitlab.test",
+			"private_token": "token",
+		},
+	}); err != nil {
+		t.Fatalf("validateUpsertRequest: %v", err)
+	}
+}
+
+// Provider URLs are lecturer input the service sends requests to, so an internal
+// address or a non-https scheme is rejected before it is stored. Regression test for
+// GHSA-g8fq-mjgm-x63v.
+func TestValidateUpsertRequestRejectsUnsafeProviderURLs(t *testing.T) {
+	t.Setenv(provider.EnvAllowedPrivateHosts, "")
+
+	base := map[string]map[string]interface{}{
+		"gitlab":   {"private_token": "token"},
+		"outline":  {"api_key": "ol_api_key"},
+		"rancher":  {"access_key": "a", "secret_key": "s", "cluster_id": "c"},
+		"keycloak": {"realm": "r", "client_id": "c", "client_secret": "s"},
+	}
+	urlField := map[string]string{"gitlab": "base_url", "outline": "base_url", "rancher": "rancher_url", "keycloak": "keycloak_url"}
+	unsafe := []string{
+		"http://169.254.169.254/latest/meta-data",
+		"https://169.254.169.254/",
+		"https://10.0.0.5:5432",
+		"https://localhost:8080",
+		"http://provider.example.com",
+		"https://provider.example.com/?",
+		"file:///etc/passwd",
+	}
+
+	for providerType, credentials := range base {
+		for _, raw := range unsafe {
+			t.Run(providerType+" "+raw, func(t *testing.T) {
+				creds := map[string]interface{}{urlField[providerType]: raw}
+				for k, v := range credentials {
+					creds[k] = v
+				}
+				err := validateUpsertRequest(providerconfigDTO.UpsertRequest{ProviderType: providerType, Credentials: creds})
+				if !errors.Is(err, ErrValidation) {
+					t.Fatalf("error = %v, want ErrValidation", err)
+				}
+			})
+		}
+	}
+}
+
+func TestValidateUpsertRequestAcceptsAllowlistedInternalURL(t *testing.T) {
+	t.Setenv(provider.EnvAllowedPrivateHosts, "gitlab.internal")
+
+	if err := validateUpsertRequest(providerconfigDTO.UpsertRequest{
+		ProviderType: "gitlab",
+		Credentials: map[string]interface{}{
+			"base_url":      "http://gitlab.internal",
 			"private_token": "token",
 		},
 	}); err != nil {

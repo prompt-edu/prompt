@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	db "github.com/prompt-edu/prompt/servers/interview/db/sqlc"
@@ -44,6 +45,16 @@ func (e *ServiceError) Unwrap() error {
 
 func newServiceError(statusCode int, message string, err error) *ServiceError {
 	return &ServiceError{StatusCode: statusCode, Message: message, Err: err}
+}
+
+const uniqueViolationCode = "23505"
+
+// isUniqueViolation reports a duplicate booking. The pre-check in the create functions only
+// gives a friendly error for the common case; concurrent bookings for different slots are
+// stopped by the (course_participation_id, course_phase_id) constraint.
+func isUniqueViolation(err error) bool {
+	var pgErr *pgconn.PgError
+	return errors.As(err, &pgErr) && pgErr.Code == uniqueViolationCode
 }
 
 func pgTimestamptzToTime(ts pgtype.Timestamptz) time.Time {
@@ -112,6 +123,9 @@ func (s *InterviewAssignmentService) CreateInterviewAssignment(ctx context.Conte
 		InterviewSlotID:       req.InterviewSlotID,
 		CourseParticipationID: participationUUID,
 	})
+	if isUniqueViolation(err) {
+		return interviewAssignmentDTO.InterviewAssignmentResponse{}, newServiceError(http.StatusConflict, "You already have an interview slot assigned", err)
+	}
 	if err != nil {
 		log.Errorf("Failed to create interview assignment: %v", err)
 		return interviewAssignmentDTO.InterviewAssignmentResponse{}, newServiceError(http.StatusInternalServerError, "Failed to create interview assignment", err)
@@ -182,6 +196,9 @@ func (s *InterviewAssignmentService) CreateInterviewAssignmentAdmin(ctx context.
 		InterviewSlotID:       req.InterviewSlotID,
 		CourseParticipationID: req.CourseParticipationID,
 	})
+	if isUniqueViolation(err) {
+		return interviewAssignmentDTO.InterviewAssignmentResponse{}, newServiceError(http.StatusConflict, "Student already has an interview slot assigned", err)
+	}
 	if err != nil {
 		log.Errorf("Failed to create interview assignment: %v", err)
 		return interviewAssignmentDTO.InterviewAssignmentResponse{}, newServiceError(http.StatusInternalServerError, "Failed to create interview assignment", err)

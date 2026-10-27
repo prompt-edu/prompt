@@ -669,6 +669,10 @@ services:
       # Fixed test key: the phase refuses to start without a valid one.
       - ENCRYPTION_KEY
       - DEBUG
+      # The specs provision against the stack's own Keycloak and an unroutable
+      # TEST-NET-1 host (e2e/tests/infrastructure-setup/helpers.ts), both internal by
+      # the provider URL guard, so they are trusted explicitly.
+      - INFRASTRUCTURE_SETUP_ALLOWED_PRIVATE_HOSTS=keycloak,192.0.2.1
 
   client-infrastructure-setup:
     build:
@@ -959,7 +963,7 @@ services:
   # Mail catcher: the core server submits campaign mails here over SMTP (1025) and
   # the runner reads them back over the HTTP API (8025) to assert delivery.
   mailpit:
-    image: axllent/mailpit:v1.31.5
+    image: axllent/mailpit:v1.31.6
     container_name: prompt-e2e-mailpit
     environment:
       - MP_SMTP_AUTH_ACCEPT_ANY=true

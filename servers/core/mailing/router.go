@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
+	"github.com/prompt-edu/prompt/servers/core/bodyLimit"
 	"github.com/prompt-edu/prompt/servers/core/mailing/mailingDTO"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 )
@@ -29,7 +30,7 @@ func checkAccessControlByIDWrapper(check permissionValidation.PermissionCheck) f
 func setupMailingRouter(router *gin.RouterGroup, s *MailingService, authMiddleware func() gin.HandlerFunc, permissionRoleMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
 	mailing := router.Group("/mailing", authMiddleware())
 	mailing.PUT("/:coursePhaseID", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer, permissionValidation.CourseLecturer), s.sendStatusMailManualTrigger)
-	mailing.POST("/:coursePhaseID/manual", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer, permissionValidation.CourseLecturer), s.sendManualMailTrigger)
+	mailing.POST("/:coursePhaseID/manual", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer, permissionValidation.CourseLecturer), bodyLimit.WithLimit(bodyLimit.LargeMaxBytes), s.sendManualMailTrigger)
 }
 
 // sendStatusMailManualTrigger godoc

@@ -2,6 +2,7 @@ package files
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -11,12 +12,21 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// defaultAllowedFileTypes is a safe allowlist used when ALLOWED_FILE_TYPES is unset, so a
+// deployment never silently falls back to accepting every content type. It matches the
+// documented default in .env.template and deliberately excludes types that render as
+// active content in the browser (e.g. text/html, image/svg+xml).
+const defaultAllowedFileTypes = "application/pdf,image/jpeg,image/png,image/gif,application/zip,text/plain"
+
 // NewStorageServiceFromEnv builds the application documents file storage service from the
 // S3 environment configuration.
 func NewStorageServiceFromEnv(queries db.Queries, conn *pgxpool.Pool) (*StorageService, error) {
 	maxFileSizeMB := int64(50) // Default 50MB
+	if v, err := strconv.ParseInt(sdkUtils.GetEnv("MAX_FILE_UPLOAD_SIZE_MB", "50"), 10, 64); err == nil && v > 0 {
+		maxFileSizeMB = v
+	}
 
-	allowedTypesStr := sdkUtils.GetEnv("ALLOWED_FILE_TYPES", "")
+	allowedTypesStr := sdkUtils.GetEnv("ALLOWED_FILE_TYPES", defaultAllowedFileTypes)
 	var allowedTypes []string
 	if allowedTypesStr != "" {
 		allowedTypes = strings.Split(allowedTypesStr, ",")

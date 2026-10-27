@@ -63,6 +63,19 @@ func validateRequiredCredentials(fields []provider.AuthField, creds map[string]i
 			return logAndReturnError("missing required credential: " + field.Name)
 		}
 	}
+
+	for _, field := range fields {
+		value, _ := creds[field.Name].(string)
+		if !field.IsURL || strings.TrimSpace(value) == "" {
+			continue
+		}
+		if err := provider.ValidateURL(value); err != nil {
+			if errors.Is(err, provider.ErrBlockedAddress) {
+				return logAndReturnError("credential " + field.Name + " points to an internal address, which is not allowed")
+			}
+			return logAndReturnError("credential " + field.Name + " " + err.Error())
+		}
+	}
 	return nil
 }
 

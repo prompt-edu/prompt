@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	"github.com/prompt-edu/prompt/servers/assessment/assessmentType"
@@ -15,6 +16,9 @@ import (
 	"github.com/prompt-edu/prompt/servers/assessment/evaluations/evaluationDTO"
 	log "github.com/sirupsen/logrus"
 )
+
+var ErrEvaluationNotFound = errors.New("evaluation not found")
+var ErrNotEvaluationAuthor = errors.New("you are not the author of this evaluation")
 
 type evaluationCompletionProvider interface {
 	CheckEvaluationIsEditable(ctx context.Context, qtx *db.Queries, authHeader string, courseParticipationID, coursePhaseID, authorCourseParticipationID uuid.UUID, evaluationType assessmentType.AssessmentType) error
@@ -76,7 +80,7 @@ func (s *EvaluationService) CreateOrUpdateEvaluation(ctx context.Context, authHe
 	return nil
 }
 
-func (s *EvaluationService) DeleteEvaluation(ctx context.Context, authHeader string, id uuid.UUID) error {
+func (s *EvaluationService) DeleteEvaluation(ctx context.Context, authHeader string, id, coursePhaseID, authorCourseParticipationID uuid.UUID) error {
 	tx, err := s.conn.Begin(ctx)
 	if err != nil {
 		log.Error("could not begin evaluation deletion transaction: ", err)
@@ -88,8 +92,18 @@ func (s *EvaluationService) DeleteEvaluation(ctx context.Context, authHeader str
 
 	evaluation, err := qtx.GetEvaluationByID(ctx, id)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ErrEvaluationNotFound
+		}
 		log.Error("could not get evaluation by ID: ", err)
 		return errors.New("could not get evaluation by ID")
+	}
+
+	if evaluation.CoursePhaseID != coursePhaseID {
+		return ErrEvaluationNotFound
+	}
+	if evaluation.AuthorCourseParticipationID != authorCourseParticipationID {
+		return ErrNotEvaluationAuthor
 	}
 
 	err = s.evaluationCompletion.CheckEvaluationIsEditable(ctx, qtx, authHeader, evaluation.CourseParticipationID, evaluation.CoursePhaseID, evaluation.AuthorCourseParticipationID, assessmentType.MapDBAssessmentTypeToDTO(evaluation.Type))
@@ -97,10 +111,17 @@ func (s *EvaluationService) DeleteEvaluation(ctx context.Context, authHeader str
 		return err
 	}
 
-	err = qtx.DeleteEvaluation(ctx, id)
+	rows, err := qtx.DeleteEvaluation(ctx, db.DeleteEvaluationParams{
+		ID:                          id,
+		CoursePhaseID:               coursePhaseID,
+		AuthorCourseParticipationID: authorCourseParticipationID,
+	})
 	if err != nil {
 		log.Error("could not delete evaluation: ", err)
 		return errors.New("could not delete evaluation")
+	}
+	if rows == 0 {
+		return ErrEvaluationNotFound
 	}
 
 	if err := tx.Commit(ctx); err != nil {

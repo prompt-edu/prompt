@@ -283,9 +283,10 @@ func (suite *InterviewSlotServiceTestSuite) TestDeleteInterviewSlotCascadesAssig
 	slot, err := suite.service.CreateInterviewSlot(suite.ctx, suite.activePhaseID, createReq)
 	require.NoError(suite.T(), err)
 
-	// Create some assignments for this slot
-	participationID1 := uuid.MustParse("aaaa1111-1111-1111-1111-111111111111")
-	participationID2 := uuid.MustParse("bbbb1111-1111-1111-1111-111111111111")
+	// Create some assignments for this slot. Fresh participations, since the seeded ones
+	// already hold a slot in this phase.
+	participationID1 := uuid.New()
+	participationID2 := uuid.New()
 
 	_, err = suite.testDB.Queries.CreateInterviewAssignment(suite.ctx, db.CreateInterviewAssignmentParams{
 		InterviewSlotID:       slot.ID,

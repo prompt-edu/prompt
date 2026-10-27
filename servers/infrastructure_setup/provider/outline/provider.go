@@ -56,7 +56,7 @@ func (p *Provider) GetAuthFields() []provider.AuthField {
 		{Name: "api_key", Label: "API Key", Type: "password", Required: true,
 			Description: "Outline API key starting with ol_api_"},
 		{Name: "base_url", Label: "Outline API Base URL", Type: "text", Required: false,
-			Description: "Defaults to https://app.getoutline.com/api for Outline Cloud"},
+			Description: "Defaults to https://app.getoutline.com/api for Outline Cloud", IsURL: true},
 	}
 }
 

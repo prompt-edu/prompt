@@ -2,6 +2,7 @@ package execution
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math/rand"
 	"net/http"
@@ -272,7 +273,9 @@ func (w *Worker) processInstance(
 
 	resource, err := w.createWithRetry(ctx, prov, input, inst.ID)
 	if err != nil {
-		return fail(err.Error())
+		// The lecturer sees a redacted message; the full error stays in the log.
+		log.WithError(err).WithField("instanceID", inst.ID).Warn("provider resource creation failed")
+		return fail(provider.UserFacingMessage(err))
 	}
 
 	// A member the phase could not resolve at all never reaches the provider, so its
@@ -414,6 +417,10 @@ func (w *Worker) createWithRetry(ctx context.Context, prov provider.Provider, in
 // timeout are the exceptions, and an error carrying no status at all (a dial failure, a
 // timeout, a parse error) is retried as before.
 func worthRetrying(err error) bool {
+	// A refused internal address is refused again on every attempt.
+	if errors.Is(err, provider.ErrBlockedAddress) {
+		return false
+	}
 	status, ok := provider.StatusOf(err)
 	if !ok {
 		return true

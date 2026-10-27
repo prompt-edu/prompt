@@ -365,7 +365,7 @@ func (suite *ProfilePictureServiceTestSuite) TestCompleteUpload_URLFailureKeepsP
 	storedKey := suite.storedKey(userID)
 
 	adapter := suite.store.adapter()
-	adapter.GetURLFunc = func(context.Context, string, int) (string, error) {
+	adapter.GetURLFunc = func(context.Context, string, int, string) (string, error) {
 		return "", errors.New("presigner unavailable")
 	}
 	secondKey := suite.upload(userID, pictureContentType, validJPEG)

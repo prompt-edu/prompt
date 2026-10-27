@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
+	"github.com/prompt-edu/prompt/servers/core/bodyLimit"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase/coursePhaseDTO"
 	"github.com/prompt-edu/prompt/servers/core/meta"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
@@ -42,8 +43,8 @@ func setupCoursePhaseRouter(router *gin.RouterGroup, s *CoursePhaseService, auth
 	coursePhase.GET("/:uuid/participation_status_counts", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer, permissionValidation.CourseEditor), s.getCoursePhaseParticipationStatusCounts)
 
 	// getting the course ID here to do correct rights management
-	coursePhase.POST("/course/:courseID", permissionCourseIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), s.createCoursePhase)
-	coursePhase.PUT("/:uuid", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), s.updateCoursePhase)
+	coursePhase.POST("/course/:courseID", permissionCourseIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), bodyLimit.WithLimit(bodyLimit.LargeMaxBytes), s.createCoursePhase)
+	coursePhase.PUT("/:uuid", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), bodyLimit.WithLimit(bodyLimit.LargeMaxBytes), s.updateCoursePhase)
 	coursePhase.DELETE("/:uuid", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), s.deleteCoursePhase)
 }
 

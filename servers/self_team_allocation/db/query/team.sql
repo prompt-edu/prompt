@@ -79,8 +79,24 @@ WHERE
 
 
 -- name: CreateTeam :exec
-INSERT INTO team (id, name, course_phase_id)
-VALUES ($1, $2, $3);
+INSERT INTO team (id, name, course_phase_id, created_by_course_participation_id)
+VALUES ($1, $2, $3, sqlc.narg(created_by_course_participation_id));
+
+-- name: LockTeamCreation :exec
+-- Serializes team creation within a course phase so the creation limits below cannot be
+-- bypassed by concurrent requests. Released automatically at the end of the transaction.
+SELECT pg_advisory_xact_lock(hashtextextended((sqlc.arg(course_phase_id)::uuid)::text, 0));
+
+-- name: CountTeamsByCoursePhase :one
+SELECT COUNT(*)
+FROM team
+WHERE course_phase_id = $1;
+
+-- name: CountTeamsCreatedByParticipation :one
+SELECT COUNT(*)
+FROM team
+WHERE course_phase_id = $1
+  AND created_by_course_participation_id = $2;
 
 -- name: UpdateTeam :exec
 UPDATE team

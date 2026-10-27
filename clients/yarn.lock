@@ -1190,6 +1190,90 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@hookform/resolvers@npm:^6.0.0":
+  version: 6.0.0
+  resolution: "@hookform/resolvers@npm:6.0.0"
+  dependencies:
+    "@standard-schema/utils": "npm:^0.3.0"
+  peerDependencies:
+    "@sinclair/typebox": ">=0.25.24"
+    "@standard-schema/spec": ^1.0.0
+    "@typeschema/main": ">=0.13.7"
+    "@vinejs/vine": ^2.0.0 || ^3.0.0 || ^4.0.0
+    ajv: ^8.12.0
+    ajv-errors: ^3.0.0
+    ajv-formats: ^2.1.1
+    arktype: ^2.0.0
+    ata-validator: ^1.23.0
+    class-transformer: ">=0.4.0"
+    class-validator: ">=0.12.0"
+    computed-types: ^1.0.0
+    effect: ^4.0.0
+    fluentvalidation-ts: ^3.0.0
+    fp-ts: ^2.7.0
+    io-ts: ^2.0.0
+    joi: ^17.0.0 || ^18.0.0
+    nope-validator: ">=0.12.0"
+    react-hook-form: ^7.55.0
+    superstruct: ">=0.12.0"
+    typanion: ^3.3.2
+    valibot: ">=0.31.0 || ^1.0.0-beta.4 || ^1.0.0-rc"
+    vest: ">=6.0.0"
+    yup: ^1.0.0
+    zod: ^3.25.0 || ^4.0.0
+  peerDependenciesMeta:
+    "@sinclair/typebox":
+      optional: true
+    "@standard-schema/spec":
+      optional: true
+    "@typeschema/main":
+      optional: true
+    "@vinejs/vine":
+      optional: true
+    ajv:
+      optional: true
+    ajv-errors:
+      optional: true
+    ajv-formats:
+      optional: true
+    arktype:
+      optional: true
+    ata-validator:
+      optional: true
+    class-transformer:
+      optional: true
+    class-validator:
+      optional: true
+    computed-types:
+      optional: true
+    effect:
+      optional: true
+    fluentvalidation-ts:
+      optional: true
+    fp-ts:
+      optional: true
+    io-ts:
+      optional: true
+    joi:
+      optional: true
+    nope-validator:
+      optional: true
+    superstruct:
+      optional: true
+    typanion:
+      optional: true
+    valibot:
+      optional: true
+    vest:
+      optional: true
+    yup:
+      optional: true
+    zod:
+      optional: true
+  checksum: 10c0/97ca7f437ae6ab810f9fa5189de3291a1a9542e5be5d89731a95db0a26a98554857f892c450065cbc033ee0b9327da61a044343dad9f135c405dbbd6e50b6543
+  languageName: node
+  linkType: hard
+
 "@inquirer/ansi@npm:^2.0.8, @inquirer/ansi@npm:^2.0.9":
   version: 2.0.9
   resolution: "@inquirer/ansi@npm:2.0.9"
@@ -4049,25 +4133,25 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tanstack/query-core@npm:5.104.4":
-  version: 5.104.4
-  resolution: "@tanstack/query-core@npm:5.104.4"
-  checksum: 10c0/059587b4eec5abc186e9361b23ede4b5ecf0b0899e0e10154d70793f2b00ce4fd168e5d9636cdacabca464bb6c882372d2866a4bfd354ec3d2fd4b0ba6ef1110
+"@tanstack/query-core@npm:5.105.0":
+  version: 5.105.0
+  resolution: "@tanstack/query-core@npm:5.105.0"
+  checksum: 10c0/1b4baa128a95810b677d93f91156e3d32eb07dbe9e062fe0a2651089569f3fca275e43dc9fe569efd55b9e5a00d0d2e18b78de6fa9ed65b1ad54f24e5a90106e
   languageName: node
   linkType: hard
 
-"@tanstack/react-query@npm:^5.104.2":
-  version: 5.104.4
-  resolution: "@tanstack/react-query@npm:5.104.4"
+"@tanstack/react-query@npm:^5.104.5":
+  version: 5.105.0
+  resolution: "@tanstack/react-query@npm:5.105.0"
   dependencies:
-    "@tanstack/query-core": "npm:5.104.4"
+    "@tanstack/query-core": "npm:5.105.0"
   peerDependencies:
     "@types/react": ^18 || ^19
     react: ^18 || ^19
   peerDependenciesMeta:
     "@types/react":
       optional: true
-  checksum: 10c0/c4999d44e59de7849dcb9e54ecff5670e9bbfb31f4eba82d4dcac6855171e1dce64e436a0192dddc669a9e2aa1f658bb836b1cd9026074268a4c28197dad54a3
+  checksum: 10c0/7c9e8d073a0a9192937d0996b18ff6c27a769efb93a3a9cf6cf31c811c9187229573c0746849f1f99c0c96af63e7d738c475e445e53cea6c3a8b0718d8b16f7d
   languageName: node
   linkType: hard
 
@@ -4531,9 +4615,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tumaet/prompt-shared-state@npm:1.3.0":
-  version: 1.3.0
-  resolution: "@tumaet/prompt-shared-state@npm:1.3.0"
+"@tumaet/prompt-shared-state@npm:1.4.0":
+  version: 1.4.0
+  resolution: "@tumaet/prompt-shared-state@npm:1.4.0"
   dependencies:
     axios: "npm:^1.20.0"
     i18n-iso-countries: "npm:^7.14.0"
@@ -4541,10 +4625,10 @@ __metadata:
     typescript: "npm:^7.0.2"
     zustand: "npm:^5.0.15"
   peerDependencies:
-    "@tanstack/react-query": ^5.102.8
-    react: ^19.2.8
-    react-router-dom: ^7.18.3
-  checksum: 10c0/3477734550a039ce57007406e7164911c5187b1a3e09e5d982c2081b736138172c4b7e707a7f05fd1f0964fb08dba8fda201ab72612ad319294f3ddebd62d6a6
+    "@tanstack/react-query": ^5.104.5
+    react: ^19.3.1
+    react-router-dom: ^7.18.4
+  checksum: 10c0/3c1d90c291d51a524755bb895ad9284230498d797b66a8fd9d9e8219b010b4f69cbe38321f6108e91a10a386eac21da1954418856d8dc2f3d021f165e233a039
   languageName: node
   linkType: hard
 
@@ -5266,6 +5350,13 @@ __metadata:
   version: 2.0.1
   resolution: "argparse@npm:2.0.1"
   checksum: 10c0/c5640c2d89045371c7cedd6a70212a04e360fd34d6edeae32f6952c63949e3525ea77dbec0289d8213a99bbaeab5abfa860b5c12cf88a2e6cf8106e90dd27a7e
+  languageName: node
+  linkType: hard
+
+"argparse@npm:^3.0.3":
+  version: 3.0.3
+  resolution: "argparse@npm:3.0.3"
+  checksum: 10c0/8d715f1c4bb0aa14a8b8ee749d6ab6f12d380caba33139d527cac79988af152cfd160f152c3964c76c7ea473f1899bd0989bd1e9cfdba22e68f50b6a4b5c9d0d
   languageName: node
   linkType: hard
 
@@ -6811,12 +6902,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"framer-motion@npm:14.5.0":
-  version: 14.5.0
-  resolution: "framer-motion@npm:14.5.0"
+"framer-motion@npm:14.6.0":
+  version: 14.6.0
+  resolution: "framer-motion@npm:14.6.0"
   dependencies:
-    motion-dom: "npm:14.5.0"
-    motion-utils: "npm:14.1.1"
+    motion-dom: "npm:14.6.0"
+    motion-utils: "npm:14.6.0"
     tslib: "npm:^2.4.0"
   peerDependencies:
     react: ^18.0.0 || ^19.0.0
@@ -6826,7 +6917,7 @@ __metadata:
       optional: true
     react-dom:
       optional: true
-  checksum: 10c0/af81c8bdb3a0a6a1f0dfc528d8c7b29f355c81d1597c145226734fcc9daa7f8aa84331a4f428ed360762963ac54fc09815b1e0cd8914f650af15a720b4b50096
+  checksum: 10c0/cca23ea04ed6c8a025400f943f4782f53181da9555b11af63bbb3642b3054dc7f427b6cdc0a3abbf0683cf6d58fa8f85d68b865b319fc4de6c0693eddddad630
   languageName: node
   linkType: hard
 
@@ -7506,14 +7597,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"js-yaml@npm:^5.4.3":
-  version: 5.4.3
-  resolution: "js-yaml@npm:5.4.3"
+"js-yaml@npm:^5.5.0":
+  version: 5.5.0
+  resolution: "js-yaml@npm:5.5.0"
   dependencies:
-    argparse: "npm:^2.0.1"
+    argparse: "npm:^3.0.3"
   bin:
     js-yaml: bin/js-yaml.mjs
-  checksum: 10c0/7180bf35feef9815a06cb2f8845c1196f1e4264430a04623884d87c3d21475de7d46a86c9c5142dcc1646c788bc0e676eb09ba817810707e0b4e984f7cf93a5f
+  checksum: 10c0/311619f44dd788657e9b81d4b5c60ff367441f364045e3796bc604a41f25819852748fb173ae82f2553d53cb609d7fdb79e0a74148892cb2c085eebe91839b53
   languageName: node
   linkType: hard
 
@@ -8017,7 +8108,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"lucide-react@npm:^1.56.0, lucide-react@npm:^1.57.0":
+"lucide-react@npm:^1.56.0":
   version: 1.61.0
   resolution: "lucide-react@npm:1.61.0"
   peerDependencies:
@@ -8027,6 +8118,19 @@ __metadata:
     "@types/react":
       optional: true
   checksum: 10c0/85576d32aef43d5dccf5a1fac06b67c2ccbb70eb33b996123f49aab108111fffa6bdd517c7d406db67a14432c45924279c2ec7212a166864d3355ce68b361494
+  languageName: node
+  linkType: hard
+
+"lucide-react@npm:^1.60.0":
+  version: 1.62.0
+  resolution: "lucide-react@npm:1.62.0"
+  peerDependencies:
+    "@types/react": "*"
+    react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
+  peerDependenciesMeta:
+    "@types/react":
+      optional: true
+  checksum: 10c0/58334df044a9f837ba2ddc77e7a3c34545fd7ca28d853882df94ba52de54821ed16f34f7ced373089a2972725beadb8b82ebb9b9d1dcbcd468f87d05949ee46d
   languageName: node
   linkType: hard
 
@@ -8241,27 +8345,27 @@ __metadata:
   languageName: node
   linkType: hard
 
-"motion-dom@npm:14.5.0":
-  version: 14.5.0
-  resolution: "motion-dom@npm:14.5.0"
+"motion-dom@npm:14.6.0":
+  version: 14.6.0
+  resolution: "motion-dom@npm:14.6.0"
   dependencies:
-    motion-utils: "npm:14.1.1"
-  checksum: 10c0/550be2329a3b5caad230e3dfd7279c72d3c8921bdd33ce67cc2b1986d92f9ab8979772ff5f9cee02b4ab49339e30977cfb6cd762717384a10e9bcab3cacecc25
+    motion-utils: "npm:14.6.0"
+  checksum: 10c0/ef2c979c615778e838cf9d68398887f23308032ae18dc44e7ce0a7c499a1025a4a23e6510b7c7ca2e2e987a19bf97228236360efeba69bbd7295805d3b3366b9
   languageName: node
   linkType: hard
 
-"motion-utils@npm:14.1.1":
-  version: 14.1.1
-  resolution: "motion-utils@npm:14.1.1"
-  checksum: 10c0/ee89684857aae2b02897d7297568e1e6dc6c1eec08c61533fbc0a9650de5d5c454aa888532b825baabac92defddecd364cbb8cd7fa63b2171152edf8f9f819f0
+"motion-utils@npm:14.6.0":
+  version: 14.6.0
+  resolution: "motion-utils@npm:14.6.0"
+  checksum: 10c0/bdc1b32d09385f3f68237c763af9fbdb9495dda08b668a17aea6659ce7639db9466128069266bb4e68125ab1297b6653975366b054737f849af4103ce755f45a
   languageName: node
   linkType: hard
 
-"motion@npm:^14.2.0":
-  version: 14.5.0
-  resolution: "motion@npm:14.5.0"
+"motion@npm:^14.4.0":
+  version: 14.6.0
+  resolution: "motion@npm:14.6.0"
   dependencies:
-    framer-motion: "npm:14.5.0"
+    framer-motion: "npm:14.6.0"
     tslib: "npm:^2.4.0"
   peerDependencies:
     react: ^18.0.0 || ^19.0.0
@@ -8271,7 +8375,7 @@ __metadata:
       optional: true
     react-dom:
       optional: true
-  checksum: 10c0/2005863c05766127aaf32d71cd730965390a462f8d31f6a1cbbeacb2f788c4d4f93b85ae1a373801f90ec905685bed952697945f40ba7cf9a2e2022b4d166033
+  checksum: 10c0/fe21d5c6e4ea1920ebcfd305369a39cd5b12feb875d0c8d8f2dff5124682ed7d50d91031cf5316bedb7e805ad747cd61e49283cda681eb8dc5ac5e25c861a384
   languageName: node
   linkType: hard
 
@@ -9495,6 +9599,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"postcss@npm:^8.5.31":
+  version: 8.5.32
+  resolution: "postcss@npm:8.5.32"
+  dependencies:
+    nanoid: "npm:^3.3.20"
+    picocolors: "npm:^1.1.1"
+    source-map-js: "npm:^1.2.2"
+  checksum: 10c0/5fa6cad84e277c2ced965dc7e8e7c0b8d7e5b76a6835591b57a43fde46e671d0c8428d365e9141c080abaae5441d495ed77ffd7472c5bd41d6c2154bd03c01d7
+  languageName: node
+  linkType: hard
+
 "presentation_component@workspace:presentation_component":
   version: 0.0.0-use.local
   resolution: "presentation_component@workspace:presentation_component"
@@ -9554,7 +9669,7 @@ __metadata:
   dependencies:
     "@biomejs/biome": "npm:2.5.15"
     "@hello-pangea/dnd": "npm:^18.0.1"
-    "@hookform/resolvers": "npm:^5.9.1"
+    "@hookform/resolvers": "npm:^6.0.0"
     "@module-federation/runtime-tools": "npm:^2.9.2"
     "@radix-ui/react-icons": "npm:^1.3.2"
     "@radix-ui/react-toolbar": "npm:^1.2.1"
@@ -9562,7 +9677,7 @@ __metadata:
     "@rspack/core": "npm:^2.2.9"
     "@rspack/dev-server": "npm:^2.2.1"
     "@tailwindcss/postcss": "npm:^4.3.3"
-    "@tanstack/react-query": "npm:^5.104.2"
+    "@tanstack/react-query": "npm:^5.104.5"
     "@tanstack/react-table": "npm:^9.3.1"
     "@tiptap/core": "npm:^3.32.0"
     "@tiptap/extension-code-block": "npm:^3.32.0"
@@ -9580,7 +9695,7 @@ __metadata:
     "@tiptap/pm": "npm:^3.32.0"
     "@tiptap/react": "npm:^3.32.0"
     "@tiptap/starter-kit": "npm:^3.32.0"
-    "@tumaet/prompt-shared-state": "npm:1.3.0"
+    "@tumaet/prompt-shared-state": "npm:1.4.0"
     "@tumaet/prompt-ui-components": "npm:1.8.0"
     "@types/node": "npm:^25.9.9"
     "@types/react": "npm:^19.3.0"
@@ -9599,9 +9714,9 @@ __metadata:
     keycloak-js: "npm:25.0.6"
     lerna: "npm:^10.1.1"
     lowlight: "npm:^3.3.0"
-    lucide-react: "npm:^1.57.0"
-    motion: "npm:^14.2.0"
-    postcss: "npm:^8.5.30"
+    lucide-react: "npm:^1.60.0"
+    motion: "npm:^14.4.0"
+    postcss: "npm:^8.5.31"
     postcss-loader: "npm:8.2.1"
     react: "npm:^19.3.1"
     react-dom: "npm:^19.3.1"
@@ -9620,7 +9735,7 @@ __metadata:
     typescript: "npm:^6.0.3"
     use-debounce: "npm:^10.1.1"
     vite: "npm:^8.3.4"
-    vitest: "npm:^5.0.4"
+    vitest: "npm:^5.0.5"
     webpack-bundle-analyzer: "npm:^5.4.0"
     zod: "npm:^4.6.7"
     zustand: "npm:^5.0.15"
@@ -11314,7 +11429,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vitest@npm:^5.0.4":
+"vitest@npm:^5.0.5":
   version: 5.0.5
   resolution: "vitest@npm:5.0.5"
   dependencies:

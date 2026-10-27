@@ -19,7 +19,7 @@
     "@docusaurus/preset-classic": "3.10.2",
     "@mdx-js/react": "^3.1.1",
     "clsx": "^2.1.1",
-    "lucide-react": "^1.57.0",
+    "lucide-react": "^1.60.0",
     "prism-react-renderer": "^2.4.1",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"
@@ -41,7 +41,7 @@
     ]
   },
   "engines": {
-    "node": ">=24.22.0"
+    "node": ">=24.22.1"
   },
   "packageManager": "yarn@4.18.1",
   "resolutions": {

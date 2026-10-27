@@ -328,6 +328,56 @@ func (suite *ApplicationAdminServiceTestSuite) TestPostApplicationExtern_Already
 	assert.Equal(suite.T(), ErrAlreadyApplied, err)
 }
 
+// TestPostApplicationExtern_RejectsUniversityAccountEmail verifies the external route
+// cannot attach an application to an existing university-account student even when the
+// submitted first and last name match. Regression test for GHSA-5mjh-vmpg-g6xp.
+func (suite *ApplicationAdminServiceTestSuite) TestPostApplicationExtern_RejectsUniversityAccountEmail() {
+	coursePhaseID := uuid.MustParse("d0000099-0000-0000-0000-000000000099")
+	application := applicationDTO.PostApplication{
+		Student: studentDTO.CreateStudent{
+			// Same name as the seeded university student behind this email.
+			FirstName:            "Uni",
+			LastName:             "Account",
+			Email:                "uni-account@example.com",
+			HasUniversityAccount: false,
+			Gender:               db.GenderMale,
+			Nationality:          "DE",
+			CurrentSemester:      pgtype.Int4{Valid: true, Int32: 1},
+			StudyProgram:         "Computer Science",
+			StudyDegree:          "bachelor",
+		},
+	}
+
+	_, err := suite.applicationAdminService.PostApplicationExtern(suite.ctx, coursePhaseID, application)
+	assert.Error(suite.T(), err)
+	assert.Equal(suite.T(), ErrStudentDetailsDoNotMatch, err)
+}
+
+// TestPostApplicationExtern_NoUniversityLoginKeepsReturningStudent verifies a returning
+// university student can still apply on a phase without university login, where the
+// external route is the only way in.
+func (suite *ApplicationAdminServiceTestSuite) TestPostApplicationExtern_NoUniversityLoginKeepsReturningStudent() {
+	coursePhaseID := uuid.MustParse("d0000097-0000-0000-0000-000000000097")
+	application := applicationDTO.PostApplication{
+		Student: studentDTO.CreateStudent{
+			FirstName:            "Returning",
+			LastName:             "Student",
+			Email:                "returning-student@example.com",
+			HasUniversityAccount: true,
+			MatriculationNumber:  "03700066",
+			UniversityLogin:      "qq00qqr",
+			Gender:               db.GenderMale,
+			Nationality:          "DE",
+			CurrentSemester:      pgtype.Int4{Valid: true, Int32: 1},
+			StudyProgram:         "Computer Science",
+			StudyDegree:          "bachelor",
+		},
+	}
+
+	_, err := suite.applicationAdminService.PostApplicationExtern(suite.ctx, coursePhaseID, application)
+	assert.NoError(suite.T(), err)
+}
+
 func (suite *ApplicationAdminServiceTestSuite) TestGetApplicationAuthenticatedByMatNr_NotApplied() {
 	matrNr := "03711111"
 	universityLogin := "ab12cde"

@@ -162,17 +162,25 @@ SELECT EXISTS (
 -- name: CheckIfCoursePhaseIsOpenApplicationPhase :one
 SELECT
     cpt.name = 'Application' AS is_application,
-    (cp.restricted_data->>'universityLoginAvailable')::boolean AS university_login_available
+    (cp.restricted_data->>'universityLoginAvailable')::boolean AS university_login_available,
+    COALESCE((cp.restricted_data->>'externalStudentsAllowed')::boolean, false)::boolean AS external_students_allowed
 FROM
     course_phase cp
 JOIN
     course_phase_type cpt
 ON
     cp.course_phase_type_id = cpt.id
+JOIN
+    course c
+ON
+    cp.course_id = c.id
 WHERE
     cp.id = $1
+    AND cp.is_initial_phase = true
+    AND c.archived = false
     AND COALESCE(cp.restricted_data->>'applicationMode', 'apply') = 'apply'
-    AND (cp.restricted_data->>'applicationEndDate')::timestamp > NOW();
+    AND (cp.restricted_data->>'applicationEndDate')::timestamp > NOW()
+    AND (cp.restricted_data->>'applicationStartDate')::timestamp < NOW();
 
 -- name: GetApplicationAnswersTextForCourseParticipationID :many
 SELECT aat.*

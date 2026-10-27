@@ -44,7 +44,7 @@ func (p *Provider) GetType() string { return "rancher" }
 func (p *Provider) GetAuthFields() []provider.AuthField {
 	return []provider.AuthField{
 		{Name: "rancher_url", Label: "Rancher URL", Type: "text", Required: true,
-			Description: "Base URL of your Rancher instance (e.g. https://rancher.example.com)"},
+			Description: "Base URL of your Rancher instance (e.g. https://rancher.example.com)", IsURL: true},
 		{Name: "access_key", Label: "Access Key", Type: "text", Required: true,
 			Description: "Rancher API access key"},
 		{Name: "secret_key", Label: "Secret Key", Type: "password", Required: true,

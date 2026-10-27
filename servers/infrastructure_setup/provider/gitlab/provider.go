@@ -62,7 +62,7 @@ func (p *Provider) GetType() string { return "gitlab" }
 func (p *Provider) GetAuthFields() []provider.AuthField {
 	return []provider.AuthField{
 		{Name: "base_url", Label: "GitLab URL", Type: "text", Required: true,
-			Description: "Your GitLab instance URL (e.g. https://gitlab.com)"},
+			Description: "Your GitLab instance URL (e.g. https://gitlab.com)", IsURL: true},
 		{Name: "private_token", Label: "Personal Access Token", Type: "password", Required: true,
 			Description: "PAT with api scope"},
 		{Name: "parent_group_id", Label: "Parent Group ID", Type: "text", Required: false,

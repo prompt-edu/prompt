@@ -1,12 +1,14 @@
 package teams
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	"github.com/prompt-edu/prompt-sdk/audit"
+	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/self_team_allocation/team/teamDTO"
 	log "github.com/sirupsen/logrus"
@@ -37,6 +39,47 @@ func RegisterRoutes(routerGroup *gin.RouterGroup, teamsService *TeamsService, as
 	teamRouter.POST("/:teamID/tutor", audit.Describe("Added a tutor to a team"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), handler.createManualTutor)
 	teamRouter.DELETE("/tutor/:tutorID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), handler.deleteTutor)
 	teamRouter.GET("/tutors", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), handler.getTutors)
+}
+
+// checkTimeframe answers the request itself and returns false when team changes are not
+// allowed right now: 400 outside the configured window, 500 if the window cannot be loaded.
+func (h *teamHandler) checkTimeframe(c *gin.Context, coursePhaseID uuid.UUID) bool {
+	allowed, err := h.teamsService.ValidateTimeframe(c, coursePhaseID)
+	if errors.Is(err, ErrOutsideTimeframe) || (err == nil && !allowed) {
+		sdkUtils.HandleError(c, http.StatusBadRequest, ErrOutsideTimeframe)
+		return false
+	}
+	if err != nil {
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
+		return false
+	}
+	return true
+}
+
+// teamCreatorID returns the creating student's course participation, or uuid.Nil for admins
+// and lecturers, whose team creations are not limited. ok is false for a student without one.
+func teamCreatorID(c *gin.Context) (uuid.UUID, bool) {
+	tokenUser, ok := keycloakTokenVerifier.GetTokenUser(c)
+	if ok && (tokenUser.Roles[promptSDK.PromptAdmin] || tokenUser.IsLecturer) {
+		return uuid.Nil, true
+	}
+	courseParticipationID, err := keycloakTokenVerifier.GetUserCourseParticipationID(c)
+	if err != nil || courseParticipationID == uuid.Nil {
+		log.Error("Error getting courseParticipationID from context: ", err)
+		return uuid.Nil, false
+	}
+	return courseParticipationID, true
+}
+
+func teamErrorStatus(err error) int {
+	switch {
+	case errors.Is(err, ErrInvalidTeamName):
+		return http.StatusBadRequest
+	case errors.Is(err, ErrDuplicateTeamName), errors.Is(err, ErrTeamLimitReached):
+		return http.StatusConflict
+	default:
+		return http.StatusInternalServerError
+	}
 }
 
 // getAllTeams godoc
@@ -111,6 +154,7 @@ func (h *teamHandler) getTeamByID(c *gin.Context) {
 // @Param request body teamDTO.CreateTeamsRequest true "Team names to create"
 // @Success 201
 // @Failure 400 {object} map[string]string
+// @Failure 409 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Security ApiKeyAuth
 // @Router /course_phase/{coursePhaseID}/team [post]
@@ -122,13 +166,7 @@ func (h *teamHandler) createTeams(c *gin.Context) {
 		return
 	}
 
-	allowed, err := h.teamsService.ValidateTimeframe(c, coursePhaseID)
-	if err != nil {
-		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
-		return
-	}
-	if !allowed {
-		sdkUtils.HandleError(c, http.StatusBadRequest, err)
+	if !h.checkTimeframe(c, coursePhaseID) {
 		return
 	}
 
@@ -138,9 +176,15 @@ func (h *teamHandler) createTeams(c *gin.Context) {
 		return
 	}
 
-	err = h.teamsService.CreateNewTeams(c, request.TeamNames, coursePhaseID)
+	creatorID, ok := teamCreatorID(c)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "courseParticipationID not found"})
+		return
+	}
+
+	err = h.teamsService.CreateNewTeams(c, request.TeamNames, coursePhaseID, creatorID)
 	if err != nil {
-		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, teamErrorStatus(err), err)
 		return
 	}
 	c.Status(http.StatusCreated)
@@ -168,13 +212,7 @@ func (h *teamHandler) updateTeam(c *gin.Context) {
 		return
 	}
 
-	allowed, err := h.teamsService.ValidateTimeframe(c, coursePhaseID)
-	if err != nil {
-		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
-		return
-	}
-	if !allowed {
-		sdkUtils.HandleError(c, http.StatusBadRequest, err)
+	if !h.checkTimeframe(c, coursePhaseID) {
 		return
 	}
 
@@ -193,7 +231,7 @@ func (h *teamHandler) updateTeam(c *gin.Context) {
 
 	err = h.teamsService.UpdateTeam(c, coursePhaseID, teamID, request.NewTeamName)
 	if err != nil {
-		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, teamErrorStatus(err), err)
 		return
 	}
 	c.Status(http.StatusOK)
@@ -219,13 +257,7 @@ func (h *teamHandler) assignTeam(c *gin.Context) {
 		return
 	}
 
-	allowed, err := h.teamsService.ValidateTimeframe(c, coursePhaseID)
-	if err != nil {
-		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
-		return
-	}
-	if !allowed {
-		sdkUtils.HandleError(c, http.StatusBadRequest, err)
+	if !h.checkTimeframe(c, coursePhaseID) {
 		return
 	}
 
@@ -233,18 +265,6 @@ func (h *teamHandler) assignTeam(c *gin.Context) {
 	if err != nil {
 		log.Error("Error parsing teamID: ", err)
 		sdkUtils.HandleError(c, http.StatusBadRequest, err)
-		return
-	}
-
-	// Check if the team has already 3 members
-	team, err := h.teamsService.GetTeamByID(c, coursePhaseID, teamID)
-	if err != nil {
-		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
-		return
-	}
-	// TODO remove magic number here
-	if len(team.Members) >= 3 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Team is already full"})
 		return
 	}
 
@@ -271,7 +291,7 @@ func (h *teamHandler) assignTeam(c *gin.Context) {
 
 	err = h.assignmentService.AssignTeam(c, coursePhaseID, teamID, courseParticipationID.(uuid.UUID), firstName.(string), lastName.(string))
 	if err != nil {
-		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
+		sdkUtils.HandleError(c, assignTeamErrorStatus(err), err)
 		return
 	}
 	c.Status(http.StatusOK)
@@ -311,13 +331,7 @@ func (h *teamHandler) leaveTeam(c *gin.Context) {
 		return
 	}
 
-	allowed, err := h.teamsService.ValidateTimeframe(c, coursePhaseID)
-	if err != nil {
-		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
-		return
-	}
-	if !allowed {
-		sdkUtils.HandleError(c, http.StatusBadRequest, err)
+	if !h.checkTimeframe(c, coursePhaseID) {
 		return
 	}
 

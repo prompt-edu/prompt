@@ -1,6 +1,6 @@
 module github.com/prompt-edu/prompt/servers/team_allocation
 
-go 1.27.2
+go 1.27.3
 
 require (
 	github.com/getsentry/sentry-go v0.50.0
@@ -8,7 +8,7 @@ require (
 	github.com/gin-gonic/gin v1.12.0
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.11.0
-	github.com/prompt-edu/prompt-sdk v1.4.2-0.20261005080213-fe977386967c
+	github.com/prompt-edu/prompt-sdk v1.4.2
 	github.com/sirupsen/logrus v1.10.2
 	github.com/stretchr/testify v1.12.1
 	github.com/swaggo/swag v1.16.6
@@ -39,7 +39,7 @@ require (
 	github.com/ebitengine/purego v0.10.1 // indirect
 	github.com/felixge/httpsnoop v1.1.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.15 // indirect
-	github.com/getsentry/sentry-go/logrus v0.49.0 // indirect
+	github.com/getsentry/sentry-go/logrus v0.50.0 // indirect
 	github.com/gin-contrib/sse v1.1.0 // indirect
 	github.com/go-jose/go-jose/v4 v4.1.4 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect

@@ -21,6 +21,7 @@ import (
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentCompletion"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/categoryAssessment"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/scoreLevel"
+	"github.com/prompt-edu/prompt/servers/assessment/bodyLimit"
 	"github.com/prompt-edu/prompt/servers/assessment/categories"
 	"github.com/prompt-edu/prompt/servers/assessment/competencies"
 	"github.com/prompt-edu/prompt/servers/assessment/copy"
@@ -99,6 +100,9 @@ func main() {
 		router.Use(sentrygin.New(sentrygin.Options{}))
 	}
 	router.Use(promptSDK.CORSMiddleware(clientHost))
+	// Cap request bodies before any route is registered, so the cap is part of every route's
+	// chain. Routes that need more raise it with bodyLimit.WithLimit.
+	router.Use(bodyLimit.Middleware(bodyLimit.DefaultMaxBytes))
 
 	api := router.Group("/assessment/api")
 

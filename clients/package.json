@@ -97,6 +97,7 @@
     "smol-toml": "^1.9.1",
     "nx/axios": "^1.20.0",
     "nx/brace-expansion": "^5.0.12",
+    "nx/follow-redirects": "^1.16.1",
     "pacote": "^22.0.0"
   },
   "devDependencies": {

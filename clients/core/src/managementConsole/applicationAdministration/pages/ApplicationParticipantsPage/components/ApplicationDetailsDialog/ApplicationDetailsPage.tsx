@@ -9,6 +9,10 @@ import { Loader2 } from 'lucide-react'
 import { useMemo } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import type { ApplicationForm } from '../../../../interfaces/form/applicationForm'
+import {
+  getApplicantPictureHiddenReason,
+  parseProfilePictureSettings,
+} from '../../../../utils/profilePictureSettings'
 import { ApplicationAnswers } from '../applicationAnswers/ApplicationAnswers'
 import { ApplicationDetailPageLayout } from './components/ApplicationDetailPageLayout'
 import { AssessmentCard } from './components/AssessmentCard'
@@ -24,7 +28,8 @@ export const ApplicationDetailsPage = () => {
   const { phaseId, participationId } = useParams<{ phaseId: string; participationId: string }>()
   const navigate = useNavigate()
   const location = useLocation()
-  const { participations, additionalScores } = useApplicationStore()
+  const { participations, additionalScores, coursePhase } = useApplicationStore()
+  const { hideUntilAccepted } = parseProfilePictureSettings(coursePhase?.restrictedData)
   const navigationState = (location.state as ApplicationDetailsLocationState | null) ?? null
   const filteredApplicationIds = navigationState?.filteredApplicationIds
 
@@ -127,7 +132,11 @@ export const ApplicationDetailsPage = () => {
       />
 
       {fetchedApplication?.student && status && (
-        <StudentProfile student={fetchedApplication.student} status={status} />
+        <StudentProfile
+          student={fetchedApplication.student}
+          status={status}
+          pictureHiddenReason={getApplicantPictureHiddenReason(hideUntilAccepted, status)}
+        />
       )}
 
       <ApplicationDetailPageLayout

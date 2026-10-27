@@ -1,6 +1,7 @@
 import type { CoursePhaseWithMetaData } from '@tumaet/prompt-shared-state'
 import { useEffect } from 'react'
 import type { ApplicationMetaData } from '../interfaces/applicationMetaData'
+import { parseProfilePictureSettings } from '../utils/profilePictureSettings'
 
 export const useParseApplicationMetaData = (
   coursePhase: CoursePhaseWithMetaData | undefined,
@@ -16,6 +17,7 @@ export const useParseApplicationMetaData = (
       const customScores = coursePhase?.restrictedData?.useCustomScores
       const applicationMode = coursePhase?.restrictedData?.applicationMode
       const welcomeText = coursePhase?.restrictedData?.welcomeText
+      const profilePicture = parseProfilePictureSettings(coursePhase?.restrictedData)
 
       const parsedMetaData: ApplicationMetaData = {
         applicationStartDate: applicationStartDate ? new Date(applicationStartDate) : undefined,
@@ -26,6 +28,9 @@ export const useParseApplicationMetaData = (
         useCustomScores: customScores ? customScores : false,
         applicationMode: applicationMode === 'import' ? 'import' : 'apply',
         welcomeText: typeof welcomeText === 'string' ? welcomeText : undefined,
+        profilePictureRequirement: profilePicture.requirement,
+        profilePictureExplanation: profilePicture.explanation,
+        hideProfilePicturesUntilAccepted: profilePicture.hideUntilAccepted,
       }
       setApplicationMetaData(parsedMetaData)
     }

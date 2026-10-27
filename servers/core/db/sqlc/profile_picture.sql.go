@@ -84,6 +84,16 @@ JOIN student s ON s.id = cp.student_id
 JOIN profile_picture pp ON pp.university_login = s.university_login
 JOIN files f ON f.id = pp.file_id
 WHERE cp.id = ANY($1::uuid[])
+  AND NOT EXISTS (
+      SELECT 1
+      FROM course_phase_participation cpp
+      JOIN course_phase ph ON ph.id = cpp.course_phase_id
+      JOIN course_phase_type t ON t.id = ph.course_phase_type_id
+      WHERE cpp.course_participation_id = cp.id
+        AND t.name = 'Application'
+        AND COALESCE((ph.restricted_data->>'hideProfilePicturesUntilAccepted')::boolean, true)
+        AND cpp.pass_status IS DISTINCT FROM 'passed'
+  )
 ORDER BY cp.id, pp.updated_at DESC
 `
 
@@ -118,6 +128,17 @@ FROM student s
 JOIN profile_picture pp ON pp.university_login = s.university_login
 JOIN files f ON f.id = pp.file_id
 WHERE s.id = ANY($1::uuid[])
+  AND NOT EXISTS (
+      SELECT 1
+      FROM course_participation hidden_cp
+      JOIN course_phase_participation cpp ON cpp.course_participation_id = hidden_cp.id
+      JOIN course_phase ph ON ph.id = cpp.course_phase_id
+      JOIN course_phase_type t ON t.id = ph.course_phase_type_id
+      WHERE hidden_cp.student_id = s.id
+        AND t.name = 'Application'
+        AND COALESCE((ph.restricted_data->>'hideProfilePicturesUntilAccepted')::boolean, true)
+        AND cpp.pass_status IS DISTINCT FROM 'passed'
+  )
 ORDER BY s.id, pp.updated_at DESC
 `
 
@@ -152,6 +173,18 @@ SELECT pp.user_id, f.storage_key
 FROM profile_picture pp
 JOIN files f ON f.id = pp.file_id
 WHERE pp.user_id = ANY($1::uuid[])
+  AND NOT EXISTS (
+      SELECT 1
+      FROM student s
+      JOIN course_participation hidden_cp ON hidden_cp.student_id = s.id
+      JOIN course_phase_participation cpp ON cpp.course_participation_id = hidden_cp.id
+      JOIN course_phase ph ON ph.id = cpp.course_phase_id
+      JOIN course_phase_type t ON t.id = ph.course_phase_type_id
+      WHERE s.university_login = pp.university_login
+        AND t.name = 'Application'
+        AND COALESCE((ph.restricted_data->>'hideProfilePicturesUntilAccepted')::boolean, true)
+        AND cpp.pass_status IS DISTINCT FROM 'passed'
+  )
 `
 
 type GetProfilePictureStorageKeysByUserIDsRow struct {

@@ -38,7 +38,7 @@ You can also configure the following options:
 
 | Option                      | Description                                                                                                                                                                                  |
 | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Enforce Student Login**   | Requires students with a university login and matriculation number to log in via Keycloak. On by default and recommended in most cases. Disable only for self-hosted, non-university setups. |
+| **Require Student Login**   | Requires students with a university login and matriculation number to log in via Keycloak. On by default and recommended in most cases. Disable only for self-hosted, non-university setups. |
 | **Allow External Students** | Allows students without university credentials (e.g., exchange students) to submit applications.                                                                                             |
 | **Auto Accept**             | Automatically accepts every application. Use this only when the application serves as a simple registration form.                                                                            |
 | **Intake Mode**             | Switches between the public application form and importing students from a CSV. See the _Importing Students from a CSV_ section below.                                                       |

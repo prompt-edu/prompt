@@ -267,7 +267,7 @@ export function ApplicationGeneralSettings({ initialData }: ApplicationConfigDia
                     {/* University Login Available */}
                     <div className='grid grid-cols-4 items-center gap-4'>
                       <Label htmlFor='universityLoginAvailable' className='text-right'>
-                        Enforce Student Login
+                        Require Student Login
                       </Label>
                       <div className='col-span-3 flex items-center gap-4'>
                         <Switch

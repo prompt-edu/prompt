@@ -43,6 +43,22 @@ You can also configure the following options:
 | **Auto Accept**             | Automatically accepts every application. Use this only when the application serves as a simple registration form.                                                          |
 | **Intake Mode**             | Switches between the public application form and importing students from a CSV. See the _Importing Students from a CSV_ section below.                                      |
 
+#### Profile Picture
+
+The **Profile picture** card decides whether the application form asks applicants for a profile picture:
+
+| Option       | Effect                                                        |
+| ------------ | ------------------------------------------------------------- |
+| **Off**      | Applicants are not asked for a picture.                       |
+| **Optional** | Applicants are asked for a picture but can apply without one. |
+| **Required** | Applicants must add a picture to apply.                       |
+
+Only applicants who log in with their university account are asked, so **Require Student Login** has to be on. External students who apply without logging in are not asked.
+
+Under **Explanation for applicants** you can add a short text that is shown next to the upload, for example why you ask for a picture and how you use it.
+
+**Hide pictures until acceptance** is on by default. Reviewers then see no applicant pictures anywhere in PROMPT until the applicant is accepted, so pictures cannot influence the decision. Hidden pictures are marked in the participant list and on the application page. Switching it off asks for confirmation, because applicants who already applied were told that their picture stays hidden.
+
 ---
 
 ## 📥 Importing Students from a CSV

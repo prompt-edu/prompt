@@ -33,11 +33,11 @@ export const useOrgs = () => {
   })
 }
 
-export const useOrg = (orgId: string | undefined, enabled = true) => {
+export const useOrg = (orgId: string | undefined) => {
   return useQuery({
     queryKey: coreKeys.orgs.byId(orgId),
     queryFn: () => coreApi.orgs.get(orgId ?? ''),
-    enabled: enabled && orgId !== undefined,
+    enabled: orgId !== undefined,
     retry: (failureCount, error) => !isClientError(error) && failureCount < MAX_RETRIES,
   })
 }

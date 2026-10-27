@@ -10,7 +10,6 @@ import (
 )
 
 func TestHasStatus(t *testing.T) {
-	// gocloak returns *APIError behind the error interface.
 	var notFound error = &gocloak.APIError{Code: http.StatusNotFound}
 	cases := []struct {
 		name string

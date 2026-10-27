@@ -18,8 +18,6 @@ ORDER BY c.template,
           split_part(role, '-', 2) AS course_name,
           split_part(role, '-', 3) AS user_role
         FROM unnest($1::text[]) AS role
-        -- Only course roles: org roles (org-<slug>-Admin|Member) would otherwise read as a
-        -- course in semester "org". An org slug is lowercase and has no "cg" segment.
         WHERE split_part(role, '-', 3) IN ('Lecturer', 'Editor', 'Student', 'cg')),
   user_course_roles AS (SELECT c.id,
             c.name,

@@ -1,10 +1,5 @@
 BEGIN;
 
--- An org is an organizational unit such as a university chair. Orgs nest through
--- parent_org_id. The slug is embedded in the org's Keycloak group and role names
--- (/Orgs/<slug>, org-<slug>-Admin), so it is globally unique and never changes.
--- A slug must not contain a "cg" segment: a course in semester "org" mints custom
--- group roles "org-<course>-cg-<name>", which could otherwise equal an org role.
 CREATE TABLE org (
   id            uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
   parent_org_id uuid,
@@ -28,8 +23,6 @@ CREATE TABLE org (
 
 CREATE INDEX idx_org_parent_org_id ON org (parent_org_id);
 
--- Courses without an org keep working unchanged. An org cannot be deleted while
--- courses are assigned to it.
 ALTER TABLE course
   ADD COLUMN org_id uuid,
   ADD CONSTRAINT fk_course_org

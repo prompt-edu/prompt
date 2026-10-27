@@ -19,11 +19,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// keycloakTimeout bounds each Keycloak provisioning or cleanup call, which runs while
-// the org's transaction is open.
 const keycloakTimeout = 30 * time.Second
 
-// Postgres error codes and the constraint names of migration 0035_org.
 const (
 	uniqueViolation      = "23505"
 	foreignKeyViolation  = "23503"
@@ -42,9 +39,8 @@ var (
 )
 
 type OrgService struct {
-	queries db.Queries
-	conn    *pgxpool.Pool
-	// use dependency injection for keycloak to allow mocking
+	queries                 db.Queries
+	conn                    *pgxpool.Pool
 	createOrgGroupsAndRoles func(ctx context.Context, slug string) error
 	deleteOrgGroupsAndRoles func(ctx context.Context, slug string) error
 }
@@ -79,8 +75,6 @@ func (s *OrgService) GetOrg(ctx context.Context, id uuid.UUID) (orgDTO.Org, erro
 	return orgDTO.GetOrgDTOFromDBModel(org), nil
 }
 
-// CreateOrg stores the org and provisions its Keycloak groups and roles in one
-// transaction, so a Keycloak failure leaves no org behind.
 func (s *OrgService) CreateOrg(ctx context.Context, input orgDTO.CreateOrg) (orgDTO.Org, error) {
 	tx, err := s.conn.Begin(ctx)
 	if err != nil {
@@ -116,11 +110,6 @@ func (s *OrgService) CreateOrg(ctx context.Context, input orgDTO.CreateOrg) (org
 	return orgDTO.GetOrgDTOFromDBModel(created), nil
 }
 
-// cleanUpKeycloak removes what a failed provisioning left behind. It runs before the
-// deferred rollback: the uncommitted row still holds the slug, so no concurrent creation
-// of the same slug can be provisioning it meanwhile. It gets a fresh timeout because the
-// provisioning may have failed by running out of its own. A failure is only logged,
-// since provisioning is idempotent and a retry reuses any leftovers.
 func (s *OrgService) cleanUpKeycloak(ctx context.Context, slug string) {
 	cleanupCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), keycloakTimeout)
 	defer cancel()
@@ -147,9 +136,6 @@ func (s *OrgService) UpdateOrg(ctx context.Context, id uuid.UUID, input orgDTO.U
 	return orgDTO.GetOrgDTOFromDBModel(updated), nil
 }
 
-// UpdateOrgParent moves the org under another org, or to the top level. Moves under a
-// parent are serialized, so the cycle check cannot be raced by a concurrent move. A move
-// to the top level only removes an edge, cannot create a cycle, and takes no lock.
 func (s *OrgService) UpdateOrgParent(ctx context.Context, id uuid.UUID, input orgDTO.UpdateOrgParent) (orgDTO.Org, error) {
 	tx, err := s.conn.Begin(ctx)
 	if err != nil {
@@ -191,12 +177,6 @@ func (s *OrgService) UpdateOrgParent(ctx context.Context, id uuid.UUID, input or
 	return orgDTO.GetOrgDTOFromDBModel(updated), nil
 }
 
-// DeleteOrg removes the org and then its Keycloak groups and roles. The foreign keys
-// reject the delete while child orgs or courses reference the org, before Keycloak is
-// touched; a Keycloak failure rolls the delete back and restores the roles onto the
-// surviving group (see restoreKeycloak for the cases it cannot repair). If the commit
-// fails after Keycloak succeeded, the org remains without groups and roles until the
-// delete is retried, which is safe because both steps tolerate what is already gone.
 func (s *OrgService) DeleteOrg(ctx context.Context, id uuid.UUID) error {
 	tx, err := s.conn.Begin(ctx)
 	if err != nil {
@@ -229,14 +209,6 @@ func (s *OrgService) DeleteOrg(ctx context.Context, id uuid.UUID) error {
 	return nil
 }
 
-// restoreKeycloak re-provisions what a failed deletion removed, since the rollback keeps
-// the org. The deletion removes the group last, so after a failure part way through the
-// group and its memberships usually survive and only the roles and their mappings need to
-// come back. Two cases cannot be repaired here, and only a retried delete resolves them:
-// the restore failing as well, which leaves the org without roles, and Keycloak having
-// applied the group deletion although the call reported an error (for example a timeout),
-// in which case the group comes back without members. It gets a fresh timeout for the same
-// reason as cleanUpKeycloak.
 func (s *OrgService) restoreKeycloak(ctx context.Context, slug string) error {
 	restoreCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), keycloakTimeout)
 	defer cancel()
@@ -255,7 +227,6 @@ func toPgUUID(id *uuid.UUID) pgtype.UUID {
 	return pgtype.UUID{Bytes: *id, Valid: true}
 }
 
-// mapWriteViolation maps constraint violations of inserting or updating an org.
 func mapWriteViolation(err error) error {
 	var pgErr *pgconn.PgError
 	if !errors.As(err, &pgErr) {
@@ -270,7 +241,6 @@ func mapWriteViolation(err error) error {
 	return err
 }
 
-// mapDeleteViolation maps the foreign keys that still reference an org being deleted.
 func mapDeleteViolation(err error) error {
 	var pgErr *pgconn.PgError
 	if !errors.As(err, &pgErr) || pgErr.Code != foreignKeyViolation {

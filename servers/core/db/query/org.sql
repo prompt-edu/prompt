@@ -19,9 +19,6 @@ RETURNING *;
 UPDATE org SET parent_org_id = $2 WHERE id = $1 RETURNING *;
 
 -- name: GetOrgAncestorIDs :many
--- Walks up the hierarchy from the given org, excluding the org itself. UNION (not
--- UNION ALL) discards rows that were already seen, so the walk terminates even if
--- the data contains a cycle, and memory stays linear in the depth.
 WITH RECURSIVE ancestors (id) AS (
   SELECT o.parent_org_id
   FROM org o
@@ -35,8 +32,6 @@ WITH RECURSIVE ancestors (id) AS (
 SELECT id::uuid AS id FROM ancestors;
 
 -- name: LockOrgHierarchy :exec
--- Serializes hierarchy changes for the rest of the transaction, so two concurrent
--- parent updates cannot each pass the cycle check and together create a cycle.
 SELECT pg_advisory_xact_lock(hashtext('org_hierarchy'));
 
 -- name: DeleteOrg :one

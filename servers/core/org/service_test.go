@@ -21,8 +21,6 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-// keycloakSpy stands in for the Keycloak provisioning hooks: it records every call and
-// lets a test make the hooks fail.
 type keycloakSpy struct {
 	created   []string
 	deleted   []string
@@ -96,8 +94,6 @@ func (suite *OrgServiceTestSuite) parentOf(orgID uuid.UUID) *uuid.UUID {
 	return org.ParentOrgID
 }
 
-// insertBlocksOnSlug reports whether inserting the slug from another connection has to
-// wait for a concurrent, uncommitted transaction that holds it.
 func (suite *OrgServiceTestSuite) insertBlocksOnSlug(slug string) bool {
 	tx, err := suite.conn.Begin(suite.ctx)
 	require.NoError(suite.T(), err)
@@ -256,9 +252,6 @@ func (suite *OrgServiceTestSuite) TestGetAllOrgsIsSortedByName() {
 
 	require.NoError(suite.T(), err)
 	require.GreaterOrEqual(suite.T(), len(orgs), 2)
-	// The database sorts by its collation, which is not Go's byte order (en_US ignores
-	// hyphens at first, so "Org deleted" sorts before "Org delete-fails"), so the expected
-	// order comes from the database itself.
 	rows, err := suite.conn.Query(suite.ctx, "SELECT id FROM org ORDER BY name, slug")
 	require.NoError(suite.T(), err)
 	expected, err := pgx.CollectRows(rows, pgx.RowTo[uuid.UUID])
@@ -344,8 +337,6 @@ func (suite *OrgServiceTestSuite) TestUpdateOrgParentNotFound() {
 	assert.ErrorIs(suite.T(), err, ErrOrgNotFound)
 }
 
-// A move to the top level only removes an edge, so it must not wait for a concurrent move
-// that holds the hierarchy lock.
 func (suite *OrgServiceTestSuite) TestMovingAnOrgToTheTopLevelTakesNoHierarchyLock() {
 	parent := suite.createOrg("detach-parent", nil)
 	org := suite.createOrg("detach-child", &parent.ID)
@@ -362,8 +353,6 @@ func (suite *OrgServiceTestSuite) TestMovingAnOrgToTheTopLevelTakesNoHierarchyLo
 	assert.Nil(suite.T(), detached.ParentOrgID)
 }
 
-// Without the hierarchy lock both updates could pass their cycle check before either
-// commits, leaving the two orgs as each other's parent.
 func (suite *OrgServiceTestSuite) TestConcurrentParentUpdatesCannotCreateACycle() {
 	for i := range 10 {
 		first := suite.createOrg(fmt.Sprintf("race-first-%d", i), nil)

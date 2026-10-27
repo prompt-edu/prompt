@@ -20,8 +20,6 @@ func CourseRoleName(courseIdentifier, role string) string {
 	return courseIdentifier + "-" + role
 }
 
-// OrgRoleName builds the full "org-<slug>-<role>" Keycloak role string from an org slug
-// and an org role such as OrgAdmin.
 func OrgRoleName(slug, role string) string {
 	return "org-" + slug + "-" + role
 }

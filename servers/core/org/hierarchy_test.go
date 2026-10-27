@@ -17,12 +17,8 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-// chainDepth is far beyond the realistic three to four levels, so that the recursive
-// ancestor walk, which every cycle check runs, stays fast on pathological hierarchies.
 const chainDepth = 10_000
 
-// hierarchyTimeout guards against a hanging query on the deep chain; it is generous so
-// slow CI runners do not turn it into a flaky test.
 const hierarchyTimeout = 30 * time.Second
 
 type OrgHierarchyTestSuite struct {
@@ -48,9 +44,6 @@ func (suite *OrgHierarchyTestSuite) SetupSuite() {
 	noKeycloak := func(context.Context, string) error { return nil }
 	suite.service = NewOrgService(*testDB.Queries, testDB.Conn, noKeycloak, noKeycloak)
 
-	// chain-1 is the root and chain-<chainDepth> the leaf; each level is the parent of
-	// the next. Foreign keys are checked at the end of the statement, so the order in
-	// which the rows are inserted does not matter.
 	_, err = suite.conn.Exec(suite.ctx, `
 		INSERT INTO org (id, parent_org_id, name, slug)
 		SELECT md5('chain-' || i)::uuid,
@@ -118,8 +111,6 @@ func (suite *OrgHierarchyTestSuite) TestAnOrgCanBeMovedBelowTheDeepestOrg() {
 	assert.Len(suite.T(), ancestorIDs, chainDepth)
 }
 
-// The service never creates a cycle, but the ancestor walk must still terminate if the
-// data contains one, since it runs inside every cycle check.
 func (suite *OrgHierarchyTestSuite) TestAncestorWalkTerminatesOnCorruptedCycle() {
 	first, err := suite.service.CreateOrg(suite.ctx, orgDTO.CreateOrg{Name: "Corrupted first", Slug: "corrupted-first"})
 	require.NoError(suite.T(), err)

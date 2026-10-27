@@ -13,7 +13,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// RegisterRoutes mounts the org endpoints on the given router group.
 // @Summary Org Endpoints
 // @Description Endpoints for managing orgs, the organizational units that own courses
 // @Tags orgs
@@ -22,7 +21,6 @@ func RegisterRoutes(router *gin.RouterGroup, service *OrgService, authMiddleware
 	setupOrgRouter(router, service, authMiddleware, permissionValidation.CheckAccessControlByRole, checkAccessControlByIDWrapper(checkOrgPermission))
 }
 
-// initializes the handler func with CheckOrgPermission
 func checkAccessControlByIDWrapper(check permissionValidation.PermissionCheck) func(allowedRoles ...string) gin.HandlerFunc {
 	return func(allowedRoles ...string) gin.HandlerFunc {
 		return permissionValidation.CheckAccessControlByID(check, "orgID", allowedRoles...)
@@ -216,9 +214,6 @@ func (s *OrgService) deleteOrg(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
-// recordOrgAudit names the org in the request's audit entry. The automatic entry takes its
-// entity only from a "uuid" or "id" path parameter, so without this it would not say which
-// org was created, changed, or deleted. A deleted org is named by its ID only.
 func recordOrgAudit(c *gin.Context, orgID uuid.UUID, slug string) {
 	audit.Record(c, audit.Event{EntityType: "org", EntityID: orgID.String(), EntityName: slug})
 }

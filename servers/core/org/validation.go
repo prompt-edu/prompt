@@ -36,9 +36,6 @@ func validateUpdateOrg(input orgDTO.UpdateOrg) error {
 	return validateOrgDetails(input.Name, input.School, input.University, input.Website, input.ContactEmail)
 }
 
-// validateSlug mirrors the check_org_slug_format constraint. The slug is embedded in
-// Keycloak role names, so a "cg" segment is rejected: a course in semester "org" mints
-// custom group roles "org-<course>-cg-<name>", which could otherwise equal an org role.
 func validateSlug(slug string) error {
 	slug = strings.TrimSpace(slug)
 	if slug == "" {
@@ -70,7 +67,6 @@ func validateOrgDetails(name, school, university, website, contactEmail string) 
 	if utf8.RuneCountInString(strings.TrimSpace(university)) > maxUniversityLength {
 		return fmt.Errorf("university must be at most %d characters", maxUniversityLength)
 	}
-	// Postgres text cannot store NUL; the website and email parsers already reject it.
 	if strings.ContainsRune(name+school+university, 0) {
 		return errors.New("org name, school and university must not contain NUL characters")
 	}
@@ -87,8 +83,6 @@ func validateWebsite(website string) error {
 	if utf8.RuneCountInString(website) > maxWebsiteLength {
 		return fmt.Errorf("website must be at most %d characters", maxWebsiteLength)
 	}
-	// url.Parse, unlike url.ParseRequestURI, accepts a fragment directly after the host,
-	// and Hostname() rejects a host that is only a port, such as "https://:443".
 	parsed, err := url.Parse(website)
 	if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.Hostname() == "" {
 		return errors.New("website must be an absolute http or https URL")
@@ -96,8 +90,6 @@ func validateWebsite(website string) error {
 	return nil
 }
 
-// validateContactEmail accepts a bare address only: the display-name form
-// "Chair <chair@example.com>" parses as well, but would not be stored as given.
 func validateContactEmail(contactEmail string) error {
 	if contactEmail == "" {
 		return nil

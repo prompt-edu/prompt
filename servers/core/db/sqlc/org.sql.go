@@ -114,9 +114,6 @@ WITH RECURSIVE ancestors (id) AS (
 SELECT id::uuid AS id FROM ancestors
 `
 
-// Walks up the hierarchy from the given org, excluding the org itself. UNION (not
-// UNION ALL) discards rows that were already seen, so the walk terminates even if
-// the data contains a cycle, and memory stays linear in the depth.
 func (q *Queries) GetOrgAncestorIDs(ctx context.Context, id uuid.UUID) ([]uuid.UUID, error) {
 	rows, err := q.db.Query(ctx, getOrgAncestorIDs, id)
 	if err != nil {
@@ -162,8 +159,6 @@ const lockOrgHierarchy = `-- name: LockOrgHierarchy :exec
 SELECT pg_advisory_xact_lock(hashtext('org_hierarchy'))
 `
 
-// Serializes hierarchy changes for the rest of the transaction, so two concurrent
-// parent updates cannot each pass the cycle check and together create a cycle.
 func (q *Queries) LockOrgHierarchy(ctx context.Context) error {
 	_, err := q.db.Exec(ctx, lockOrgHierarchy)
 	return err

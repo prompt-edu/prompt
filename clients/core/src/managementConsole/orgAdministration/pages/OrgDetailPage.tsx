@@ -29,8 +29,8 @@ export const OrgDetailPage = () => {
               <ManagementPageHeader>{org.name}</ManagementPageHeader>
               <p className='-mt-4 text-muted-foreground'>{org.slug}</p>
             </div>
-            <OrgDetailsSettings key={org.id} org={org} />
-            <OrgHierarchySettings key={org.id} org={org} orgs={orgs} />
+            <OrgDetailsSettings key={`details-${org.id}`} org={org} />
+            <OrgHierarchySettings key={`hierarchy-${org.id}`} org={org} orgs={orgs} />
             <OrgDangerZone org={org} />
           </div>
         )

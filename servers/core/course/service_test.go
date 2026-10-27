@@ -111,10 +111,6 @@ func (suite *CourseServiceTestSuite) TestGetAllCoursesArchivedHiddenFromStudent(
 	assert.Equal(suite.T(), 0, len(courses), "Archived course should be hidden from student-only users")
 }
 
-// Org roles (org-<slug>-Admin|Member) must not be read as course roles: the course lists
-// split every role on "-", so without the filter a course in semester "org" whose name is
-// the slug's first segment would be listed, with its restricted data, to any org member.
-// The course's own roles, including custom-group roles, keep working.
 func (suite *CourseServiceTestSuite) TestCourseListsIgnoreOrgRoles() {
 	courseID := uuid.New()
 	templateID := uuid.New()

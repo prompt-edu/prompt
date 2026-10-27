@@ -22,8 +22,6 @@ type Org struct {
 	CreatedAt    time.Time   `json:"createdAt"`
 }
 
-// CreateOrg creates an org, optionally under a parent org. Empty optional fields are
-// stored as null.
 type CreateOrg struct {
 	ParentOrgID  *uuid.UUID `json:"parentOrgID"`
 	Name         string     `json:"name"`
@@ -34,8 +32,6 @@ type CreateOrg struct {
 	ContactEmail string     `json:"contactEmail"`
 }
 
-// UpdateOrg replaces the name and all optional fields; an omitted, null, or empty
-// optional field clears it. The slug and the parent org cannot be changed here.
 type UpdateOrg struct {
 	Name         string `json:"name"`
 	School       string `json:"school"`
@@ -44,14 +40,10 @@ type UpdateOrg struct {
 	ContactEmail string `json:"contactEmail"`
 }
 
-// UpdateOrgParent moves an org under another org, or to the top level when
-// ParentOrgID is null.
 type UpdateOrgParent struct {
 	ParentOrgID *uuid.UUID `json:"parentOrgID"`
 }
 
-// UnmarshalJSON requires the parentOrgID key, so that a body without it, such as {} or a
-// misspelled key, is rejected instead of moving the org to the top level.
 func (u *UpdateOrgParent) UnmarshalJSON(data []byte) error {
 	var fields map[string]json.RawMessage
 	if err := json.Unmarshal(data, &fields); err != nil {

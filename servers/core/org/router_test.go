@@ -24,8 +24,6 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-// The router tests run the real role and org permission checks instead of
-// MockPermissionMiddleware, so the permission matrix is tested as it ships.
 type OrgRouterTestSuite struct {
 	suite.Suite
 	ctx               context.Context
@@ -63,13 +61,10 @@ func (suite *OrgRouterTestSuite) createOrg(slug string, parentOrgID *uuid.UUID) 
 	return created
 }
 
-// routerFor wires the routes through RegisterRoutes, as main.go does, so the tests cover
-// the middleware that ships.
 func (suite *OrgRouterTestSuite) routerFor(roles ...string) *gin.Engine {
 	return suite.routerWith(roles)
 }
 
-// routerWith is routerFor with extra middleware registered before the org routes.
 func (suite *OrgRouterTestSuite) routerWith(roles []string, middleware ...gin.HandlerFunc) *gin.Engine {
 	router := gin.Default()
 	api := router.Group("/api", middleware...)
@@ -111,9 +106,6 @@ var (
 	allActors   = []actor{promptAdmin, orgAdmin, orgMember, otherAdmin, customGroup, lecturer, noOrgRoles}
 )
 
-// expectStatus sends the request as each actor, building the path and body afresh for
-// every request, and expects allowedStatus for the allowed actors and 403 for everyone
-// else. Every response must carry exactly one JSON body.
 func (suite *OrgRouterTestSuite) expectStatus(method string, path func() string, body func() any, allowedStatus int, allowed ...actor) {
 	for _, a := range allActors {
 		expected := http.StatusForbidden
@@ -261,7 +253,6 @@ func (suite *OrgRouterTestSuite) TestUpdateOrgReturnsTheReplacedOrg() {
 	assert.Equal(suite.T(), "ase", updated.Slug, "a slug in the body is ignored")
 }
 
-// auditCapture collects the events the audit middleware delivers.
 type auditCapture chan audit.Event
 
 func (a auditCapture) Record(_ context.Context, e audit.Event) error {
@@ -269,8 +260,6 @@ func (a auditCapture) Record(_ context.Context, e audit.Event) error {
 	return nil
 }
 
-// The automatic audit entry takes its entity only from a "uuid" or "id" path parameter, so
-// every org mutation must name the org it affected itself.
 func (suite *OrgRouterTestSuite) TestAuditEntriesNameTheOrg() {
 	events := make(auditCapture, 1)
 	router := suite.routerWith(promptAdmin.roles, audit.Middleware(events, audit.WithActorExtractor(func(*gin.Context) (audit.Actor, bool) {
@@ -314,8 +303,6 @@ func (suite *OrgRouterTestSuite) expectAuditEvent(events auditCapture, action st
 	}
 }
 
-// A malformed body must still produce a JSON error: the response headers are only sent
-// once the error body is rendered.
 func (suite *OrgRouterTestSuite) TestMalformedBodiesGetAJSONError() {
 	for _, request := range []struct{ method, path string }{
 		{http.MethodPost, "/api/orgs/"},

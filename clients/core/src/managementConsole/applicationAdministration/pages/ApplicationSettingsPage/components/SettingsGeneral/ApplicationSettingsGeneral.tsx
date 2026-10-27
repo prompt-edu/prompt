@@ -72,7 +72,7 @@ export function ApplicationGeneralSettings({ initialData }: ApplicationConfigDia
     )
     setAutoAccept(initialData?.autoAccept ?? false)
     setExternalStudentsAllowed(initialData?.externalStudentsAllowed ?? false)
-    setUniversityLoginAvailable(initialData?.universityLoginAvailable ?? false)
+    setUniversityLoginAvailable(initialData?.universityLoginAvailable ?? true)
     setUseCustomScores(initialData?.useCustomScores ?? false)
     setMode(initialData?.applicationMode === 'import' ? 'import' : 'apply')
     setDateError(null)

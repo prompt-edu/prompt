@@ -17,8 +17,6 @@ CREATE TABLE ai_call (
     system_fingerprint text,
     provider text NOT NULL,
     params jsonb NOT NULL DEFAULT '{}',
-    context_hash text,
-    response_hash text,
     outcome text NOT NULL CHECK (outcome IN ('pending', 'success', 'error', 'timeout', 'cancelled', 'denied')),
     http_status integer,
     finish_reason text,
@@ -73,11 +71,11 @@ BEGIN
   IF OLD.completed_at IS NOT NULL
     OR (NEW.id, NEW.course_phase_id, NEW.actor_id, NEW.actor_role, NEW.issuer, NEW.caller_service, NEW.feature,
         NEW.template, NEW.template_version, NEW.requested_model, NEW.provider, NEW.params,
-        NEW.context_hash, NEW.streamed, NEW.server_version, NEW.requested_at)
+        NEW.streamed, NEW.server_version, NEW.requested_at)
       IS DISTINCT FROM
        (OLD.id, OLD.course_phase_id, OLD.actor_id, OLD.actor_role, OLD.issuer, OLD.caller_service, OLD.feature,
         OLD.template, OLD.template_version, OLD.requested_model, OLD.provider, OLD.params,
-        OLD.context_hash, OLD.streamed, OLD.server_version, OLD.requested_at)
+        OLD.streamed, OLD.server_version, OLD.requested_at)
   THEN
     RAISE EXCEPTION 'ai_call is append-only except for completing a pending call';
   END IF;

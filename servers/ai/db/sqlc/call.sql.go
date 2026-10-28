@@ -16,14 +16,13 @@ const completeCall = `-- name: CompleteCall :execrows
 UPDATE ai_call
 SET served_model       = $2,
     system_fingerprint = $3,
-    response_hash      = $4,
-    outcome            = $5,
-    http_status        = $6,
-    finish_reason      = $7,
-    error_code         = $8,
-    prompt_tokens      = $9,
-    completion_tokens  = $10,
-    first_token_at     = $11,
+    outcome            = $4,
+    http_status        = $5,
+    finish_reason      = $6,
+    error_code         = $7,
+    prompt_tokens      = $8,
+    completion_tokens  = $9,
+    first_token_at     = $10,
     completed_at       = now()
 WHERE id = $1
   AND completed_at IS NULL
@@ -33,7 +32,6 @@ type CompleteCallParams struct {
 	ID                uuid.UUID          `json:"id"`
 	ServedModel       pgtype.Text        `json:"served_model"`
 	SystemFingerprint pgtype.Text        `json:"system_fingerprint"`
-	ResponseHash      pgtype.Text        `json:"response_hash"`
 	Outcome           string             `json:"outcome"`
 	HttpStatus        pgtype.Int4        `json:"http_status"`
 	FinishReason      pgtype.Text        `json:"finish_reason"`
@@ -48,7 +46,6 @@ func (q *Queries) CompleteCall(ctx context.Context, arg CompleteCallParams) (int
 		arg.ID,
 		arg.ServedModel,
 		arg.SystemFingerprint,
-		arg.ResponseHash,
 		arg.Outcome,
 		arg.HttpStatus,
 		arg.FinishReason,
@@ -65,9 +62,9 @@ func (q *Queries) CompleteCall(ctx context.Context, arg CompleteCallParams) (int
 
 const createCall = `-- name: CreateCall :one
 INSERT INTO ai_call (course_phase_id, actor_id, actor_role, issuer, caller_service, feature, template,
-                     template_version, requested_model, provider, params, context_hash, outcome, http_status,
+                     template_version, requested_model, provider, params, outcome, http_status,
                      error_code, streamed, server_version, completed_at)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
 RETURNING id
 `
 
@@ -83,7 +80,6 @@ type CreateCallParams struct {
 	RequestedModel  pgtype.Text        `json:"requested_model"`
 	Provider        string             `json:"provider"`
 	Params          []byte             `json:"params"`
-	ContextHash     pgtype.Text        `json:"context_hash"`
 	Outcome         string             `json:"outcome"`
 	HttpStatus      pgtype.Int4        `json:"http_status"`
 	ErrorCode       pgtype.Text        `json:"error_code"`
@@ -105,7 +101,6 @@ func (q *Queries) CreateCall(ctx context.Context, arg CreateCallParams) (uuid.UU
 		arg.RequestedModel,
 		arg.Provider,
 		arg.Params,
-		arg.ContextHash,
 		arg.Outcome,
 		arg.HttpStatus,
 		arg.ErrorCode,
@@ -190,7 +185,7 @@ func (q *Queries) CreateCallSubjects(ctx context.Context, arg CreateCallSubjects
 }
 
 const getCall = `-- name: GetCall :one
-SELECT ai_call.id, ai_call.course_phase_id, ai_call.actor_id, ai_call.actor_role, ai_call.issuer, ai_call.caller_service, ai_call.feature, ai_call.template, ai_call.template_version, ai_call.requested_model, ai_call.served_model, ai_call.system_fingerprint, ai_call.provider, ai_call.params, ai_call.context_hash, ai_call.response_hash, ai_call.outcome, ai_call.http_status, ai_call.finish_reason, ai_call.error_code, ai_call.prompt_tokens, ai_call.completion_tokens, ai_call.streamed, ai_call.server_version, ai_call.requested_at, ai_call.first_token_at, ai_call.completed_at,
+SELECT ai_call.id, ai_call.course_phase_id, ai_call.actor_id, ai_call.actor_role, ai_call.issuer, ai_call.caller_service, ai_call.feature, ai_call.template, ai_call.template_version, ai_call.requested_model, ai_call.served_model, ai_call.system_fingerprint, ai_call.provider, ai_call.params, ai_call.outcome, ai_call.http_status, ai_call.finish_reason, ai_call.error_code, ai_call.prompt_tokens, ai_call.completion_tokens, ai_call.streamed, ai_call.server_version, ai_call.requested_at, ai_call.first_token_at, ai_call.completed_at,
        content.request,
        content.response,
        (restriction.call_id IS NOT NULL)::boolean AS restricted
@@ -231,8 +226,6 @@ func (q *Queries) GetCall(ctx context.Context, arg GetCallParams) (GetCallRow, e
 		&i.AiCall.SystemFingerprint,
 		&i.AiCall.Provider,
 		&i.AiCall.Params,
-		&i.AiCall.ContextHash,
-		&i.AiCall.ResponseHash,
 		&i.AiCall.Outcome,
 		&i.AiCall.HttpStatus,
 		&i.AiCall.FinishReason,
@@ -313,7 +306,7 @@ func (q *Queries) ListCallSubjects(ctx context.Context, callID uuid.UUID) ([]uui
 }
 
 const listCalls = `-- name: ListCalls :many
-SELECT id, course_phase_id, actor_id, actor_role, issuer, caller_service, feature, template, template_version, requested_model, served_model, system_fingerprint, provider, params, context_hash, response_hash, outcome, http_status, finish_reason, error_code, prompt_tokens, completion_tokens, streamed, server_version, requested_at, first_token_at, completed_at
+SELECT id, course_phase_id, actor_id, actor_role, issuer, caller_service, feature, template, template_version, requested_model, served_model, system_fingerprint, provider, params, outcome, http_status, finish_reason, error_code, prompt_tokens, completion_tokens, streamed, server_version, requested_at, first_token_at, completed_at
 FROM ai_call
 WHERE course_phase_id = $1
   AND ($2::timestamptz IS NULL
@@ -358,8 +351,6 @@ func (q *Queries) ListCalls(ctx context.Context, arg ListCallsParams) ([]AiCall,
 			&i.SystemFingerprint,
 			&i.Provider,
 			&i.Params,
-			&i.ContextHash,
-			&i.ResponseHash,
 			&i.Outcome,
 			&i.HttpStatus,
 			&i.FinishReason,

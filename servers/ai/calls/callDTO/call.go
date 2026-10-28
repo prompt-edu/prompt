@@ -23,8 +23,6 @@ type Call struct {
 	SystemFingerprint *string         `json:"systemFingerprint"`
 	Provider          string          `json:"provider"`
 	Params            json.RawMessage `json:"params"`
-	ContextHash       *string         `json:"contextHash"`
-	ResponseHash      *string         `json:"responseHash"`
 	Outcome           string          `json:"outcome"`
 	HTTPStatus        *int32          `json:"httpStatus"`
 	FinishReason      *string         `json:"finishReason"`
@@ -53,8 +51,6 @@ func GetCallDTOFromDBModel(row db.AiCall) Call {
 		SystemFingerprint: textOf(row.SystemFingerprint),
 		Provider:          row.Provider,
 		Params:            row.Params,
-		ContextHash:       textOf(row.ContextHash),
-		ResponseHash:      textOf(row.ResponseHash),
 		Outcome:           row.Outcome,
 		HTTPStatus:        intOf(row.HttpStatus),
 		FinishReason:      textOf(row.FinishReason),

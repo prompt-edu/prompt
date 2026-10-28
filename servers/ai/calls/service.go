@@ -2,8 +2,6 @@ package calls
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -79,9 +77,7 @@ func (s *Service) Begin(ctx context.Context, request Request) (uuid.UUID, error)
 	defer promptSDK.DeferDBRollback(tx, ctx)
 	qtx := s.queries.WithTx(tx)
 
-	params := s.callParams(request, OutcomePending)
-	params.ContextHash = optionalText(hash(request.Body))
-	callID, err := qtx.CreateCall(ctx, params)
+	callID, err := qtx.CreateCall(ctx, s.callParams(request, OutcomePending))
 	if err != nil {
 		return uuid.Nil, fmt.Errorf("create call: %w", err)
 	}
@@ -128,7 +124,6 @@ func (s *Service) Finish(ctx context.Context, callID uuid.UUID, completion Compl
 		ID:                callID,
 		ServedModel:       optionalText(summary.Model),
 		SystemFingerprint: optionalText(summary.SystemFingerprint),
-		ResponseHash:      optionalText(hash(completion.Response)),
 		Outcome:           completion.Outcome,
 		HttpStatus:        optionalInt(int32(completion.HTTPStatus)),
 		FinishReason:      optionalText(summary.FinishReason),
@@ -289,11 +284,6 @@ func (s *Service) decryptContent(callID uuid.UUID, encryptedRequest, encryptedRe
 		}
 	}
 	return content, nil
-}
-
-func hash(content []byte) string {
-	sum := sha256.Sum256(content)
-	return hex.EncodeToString(sum[:])
 }
 
 func optionalText(value string) pgtype.Text {

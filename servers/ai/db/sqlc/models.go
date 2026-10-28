@@ -24,8 +24,6 @@ type AiCall struct {
 	SystemFingerprint pgtype.Text        `json:"system_fingerprint"`
 	Provider          string             `json:"provider"`
 	Params            []byte             `json:"params"`
-	ContextHash       pgtype.Text        `json:"context_hash"`
-	ResponseHash      pgtype.Text        `json:"response_hash"`
 	Outcome           string             `json:"outcome"`
 	HttpStatus        pgtype.Int4        `json:"http_status"`
 	FinishReason      pgtype.Text        `json:"finish_reason"`

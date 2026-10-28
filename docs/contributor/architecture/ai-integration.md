@@ -129,7 +129,7 @@ to `servers/ai/feature/registry.go`.
 
 | Table | Contents | Retention |
 | --- | --- | --- |
-| `ai_call` | Who (Keycloak `sub` and role, no name), the token's issuer, the calling service, phase, feature, template, requested and served model, system fingerprint, parameters, hashes of request and response, outcome, status, finish reason, tokens, timings | `AI_AUDIT_METADATA_RETENTION_DAYS` (default 1825) |
+| `ai_call` | Who (Keycloak `sub` and role, no name), the token's issuer, the calling service, phase, feature, template, requested and served model, system fingerprint, parameters, outcome, status, finish reason, tokens, timings | `AI_AUDIT_METADATA_RETENTION_DAYS` (default 1825) |
 | `ai_call_content` | Request and response as passed through, AES-GCM encrypted with a key version byte and bound to the call id; a cancelled stream keeps its partial response | per feature |
 | `ai_call_subject` | The course participations named in `X-Prompt-Subjects` | per feature |
 | `ai_call_content_restriction` | Content kept but restricted after an erasure request | per feature |

@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
+	"github.com/prompt-edu/prompt/servers/interview/bodyLimit"
 	"github.com/prompt-edu/prompt/servers/interview/interviewReview/interviewReviewDTO"
 )
 
@@ -14,7 +15,7 @@ func RegisterRoutes(routerGroup *gin.RouterGroup, service *InterviewReviewServic
 	reviewRouter := routerGroup.Group("/interview-review")
 
 	reviewRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.getAllInterviewReviews)
-	reviewRouter.PUT("/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.upsertInterviewReview)
+	reviewRouter.PUT("/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), bodyLimit.WithLimit(bodyLimit.LargeMaxBytes), service.upsertInterviewReview)
 
 	reviewRouter.GET("/score", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.getScores)
 	reviewRouter.GET("/scoreLevel", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.getScoreLevels)

@@ -19,7 +19,7 @@
     "@docusaurus/preset-classic": "3.10.2",
     "@mdx-js/react": "^3.1.1",
     "clsx": "^2.1.1",
-    "lucide-react": "^1.58.0",
+    "lucide-react": "^1.60.0",
     "prism-react-renderer": "^2.4.1",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"
@@ -41,7 +41,7 @@
     ]
   },
   "engines": {
-    "node": ">=24.22.0"
+    "node": ">=24.22.1"
   },
   "packageManager": "yarn@4.18.1",
   "resolutions": {
@@ -50,11 +50,11 @@
     "serialize-javascript": "^7.1.2",
     "uuid": "^14.0.3",
     "@docusaurus/core/tinypool": "^2.2.0",
-    "postcss-calc/postcss-selector-parser": "^7.1.6",
-    "postcss-discard-unused/postcss-selector-parser": "^7.1.6",
-    "postcss-merge-rules/postcss-selector-parser": "^7.1.6",
-    "postcss-minify-selectors/postcss-selector-parser": "^7.1.6",
-    "postcss-unique-selectors/postcss-selector-parser": "^7.1.6",
-    "stylehacks/postcss-selector-parser": "^7.1.6"
+    "postcss-calc/postcss-selector-parser": "^7.1.7",
+    "postcss-discard-unused/postcss-selector-parser": "^7.1.7",
+    "postcss-merge-rules/postcss-selector-parser": "^7.1.7",
+    "postcss-minify-selectors/postcss-selector-parser": "^7.1.7",
+    "postcss-unique-selectors/postcss-selector-parser": "^7.1.7",
+    "stylehacks/postcss-selector-parser": "^7.1.7"
   }
 }

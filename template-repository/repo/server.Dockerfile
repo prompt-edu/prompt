@@ -24,7 +24,7 @@ COPY . .
 RUN CGO_ENABLED=0 go build -o main .
 
 # Stage 2: Final (distroless, nonroot — runs as UID 65532 instead of root)
-FROM gcr.io/distroless/static-debian12:nonroot
+FROM gcr.io/distroless/static-debian13:nonroot
 
 # Set the working directory
 WORKDIR /app

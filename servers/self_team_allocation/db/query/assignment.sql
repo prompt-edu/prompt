@@ -47,3 +47,17 @@ SELECT id,
 FROM assignments
 WHERE course_participation_id = $1
   AND course_phase_id = $2;
+
+-- name: LockTeamForAssignment :many
+-- Locks the team row so concurrent joins are counted one after another. Returns no row when
+-- the team does not exist in the course phase.
+SELECT id
+FROM team
+WHERE id = $1
+  AND course_phase_id = $2
+FOR UPDATE;
+
+-- name: CountTeamMembers :one
+SELECT COUNT(*)
+FROM assignments
+WHERE team_id = $1;

@@ -12,6 +12,19 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const countTeamMembers = `-- name: CountTeamMembers :one
+SELECT COUNT(*)
+FROM assignments
+WHERE team_id = $1
+`
+
+func (q *Queries) CountTeamMembers(ctx context.Context, teamID uuid.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, countTeamMembers, teamID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createOrUpdateAssignment = `-- name: CreateOrUpdateAssignment :exec
 INSERT INTO assignments AS a (
   id,
@@ -151,6 +164,41 @@ func (q *Queries) GetAssignmentsByCoursePhase(ctx context.Context, coursePhaseID
 			return nil, err
 		}
 		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const lockTeamForAssignment = `-- name: LockTeamForAssignment :many
+SELECT id
+FROM team
+WHERE id = $1
+  AND course_phase_id = $2
+FOR UPDATE
+`
+
+type LockTeamForAssignmentParams struct {
+	ID            uuid.UUID `json:"id"`
+	CoursePhaseID uuid.UUID `json:"course_phase_id"`
+}
+
+// Locks the team row so concurrent joins are counted one after another. Returns no row when
+// the team does not exist in the course phase.
+func (q *Queries) LockTeamForAssignment(ctx context.Context, arg LockTeamForAssignmentParams) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, lockTeamForAssignment, arg.ID, arg.CoursePhaseID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []uuid.UUID
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err

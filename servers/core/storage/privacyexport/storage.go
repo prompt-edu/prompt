@@ -77,7 +77,7 @@ func (s *ExportStorage) GetUploadURL(ctx context.Context, exportRequestID, servi
 	}
 
 	key := MakeObjectURL(exportRequestID, serviceName)
-	return s.adapter.GetUploadURL(ctx, key, "application/zip", int(uploadPresignTTL.Seconds()))
+	return s.adapter.GetUploadURL(ctx, key, "application/zip", 0, int(uploadPresignTTL.Seconds()))
 }
 
 // GetDownloadURL generates a presigned S3 GET URL for downloading a GDPR export ZIP.
@@ -87,7 +87,7 @@ func (s *ExportStorage) GetDownloadURL(ctx context.Context, objectKey string) (s
 		return "", fmt.Errorf("privacy export storage not initialized")
 	}
 
-	return s.adapter.GetURL(ctx, objectKey, int(downloadPresignTTL.Seconds()))
+	return s.adapter.GetURL(ctx, objectKey, int(downloadPresignTTL.Seconds()), "attachment")
 }
 
 // DeleteFile removes a GDPR export ZIP from storage.

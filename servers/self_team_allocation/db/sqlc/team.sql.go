@@ -9,21 +9,60 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const countTeamsByCoursePhase = `-- name: CountTeamsByCoursePhase :one
+SELECT COUNT(*)
+FROM team
+WHERE course_phase_id = $1
+`
+
+func (q *Queries) CountTeamsByCoursePhase(ctx context.Context, coursePhaseID uuid.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, countTeamsByCoursePhase, coursePhaseID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const countTeamsCreatedByParticipation = `-- name: CountTeamsCreatedByParticipation :one
+SELECT COUNT(*)
+FROM team
+WHERE course_phase_id = $1
+  AND created_by_course_participation_id = $2
+`
+
+type CountTeamsCreatedByParticipationParams struct {
+	CoursePhaseID                  uuid.UUID   `json:"course_phase_id"`
+	CreatedByCourseParticipationID pgtype.UUID `json:"created_by_course_participation_id"`
+}
+
+func (q *Queries) CountTeamsCreatedByParticipation(ctx context.Context, arg CountTeamsCreatedByParticipationParams) (int64, error) {
+	row := q.db.QueryRow(ctx, countTeamsCreatedByParticipation, arg.CoursePhaseID, arg.CreatedByCourseParticipationID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createTeam = `-- name: CreateTeam :exec
-INSERT INTO team (id, name, course_phase_id)
-VALUES ($1, $2, $3)
+INSERT INTO team (id, name, course_phase_id, created_by_course_participation_id)
+VALUES ($1, $2, $3, $4)
 `
 
 type CreateTeamParams struct {
-	ID            uuid.UUID `json:"id"`
-	Name          string    `json:"name"`
-	CoursePhaseID uuid.UUID `json:"course_phase_id"`
+	ID                             uuid.UUID   `json:"id"`
+	Name                           string      `json:"name"`
+	CoursePhaseID                  uuid.UUID   `json:"course_phase_id"`
+	CreatedByCourseParticipationID pgtype.UUID `json:"created_by_course_participation_id"`
 }
 
 func (q *Queries) CreateTeam(ctx context.Context, arg CreateTeamParams) error {
-	_, err := q.db.Exec(ctx, createTeam, arg.ID, arg.Name, arg.CoursePhaseID)
+	_, err := q.db.Exec(ctx, createTeam,
+		arg.ID,
+		arg.Name,
+		arg.CoursePhaseID,
+		arg.CreatedByCourseParticipationID,
+	)
 	return err
 }
 
@@ -107,7 +146,7 @@ func (q *Queries) GetTeamWithStudentNamesByTeamID(ctx context.Context, arg GetTe
 }
 
 const getTeamsByCoursePhase = `-- name: GetTeamsByCoursePhase :many
-SELECT id, name, course_phase_id, created_at
+SELECT id, name, course_phase_id, created_at, created_by_course_participation_id
 FROM team
 WHERE course_phase_id = $1
 ORDER BY name
@@ -127,6 +166,7 @@ func (q *Queries) GetTeamsByCoursePhase(ctx context.Context, coursePhaseID uuid.
 			&i.Name,
 			&i.CoursePhaseID,
 			&i.CreatedAt,
+			&i.CreatedByCourseParticipationID,
 		); err != nil {
 			return nil, err
 		}
@@ -206,6 +246,17 @@ func (q *Queries) GetTeamsWithStudentNames(ctx context.Context, coursePhaseID uu
 		return nil, err
 	}
 	return items, nil
+}
+
+const lockTeamCreation = `-- name: LockTeamCreation :exec
+SELECT pg_advisory_xact_lock(hashtextextended(($1::uuid)::text, 0))
+`
+
+// Serializes team creation within a course phase so the creation limits below cannot be
+// bypassed by concurrent requests. Released automatically at the end of the transaction.
+func (q *Queries) LockTeamCreation(ctx context.Context, coursePhaseID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, lockTeamCreation, coursePhaseID)
+	return err
 }
 
 const updateTeam = `-- name: UpdateTeam :exec

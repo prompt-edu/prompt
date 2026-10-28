@@ -11,10 +11,12 @@ ON CONFLICT (course_participation_id, course_phase_id, competency_id, author_cou
                   type         = EXCLUDED.type,
                   evaluated_at = CURRENT_TIMESTAMP;
 
--- name: DeleteEvaluation :exec
+-- name: DeleteEvaluation :execrows
 DELETE
 FROM evaluation
-WHERE id = $1;
+WHERE id = $1
+  AND course_phase_id = $2
+  AND author_course_participation_id = $3;
 
 -- name: GetEvaluationsByPhase :many
 SELECT *

@@ -46,7 +46,7 @@ Before you can build and run **Prompt**, you must install and configure the foll
    - Only needed when you change SQL queries or migrations and regenerate the typed code with `make sqlc`.
 
 5. **Node.js**
-   - Install [Node.js](https://nodejs.org/en) **24.21.0** or newer (the version used by CI and the Docker images).
+   - Install [Node.js](https://nodejs.org/en) **24.22.1** or newer (the version used by CI and the Docker images).
    - Node.js is required to compile and run the React client application.
 
 6. **Yarn**

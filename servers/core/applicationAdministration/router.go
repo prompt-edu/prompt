@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/core/applicationAdministration/applicationDTO"
+	"github.com/prompt-edu/prompt/servers/core/bodyLimit"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase/coursePhaseParticipation/coursePhaseParticipationDTO"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 	log "github.com/sirupsen/logrus"
@@ -34,13 +35,13 @@ func setupApplicationRouter(router *gin.RouterGroup, s *ApplicationService, auth
 
 	// Application Form Endpoints
 	application.GET("/:coursePhaseID/form", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer, permissionValidation.CourseEditor), s.getApplicationForm)
-	application.PUT("/:coursePhaseID/form", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), s.updateApplicationForm)
+	application.PUT("/:coursePhaseID/form", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), bodyLimit.WithLimit(bodyLimit.LargeMaxBytes), s.updateApplicationForm)
 	application.GET("/:coursePhaseID/score", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), s.getAdditionalScores)
 	application.POST("/:coursePhaseID/score", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), s.uploadAdditionalScore)
 	application.PUT("/:coursePhaseID/assessment", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), s.updateApplicationsStatus)
 
 	application.POST("/:coursePhaseID", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), s.postApplicationManual)
-	application.POST("/:coursePhaseID/import", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), s.postApplicationImport)
+	application.POST("/:coursePhaseID/import", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), bodyLimit.WithLimit(bodyLimit.LargeMaxBytes), s.postApplicationImport)
 	application.DELETE("/:coursePhaseID", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), s.deleteApplications)
 	application.GET("/:coursePhaseID/files/:fileId/download-url", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer, permissionValidation.CourseEditor), s.getApplicationFileDownloadURL)
 

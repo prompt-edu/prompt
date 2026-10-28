@@ -8,6 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/core/storage/files"
 	log "github.com/sirupsen/logrus"
@@ -22,6 +23,8 @@ const maxUploadRequestBodyBytes = 1 << 20 // 1 MiB
 type applicationPresignUploadRequest struct {
 	Filename    string `json:"filename"`
 	ContentType string `json:"contentType"`
+	// SizeBytes is optional for now; when sent, the upload URL only accepts exactly that size.
+	SizeBytes   int64  `json:"sizeBytes"`
 	Description string `json:"description"`
 	Tags        string `json:"tags"`
 }
@@ -51,7 +54,7 @@ func (s *ApplicationService) presignApplicationUploadExternal(c *gin.Context) {
 	if !ok {
 		return
 	}
-	if !s.ensureOpenApplicationPhase(c, coursePhaseID) {
+	if !s.ensureOpenApplicationPhase(c, coursePhaseID, false) {
 		return
 	}
 
@@ -63,6 +66,7 @@ func (s *ApplicationService) presignApplicationUploadExternal(c *gin.Context) {
 	response, err := s.files.PresignUpload(c.Request.Context(), files.PresignUploadRequest{
 		Filename:      body.Filename,
 		ContentType:   body.ContentType,
+		SizeBytes:     body.SizeBytes,
 		CoursePhaseID: &coursePhaseID,
 		Description:   body.Description,
 		Tags:          parseTags(body.Tags),
@@ -92,7 +96,7 @@ func (s *ApplicationService) completeApplicationUploadExternal(c *gin.Context) {
 	if !ok {
 		return
 	}
-	if !s.ensureOpenApplicationPhase(c, coursePhaseID) {
+	if !s.ensureOpenApplicationPhase(c, coursePhaseID, false) {
 		return
 	}
 
@@ -142,7 +146,7 @@ func (s *ApplicationService) presignApplicationUploadAuthenticated(c *gin.Contex
 		return
 	}
 
-	if !s.ensureOpenApplicationPhase(c, coursePhaseID) {
+	if !s.ensureOpenApplicationPhase(c, coursePhaseID, true) {
 		return
 	}
 
@@ -154,6 +158,7 @@ func (s *ApplicationService) presignApplicationUploadAuthenticated(c *gin.Contex
 	response, err := s.files.PresignUpload(c.Request.Context(), files.PresignUploadRequest{
 		Filename:      body.Filename,
 		ContentType:   body.ContentType,
+		SizeBytes:     body.SizeBytes,
 		CoursePhaseID: &coursePhaseID,
 		Description:   body.Description,
 		Tags:          parseTags(body.Tags),
@@ -192,7 +197,7 @@ func (s *ApplicationService) completeApplicationUploadAuthenticated(c *gin.Conte
 		return
 	}
 
-	if !s.ensureOpenApplicationPhase(c, coursePhaseID) {
+	if !s.ensureOpenApplicationPhase(c, coursePhaseID, true) {
 		return
 	}
 
@@ -390,11 +395,15 @@ func parseTags(tags string) []string {
 	return result
 }
 
-func (s *ApplicationService) ensureOpenApplicationPhase(c *gin.Context, coursePhaseID uuid.UUID) bool {
+func (s *ApplicationService) ensureOpenApplicationPhase(c *gin.Context, coursePhaseID uuid.UUID, authenticatedRoute bool) bool {
 	ctxWithTimeout, cancel := db.GetTimeoutContext(c.Request.Context())
 	defer cancel()
 
 	applicationDetails, err := s.queries.CheckIfCoursePhaseIsOpenApplicationPhase(ctxWithTimeout, coursePhaseID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "course phase is not open for applications"})
+		return false
+	}
 	if err != nil {
 		log.WithError(err).Error("Could not validate application phase")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "could not validate application phase"})
@@ -402,6 +411,12 @@ func (s *ApplicationService) ensureOpenApplicationPhase(c *gin.Context, coursePh
 	}
 	if !applicationDetails.IsApplication {
 		c.JSON(http.StatusForbidden, gin.H{"error": "course phase is not open for applications"})
+		return false
+	}
+	// Same rule as validateApplication: the unauthenticated upload routes are closed when
+	// everyone has to apply through the university login.
+	if !authenticatedRoute && !externalRouteAllowed(applicationDetails) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "this course phase does not accept external applications"})
 		return false
 	}
 	return true

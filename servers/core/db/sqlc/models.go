@@ -798,6 +798,11 @@ type ParticipationDataDependencyGraph struct {
 	ToCoursePhaseDtoID   uuid.UUID `json:"to_course_phase_dto_id"`
 }
 
+type PendingUpload struct {
+	StorageKey string             `json:"storage_key"`
+	CreatedAt  pgtype.Timestamptz `json:"created_at"`
+}
+
 type PhaseDataDependencyGraph struct {
 	FromCoursePhaseID    uuid.UUID `json:"from_course_phase_id"`
 	ToCoursePhaseID      uuid.UUID `json:"to_course_phase_id"`

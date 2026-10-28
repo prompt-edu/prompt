@@ -12,6 +12,7 @@ import (
 	"github.com/prompt-edu/prompt-sdk/audit"
 	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
+	"github.com/prompt-edu/prompt/servers/team_allocation/bodyLimit"
 	"github.com/prompt-edu/prompt/servers/team_allocation/tease/teaseDTO"
 	log "github.com/sirupsen/logrus"
 )
@@ -31,8 +32,8 @@ func RegisterRoutes(routerGroup *gin.RouterGroup, service *TeaseService, authMid
 	teaseCoursePhaseRouter.GET("/allocations", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.getAllocations)
 
 	teaseCoursePhaseRouter.GET("/workspace", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.getTeaseWorkspace)
-	teaseCoursePhaseRouter.PUT("/workspace", audit.Describe("Updated the TEASE workspace"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.putTeaseWorkspace)
-	teaseCoursePhaseRouter.POST("/save", audit.Describe("Published TEASE allocations"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.postTeaseSave)
+	teaseCoursePhaseRouter.PUT("/workspace", audit.Describe("Updated the TEASE workspace"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), bodyLimit.WithLimit(maxTeaseWorkspaceBodyBytes), service.putTeaseWorkspace)
+	teaseCoursePhaseRouter.POST("/save", audit.Describe("Published TEASE allocations"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), bodyLimit.WithLimit(maxTeaseWorkspaceBodyBytes), service.postTeaseSave)
 }
 
 func (s *TeaseService) getAllCoursePhases(c *gin.Context) {

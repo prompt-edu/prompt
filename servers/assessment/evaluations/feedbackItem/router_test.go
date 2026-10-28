@@ -322,26 +322,63 @@ func (suite *FeedbackItemRouterTestSuite) TestUpdateFeedbackItemUnknownID() {
 	assert.Equal(suite.T(), http.StatusNotFound, resp.Code)
 }
 
-func (suite *FeedbackItemRouterTestSuite) TestDeleteFeedbackItemValid() {
-	feedbackItemID := uuid.MustParse("33333333-3333-3333-3333-333333333333") // authored by ca42e447 (current user)
-	phaseID := uuid.MustParse("24461b6b-3c3a-4bc6-ba42-69eeb1514da9")
-
+func (suite *FeedbackItemRouterTestSuite) deleteRequest(phaseID, feedbackItemID uuid.UUID) *httptest.ResponseRecorder {
 	req, _ := http.NewRequest("DELETE", "/api/course_phase/"+phaseID.String()+"/evaluation/feedback-items/"+feedbackItemID.String(), nil)
 	resp := httptest.NewRecorder()
-
 	suite.router.ServeHTTP(resp, req)
+	return resp
+}
+
+func (suite *FeedbackItemRouterTestSuite) TestDeleteFeedbackItemValid() {
+	phaseID := uuid.MustParse("24461b6b-3c3a-4bc6-ba42-69eeb1514da9")
+	feedbackItemID := suite.seedOwnFeedbackItem(phaseID)
+
+	resp := suite.deleteRequest(phaseID, feedbackItemID)
 	assert.Equal(suite.T(), http.StatusOK, resp.Code)
+
+	_, err := suite.service.GetFeedbackItem(suite.suiteCtx, feedbackItemID)
+	assert.Error(suite.T(), err)
 }
 
 func (suite *FeedbackItemRouterTestSuite) TestDeleteFeedbackItemUnauthorized() {
 	feedbackItemID := uuid.MustParse("11111111-1111-1111-1111-111111111111") // authored by da42e447 (different user)
 	phaseID := uuid.MustParse("24461b6b-3c3a-4bc6-ba42-69eeb1514da9")
 
-	req, _ := http.NewRequest("DELETE", "/api/course_phase/"+phaseID.String()+"/evaluation/feedback-items/"+feedbackItemID.String(), nil)
-	resp := httptest.NewRecorder()
-
-	suite.router.ServeHTTP(resp, req)
+	resp := suite.deleteRequest(phaseID, feedbackItemID)
 	assert.Equal(suite.T(), http.StatusForbidden, resp.Code)
+}
+
+// Regression test for GHSA-h36r-xgjv-r8cx: the phase in the URL must own the item.
+func (suite *FeedbackItemRouterTestSuite) TestDeleteFeedbackItemWrongPhase() {
+	phaseID := uuid.MustParse("24461b6b-3c3a-4bc6-ba42-69eeb1514da9")
+	otherPhaseID := uuid.MustParse("34561b6b-3c3a-4bc6-ba42-69eeb1514da9")
+	feedbackItemID := suite.seedOwnFeedbackItem(phaseID)
+
+	resp := suite.deleteRequest(otherPhaseID, feedbackItemID)
+	assert.Equal(suite.T(), http.StatusNotFound, resp.Code)
+
+	_, err := suite.service.GetFeedbackItem(suite.suiteCtx, feedbackItemID)
+	assert.NoError(suite.T(), err)
+}
+
+// Regression test for GHSA-h36r-xgjv-r8cx: a completed evaluation locks deletion.
+func (suite *FeedbackItemRouterTestSuite) TestDeleteFeedbackItemCompletedEvaluation() {
+	// The seed marks the current student's self evaluation in phase 2 as completed.
+	lockedPhaseID := uuid.MustParse("34561b6b-3c3a-4bc6-ba42-69eeb1514da9")
+	feedbackItemID := suite.seedOwnFeedbackItem(lockedPhaseID)
+
+	resp := suite.deleteRequest(lockedPhaseID, feedbackItemID)
+	assert.Equal(suite.T(), http.StatusConflict, resp.Code)
+
+	_, err := suite.service.GetFeedbackItem(suite.suiteCtx, feedbackItemID)
+	assert.NoError(suite.T(), err)
+}
+
+func (suite *FeedbackItemRouterTestSuite) TestDeleteFeedbackItemUnknownID() {
+	phaseID := uuid.MustParse("24461b6b-3c3a-4bc6-ba42-69eeb1514da9")
+
+	resp := suite.deleteRequest(phaseID, uuid.New())
+	assert.Equal(suite.T(), http.StatusNotFound, resp.Code)
 }
 
 func (suite *FeedbackItemRouterTestSuite) TestDeleteFeedbackItemInvalidID() {

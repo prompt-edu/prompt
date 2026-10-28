@@ -21,10 +21,12 @@ WHERE id = $1
   AND course_phase_id = $2
   AND author_course_participation_id = $3;
 
--- name: DeleteFeedbackItem :exec
+-- name: DeleteFeedbackItem :execrows
 DELETE
 FROM feedback_items
-WHERE id = $1;
+WHERE id = $1
+  AND course_phase_id = $2
+  AND author_course_participation_id = $3;
 
 -- name: ListFeedbackItemsForParticipantInPhase :many
 SELECT *

@@ -6292,6 +6292,10 @@ const docTemplate = `{
                 "filename": {
                     "type": "string"
                 },
+                "sizeBytes": {
+                    "description": "SizeBytes is optional for now; when sent, the upload URL only accepts exactly that size.",
+                    "type": "integer"
+                },
                 "tags": {
                     "type": "string"
                 }

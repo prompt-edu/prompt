@@ -1,6 +1,6 @@
 module github.com/prompt-edu/prompt/servers/ai
 
-go 1.27.2
+go 1.27.3
 
 require (
 	github.com/getsentry/sentry-go v0.50.0
@@ -9,7 +9,7 @@ require (
 	github.com/go-jose/go-jose/v4 v4.1.4
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.11.0
-	github.com/prompt-edu/prompt-sdk v1.4.2-0.20261022081855-2c6eb3a97189
+	github.com/prompt-edu/prompt-sdk v1.4.3-0.20261027173950-555f2394f47e
 	github.com/sirupsen/logrus v1.10.2
 	github.com/stretchr/testify v1.12.1
 	github.com/testcontainers/testcontainers-go v0.44.0

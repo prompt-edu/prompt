@@ -38,12 +38,16 @@ DELETE FROM interview_slot
 WHERE id = $1;
 
 -- name: CreateInterviewAssignment :one
+-- The phase is taken from the slot, so it always matches the slot the assignment points at.
 INSERT INTO interview_assignment (
     interview_slot_id,
-    course_participation_id
-) VALUES (
-    $1, $2
-) RETURNING *;
+    course_participation_id,
+    course_phase_id
+)
+SELECT s.id, sqlc.arg(course_participation_id)::uuid, s.course_phase_id
+FROM interview_slot s
+WHERE s.id = sqlc.arg(interview_slot_id)::uuid
+RETURNING *;
 
 -- name: GetInterviewAssignment :one
 SELECT * FROM interview_assignment

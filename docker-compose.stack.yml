@@ -50,9 +50,9 @@ services:
     environment:
       # Read by the placeholders in keycloakConfig.json, so the imported realm
       # accepts this stack's client and core server origins.
-      PROMPT_PORT_3000: ${PROMPT_PORT_3000}
-      PROMPT_PORT_3001: ${PROMPT_PORT_3001}
-      PROMPT_PORT_8080: ${PROMPT_PORT_8080}
+      PROMPT_PORT_3000: ${PROMPT_PORT_3000:-3000}
+      PROMPT_PORT_3001: ${PROMPT_PORT_3001:-3001}
+      PROMPT_PORT_8080: ${PROMPT_PORT_8080:-8080}
 
   seaweedfs-master:
     volumes:

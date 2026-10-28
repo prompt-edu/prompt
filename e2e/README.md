@@ -43,6 +43,10 @@ the main checkout uses the Compose project `prompt-e2e` (containers `prompt-e2e-
 client on `4000`), and a linked worktree with stack number `n` uses `prompt-<n>-e2e`
 with every published port shifted by `n * 100` (client `4100` in stack 1). `make stack`
 prints the ports; see "Run Several Stacks Side by Side" in `docs/contributor/setup.md`.
+An e2e or verify stack started before this naming runs under the directory-named
+project and blocks the next `make verify-up` with "container name /prompt-e2e-db is
+already in use". Remove it once with `docker rm -f $(docker ps -aq --filter name=^prompt-e2e-)`
+and delete its volumes (`docker volume ls -q --filter label=com.docker.compose.project=<directory name>`).
 
 Iterating on specs only? `SKIP_BUILD=1` reuses the images already on your machine
 and skips the build pass entirely. Only use it when nothing under `clients/`,

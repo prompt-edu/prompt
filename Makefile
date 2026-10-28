@@ -106,7 +106,7 @@ help: ## Show this help
 
 # run-server <directory> <port>: each server listens on its own port, shifted to
 # this stack. SERVER_ADDRESS from .env only contributes the interface to bind.
-SERVER_BIND = $(or $(firstword $(subst :, ,$(SERVER_ADDRESS))),0.0.0.0)
+SERVER_BIND = $(or $(patsubst %:$(lastword $(subst :, ,$(SERVER_ADDRESS))),%,$(SERVER_ADDRESS)),0.0.0.0)
 run-server = cd servers/$(1) && SERVER_ADDRESS=$(SERVER_BIND):$(2) go run main.go
 
 server: server-core ## Start the core server (alias)

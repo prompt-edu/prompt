@@ -52,19 +52,18 @@ if [ "$git_dir" = "$common_dir" ]; then
 fi
 
 # Serialize allocations: parallel make runs in two fresh worktrees must not pick
-# the same number. mkdir is atomic; a lock older than a few seconds is left over
+# the same number. mkdir is atomic; a lock whose holder pid is gone is left over
 # from a killed run and is broken.
 lock="$registry.lock"
-tries=0
 until mkdir "$lock" 2>/dev/null; do
-    tries=$((tries + 1))
-    if [ "$tries" -ge 50 ]; then
-        rmdir "$lock" 2>/dev/null || true
-        tries=0
+    holder="$(cat "$lock/pid" 2>/dev/null || true)"
+    if [ -n "$holder" ] && ! kill -0 "$holder" 2>/dev/null; then
+        rm -rf "$lock"
     fi
     sleep 0.1
 done
-trap 'rmdir "$lock" 2>/dev/null || true' EXIT INT TERM
+echo $$ > "$lock/pid"
+trap 'rm -rf "$lock"' EXIT INT TERM
 
 live="$(git worktree list --porcelain | sed -n 's/^worktree //p')"
 kept=""

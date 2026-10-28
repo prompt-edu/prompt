@@ -679,7 +679,7 @@ The Makefile computes all of it per target, there is no generated env file:
 
 - The Compose files read each host port from `PROMPT_PORT_<stack 0 port>` and each container name prefix from `PROMPT_CONTAINER_PREFIX`, with today's values as defaults. For stacks from `1` up the Makefile adds `docker-compose.stack.yml`, which moves the data to named volumes.
 - The host-run servers get the stack's database, Keycloak and S3 ports, `SERVER_CORE_HOST` and `CORE_HOST` (the CORS origin). Core registers the phase services at their shifted ports.
-- The client dev servers read their base port from `PROMPT_CLIENT_PORT` (`clients/shared/rspack/devPorts.mjs`), and the core dev server serves `env.js` with the stack's API and Keycloak ports.
+- The client dev servers read their base port from `PROMPT_CLIENT_PORT` (`clients/shared/rspack/devPorts.mjs`), and the core dev server serves `env.js` with the stack's API and Keycloak ports. This also shifts the external remotes (intro course `3005`, GitHub challenge `3006`) and the intro-course API (`8082`). Their repositories don't know the stack number, so in stack `n` they only load if you start them on `3005 + 100n`, `3006 + 100n` and `8082 + 100n`.
 - The stack's Keycloak imports `keycloakConfig.json` with the stack's client and core ports filled into its redirect URIs and web origins. Its `prompt-server` client keeps the realm's placeholder secret, which the Makefile passes to the servers, so step 4 is not needed for a worktree stack.
 
 The ports are spaced so that stacks `0` to `7` never collide with each other or with the e2e stacks. Always go through `make` in a worktree: a bare `docker compose` there runs with stack 0's names and ports. `make stack` prints the Compose flags it uses.

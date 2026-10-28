@@ -1106,9 +1106,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@hookform/resolvers@npm:^5.9.1":
-  version: 5.9.1
-  resolution: "@hookform/resolvers@npm:5.9.1"
+"@hookform/resolvers@npm:^5.9.2":
+  version: 5.9.2
+  resolution: "@hookform/resolvers@npm:5.9.2"
   dependencies:
     "@standard-schema/utils": "npm:^0.3.0"
   peerDependencies:
@@ -1120,7 +1120,7 @@ __metadata:
     ajv-errors: ^3.0.0
     ajv-formats: ^2.1.1
     arktype: ^2.0.0
-    ata-validator: ^1.2.0
+    ata-validator: ^1.23.0
     class-transformer: ">=0.4.0"
     class-validator: ">=0.12.0"
     computed-types: ^1.0.0
@@ -1186,7 +1186,7 @@ __metadata:
       optional: true
     zod:
       optional: true
-  checksum: 10c0/08d4e1455a072bea182468d878527e2e99c6d079fe56ffc5297e03a8219fe7544db092afcdf7a950e5421390d4dae3a21398c8ccd0b2c8639d0e0ff9e21410c2
+  checksum: 10c0/a1dfbb21ca5c65cba81fb82b1176c4788b8fe6a591886c16908995c1c21fdb1426bce8f013c6d90c00d511b44c481f99bc9b897b8c6ca3f61e0db5f4fe7dfd4a
   languageName: node
   linkType: hard
 
@@ -4133,25 +4133,25 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tanstack/query-core@npm:5.104.5":
-  version: 5.104.5
-  resolution: "@tanstack/query-core@npm:5.104.5"
-  checksum: 10c0/bc2f0626e33ccb1c881343e2b351168d6c07df01f42ed0b4f679d4ecc753af5864678f3e09f57bef500a02de5fc52cfef13aa7c3f2d3be6b62297bac024acaed
+"@tanstack/query-core@npm:5.105.0":
+  version: 5.105.0
+  resolution: "@tanstack/query-core@npm:5.105.0"
+  checksum: 10c0/1b4baa128a95810b677d93f91156e3d32eb07dbe9e062fe0a2651089569f3fca275e43dc9fe569efd55b9e5a00d0d2e18b78de6fa9ed65b1ad54f24e5a90106e
   languageName: node
   linkType: hard
 
-"@tanstack/react-query@npm:^5.104.3":
-  version: 5.104.5
-  resolution: "@tanstack/react-query@npm:5.104.5"
+"@tanstack/react-query@npm:^5.104.5":
+  version: 5.105.0
+  resolution: "@tanstack/react-query@npm:5.105.0"
   dependencies:
-    "@tanstack/query-core": "npm:5.104.5"
+    "@tanstack/query-core": "npm:5.105.0"
   peerDependencies:
     "@types/react": ^18 || ^19
     react: ^18 || ^19
   peerDependenciesMeta:
     "@types/react":
       optional: true
-  checksum: 10c0/eaff9dd4cec0cc43cf835d780efeaf0a2603b792cc2f5f5800a73b4f62b4562cce54b88885f74be72ea0fa7fc721636884ec4bae152b24aea9ce49544fb4c5d1
+  checksum: 10c0/7c9e8d073a0a9192937d0996b18ff6c27a769efb93a3a9cf6cf31c811c9187229573c0746849f1f99c0c96af63e7d738c475e445e53cea6c3a8b0718d8b16f7d
   languageName: node
   linkType: hard
 
@@ -4615,9 +4615,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tumaet/prompt-shared-state@npm:1.3.0":
-  version: 1.3.0
-  resolution: "@tumaet/prompt-shared-state@npm:1.3.0"
+"@tumaet/prompt-shared-state@npm:1.4.0":
+  version: 1.4.0
+  resolution: "@tumaet/prompt-shared-state@npm:1.4.0"
   dependencies:
     axios: "npm:^1.20.0"
     i18n-iso-countries: "npm:^7.14.0"
@@ -4625,18 +4625,18 @@ __metadata:
     typescript: "npm:^7.0.2"
     zustand: "npm:^5.0.15"
   peerDependencies:
-    "@tanstack/react-query": ^5.102.8
-    react: ^19.2.8
-    react-router-dom: ^7.18.3
-  checksum: 10c0/3477734550a039ce57007406e7164911c5187b1a3e09e5d982c2081b736138172c4b7e707a7f05fd1f0964fb08dba8fda201ab72612ad319294f3ddebd62d6a6
+    "@tanstack/react-query": ^5.104.5
+    react: ^19.3.1
+    react-router-dom: ^7.18.4
+  checksum: 10c0/3c1d90c291d51a524755bb895ad9284230498d797b66a8fd9d9e8219b010b4f69cbe38321f6108e91a10a386eac21da1954418856d8dc2f3d021f165e233a039
   languageName: node
   linkType: hard
 
-"@tumaet/prompt-ui-components@npm:1.8.0":
-  version: 1.8.0
-  resolution: "@tumaet/prompt-ui-components@npm:1.8.0"
+"@tumaet/prompt-ui-components@npm:1.9.0":
+  version: 1.9.0
+  resolution: "@tumaet/prompt-ui-components@npm:1.9.0"
   dependencies:
-    "@hookform/resolvers": "npm:^5.9.1"
+    "@hookform/resolvers": "npm:^5.9.2"
     "@radix-ui/react-accordion": "npm:^1.3.1"
     "@radix-ui/react-alert-dialog": "npm:^1.2.1"
     "@radix-ui/react-avatar": "npm:^1.3.1"
@@ -4684,8 +4684,8 @@ __metadata:
     highlight.js: "npm:^11.12.0"
     i18n-iso-countries: "npm:^7.14.0"
     lowlight: "npm:^3.3.0"
-    lucide-react: "npm:^1.56.0"
-    postcss: "npm:^8.5.30"
+    lucide-react: "npm:^1.59.0"
+    postcss: "npm:^8.5.31"
     postcss-preset-env: "npm:^11.6.1"
     react-day-picker: "npm:10.0.2"
     react-easy-crop: "npm:^6.2.4"
@@ -4694,15 +4694,15 @@ __metadata:
     recharts: "npm:^3.10.1"
     sonner: "npm:^2.0.8"
     tailwind-merge: "npm:^3.7.0"
-    tsc-alias: "npm:^1.9.7"
+    tsc-alias: "npm:^1.9.8"
     typescript: "npm:^7.0.2"
   peerDependencies:
-    "@tanstack/react-query": ^5.104.2
+    "@tanstack/react-query": ^5.104.4
     "@tumaet/prompt-shared-state": ^1.3.0
-    react: ^19.3.0
-    react-dom: ^19.3.0
+    react: ^19.3.1
+    react-dom: ^19.3.1
     react-router-dom: ^7.18.4
-  checksum: 10c0/d98bb61cfe31bd85b527950c8144da8a94e4061b9caf7b819212c1d96a8975b312a36483030db07f431ef6320ee7060988f0cb557b3a6e4873692b9fc5d7ac9c
+  checksum: 10c0/8159ad1f4fc67ffe8f37b5817fb41af042233642a0c922faadbb7a4f6ad0b377becc4571fe687df261468fb698f20078948ea6bbd0657f293d7e8614c7d89ba4
   languageName: node
   linkType: hard
 
@@ -8109,16 +8109,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"lucide-react@npm:^1.56.0, lucide-react@npm:^1.58.0":
-  version: 1.61.0
-  resolution: "lucide-react@npm:1.61.0"
+"lucide-react@npm:^1.59.0, lucide-react@npm:^1.60.0":
+  version: 1.62.0
+  resolution: "lucide-react@npm:1.62.0"
   peerDependencies:
     "@types/react": "*"
     react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
   peerDependenciesMeta:
     "@types/react":
       optional: true
-  checksum: 10c0/85576d32aef43d5dccf5a1fac06b67c2ccbb70eb33b996123f49aab108111fffa6bdd517c7d406db67a14432c45924279c2ec7212a166864d3355ce68b361494
+  checksum: 10c0/58334df044a9f837ba2ddc77e7a3c34545fd7ca28d853882df94ba52de54821ed16f34f7ced373089a2972725beadb8b82ebb9b9d1dcbcd468f87d05949ee46d
   languageName: node
   linkType: hard
 
@@ -8349,7 +8349,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"motion@npm:^14.3.0":
+"motion@npm:^14.4.0":
   version: 14.6.0
   resolution: "motion@npm:14.6.0"
   dependencies:
@@ -9576,14 +9576,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"postcss@npm:^8.5.30":
-  version: 8.5.31
-  resolution: "postcss@npm:8.5.31"
+"postcss@npm:^8.5.31":
+  version: 8.5.32
+  resolution: "postcss@npm:8.5.32"
   dependencies:
     nanoid: "npm:^3.3.20"
     picocolors: "npm:^1.1.1"
     source-map-js: "npm:^1.2.2"
-  checksum: 10c0/52f94c6655f86f568a803ce9c8eb3c749e109cc711d26644c4cde953b30c1b947a2f25af3b9453de68584ac655572f46ed8e830b8ab2f21dd226b3f640992e00
+  checksum: 10c0/5fa6cad84e277c2ced965dc7e8e7c0b8d7e5b76a6835591b57a43fde46e671d0c8428d365e9141c080abaae5441d495ed77ffd7472c5bd41d6c2154bd03c01d7
   languageName: node
   linkType: hard
 
@@ -9654,7 +9654,7 @@ __metadata:
     "@rspack/core": "npm:^2.2.9"
     "@rspack/dev-server": "npm:^2.2.1"
     "@tailwindcss/postcss": "npm:^4.3.3"
-    "@tanstack/react-query": "npm:^5.104.3"
+    "@tanstack/react-query": "npm:^5.104.5"
     "@tanstack/react-table": "npm:^9.3.1"
     "@tiptap/core": "npm:^3.32.0"
     "@tiptap/extension-code-block": "npm:^3.32.0"
@@ -9672,8 +9672,8 @@ __metadata:
     "@tiptap/pm": "npm:^3.32.0"
     "@tiptap/react": "npm:^3.32.0"
     "@tiptap/starter-kit": "npm:^3.32.0"
-    "@tumaet/prompt-shared-state": "npm:1.3.0"
-    "@tumaet/prompt-ui-components": "npm:1.8.0"
+    "@tumaet/prompt-shared-state": "npm:1.4.0"
+    "@tumaet/prompt-ui-components": "npm:1.9.0"
     "@types/node": "npm:^25.9.9"
     "@types/react": "npm:^19.3.0"
     "@types/react-beautiful-dnd": "npm:^13.1.8"
@@ -9691,9 +9691,9 @@ __metadata:
     keycloak-js: "npm:25.0.6"
     lerna: "npm:^10.1.1"
     lowlight: "npm:^3.3.0"
-    lucide-react: "npm:^1.58.0"
-    motion: "npm:^14.3.0"
-    postcss: "npm:^8.5.30"
+    lucide-react: "npm:^1.60.0"
+    motion: "npm:^14.4.0"
+    postcss: "npm:^8.5.31"
     postcss-loader: "npm:8.2.1"
     react: "npm:^19.3.1"
     react-dom: "npm:^19.3.1"
@@ -10961,9 +10961,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tsc-alias@npm:^1.9.7":
-  version: 1.9.8
-  resolution: "tsc-alias@npm:1.9.8"
+"tsc-alias@npm:^1.9.8":
+  version: 1.9.9
+  resolution: "tsc-alias@npm:1.9.9"
   dependencies:
     chokidar: "npm:^3.5.3"
     commander: "npm:^9.0.0"
@@ -10974,7 +10974,7 @@ __metadata:
     plimit-lit: "npm:^1.2.6"
   bin:
     tsc-alias: dist/bin/index.js
-  checksum: 10c0/26957dfe1c91b44931f91bdb0b49c66fe601eb8eb65037deee7a07445ac7865500361c609501ec97ccf5c4e0a731c8c5bbbe9b5b30870a74a85836ee3ce4bd0b
+  checksum: 10c0/525d256bdea8923cba6b403faf1c04ffd7d0e729eb0c5a2a4fa16ba58dc5770a10f78b315da22ab558769d08c9d119f879b4b1a8281fecff88b0b10d30d95e22
   languageName: node
   linkType: hard
 

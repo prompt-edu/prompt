@@ -1,10 +1,6 @@
-import {
-  axiosInstance,
-  createAuthenticatedAxiosInstance,
-  notAuthenticatedAxiosInstance,
-} from '@tumaet/prompt-shared-state'
+import { axiosInstance, notAuthenticatedAxiosInstance } from '@tumaet/prompt-shared-state'
 import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios'
-import { isAxiosError } from 'axios'
+import axios, { isAxiosError } from 'axios'
 
 /**
  * Core talks to its own server on the same origin, so the path prefix is the only route policy
@@ -104,9 +100,10 @@ export const coreRequest = requestsThrough(axiosInstance, 'Core')
 /** The public application pages, which are reached before there is a token. */
 export const publicRequest = requestsThrough(notAuthenticatedAxiosInstance, 'Public core')
 
-// Read off window.env: the shared `env` object drops keys its EnvType does not know.
-export const aiAxiosInstance = createAuthenticatedAxiosInstance(
-  (window.env as { AI_HOST?: string }).AI_HOST ?? '',
-)
+// Read off window.env: the shared `env` object drops keys its EnvType does not know. Unauthenticated,
+// since core only reads the public info route, so the token never goes to AI_HOST.
+export const aiAxiosInstance = axios.create({
+  baseURL: (window.env as { AI_HOST?: string }).AI_HOST ?? '',
+})
 
 export const aiRequest = requestsThrough(aiAxiosInstance, 'AI')

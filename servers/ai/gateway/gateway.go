@@ -16,6 +16,7 @@ import (
 	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt-sdk/serviceAuth"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
+	"github.com/prompt-edu/prompt/servers/ai/bodyLimit"
 	"github.com/prompt-edu/prompt/servers/ai/calls"
 	"github.com/prompt-edu/prompt/servers/ai/feature"
 	log "github.com/sirupsen/logrus"
@@ -74,7 +75,7 @@ func RegisterRoutes(coursePhaseAPI *gin.RouterGroup, gateway *Gateway, serviceKe
 	v1 := coursePhaseAPI.Group("/v1",
 		serviceAuth.Middleware(serviceKeys, ServiceHeader, ServiceTokenHeader),
 		promptSDK.AuthenticationMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor))
-	v1.POST("/chat/completions", gateway.chatCompletions)
+	v1.POST("/chat/completions", bodyLimit.WithLimit(maxRequestBytes), gateway.chatCompletions)
 	v1.GET("/models", gateway.listModels)
 }
 
@@ -101,7 +102,7 @@ func (g *Gateway) chatCompletions(c *gin.Context) {
 		return
 	}
 
-	body, err := io.ReadAll(http.MaxBytesReader(c.Writer, c.Request.Body, maxRequestBytes))
+	body, err := io.ReadAll(c.Request.Body)
 	var tooLarge *http.MaxBytesError
 	if errors.As(err, &tooLarge) {
 		g.deny(c, request, http.StatusRequestEntityTooLarge, "request_too_large", "the request body is larger than 4 MiB")

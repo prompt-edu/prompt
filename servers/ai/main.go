@@ -16,6 +16,7 @@ import (
 	"github.com/prompt-edu/prompt-sdk/promptTypes"
 	"github.com/prompt-edu/prompt-sdk/serviceAuth"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
+	"github.com/prompt-edu/prompt/servers/ai/bodyLimit"
 	"github.com/prompt-edu/prompt/servers/ai/calls"
 	db "github.com/prompt-edu/prompt/servers/ai/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/ai/encryption"
@@ -100,6 +101,7 @@ func loadConfig() (config, error) {
 
 func newRouter(sentryEnabled bool) *gin.Engine {
 	router := gin.Default()
+	router.Use(bodyLimit.Middleware(bodyLimit.DefaultMaxBytes))
 	if sentryEnabled {
 		router.Use(sentrygin.New(sentrygin.Options{}))
 	}

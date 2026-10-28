@@ -614,3 +614,21 @@ func (s *AIServerSuite) TestAuditTablesAreAppendOnly() {
 		s.Error(err, statement)
 	}
 }
+
+func (s *AIServerSuite) TestBodyLimits() {
+	coursePhaseID := s.newPhase("Assessment")
+	tooLarge := completion(testutils.TestModel, strings.Repeat("a", 5<<20), false)
+	response, _ := s.chat(coursePhaseID, s.lecturer(coursePhaseID), tooLarge, nil)
+	s.Equal(http.StatusRequestEntityTooLarge, response.StatusCode)
+	s.Equal("request_too_large", *s.call(response.Header.Get(gateway.CallIDHeader)).ErrorCode)
+
+	aboveDefault := map[string]any{"model": strings.Repeat("a", 3<<20)}
+	response, _ = s.chat(coursePhaseID, s.lecturer(coursePhaseID), aboveDefault, nil)
+	s.Equal(http.StatusBadRequest, response.StatusCode, "completions may exceed the default cap")
+	s.Equal("model_not_allowed", *s.call(response.Header.Get(gateway.CallIDHeader)).ErrorCode)
+
+	response, _ = s.send(http.MethodPost, phasePath(coursePhaseID)+"/calls/"+uuid.NewString()+"/events", s.lecturer(coursePhaseID),
+		map[string]any{"type": "shown", "targetId": strings.Repeat("a", 3<<20)}, serviceHeaders())
+	s.Equal(http.StatusRequestEntityTooLarge, response.StatusCode, "every other route keeps the default cap")
+	s.Empty(s.providerRequests())
+}

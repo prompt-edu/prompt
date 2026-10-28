@@ -101,7 +101,7 @@ service key is the phase server's entry in `AI_SERVICE_KEYS`; it never goes to t
 | --- | --- | --- |
 | `POST /v1/chat/completions` | Phase service key, then PromptAdmin, CourseLecturer, CourseEditor | Streamed or plain completion |
 | `GET /v1/models` | Phase service key, then PromptAdmin, CourseLecturer, CourseEditor | Models both allowed and available to the key sent along |
-| `POST /calls/:callID/events` | PromptAdmin, CourseLecturer, CourseEditor | Oversight events, on the caller's own calls (any call for PromptAdmin) |
+| `POST /calls/:callID/events` | Phase service key, then PromptAdmin, CourseLecturer, CourseEditor | Oversight events, on the caller's own calls (any call for PromptAdmin) |
 | `GET /calls`, `GET /calls/:callID` | PromptAdmin | Audit metadata, and one call's content |
 
 The gateway forwards the body unchanged, except that the `model` must be in `AI_ALLOWED_MODELS`,
@@ -111,8 +111,13 @@ headers. A call without a service key answers `401` and is not recorded. A call 
 without a registered feature of the phase's type and the calling service, or with a feature, template or template version
 that is not a label of letters, digits, `.`, `_` and `-` of at most 128 characters answers `400`
 and is recorded as denied, without the refused label. If the call cannot be recorded, the
-answer is `503` and the provider is never called. Requests over 4 MiB are refused; a call ends
-after 10 minutes, or after 2 minutes without a chunk.
+answer is `503` and the provider is never called. Requests over 4 MiB are refused (2 MiB on every
+other route); a call ends after 10 minutes, and a streamed call also after 2 minutes without a
+chunk.
+
+Oversight events need the service key like inference: the phase server knows what its UI showed,
+accepted, edited or rejected, and reports it with the staff member's token. A token alone cannot
+write oversight evidence.
 
 `X-Prompt-Subjects` takes at most 100 course participation ids. They are recorded as given, so the
 calling service is responsible for naming the right students.

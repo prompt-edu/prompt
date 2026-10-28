@@ -556,28 +556,30 @@ func (s *AIServerSuite) TestAuditReadsAndEvents() {
 	s.Nil(secondPage.NextCursor)
 
 	callPath := phasePath(coursePhaseID) + "/calls/" + callIDs[0]
-	response, _ := s.send(http.MethodPost, callPath+"/events", s.editor(coursePhaseID), map[string]any{"type": "shown"}, nil)
+	response, _ := s.send(http.MethodPost, callPath+"/events", s.lecturer(coursePhaseID), map[string]any{"type": "accepted"}, nil)
+	s.Equal(http.StatusUnauthorized, response.StatusCode, "a staff token alone cannot write oversight evidence")
+	response, _ = s.send(http.MethodPost, callPath+"/events", s.editor(coursePhaseID), map[string]any{"type": "shown"}, serviceHeaders())
 	s.Equal(http.StatusNotFound, response.StatusCode, "only the caller reports events on their call")
-	response, _ = s.send(http.MethodPost, callPath+"/events", s.lecturer(coursePhaseID), map[string]any{"type": "shown"}, nil)
+	response, _ = s.send(http.MethodPost, callPath+"/events", s.lecturer(coursePhaseID), map[string]any{"type": "shown"}, serviceHeaders())
 	s.Equal(http.StatusCreated, response.StatusCode)
-	response, _ = s.send(http.MethodPost, callPath+"/events", s.lecturer(coursePhaseID), map[string]any{"type": "edited"}, nil)
+	response, _ = s.send(http.MethodPost, callPath+"/events", s.lecturer(coursePhaseID), map[string]any{"type": "edited"}, serviceHeaders())
 	s.Equal(http.StatusBadRequest, response.StatusCode, "an edit needs its edit distance")
 	response, _ = s.send(http.MethodPost, callPath+"/events", s.lecturer(coursePhaseID),
-		map[string]any{"type": "edited", "editDistance": 17, "targetId": uuid.NewString()}, nil)
+		map[string]any{"type": "edited", "editDistance": 17, "targetId": uuid.NewString()}, serviceHeaders())
 	s.Equal(http.StatusCreated, response.StatusCode)
-	response, _ = s.send(http.MethodPost, callPath+"/events", s.lecturer(coursePhaseID), map[string]any{"type": "content_viewed"}, nil)
+	response, _ = s.send(http.MethodPost, callPath+"/events", s.lecturer(coursePhaseID), map[string]any{"type": "content_viewed"}, serviceHeaders())
 	s.Equal(http.StatusBadRequest, response.StatusCode, "content views are only recorded by the server")
 
 	otherPhaseID := s.newPhase("Assessment")
 	response, _ = s.send(http.MethodPost, phasePath(otherPhaseID)+"/calls/"+callIDs[0]+"/events", s.lecturer(otherPhaseID),
-		map[string]any{"type": "shown"}, nil)
+		map[string]any{"type": "shown"}, serviceHeaders())
 	s.Equal(http.StatusNotFound, response.StatusCode, "a call is only reachable through its own phase")
 	response, _ = s.send(http.MethodGet, phasePath(otherPhaseID)+"/calls/"+callIDs[0], s.admin(), nil, nil)
 	s.Equal(http.StatusNotFound, response.StatusCode)
 
 	denied, _ := s.chat(coursePhaseID, s.lecturer(coursePhaseID), completion("cloud-only-model", "Only offered by the cloud", false), nil)
 	response, _ = s.send(http.MethodPost, phasePath(coursePhaseID)+"/calls/"+denied.Header.Get(gateway.CallIDHeader)+"/events",
-		s.lecturer(coursePhaseID), map[string]any{"type": "shown"}, nil)
+		s.lecturer(coursePhaseID), map[string]any{"type": "shown"}, serviceHeaders())
 	s.Equal(http.StatusNotFound, response.StatusCode, "a denied call produced no output to oversee")
 
 	response, body = s.send(http.MethodGet, callPath, s.admin(), nil, nil)
@@ -599,7 +601,7 @@ func (s *AIServerSuite) TestAuditTablesAreAppendOnly() {
 		map[string]string{"X-Prompt-Subjects": uuid.NewString()})
 	callID := response.Header.Get(gateway.CallIDHeader)
 	eventResponse, _ := s.send(http.MethodPost, phasePath(coursePhaseID)+"/calls/"+callID+"/events", s.lecturer(coursePhaseID),
-		map[string]any{"type": "shown"}, nil)
+		map[string]any{"type": "shown"}, serviceHeaders())
 	s.Require().Equal(http.StatusCreated, eventResponse.StatusCode)
 
 	for _, statement := range []string{

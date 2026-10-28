@@ -118,7 +118,7 @@ func setupRouter(router *gin.Engine, conn *pgxpool.Pool, cfg config) {
 	api := router.Group("/ai/api")
 	coursePhaseAPI := api.Group("/course_phase/:coursePhaseID")
 	gateway.RegisterRoutes(coursePhaseAPI, gateway.New(cfg.providerURL, cfg.allowedModels, cfg.coreURL, callService), cfg.serviceKeys)
-	calls.RegisterRoutes(coursePhaseAPI, callService)
+	calls.RegisterRoutes(coursePhaseAPI, callService, serviceAuth.Middleware(cfg.serviceKeys, gateway.ServiceHeader, gateway.ServiceTokenHeader))
 	promptTypes.RegisterPrivacyModule(api, privacyService.Export, privacyService.Delete, []string{})
 	promptTypes.RegisterInfoEndpoint(api, promptTypes.ServiceInfo{
 		ServiceName: "ai",

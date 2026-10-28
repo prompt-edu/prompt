@@ -20,12 +20,14 @@ const (
 	maxPageSize     = 200
 )
 
-func RegisterRoutes(coursePhaseAPI *gin.RouterGroup, service *Service) {
+// serviceAuth guards the oversight events, so only the phase server that made a call reports what its UI did with it.
+func RegisterRoutes(coursePhaseAPI *gin.RouterGroup, service *Service, serviceAuth gin.HandlerFunc) {
 	callAPI := coursePhaseAPI.Group("/calls")
 	adminOnly := promptSDK.AuthenticationMiddleware(promptSDK.PromptAdmin)
 	callAPI.GET("", adminOnly, service.listCalls)
 	callAPI.GET("/:callID", adminOnly, service.getCall)
 	callAPI.POST("/:callID/events",
+		serviceAuth,
 		promptSDK.AuthenticationMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor),
 		service.addEvent)
 }

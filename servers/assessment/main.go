@@ -132,11 +132,11 @@ func main() {
 	evaluationService := evaluations.NewEvaluationService(*query, conn, evaluationCompletionService, coursePhaseConfigService)
 	feedbackItemService := feedbackItem.NewFeedbackItemService(*query, conn, evaluationCompletionService)
 
-	assessmentCompletionService := assessmentCompletion.NewAssessmentCompletionService(*query, conn, coursePhaseConfigService)
+	assessmentCompletionService := assessmentCompletion.NewAssessmentCompletionService(*query, conn, coursePhaseConfigService, coursePhaseConfig.CheckParticipantInPhase)
 	categoryAssessmentService := categoryAssessment.NewCategoryAssessmentService(*query, conn, assessmentCompletionService, coursePhaseConfig.CheckParticipantInPhase)
 	actionItemService := actionItem.NewActionItemService(*query, assessmentCompletionService, coursePhaseConfigService, coursePhaseConfig.CheckParticipantInPhase)
 	scoreLevelService := scoreLevel.NewScoreLevelService(*query)
-	assessmentService := assessments.NewAssessmentService(*query, conn, assessmentCompletionService, categoryAssessmentService, actionItemService, scoreLevelService, evaluationService, coursePhaseConfigService)
+	assessmentService := assessments.NewAssessmentService(*query, conn, assessmentCompletionService, categoryAssessmentService, actionItemService, scoreLevelService, evaluationService, coursePhaseConfigService, coursePhaseConfig.CheckParticipantInPhase)
 
 	competencies.RegisterRoutes(coursePhaseApi, competencyService, promptSDK.AuthenticationMiddleware)
 	categories.RegisterRoutes(coursePhaseApi, categoryService, promptSDK.AuthenticationMiddleware)

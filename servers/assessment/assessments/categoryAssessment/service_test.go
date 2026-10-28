@@ -16,12 +16,18 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-// The stubbed core lists every participation in every phase except this one.
-var outsideParticipationID = uuid.MustParse("6f1c2a4e-3b5d-4e7f-8a9b-0c1d2e3f4a5b")
+// The stubbed core lists every participation in every phase except these two.
+var (
+	outsideParticipationID      = uuid.MustParse("6f1c2a4e-3b5d-4e7f-8a9b-0c1d2e3f4a5b")
+	unverifiableParticipationID = uuid.MustParse("7a2d3b5f-4c6e-4f80-9bac-1d2e3f4a5b6c")
+)
 
 func checkTestParticipant(_ context.Context, _ string, _, courseParticipationID uuid.UUID) error {
-	if courseParticipationID == outsideParticipationID {
+	switch courseParticipationID {
+	case outsideParticipationID:
 		return coursePhaseConfig.ErrParticipantNotInPhase
+	case unverifiableParticipationID:
+		return coursePhaseConfig.ErrParticipantLookup
 	}
 	return nil
 }
@@ -43,7 +49,7 @@ func (suite *CategoryAssessmentServiceTestSuite) SetupSuite() {
 	suite.cleanup = cleanup
 	suite.queries = *testDB.Queries
 	coursePhaseConfigService := coursePhaseConfig.NewCoursePhaseConfigService(*testDB.Queries, testDB.Conn, assessmentSchemas.NewAssessmentSchemaService(*testDB.Queries, testDB.Conn))
-	suite.service = NewCategoryAssessmentService(*testDB.Queries, testDB.Conn, assessmentCompletion.NewAssessmentCompletionService(*testDB.Queries, testDB.Conn, coursePhaseConfigService), checkTestParticipant)
+	suite.service = NewCategoryAssessmentService(*testDB.Queries, testDB.Conn, assessmentCompletion.NewAssessmentCompletionService(*testDB.Queries, testDB.Conn, coursePhaseConfigService, checkTestParticipant), checkTestParticipant)
 }
 
 func (suite *CategoryAssessmentServiceTestSuite) TearDownSuite() {

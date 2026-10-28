@@ -19,6 +19,22 @@ import (
 	"github.com/prompt-edu/prompt/servers/assessment/utils"
 )
 
+// The stubbed core lists every participation in every phase except these two.
+var (
+	outsideParticipationID      = uuid.MustParse("6f1c2a4e-3b5d-4e7f-8a9b-0c1d2e3f4a5b")
+	unverifiableParticipationID = uuid.MustParse("7a2d3b5f-4c6e-4f80-9bac-1d2e3f4a5b6c")
+)
+
+func checkTestParticipant(_ context.Context, _ string, _, courseParticipationID uuid.UUID) error {
+	switch courseParticipationID {
+	case outsideParticipationID:
+		return coursePhaseConfig.ErrParticipantNotInPhase
+	case unverifiableParticipationID:
+		return coursePhaseConfig.ErrParticipantLookup
+	}
+	return nil
+}
+
 type AssessmentCompletionServiceTestSuite struct {
 	suite.Suite
 	suiteCtx context.Context
@@ -38,6 +54,7 @@ func (suite *AssessmentCompletionServiceTestSuite) SetupSuite() {
 		*testDB.Queries,
 		testDB.Conn,
 		coursePhaseConfig.NewCoursePhaseConfigService(*testDB.Queries, testDB.Conn, assessmentSchemas.NewAssessmentSchemaService(*testDB.Queries, testDB.Conn)),
+		checkTestParticipant,
 	)
 }
 
@@ -100,7 +117,7 @@ func (suite *AssessmentCompletionServiceTestSuite) TestCreateOrUpdateAssessmentC
 	}
 
 	// Test creation
-	err := suite.service.CreateOrUpdateAssessmentCompletion(suite.suiteCtx, completionDTO)
+	err := suite.service.CreateOrUpdateAssessmentCompletion(suite.suiteCtx, "", completionDTO)
 	assert.NoError(suite.T(), err, "Expected no error while creating assessment completion")
 
 	// Verify creation - check existence
@@ -128,7 +145,7 @@ func (suite *AssessmentCompletionServiceTestSuite) TestCreateOrUpdateAssessmentC
 	completionDTO.GradeSuggestion = 2.0
 	completionDTO.Completed = false // Keep it false to allow updates
 
-	err = suite.service.CreateOrUpdateAssessmentCompletion(suite.suiteCtx, completionDTO)
+	err = suite.service.CreateOrUpdateAssessmentCompletion(suite.suiteCtx, "", completionDTO)
 	assert.NoError(suite.T(), err, "Expected no error while updating assessment completion")
 
 	// Verify update
@@ -149,7 +166,7 @@ func (suite *AssessmentCompletionServiceTestSuite) TestCreateOrUpdateAssessmentC
 
 	for _, grade := range []float64{-3.0, 0.0, 0.9, 5.1, 9.9} {
 		partID := uuid.New()
-		err := suite.service.CreateOrUpdateAssessmentCompletion(suite.suiteCtx, assessmentCompletionDTO.AssessmentCompletion{
+		err := suite.service.CreateOrUpdateAssessmentCompletion(suite.suiteCtx, "", assessmentCompletionDTO.AssessmentCompletion{
 			CourseParticipationID: partID,
 			CoursePhaseID:         phaseID,
 			CompletedAt:           pgtype.Timestamptz{Time: time.Now(), Valid: true},
@@ -181,7 +198,7 @@ func (suite *AssessmentCompletionServiceTestSuite) TestDeleteAssessmentCompletio
 		Completed:             false,
 	}
 
-	err := suite.service.CreateOrUpdateAssessmentCompletion(suite.suiteCtx, completionDTO)
+	err := suite.service.CreateOrUpdateAssessmentCompletion(suite.suiteCtx, "", completionDTO)
 	assert.NoError(suite.T(), err)
 
 	// Verify it exists
@@ -218,7 +235,7 @@ func (suite *AssessmentCompletionServiceTestSuite) TestCreateOrUpdateAssessmentC
 
 	// This might not fail since nil UUIDs are technically valid
 	// The test expectation might be wrong - let's see what actually happens
-	err := suite.service.CreateOrUpdateAssessmentCompletion(suite.suiteCtx, completionDTO)
+	err := suite.service.CreateOrUpdateAssessmentCompletion(suite.suiteCtx, "", completionDTO)
 	// Since nil UUIDs might be valid, we should not expect an error here
 	// The database constraints would determine if this fails
 	// If this consistently doesn't error, the test expectation is wrong

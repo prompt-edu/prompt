@@ -36,7 +36,7 @@ func (suite *CategoryAssessmentRouterTestSuite) SetupSuite() {
 	}
 	suite.cleanup = cleanup
 	coursePhaseConfigService := coursePhaseConfig.NewCoursePhaseConfigService(*testDB.Queries, testDB.Conn, assessmentSchemas.NewAssessmentSchemaService(*testDB.Queries, testDB.Conn))
-	suite.service = NewCategoryAssessmentService(*testDB.Queries, testDB.Conn, assessmentCompletion.NewAssessmentCompletionService(*testDB.Queries, testDB.Conn, coursePhaseConfigService), checkTestParticipant)
+	suite.service = NewCategoryAssessmentService(*testDB.Queries, testDB.Conn, assessmentCompletion.NewAssessmentCompletionService(*testDB.Queries, testDB.Conn, coursePhaseConfigService, checkTestParticipant), checkTestParticipant)
 
 	suite.router = gin.Default()
 	api := suite.router.Group("/api/course_phase/:coursePhaseID")
@@ -100,6 +100,11 @@ func (suite *CategoryAssessmentRouterTestSuite) TestCreateOrUpdateRejectsUnknown
 func (suite *CategoryAssessmentRouterTestSuite) TestCreateOrUpdateRejectsParticipantOutsidePhase() {
 	categoryID := uuid.MustParse("25f1c984-ba31-4cf2-aa8e-5662721bf44e")
 	assert.Equal(suite.T(), http.StatusBadRequest, suite.postCategoryAssessment(categoryID, outsideParticipationID))
+}
+
+func (suite *CategoryAssessmentRouterTestSuite) TestCreateOrUpdateWhenParticipantLookupFails() {
+	categoryID := uuid.MustParse("25f1c984-ba31-4cf2-aa8e-5662721bf44e")
+	assert.Equal(suite.T(), http.StatusBadGateway, suite.postCategoryAssessment(categoryID, unverifiableParticipationID))
 }
 
 func TestCategoryAssessmentRouterTestSuite(t *testing.T) {

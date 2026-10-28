@@ -40,7 +40,7 @@ func (suite *ActionItemRouterTestSuite) SetupSuite() {
 	suite.cleanup = cleanup
 
 	suite.coursePhaseConfigService = coursePhaseConfig.NewCoursePhaseConfigService(*testDB.Queries, testDB.Conn, assessmentSchemas.NewAssessmentSchemaService(*testDB.Queries, testDB.Conn))
-	suite.service = NewActionItemService(*testDB.Queries, assessmentCompletion.NewAssessmentCompletionService(*testDB.Queries, testDB.Conn, suite.coursePhaseConfigService), suite.coursePhaseConfigService, checkTestParticipant)
+	suite.service = NewActionItemService(*testDB.Queries, assessmentCompletion.NewAssessmentCompletionService(*testDB.Queries, testDB.Conn, suite.coursePhaseConfigService, checkTestParticipant), suite.coursePhaseConfigService, checkTestParticipant)
 
 	suite.router = gin.Default()
 	api := suite.router.Group("/api/course_phase/:coursePhaseID")

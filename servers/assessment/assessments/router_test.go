@@ -191,6 +191,32 @@ func (suite *AssessmentRouterTestSuite) TestCreateIndependentAssessment() {
 	assert.Equal(suite.T(), http.StatusConflict, post(phaseID), "Scores freeze once the final assessment is marked final")
 }
 
+func (suite *AssessmentRouterTestSuite) TestSaveScoreRejectsUnverifiedParticipants() {
+	phaseID := uuid.New()
+	_, err := suite.service.conn.Exec(suite.suiteCtx,
+		`INSERT INTO course_phase_config (assessment_schema_id, course_phase_id, start, independent_assessment_enabled)
+		 VALUES ('550e8400-e29b-41d4-a716-446655440000', $1, NOW() - INTERVAL '1 day', TRUE)`, phaseID)
+	assert.NoError(suite.T(), err)
+
+	post := func(path string, courseParticipationID uuid.UUID) int {
+		body, _ := json.Marshal(map[string]string{
+			"courseParticipationID": courseParticipationID.String(),
+			"competencyID":          "20725c05-bfd7-45a7-a981-d092e14f98d3",
+			"scoreLevel":            "good",
+		})
+		req, _ := http.NewRequest("POST", "/api/course_phase/"+phaseID.String()+path, bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		resp := httptest.NewRecorder()
+		suite.router.ServeHTTP(resp, req)
+		return resp.Code
+	}
+
+	for _, path := range []string{"/student-assessment", "/student-assessment/independent"} {
+		assert.Equal(suite.T(), http.StatusBadRequest, post(path, outsideParticipationID), path)
+		assert.Equal(suite.T(), http.StatusBadGateway, post(path, unverifiableParticipationID), path)
+	}
+}
+
 func (suite *AssessmentRouterTestSuite) TestDeleteOwnIndependentAssessment() {
 	phaseID := uuid.New()
 	partID := uuid.New()

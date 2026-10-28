@@ -52,7 +52,7 @@ func (suite *ActionItemServiceTestSuite) SetupSuite() {
 	}
 	suite.cleanup = cleanup
 	coursePhaseConfigService := coursePhaseConfig.NewCoursePhaseConfigService(*testDB.Queries, testDB.Conn, assessmentSchemas.NewAssessmentSchemaService(*testDB.Queries, testDB.Conn))
-	suite.actionItemService = NewActionItemService(*testDB.Queries, assessmentCompletion.NewAssessmentCompletionService(*testDB.Queries, testDB.Conn, coursePhaseConfigService), coursePhaseConfigService, checkTestParticipant)
+	suite.actionItemService = NewActionItemService(*testDB.Queries, assessmentCompletion.NewAssessmentCompletionService(*testDB.Queries, testDB.Conn, coursePhaseConfigService, checkTestParticipant), coursePhaseConfigService, checkTestParticipant)
 
 	// Use predefined test UUIDs from the database dump
 	// This phase has assessment open (start in past, deadline in future)

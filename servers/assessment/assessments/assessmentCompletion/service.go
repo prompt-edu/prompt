@@ -25,17 +25,21 @@ type coursePhaseConfigProvider interface {
 	IsAssessmentDeadlinePassed(ctx context.Context, coursePhaseID uuid.UUID) (bool, error)
 }
 
+type participantChecker func(ctx context.Context, authHeader string, coursePhaseID, courseParticipationID uuid.UUID) error
+
 type AssessmentCompletionService struct {
 	queries           db.Queries
 	conn              *pgxpool.Pool
 	coursePhaseConfig coursePhaseConfigProvider
+	checkParticipant  participantChecker
 }
 
-func NewAssessmentCompletionService(queries db.Queries, conn *pgxpool.Pool, coursePhaseConfig coursePhaseConfigProvider) *AssessmentCompletionService {
+func NewAssessmentCompletionService(queries db.Queries, conn *pgxpool.Pool, coursePhaseConfig coursePhaseConfigProvider, checkParticipant participantChecker) *AssessmentCompletionService {
 	return &AssessmentCompletionService{
 		queries:           queries,
 		conn:              conn,
 		coursePhaseConfig: coursePhaseConfig,
+		checkParticipant:  checkParticipant,
 	}
 }
 
@@ -137,12 +141,17 @@ func (s *AssessmentCompletionService) GetStudentGrade(ctx context.Context, cours
 	return utils.MapNumericToFloat64(grade), nil
 }
 
-func (s *AssessmentCompletionService) CreateOrUpdateAssessmentCompletion(ctx context.Context, req assessmentCompletionDTO.AssessmentCompletion) error {
+func (s *AssessmentCompletionService) CreateOrUpdateAssessmentCompletion(ctx context.Context, authHeader string, req assessmentCompletionDTO.AssessmentCompletion) error {
 	if req.GradeSuggestion < minGradeSuggestion || req.GradeSuggestion > maxGradeSuggestion {
 		return ErrInvalidGradeSuggestion
 	}
 
-	err := s.CheckAssessmentIsEditable(ctx, &s.queries, req.CourseParticipationID, req.CoursePhaseID)
+	err := s.checkParticipant(ctx, authHeader, req.CoursePhaseID, req.CourseParticipationID)
+	if err != nil {
+		return err
+	}
+
+	err = s.CheckAssessmentIsEditable(ctx, &s.queries, req.CourseParticipationID, req.CoursePhaseID)
 	if err != nil {
 		return err
 	}

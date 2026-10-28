@@ -21,19 +21,24 @@ type exchange struct {
 	firstByteAt  time.Time
 	response     bytes.Buffer
 	idle         *time.Timer
+	idleTimeout  time.Duration
 	idleExpired  atomic.Bool
 	transportErr error
 }
 
 func (g *Gateway) forward(c *gin.Context, callID uuid.UUID, logosKey string, request calls.Request) {
 	callerCtx := c.Request.Context()
-	ctx, cancel := context.WithTimeout(callerCtx, totalTimeout)
+	ctx, cancel := context.WithTimeout(callerCtx, g.totalTimeout)
 	defer cancel()
-	exchange := &exchange{}
-	exchange.idle = time.AfterFunc(idleTimeout, func() {
+	exchange := &exchange{idleTimeout: g.idleTimeout}
+	exchange.idle = time.AfterFunc(g.idleTimeout, func() {
 		exchange.idleExpired.Store(true)
 		cancel()
 	})
+	if !request.Streamed {
+		// A non-streamed answer arrives only once the whole completion is done, so only the total limit applies until then.
+		exchange.idle.Stop()
+	}
 
 	proxy := &httputil.ReverseProxy{
 		Rewrite: func(proxyRequest *httputil.ProxyRequest) {
@@ -55,27 +60,34 @@ func (g *Gateway) forward(c *gin.Context, callID uuid.UUID, logosKey string, req
 	}
 
 	defer func() {
-		// ReverseProxy panics with http.ErrAbortHandler when a started stream breaks.
-		aborted := recover()
-		g.complete(callerCtx, ctx, callID, request.Streamed, exchange, aborted != nil)
-		if aborted != nil {
-			// gin's recovery would end a broken response cleanly, so the caller could take it as complete.
-			// gin refuses to hijack once body bytes are written, so the connection is taken from the writer it wraps.
-			conn, _, err := http.NewResponseController(unwrap(c.Writer)).Hijack()
-			if err != nil {
-				panic(aborted)
-			}
-			_ = conn.Close()
+		recovered := recover()
+		g.complete(callerCtx, ctx, callID, request.Streamed, exchange, recovered)
+		if recovered == nil {
+			return
 		}
+		// ReverseProxy panics with http.ErrAbortHandler when a started stream breaks; anything else is a bug.
+		if recovered != http.ErrAbortHandler {
+			panic(recovered)
+		}
+		// gin's recovery would end a broken response cleanly, so the caller could take it as complete.
+		// gin refuses to hijack once body bytes are written, so the connection is taken from the writer it wraps.
+		conn, _, err := http.NewResponseController(unwrap(c.Writer)).Hijack()
+		if err != nil {
+			panic(recovered)
+		}
+		_ = conn.Close()
 	}()
 	proxy.ServeHTTP(c.Writer, c.Request.WithContext(ctx))
 }
 
-func unwrap(writer gin.ResponseWriter) http.ResponseWriter {
-	if wrapper, ok := writer.(interface{ Unwrap() http.ResponseWriter }); ok {
-		return wrapper.Unwrap()
+func unwrap(writer http.ResponseWriter) http.ResponseWriter {
+	for {
+		wrapper, ok := writer.(interface{ Unwrap() http.ResponseWriter })
+		if !ok {
+			return writer
+		}
+		writer = wrapper.Unwrap()
 	}
-	return writer
 }
 
 func (e *exchange) capture(response *http.Response) error {
@@ -112,12 +124,12 @@ func (b *recordingBody) Read(p []byte) (int, error) {
 			b.exchange.firstByteAt = time.Now()
 		}
 		b.exchange.response.Write(p[:n])
-		b.exchange.idle.Reset(idleTimeout)
+		b.exchange.idle.Reset(b.exchange.idleTimeout)
 	}
 	return n, err
 }
 
-func (g *Gateway) complete(callerCtx, proxyCtx context.Context, callID uuid.UUID, streamed bool, e *exchange, aborted bool) {
+func (g *Gateway) complete(callerCtx, proxyCtx context.Context, callID uuid.UUID, streamed bool, e *exchange, recovered any) {
 	e.idle.Stop()
 	completion := calls.Completion{
 		Outcome:     calls.OutcomeSuccess,
@@ -126,10 +138,12 @@ func (g *Gateway) complete(callerCtx, proxyCtx context.Context, callID uuid.UUID
 		Response:    e.response.Bytes(),
 		Streamed:    streamed,
 	}
-	switch delivered := e.transportErr == nil && !aborted; {
+	switch delivered := e.transportErr == nil && recovered == nil; {
 	case delivered && e.status >= http.StatusBadRequest:
 		completion.Outcome, completion.ErrorCode = calls.OutcomeError, "provider_error"
 	case delivered:
+	case recovered != nil && recovered != http.ErrAbortHandler:
+		completion.Outcome, completion.ErrorCode = calls.OutcomeError, "internal_error"
 	case callerCtx.Err() != nil:
 		completion.Outcome, completion.ErrorCode = calls.OutcomeCancelled, "caller_disconnected"
 	case e.idleExpired.Load():

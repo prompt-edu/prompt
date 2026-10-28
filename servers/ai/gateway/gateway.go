@@ -49,6 +49,8 @@ type Gateway struct {
 	phaseTypes    *phaseTypes
 	calls         *calls.Service
 	modelsClient  *http.Client
+	totalTimeout  time.Duration
+	idleTimeout   time.Duration
 }
 
 func New(providerURL *url.URL, allowedModels []string, coreURL string, callService *calls.Service) *Gateway {
@@ -62,6 +64,8 @@ func New(providerURL *url.URL, allowedModels []string, coreURL string, callServi
 		phaseTypes:    &phaseTypes{coreURL: coreURL},
 		calls:         callService,
 		modelsClient:  &http.Client{Timeout: 10 * time.Second},
+		totalTimeout:  totalTimeout,
+		idleTimeout:   idleTimeout,
 	}
 }
 

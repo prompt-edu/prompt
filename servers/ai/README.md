@@ -39,7 +39,7 @@ Features and their content retention live in `feature/registry.go`, keyed
 | --- | --- |
 | `AI_PROVIDER_BASE_URL` | OpenAI-compatible base URL of Logos, including `/v1` |
 | `AI_ALLOWED_MODELS` | Comma-separated models Logos hosts locally; nothing else is forwarded |
-| `AI_ENCRYPTION_KEY` | Base64-encoded 32-byte AES key for the stored content |
+| `AI_ENCRYPTION_KEYS` | AES keys for the stored content as `1:<key>,2:<key>` (base64, 32 bytes each); the highest version seals new content |
 | `AI_AUDIT_METADATA_RETENTION_DAYS` | Call metadata retention (default 1825), longer than any content retention |
 | `DB_HOST_AI`, `DB_PORT_AI` | The service's own database (local default port 5442) |
 

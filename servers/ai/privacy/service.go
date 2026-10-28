@@ -16,6 +16,7 @@ import (
 	"github.com/prompt-edu/prompt/servers/ai/encryption"
 	"github.com/prompt-edu/prompt/servers/ai/feature"
 	"github.com/prompt-edu/prompt/servers/ai/privacy/privacyDTO"
+	log "github.com/sirupsen/logrus"
 )
 
 type Service struct {
@@ -49,10 +50,7 @@ func (s *Service) exportCalls(ctx context.Context, actorID string, participation
 	callIDs := make([]uuid.UUID, 0, len(rows))
 	byID := map[uuid.UUID]int{}
 	for _, row := range rows {
-		call, err := s.exportedCallOf(row)
-		if err != nil {
-			return nil, err
-		}
+		call := s.exportedCallOf(row)
 		byID[row.ID] = len(exported)
 		exported = append(exported, call)
 		callIDs = append(callIDs, row.ID)
@@ -71,7 +69,7 @@ func (s *Service) exportCalls(ctx context.Context, actorID string, participation
 	return exported, nil
 }
 
-func (s *Service) exportedCallOf(row db.ListPrivacyCallsRow) (privacyDTO.ExportedCall, error) {
+func (s *Service) exportedCallOf(row db.ListPrivacyCallsRow) privacyDTO.ExportedCall {
 	call := privacyDTO.ExportedCall{
 		ID:              row.ID,
 		CoursePhaseID:   row.CoursePhaseID,
@@ -105,20 +103,30 @@ func (s *Service) exportedCallOf(row db.ListPrivacyCallsRow) (privacyDTO.Exporte
 	case row.Request != nil && (!row.IsSubject || row.HasOtherSubjects):
 		call.ContentState = privacyDTO.ContentWithheld
 	case row.Request != nil:
-		request, err := s.box.Decrypt(row.ID, encryption.Request, row.Request)
+		request, choices, err := s.decrypt(row)
 		if err != nil {
-			return privacyDTO.ExportedCall{}, fmt.Errorf("decrypt request of call %s: %w", row.ID, err)
+			// One undecryptable row must not block the person's whole export.
+			log.WithError(err).WithField("callID", row.ID).Error("Could not decrypt AI call content for the privacy export")
+			break
 		}
-		call.ContentState, call.Request = callDTO.ContentAvailable, request
-		if row.Response != nil {
-			response, err := s.box.Decrypt(row.ID, encryption.Response, row.Response)
-			if err != nil {
-				return privacyDTO.ExportedCall{}, fmt.Errorf("decrypt response of call %s: %w", row.ID, err)
-			}
-			call.Choices = calls.Summarize(response, row.Streamed).Choices
-		}
+		call.ContentState, call.Request, call.Choices = callDTO.ContentAvailable, request, choices
 	}
-	return call, nil
+	return call
+}
+
+func (s *Service) decrypt(row db.ListPrivacyCallsRow) ([]byte, []callDTO.Choice, error) {
+	request, err := s.box.Decrypt(row.ID, encryption.Request, row.Request)
+	if err != nil {
+		return nil, nil, fmt.Errorf("decrypt request: %w", err)
+	}
+	if row.Response == nil {
+		return request, nil, nil
+	}
+	response, err := s.box.Decrypt(row.ID, encryption.Response, row.Response)
+	if err != nil {
+		return nil, nil, fmt.Errorf("decrypt response: %w", err)
+	}
+	return request, calls.Summarize(response, row.Streamed).Choices, nil
 }
 
 // High-risk content is restricted until its retention ends (GDPR Art. 17(3)(b)), the rest deleted.

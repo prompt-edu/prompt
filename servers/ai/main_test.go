@@ -50,7 +50,7 @@ type AIServerSuite struct {
 
 func (s *AIServerSuite) SetupSuite() {
 	s.ctx = context.Background()
-	s.T().Setenv("AI_ENCRYPTION_KEY", testEncryptionKey)
+	s.T().Setenv("AI_ENCRYPTION_KEYS", "1:"+testEncryptionKey)
 	gin.SetMode(gin.TestMode)
 
 	testDB, stopDB, err := testutils.SetupTestDB(s.ctx)

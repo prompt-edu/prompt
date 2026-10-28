@@ -823,7 +823,7 @@ services:
       - DEBUG
       - AI_PROVIDER_BASE_URL=http://aimock:4010/v1
       - AI_ALLOWED_MODELS=prompt-test-model
-      - AI_ENCRYPTION_KEY
+      - AI_ENCRYPTION_KEYS
       - AI_AUDIT_METADATA_RETENTION_DAYS=1825
       - AI_SERVICE_KEYS=assessment:e2e-assessment-ai-key
 

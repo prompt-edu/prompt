@@ -8,10 +8,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const testKey = "ZTJlLWFpLXRlc3Qta2V5LW5vdC1hLXJlYWwtc2VjcmU="
+const (
+	testKey      = "ZTJlLWFpLXRlc3Qta2V5LW5vdC1hLXJlYWwtc2VjcmU="
+	rotatedKey   = "cm90YXRlZC1haS10ZXN0LWtleS1ub3QtYS1zZWNyZXQ="
+	testKeyEntry = "1:" + testKey
+)
 
 func newTestBox(t *testing.T) *Box {
-	t.Setenv("AI_ENCRYPTION_KEY", testKey)
+	t.Setenv("AI_ENCRYPTION_KEYS", testKeyEntry)
 	box, err := New()
 	require.NoError(t, err)
 	return box
@@ -24,7 +28,7 @@ func TestEncryptRoundTrip(t *testing.T) {
 	sealed, err := box.Encrypt(callID, Request, []byte("logos-key-1234"))
 	require.NoError(t, err)
 	assert.NotContains(t, string(sealed), "logos-key-1234")
-	assert.Equal(t, keyVersion, sealed[0])
+	assert.Equal(t, byte(1), sealed[0])
 
 	opened, err := box.Decrypt(callID, Request, sealed)
 	require.NoError(t, err)
@@ -66,28 +70,57 @@ func TestDecryptRejectsUnknownKeyVersion(t *testing.T) {
 	callID := uuid.New()
 	sealed, err := box.Encrypt(callID, Request, []byte("content"))
 	require.NoError(t, err)
-	sealed[0] = keyVersion + 1
+	sealed[0] = 2
 
 	_, err = box.Decrypt(callID, Request, sealed)
 	assert.ErrorIs(t, err, ErrUnknownKeyVersion)
 }
 
-func TestNewValidatesTheKey(t *testing.T) {
+func TestRotatedKeySealsNewContentAndOpensOldContent(t *testing.T) {
+	callID := uuid.New()
+	old := newTestBox(t)
+	sealedBefore, err := old.Encrypt(callID, Request, []byte("before"))
+	require.NoError(t, err)
+
+	t.Setenv("AI_ENCRYPTION_KEYS", testKeyEntry+", 2:"+rotatedKey)
+	rotated, err := New()
+	require.NoError(t, err)
+	sealedAfter, err := rotated.Encrypt(callID, Request, []byte("after"))
+	require.NoError(t, err)
+	assert.Equal(t, byte(2), sealedAfter[0], "new content uses the highest version")
+
+	opened, err := rotated.Decrypt(callID, Request, sealedBefore)
+	require.NoError(t, err)
+	assert.Equal(t, "before", string(opened))
+	_, err = old.Decrypt(callID, Request, sealedAfter)
+	assert.ErrorIs(t, err, ErrUnknownKeyVersion)
+}
+
+func TestNewValidatesTheKeys(t *testing.T) {
 	t.Setenv("DEBUG", "false")
 
-	t.Setenv("AI_ENCRYPTION_KEY", "")
-	_, err := New()
-	assert.ErrorIs(t, err, ErrEmptyKey)
-
-	t.Setenv("AI_ENCRYPTION_KEY", placeholderKey)
-	_, err = New()
-	assert.ErrorIs(t, err, ErrPlaceholderKey)
+	for keys, want := range map[string]error{
+		"":                    ErrEmptyKey,
+		"1:" + placeholderKey: ErrPlaceholderKey,
+	} {
+		t.Setenv("AI_ENCRYPTION_KEYS", keys)
+		_, err := New()
+		assert.ErrorIs(t, err, want, keys)
+	}
+	for _, keys := range []string{
+		testKey,
+		"0:" + testKey,
+		"256:" + testKey,
+		"1:c2hvcnQ=",
+		testKeyEntry + ",1:" + rotatedKey,
+	} {
+		t.Setenv("AI_ENCRYPTION_KEYS", keys)
+		_, err := New()
+		assert.Error(t, err, keys)
+	}
 
 	t.Setenv("DEBUG", "true")
-	_, err = New()
+	t.Setenv("AI_ENCRYPTION_KEYS", "1:"+placeholderKey)
+	_, err := New()
 	assert.NoError(t, err, "the placeholder is accepted in a debug deployment")
-
-	t.Setenv("AI_ENCRYPTION_KEY", "c2hvcnQ=")
-	_, err = New()
-	assert.Error(t, err, "a key that is not 32 bytes long is refused")
 }

@@ -35,7 +35,7 @@ type PrivacySuite struct {
 
 func (s *PrivacySuite) SetupTest() {
 	s.ctx = context.Background()
-	s.T().Setenv("AI_ENCRYPTION_KEY", "ZTJlLWFpLXRlc3Qta2V5LW5vdC1hLXJlYWwtc2VjcmU=")
+	s.T().Setenv("AI_ENCRYPTION_KEYS", "1:ZTJlLWFpLXRlc3Qta2V5LW5vdC1hLXJlYWwtc2VjcmU=")
 	testDB, cleanup, err := testutils.SetupTestDB(s.ctx)
 	s.Require().NoError(err)
 	s.db, s.cleanup = testDB, cleanup
@@ -142,4 +142,18 @@ func (s *PrivacySuite) TestErasureRestrictsHighRiskAndDeletesTheRest() {
 	s.Require().NoError(s.service.Delete(s.ginContext(), keycloakTokenVerifier.SubjectIdentifiers{
 		UserID: uuid.New(), CourseParticipationIDs: []uuid.UUID{s.student},
 	}), "erasure is idempotent")
+}
+
+func (s *PrivacySuite) TestUndecryptableContentDoesNotBlockTheExport() {
+	s.completedCall("assessment.action_item_suggestions", s.student)
+	s.T().Setenv("AI_ENCRYPTION_KEYS", "2:cm90YXRlZC1haS10ZXN0LWtleS1ub3QtYS1zZWNyZXQ=")
+	box, err := encryption.New()
+	s.Require().NoError(err)
+	s.service.box = box
+
+	exported, err := s.service.exportCalls(s.ctx, "", []uuid.UUID{s.student})
+	s.Require().NoError(err)
+	s.Require().Len(exported, 1)
+	s.Equal(callDTO.ContentUnavailable, exported[0].ContentState)
+	s.Nil(exported[0].Request)
 }

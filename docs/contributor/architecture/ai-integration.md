@@ -163,7 +163,7 @@ privacy request reports the AI part as failed.
 | `AI_ENABLED` | The switch. The Makefile and the deployment derive `COMPOSE_PROFILES=ai` from it |
 | `AI_PROVIDER_BASE_URL` | OpenAI-compatible base URL of Logos, including `/v1` |
 | `AI_ALLOWED_MODELS` | Comma-separated models Logos hosts locally |
-| `AI_ENCRYPTION_KEY` | Base64-encoded 32-byte key for the stored content, `openssl rand -base64 32` |
+| `AI_ENCRYPTION_KEYS` | Keys for the stored content as `1:<key>,2:<key>`, each `openssl rand -base64 32`. New content uses the highest version |
 | `AI_AUDIT_METADATA_RETENTION_DAYS` | Call metadata retention in days |
 | `AI_SERVICE_KEYS` | Phase services allowed to call the model, `service1:key1,service2:key2` like `AUDIT_INGEST_KEYS` |
 | `AI_HOST` | Where the core client and the AI client reach the AI server; the core host in production |
@@ -172,6 +172,11 @@ Provision `AI_SERVICE_KEYS` like the audit ingest keys: one key per calling serv
 with `openssl rand -hex 32` and never the same as that service's audit ingest key. The service name
 is the slug its features start with (`assessment`), so a key only reaches its own phase type. To
 rotate a key, list the new one next to the old one, switch the service over, then drop the old one.
+
+To rotate the content key, add a new version to `AI_ENCRYPTION_KEYS` (for example `1:<old>,2:<new>`)
+and redeploy. Every ciphertext starts with its key version, so new content is sealed with version 2
+and older rows still open with version 1. Keep a version listed until the retention purge has
+removed every row sealed with it; content whose version is missing shows as unavailable.
 
 In production Traefik routes `/ai/api` to the AI server with the API rate limit and without the
 compress middleware, which would buffer streamed completions, and `/ai` to the AI client. Locally,

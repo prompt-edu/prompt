@@ -319,7 +319,7 @@ jobs:
             echo "COMPOSE_PROFILES=${{ vars.AI_ENABLED == 'true' && 'ai' || '' }}" >> .env.prod
             echo "AI_PROVIDER_BASE_URL=${{ vars.AI_PROVIDER_BASE_URL }}" >> .env.prod
             echo "AI_ALLOWED_MODELS=${{ vars.AI_ALLOWED_MODELS }}" >> .env.prod
-            echo "AI_ENCRYPTION_KEY=${{ secrets.AI_ENCRYPTION_KEY }}" >> .env.prod
+            echo "AI_ENCRYPTION_KEYS=${{ secrets.AI_ENCRYPTION_KEYS }}" >> .env.prod
             echo "AI_SERVICE_KEYS=${{ secrets.AI_SERVICE_KEYS }}" >> .env.prod
             echo "AI_AUDIT_METADATA_RETENTION_DAYS=${{ vars.AI_AUDIT_METADATA_RETENTION_DAYS || '1825' }}" >> .env.prod
 

@@ -15,6 +15,7 @@ import (
 	"github.com/prompt-edu/prompt/servers/ai/calls/callDTO"
 	db "github.com/prompt-edu/prompt/servers/ai/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/ai/encryption"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -206,7 +207,8 @@ func (s *Service) Get(ctx context.Context, coursePhaseID, callID uuid.UUID, view
 	case row.Request != nil:
 		content, err := s.decryptContent(callID, row.Request, row.Response, row.AiCall.Streamed, row.AiCall.Outcome)
 		if err != nil {
-			return callDTO.Detail{}, err
+			log.WithError(err).WithField("callID", callID).Error("Could not decrypt AI call content")
+			break
 		}
 		if _, err := s.recordEvent(ctx, coursePhaseID, callID, viewerID, true, callDTO.EventContentViewed, nil); err != nil {
 			return callDTO.Detail{}, fmt.Errorf("record content view: %w", err)

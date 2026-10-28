@@ -12,6 +12,12 @@ before the provider sees it. Its audit records are browsed in their own micro-fr
 
 Everything AI is behind one switch, `AI_ENABLED`, which is off by default.
 
+:::warning
+Do not set `AI_ENABLED=true` in production before #2290 is resolved. Switching AI off again stops
+the AI server and its database, and core leaves the AI module out of its privacy fan-outs, so the
+stored records are no longer purged, exported or erased.
+:::
+
 ## Component Diagram
 
 ![Component diagram of the AI integration](./img/ai-integration/ai-integration.svg)

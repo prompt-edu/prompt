@@ -315,6 +315,7 @@ jobs:
             echo "AUDIT_INGEST_KEY_PRESENTATION=${{ secrets.AUDIT_INGEST_KEY_PRESENTATION }}" >> .env.prod
 
             # AI_ENABLED is the one switch: it selects the compose profile with the AI server and its database.
+            # Keep it off in production until #2290 settles retention and erasure for AI data while AI is off.
             echo "AI_ENABLED=${{ vars.AI_ENABLED == 'true' && 'true' || 'false' }}" >> .env.prod
             echo "COMPOSE_PROFILES=${{ vars.AI_ENABLED == 'true' && 'ai' || '' }}" >> .env.prod
             echo "AI_PROVIDER_BASE_URL=${{ vars.AI_PROVIDER_BASE_URL }}" >> .env.prod

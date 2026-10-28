@@ -107,12 +107,6 @@ func main() {
 }
 
 func registerRoutes(api, coursePhaseAPI *gin.RouterGroup, conn *pgxpool.Pool) error {
-	// Bootstrap creates coursePhaseAPI before calling back, and Gin snapshots a group's chain when
-	// a subgroup is created, so the cap goes on both groups. Routes that need more raise it with
-	// bodyLimit.WithLimit.
-	api.Use(bodyLimit.Middleware(bodyLimit.DefaultMaxBytes))
-	coursePhaseAPI.Use(bodyLimit.Middleware(bodyLimit.DefaultMaxBytes))
-
 	ctx := context.Background()
 	storageAdapter, err := storage.NewS3Adapter(
 		ctx,
@@ -141,8 +135,19 @@ func registerRoutes(api, coursePhaseAPI *gin.RouterGroup, conn *pgxpool.Pool) er
 	)
 	startMaterialReaper(ctx, service)
 
+	registerServiceRoutes(api, coursePhaseAPI, service, coursePhaseDeletion.NewCoursePhaseDeletionService(queries, conn, storageAdapter))
+	return nil
+}
+
+func registerServiceRoutes(api, coursePhaseAPI *gin.RouterGroup, service *presentation.Service, deletionService *coursePhaseDeletion.CoursePhaseDeletionService) {
+	// Bootstrap creates coursePhaseAPI before calling back, and Gin snapshots a group's chain when
+	// a subgroup is created, so the cap goes on both groups. Routes that need more raise it with
+	// bodyLimit.WithLimit.
+	api.Use(bodyLimit.Middleware(bodyLimit.DefaultMaxBytes))
+	coursePhaseAPI.Use(bodyLimit.Middleware(bodyLimit.DefaultMaxBytes))
+
 	presentation.RegisterRoutes(coursePhaseAPI, service)
-	coursePhaseDeletion.RegisterRoutes(coursePhaseAPI, coursePhaseDeletion.NewCoursePhaseDeletionService(queries, conn, storageAdapter))
+	coursePhaseDeletion.RegisterRoutes(coursePhaseAPI, deletionService)
 
 	promptTypes.RegisterCopyModule(
 		api.Group("", audit.Describe(presentation.AuditCopyAction)),
@@ -151,5 +156,4 @@ func registerRoutes(api, coursePhaseAPI *gin.RouterGroup, conn *pgxpool.Pool) er
 		promptSDK.CourseLecturer,
 	)
 	promptTypes.RegisterPrivacyModule(api, service.PrivacyExportHandler, service.PrivacyDeletionHandler, []string{})
-	return nil
 }

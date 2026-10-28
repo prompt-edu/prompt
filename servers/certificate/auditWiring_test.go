@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"sync"
@@ -18,12 +19,9 @@ import (
 	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt-sdk/promptTypes"
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
-	"github.com/prompt-edu/prompt/servers/certificate/config"
+	"github.com/prompt-edu/prompt/servers/certificate/bodyLimit"
 	"github.com/prompt-edu/prompt/servers/certificate/copy"
-	"github.com/prompt-edu/prompt/servers/certificate/coursePhaseDeletion"
 	db "github.com/prompt-edu/prompt/servers/certificate/db/sqlc"
-	"github.com/prompt-edu/prompt/servers/certificate/generator"
-	"github.com/prompt-edu/prompt/servers/certificate/participants"
 	"github.com/stretchr/testify/require"
 )
 
@@ -80,31 +78,19 @@ func auditActorMiddleware() gin.HandlerFunc {
 	}
 }
 
-// auditRouter rebuilds main.go's group layout, with the audit middleware
-// attached to the api group before the course phase subgroup exists, because
-// gin snapshots the handler chain when a subgroup is created. The actor
-// middleware stands in for a token that authenticates but lacks the role the
-// route requires, which is the denial the audit middleware is meant to capture.
-func auditRouter(sink audit.Sink) *gin.Engine {
+// newServiceRouter builds the router groups the way promptSDK.Bootstrap does, with the test sink
+// in place of core's, and registers main.go's routes on them. The actor middleware stands in for a
+// token that authenticates but lacks the role the route requires, which is the denial the audit
+// middleware is meant to capture.
+func newServiceRouter(t *testing.T, sink audit.Sink) (*gin.Engine, *gin.RouterGroup, *gin.RouterGroup) {
+	t.Helper()
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
-
-	api := router.Group("certificate/api")
-	api.Use(audit.Middleware(sink))
-	api.Use(auditActorMiddleware())
+	router.Use(audit.Middleware(sink), auditActorMiddleware())
+	api := router.Group("/certificate/api")
 	coursePhaseApi := api.Group("/course_phase/:coursePhaseID")
-
-	queries := db.New(nil)
-	configService := config.NewConfigService(*queries)
-	participantsService := participants.NewParticipantsService(*queries, "http://localhost:8080")
-	generatorService := generator.NewGeneratorService(*queries, configService, participantsService, participantsService)
-
-	config.RegisterRoutes(coursePhaseApi, configService, promptSDK.AuthenticationMiddleware)
-	participants.RegisterRoutes(coursePhaseApi, participantsService, promptSDK.AuthenticationMiddleware)
-	generator.RegisterRoutes(coursePhaseApi, generatorService, promptSDK.AuthenticationMiddleware)
-	coursePhaseDeletion.RegisterRoutes(coursePhaseApi, coursePhaseDeletion.NewCoursePhaseDeletionService(*queries, nil))
-
-	return router
+	require.NoError(t, registerRoutes(api, coursePhaseApi, nil))
+	return router, api, coursePhaseApi
 }
 
 func TestAuditMiddlewareRecordsMutatingConfigRoutes(t *testing.T) {
@@ -137,7 +123,7 @@ func TestAuditMiddlewareRecordsMutatingConfigRoutes(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			sink := &recordingSink{}
-			router := auditRouter(sink)
+			router, _, _ := newServiceRouter(t, sink)
 
 			resp := httptest.NewRecorder()
 			url := "/certificate/api/course_phase/" + auditCoursePhaseID + tt.path
@@ -161,7 +147,7 @@ func TestAuditMiddlewareRecordsMutatingConfigRoutes(t *testing.T) {
 // derived "Deleted course phase" would mislead.
 func TestAuditMiddlewareRecordsPhaseDeletionRoute(t *testing.T) {
 	sink := &recordingSink{}
-	router := auditRouter(sink)
+	router, _, _ := newServiceRouter(t, sink)
 
 	resp := httptest.NewRecorder()
 	url := "/certificate/api/course_phase/" + auditCoursePhaseID
@@ -178,7 +164,7 @@ func TestAuditMiddlewareRecordsPhaseDeletionRoute(t *testing.T) {
 
 func TestAuditMiddlewareRecordsOneEventPerRequest(t *testing.T) {
 	sink := &recordingSink{}
-	router := auditRouter(sink)
+	router, _, _ := newServiceRouter(t, sink)
 
 	resp := httptest.NewRecorder()
 	url := "/certificate/api/course_phase/" + auditCoursePhaseID + "/settings"
@@ -192,7 +178,7 @@ func TestAuditMiddlewareRecordsOneEventPerRequest(t *testing.T) {
 
 func TestAuditMiddlewareIgnoresReads(t *testing.T) {
 	sink := &recordingSink{}
-	router := auditRouter(sink)
+	router, _, _ := newServiceRouter(t, sink)
 
 	resp := httptest.NewRecorder()
 	url := "/certificate/api/course_phase/" + auditCoursePhaseID + "/settings"
@@ -269,4 +255,23 @@ func TestHandlePhaseCopyRecordsScopedEvent(t *testing.T) {
 	require.Equal(t, auditTargetCoursePhaseID, events[0].CoursePhaseID)
 	require.Equal(t, auditCoursePhaseID, events[0].Metadata["sourceCoursePhaseID"])
 	require.Equal(t, auditActorID, events[0].ActorID)
+}
+
+// Bootstrap creates the course phase group before registerRoutes runs, so the body cap has to be
+// registered on both groups to reach every route.
+func TestBodyCapCoversBothGroups(t *testing.T) {
+	router, api, coursePhaseApi := newServiceRouter(t, &recordingSink{})
+	readBody := func(c *gin.Context) {
+		if _, err := io.ReadAll(c.Request.Body); err != nil {
+			c.AbortWithStatus(http.StatusBadRequest)
+		}
+	}
+	api.POST("/body-cap-probe", readBody)
+	coursePhaseApi.POST("/body-cap-probe", readBody)
+
+	for _, path := range []string{"/certificate/api/body-cap-probe", "/certificate/api/course_phase/" + auditCoursePhaseID + "/body-cap-probe"} {
+		resp := httptest.NewRecorder()
+		router.ServeHTTP(resp, httptest.NewRequest(http.MethodPost, path, bytes.NewReader(make([]byte, bodyLimit.DefaultMaxBytes+1))))
+		require.Equal(t, http.StatusRequestEntityTooLarge, resp.Code, path)
+	}
 }

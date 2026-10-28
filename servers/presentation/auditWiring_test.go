@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"sync"
@@ -18,6 +19,7 @@ import (
 	"github.com/prompt-edu/prompt-sdk/audit"
 	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt-sdk/promptTypes"
+	"github.com/prompt-edu/prompt/servers/presentation/bodyLimit"
 	"github.com/prompt-edu/prompt/servers/presentation/coursePhaseDeletion"
 	db "github.com/prompt-edu/prompt/servers/presentation/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/presentation/presentation"
@@ -84,37 +86,27 @@ func auditActorMiddleware() gin.HandlerFunc {
 	}
 }
 
-// auditRouter rebuilds main.go's group layout, with the audit middleware attached to the
-// api group before the course phase subgroup exists, because gin snapshots the handler
-// chain when a subgroup is created. RegisterRoutes wires the real SDK auth middleware, so
-// every request without a bearer token is denied, which is the outcome the audit
-// middleware is meant to capture. No handler runs, so the service needs no live database.
-func auditRouter(sink audit.Sink) *gin.Engine {
+// newServiceRouter builds the router groups the way promptSDK.Bootstrap does, with the test sink
+// in place of core's, and registers main.go's routes on them. The actor middleware stands in for a
+// token that authenticates but lacks the role the route requires, which is the denial the audit
+// middleware is meant to capture.
+func newServiceRouter(t *testing.T, sink audit.Sink) (*gin.Engine, *gin.RouterGroup, *gin.RouterGroup) {
+	t.Helper()
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
-
+	router.Use(audit.Middleware(sink), auditActorMiddleware())
 	api := router.Group("/presentation/api")
-	api.Use(audit.Middleware(sink))
-	api.Use(auditActorMiddleware())
 	coursePhaseAPI := api.Group("/course_phase/:coursePhaseID")
-
 	service := presentation.NewService(db.New(nil), nil, nil, "", 0, 0, 0, nil)
-	presentation.RegisterRoutes(coursePhaseAPI, service)
-	coursePhaseDeletion.RegisterRoutes(coursePhaseAPI, coursePhaseDeletion.NewCoursePhaseDeletionService(nil, nil, nil))
-	promptTypes.RegisterCopyModule(
-		api.Group("", audit.Describe(presentation.AuditCopyAction)),
-		&presentation.CopyHandler{Service: service},
-		promptSDK.PromptAdmin,
-		promptSDK.CourseLecturer,
-	)
-	return router
+	registerServiceRoutes(api, coursePhaseAPI, service, coursePhaseDeletion.NewCoursePhaseDeletionService(nil, nil, nil))
+	return router, api, coursePhaseAPI
 }
 
 func requireDeniedEvent(t *testing.T, method, url, action, actionKey, coursePhaseID string) {
 	t.Helper()
 
 	sink := &recordingSink{}
-	router := auditRouter(sink)
+	router, _, _ := newServiceRouter(t, sink)
 
 	response := httptest.NewRecorder()
 	router.ServeHTTP(response, httptest.NewRequest(method, url, nil))
@@ -308,7 +300,7 @@ func TestAuditMiddlewareLabelsTheCopyRoute(t *testing.T) {
 
 func TestAuditMiddlewareIgnoresReads(t *testing.T) {
 	sink := &recordingSink{}
-	router := auditRouter(sink)
+	router, _, _ := newServiceRouter(t, sink)
 
 	response := httptest.NewRecorder()
 	router.ServeHTTP(response, httptest.NewRequest(http.MethodGet, auditCoursePhaseRoute+"/slots", nil))
@@ -444,4 +436,23 @@ func TestHandlePhaseCopyIgnoresABlankBody(t *testing.T) {
 
 	time.Sleep(300 * time.Millisecond)
 	require.Empty(t, sink.snapshot())
+}
+
+// Bootstrap creates the course phase group before registerRoutes runs, so the body cap has to be
+// registered on both groups to reach every route.
+func TestBodyCapCoversBothGroups(t *testing.T) {
+	router, api, coursePhaseAPI := newServiceRouter(t, &recordingSink{})
+	readBody := func(c *gin.Context) {
+		if _, err := io.ReadAll(c.Request.Body); err != nil {
+			c.AbortWithStatus(http.StatusBadRequest)
+		}
+	}
+	api.POST("/body-cap-probe", readBody)
+	coursePhaseAPI.POST("/body-cap-probe", readBody)
+
+	for _, path := range []string{"/presentation/api/body-cap-probe", "/presentation/api/course_phase/" + auditCoursePhaseID + "/body-cap-probe"} {
+		resp := httptest.NewRecorder()
+		router.ServeHTTP(resp, httptest.NewRequest(http.MethodPost, path, bytes.NewReader(make([]byte, bodyLimit.DefaultMaxBytes+1))))
+		require.Equal(t, http.StatusRequestEntityTooLarge, resp.Code, path)
+	}
 }

@@ -105,7 +105,7 @@
     "@rspack/cli": "^2.2.9",
     "@rspack/dev-server": "^2.2.1",
     "@tailwindcss/postcss": "^4.3.3",
-    "@types/node": "^25.9.9",
+    "@types/node": "^26.6.5",
     "@types/react": "^19.3.0",
     "@types/react-beautiful-dnd": "^13.1.8",
     "@types/react-dom": "^19.3.0",

@@ -87,8 +87,10 @@ extra args, e.g.:
 make test-e2e-shard PATHS="tests/courses"
 ```
 
-`make stack` prints the exact `docker compose` flags of your stack if you need to
-call Compose yourself.
+`make stack` prints the `docker compose` flags of your stack. The flags alone don't
+isolate it: the stack's ports and container names come from the environment the
+Make targets export, so a bare Compose call in another shell runs against stack 0's
+ports and names. Use the Make targets to start and stop the stack.
 
 ### 3. How CI shards the suite
 

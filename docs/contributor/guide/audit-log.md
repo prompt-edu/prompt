@@ -68,13 +68,16 @@ on purpose).
 
 ## Enabling a new phase service
 
-In the phase's `main.go`:
+A phase that starts through `promptSDK.Bootstrap` already registers the middleware with
+`audit.NewCoreSink(coreURL, ServiceName)` and advertises `promptTypes.CapabilityAuditLog` from
+`audit.Enabled()`, so its `main.go` needs nothing extra. A service with its own startup sequence
+registers the middleware before any route group:
 
 ```go
 router.Use(audit.Middleware(audit.NewCoreSink(coreURL, "myservice")))
 ```
 
-and advertise the capability in the service info endpoint:
+and advertises the capability in the service info endpoint:
 
 ```go
 Capabilities: map[string]bool{

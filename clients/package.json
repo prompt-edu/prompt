@@ -66,8 +66,8 @@
     "jwt-decode": "^4.0.0",
     "keycloak-js": "25.0.6",
     "lowlight": "^3.3.0",
-    "lucide-react": "^1.60.0",
-    "motion": "^14.4.0",
+    "lucide-react": "^1.61.0",
+    "motion": "^14.6.0",
     "postcss": "^8.5.31",
     "postcss-loader": "8.2.1",
     "react": "^19.3.1",
@@ -85,7 +85,7 @@
     "ts-node-register": "^1.0.0",
     "use-debounce": "^10.1.1",
     "zod": "^4.6.7",
-    "zustand": "^5.0.15"
+    "zustand": "^5.0.16"
   },
   "resolutions": {
     "diff": "^9.0.0",
@@ -98,10 +98,10 @@
     "nx/axios": "^1.20.0",
     "nx/brace-expansion": "^5.0.12",
     "nx/follow-redirects": "^1.16.1",
-    "pacote": "^22.0.0"
+    "pacote": "^22.0.1"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.15",
+    "@biomejs/biome": "2.6.2",
     "@module-federation/runtime-tools": "^2.9.2",
     "@rspack/cli": "^2.2.9",
     "@rspack/dev-server": "^2.2.1",
@@ -113,7 +113,7 @@
     "lerna": "^10.1.1",
     "tailwindcss": "^4.3.3",
     "typescript": "^6.0.3",
-    "vite": "^8.3.4",
+    "vite": "^8.3.5",
     "vitest": "^5.0.5",
     "webpack-bundle-analyzer": "^5.4.0"
   },

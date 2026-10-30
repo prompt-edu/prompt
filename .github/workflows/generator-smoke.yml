@@ -20,6 +20,7 @@ on:
       - "clients/package.json"
       - "clients/lerna.json"
       - "docker-compose.yml"
+      - "docker-compose.stack.yml"
       - ".env.template"
       - ".env.dev.template"
       - "Makefile"

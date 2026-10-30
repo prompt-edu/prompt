@@ -38,6 +38,16 @@ CI never runs the suite that way either (see [How CI shards the suite](#3-how-ci
 so a whole-suite local run costs a lot of wall-clock for a verdict CI already
 produces in parallel. Trust the shard plus CI.
 
+Every worktree runs its own e2e stack, so parallel sessions don't have to queue:
+the main checkout uses the Compose project `prompt-e2e` (containers `prompt-e2e-*`,
+client on `4000`), and a linked worktree with stack number `n` uses `prompt-<n>-e2e`
+with every published port shifted by `n * 100` (client `4100` in stack 1). `make stack`
+prints the ports; see "Run Several Stacks Side by Side" in `docs/contributor/setup.md`.
+An e2e or verify stack started before this naming runs under the directory-named
+project and blocks the next `make verify-up` with "container name /prompt-e2e-db is
+already in use". Remove it once with `docker rm -f $(docker ps -aq --filter name=^prompt-e2e-)`
+and delete its volumes (`docker volume ls -q --filter label=com.docker.compose.project=<directory name>`).
+
 Iterating on specs only? `SKIP_BUILD=1` reuses the images already on your machine
 and skips the build pass entirely. Only use it when nothing under `clients/`,
 `servers/`, or `e2e/` changed since your last build - otherwise you are testing
@@ -58,7 +68,7 @@ config as the canonical run, so auth works identically. Only Docker required.
 make test-e2e-ui     # builds + boots the stack, then serves the Playwright UI
 ```
 
-Then open **http://127.0.0.1:8123** in your browser (use `127.0.0.1`, not
+Then open **http://127.0.0.1:8123** (`8123 + 100n` in stack `n`) in your browser (use `127.0.0.1`, not
 `localhost` - some Docker backends don't publish the port over IPv6). Press the
 ▶ buttons to run specs, click any step to time-travel, and edit specs in your
 editor to re-run on save. Stop with `Ctrl-C` (the stack is torn down
@@ -74,10 +84,13 @@ extra args, e.g.:
 
 ```bash
 # run a single spec file, headless, in the containerized runner
-docker compose -f docker-compose.e2e.yml --env-file e2e/.env.e2e run --rm \
-  e2e-runner npx playwright test tests/courses
-docker compose -f docker-compose.e2e.yml --env-file e2e/.env.e2e down -v
+make test-e2e-shard PATHS="tests/courses"
 ```
+
+`make stack` prints the `docker compose` flags of your stack. The flags alone don't
+isolate it: the stack's ports and container names come from the environment the
+Make targets export, so a bare Compose call in another shell runs against stack 0's
+ports and names. Use the Make targets to start and stop the stack.
 
 ### 3. How CI shards the suite
 
@@ -455,7 +468,9 @@ silently. Run `make seed-check` after touching a cross-database id.
 
 `keycloak/realm.json` is a copy of the repo's `keycloakConfig.json` with the
 `prompt-client` redirect URIs / web origins (and `prompt-server` redirect URIs)
-repointed at the e2e ports (`4000` / `18090`). If users, roles, or clients
+repointed at the e2e ports, written as Keycloak import placeholders
+(`${PROMPT_PORT_4000:4000}` / `${PROMPT_PORT_18090:18090}`) so a shifted stack's
+browser overlay can fill in its own ports. If users, roles, or clients
 change in `keycloakConfig.json`, regenerate it and re-apply those URL edits —
 plus the e2e-only additions: the course-scoped `ios2425-iPraktikum-Student` /
 `ios2425-iPraktikum-Lecturer` client roles (assigned to `student`, `student2`,
@@ -475,8 +490,8 @@ and `course-lecturer`) and the `student2` user.
 - **Traces/videos:** captured on failure under `test-results/` (`trace.zip`,
   `video.webm`). Open a trace with `npx playwright show-trace <path>`.
 - **Interactive:** `make test-e2e-ui`, then open http://127.0.0.1:8123.
-- **Stack logs:** `docker compose -f docker-compose.e2e.yml logs server-core`
-  (or `client-core`, `keycloak`).
+- **Stack logs:** `docker logs prompt-e2e-server-core` (or `client-core`,
+  `keycloak`; `prompt-<n>-e2e-*` in stack `n`).
 
 ## Files
 

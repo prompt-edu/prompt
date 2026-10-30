@@ -131,14 +131,14 @@ The `.env` file contains Docker/production configuration. The `.env.dev` file co
 # every service database and Keycloak (make db-down stops them again)
 make db
 # object storage
-docker compose up -d seaweedfs-volume seaweedfs-s3
+make s3
 ```
 
 #### 4. Configure Keycloak (first time only)
 
 1. Navigate to [http://localhost:8081](http://localhost:8081)
 2. Login with username `admin` and password `admin`
-3. In the top-left dropdown, select **Create Realm** and upload `keycloakConfig.json`
+3. In the top-left dropdown, select **Create Realm** and upload `keycloakConfig.json`. `make db` already imports it, so this step is only needed for a Keycloak you started yourself. The file contains `${PROMPT_PORT_*:<port>}` placeholders that only the startup import resolves: before uploading it by hand, replace each with its default port (e.g. `${PROMPT_PORT_3000:3000}` with `3000`)
 4. In the new Prompt realm, create a user:
    - Go to **Users** → **Add user**
    - Fill in **all required fields** (these are needed for token claims):

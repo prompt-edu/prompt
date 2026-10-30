@@ -7,6 +7,11 @@
 # Run:   make test-e2e-shard SHARD=<name>   (one shard, same runner as CI)
 #
 # Env comes from e2e/.env.e2e (committed, test-only credentials).
+#
+# Ports and container names below are stack 0's. The Makefile runs the stack
+# of worktree n as the Compose project prompt-<n>-e2e, with containers named
+# prompt-<n>-e2e-* and every published port shifted by n * 100, so several
+# worktrees can run it at once (docs/contributor/setup.md).
 # ============================================================================
 
 x-client-build-args: &client-build-args
@@ -22,7 +27,7 @@ services:
     build:
       context: ./servers/core
       dockerfile: ../Dockerfile
-    container_name: prompt-e2e-server-core
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-e2e-server-core
     depends_on:
       db:
         condition: service_healthy
@@ -34,7 +39,7 @@ services:
         condition: service_started
     # Alternate host port (18090) so the e2e stack can run alongside a dev stack.
     ports:
-      - "18090:8080"
+      - "${PROMPT_PORT_18090:-18090}:8080"
     extra_hosts:
       - "localhost:host-gateway"
     environment:
@@ -87,7 +92,7 @@ services:
       dockerfile: Dockerfile
       args: *client-build-args
       additional_contexts: *client-additional-contexts
-    container_name: prompt-e2e-client-core
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-e2e-client-core
     depends_on:
       clients-base:
         condition: service_started
@@ -134,7 +139,7 @@ services:
     # Alternate host port (4000) so the e2e stack can run alongside a dev stack.
     # The e2e realm's redirect URIs / web origins point at localhost:4000.
     ports:
-      - "4000:80"
+      - "${PROMPT_PORT_4000:-4000}:80"
     environment:
       - ENVIRONMENT
       - CORE_HOST=${CORE_API_HOST}
@@ -171,7 +176,7 @@ services:
     build:
       context: ./servers/self_team_allocation
       dockerfile: ../Dockerfile
-    container_name: prompt-e2e-server-self-team-allocation
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-e2e-server-self-team-allocation
     depends_on:
       db-self-team-allocation:
         condition: service_healthy
@@ -207,7 +212,7 @@ services:
       dockerfile: Dockerfile
       args: *client-build-args
       additional_contexts: *client-additional-contexts
-    container_name: prompt-e2e-client-self-team-allocation
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-e2e-client-self-team-allocation
     depends_on:
       - clients-base
     # No host port: the remote is served through the client-core nginx proxy
@@ -221,7 +226,7 @@ services:
 
   db-self-team-allocation:
     image: "postgres:15.19-alpine"
-    container_name: prompt-e2e-db-self-team-allocation
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-e2e-db-self-team-allocation
     environment:
       - POSTGRES_USER=${DB_SELF_TEAM_ALLOCATION_USER}
       - POSTGRES_PASSWORD=${DB_SELF_TEAM_ALLOCATION_PASSWORD}
@@ -247,7 +252,7 @@ services:
     build:
       context: ./servers/example_server
       dockerfile: ../Dockerfile
-    container_name: prompt-e2e-server-example
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-e2e-server-example
     depends_on:
       db-example:
         condition: service_healthy
@@ -283,7 +288,7 @@ services:
       dockerfile: Dockerfile
       args: *client-build-args
       additional_contexts: *client-additional-contexts
-    container_name: prompt-e2e-client-example
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-e2e-client-example
     depends_on:
       - clients-base
     # No host port: the remote is served through the client-core nginx proxy
@@ -297,7 +302,7 @@ services:
 
   db-example:
     image: "postgres:15.19-alpine"
-    container_name: prompt-e2e-db-example
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-e2e-db-example
     environment:
       - POSTGRES_USER=${DB_EXAMPLE_USER}
       - POSTGRES_PASSWORD=${DB_EXAMPLE_PASSWORD}
@@ -320,7 +325,7 @@ services:
     build:
       context: ./servers/assessment
       dockerfile: ../Dockerfile
-    container_name: prompt-e2e-server-assessment
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-e2e-server-assessment
     depends_on:
       db-assessment:
         condition: service_healthy
@@ -356,7 +361,7 @@ services:
       dockerfile: Dockerfile
       args: *client-build-args
       additional_contexts: *client-additional-contexts
-    container_name: prompt-e2e-client-assessment
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-e2e-client-assessment
     depends_on:
       - clients-base
     # No host port: the remote is served through the client-core nginx proxy
@@ -370,7 +375,7 @@ services:
 
   db-assessment:
     image: "postgres:15.19-alpine"
-    container_name: prompt-e2e-db-assessment
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-e2e-db-assessment
     environment:
       - POSTGRES_USER=${DB_ASSESSMENT_USER}
       - POSTGRES_PASSWORD=${DB_ASSESSMENT_PASSWORD}
@@ -398,7 +403,7 @@ services:
       dockerfile: Dockerfile
       args: *client-build-args
       additional_contexts: *client-additional-contexts
-    container_name: prompt-e2e-client-matching
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-e2e-client-matching
     depends_on:
       - clients-base
     # No host port: the remote is served through the client-core nginx proxy
@@ -417,7 +422,7 @@ services:
     build:
       context: ./servers/interview
       dockerfile: ../Dockerfile
-    container_name: prompt-e2e-server-interview
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-e2e-server-interview
     depends_on:
       db-interview:
         condition: service_healthy
@@ -453,7 +458,7 @@ services:
       dockerfile: Dockerfile
       args: *client-build-args
       additional_contexts: *client-additional-contexts
-    container_name: prompt-e2e-client-interview
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-e2e-client-interview
     depends_on:
       - clients-base
     # No host port: the remote is served through the client-core nginx proxy
@@ -467,7 +472,7 @@ services:
 
   db-interview:
     image: "postgres:15.19-alpine"
-    container_name: prompt-e2e-db-interview
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-e2e-db-interview
     environment:
       - POSTGRES_USER=${DB_INTERVIEW_USER}
       - POSTGRES_PASSWORD=${DB_INTERVIEW_PASSWORD}
@@ -495,7 +500,7 @@ services:
       # Certificate ships its own Dockerfile (bundles the Typst compiler +
       # golang-migrate), unlike the phase servers that share ../Dockerfile.
       dockerfile: Dockerfile
-    container_name: prompt-e2e-server-certificate
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-e2e-server-certificate
     depends_on:
       db-certificate:
         condition: service_healthy
@@ -531,7 +536,7 @@ services:
       dockerfile: Dockerfile
       args: *client-build-args
       additional_contexts: *client-additional-contexts
-    container_name: prompt-e2e-client-certificate
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-e2e-client-certificate
     depends_on:
       - clients-base
     # No host port: the remote is served through the client-core nginx proxy
@@ -545,7 +550,7 @@ services:
 
   db-certificate:
     image: "postgres:15.19-alpine"
-    container_name: prompt-e2e-db-certificate
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-e2e-db-certificate
     environment:
       - POSTGRES_USER=${DB_CERTIFICATE_USER}
       - POSTGRES_PASSWORD=${DB_CERTIFICATE_PASSWORD}
@@ -569,7 +574,7 @@ services:
     build:
       context: ./servers/presentation
       dockerfile: ../Dockerfile
-    container_name: prompt-e2e-server-presentation
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-e2e-server-presentation
     depends_on:
       db-presentation:
         condition: service_healthy
@@ -612,7 +617,7 @@ services:
       dockerfile: Dockerfile
       args: *client-build-args
       additional_contexts: *client-additional-contexts
-    container_name: prompt-e2e-client-presentation
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-e2e-client-presentation
     depends_on:
       - clients-base
     healthcheck:
@@ -624,7 +629,7 @@ services:
 
   db-presentation:
     image: "postgres:15.19-alpine"
-    container_name: prompt-e2e-db-presentation
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-e2e-db-presentation
     environment:
       - POSTGRES_USER=${DB_PRESENTATION_USER}
       - POSTGRES_PASSWORD=${DB_PRESENTATION_PASSWORD}
@@ -646,7 +651,7 @@ services:
     build:
       context: ./servers/infrastructure_setup
       dockerfile: ../Dockerfile
-    container_name: prompt-e2e-server-infrastructure-setup
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-e2e-server-infrastructure-setup
     depends_on:
       db-infrastructure-setup:
         condition: service_healthy
@@ -680,7 +685,7 @@ services:
       dockerfile: Dockerfile
       args: *client-build-args
       additional_contexts: *client-additional-contexts
-    container_name: prompt-e2e-client-infrastructure-setup
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-e2e-client-infrastructure-setup
     depends_on:
       - clients-base
     # No host port: the remote is served through the client-core nginx proxy
@@ -694,7 +699,7 @@ services:
 
   db-infrastructure-setup:
     image: "postgres:15.19-alpine"
-    container_name: prompt-e2e-db-infrastructure-setup
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-e2e-db-infrastructure-setup
     environment:
       - POSTGRES_USER=${DB_INFRASTRUCTURE_SETUP_USER}
       - POSTGRES_PASSWORD=${DB_INFRASTRUCTURE_SETUP_PASSWORD}
@@ -719,7 +724,7 @@ services:
     build:
       context: ./servers/team_allocation
       dockerfile: ../Dockerfile
-    container_name: prompt-e2e-server-team-allocation
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-e2e-server-team-allocation
     depends_on:
       db-team-allocation:
         condition: service_healthy
@@ -755,7 +760,7 @@ services:
       dockerfile: Dockerfile
       args: *client-build-args
       additional_contexts: *client-additional-contexts
-    container_name: prompt-e2e-client-team-allocation
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-e2e-client-team-allocation
     depends_on:
       - clients-base
     # No host port: the remote is served through the client-core nginx proxy
@@ -769,7 +774,7 @@ services:
 
   db-team-allocation:
     image: "postgres:15.19-alpine"
-    container_name: prompt-e2e-db-team-allocation
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-e2e-db-team-allocation
     environment:
       - POSTGRES_USER=${DB_TEAM_ALLOCATION_USER}
       - POSTGRES_PASSWORD=${DB_TEAM_ALLOCATION_PASSWORD}
@@ -801,7 +806,7 @@ services:
 
   db:
     image: "postgres:15.19-alpine"
-    container_name: prompt-e2e-db
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-e2e-db
     environment:
       - POSTGRES_USER=${DB_CORE_USER}
       - POSTGRES_PASSWORD=${DB_CORE_PASSWORD}
@@ -819,7 +824,7 @@ services:
 
   keycloak-db:
     image: "postgres:15.19-alpine"
-    container_name: prompt-e2e-keycloak-db
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-e2e-keycloak-db
     environment:
       - POSTGRES_USER=${KEYCLOAK_DB_USER}
       - POSTGRES_PASSWORD=${KEYCLOAK_DB_PASSWORD}
@@ -833,7 +838,7 @@ services:
 
   keycloak:
     image: quay.io/keycloak/keycloak:26.6.3
-    container_name: prompt-e2e-keycloak
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-e2e-keycloak
     command:
       - start-dev
       - --import-realm
@@ -861,7 +866,7 @@ services:
     # Alternate host port (18081) so the e2e stack can run alongside a dev stack.
     # The 9000 management port stays internal (healthcheck runs in-container).
     ports:
-      - "18081:8080"
+      - "${PROMPT_PORT_18081:-18081}:8080"
     volumes:
       # Dedicated e2e realm: same users/clients as keycloakConfig.json but with
       # redirect URIs / web origins pointed at the e2e ports (4000 / 18090).
@@ -875,7 +880,7 @@ services:
 
   seaweedfs-master:
     image: chrislusf/seaweedfs:4.48
-    container_name: prompt-e2e-seaweedfs-master
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-e2e-seaweedfs-master
     command: "master -ip=seaweedfs-master -ip.bind=0.0.0.0"
     restart: unless-stopped
     healthcheck:
@@ -886,7 +891,7 @@ services:
 
   seaweedfs-volume:
     image: chrislusf/seaweedfs:4.48
-    container_name: prompt-e2e-seaweedfs-volume
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-e2e-seaweedfs-volume
     command: "volume -mserver=seaweedfs-master:9333 -ip=seaweedfs-volume -ip.bind=0.0.0.0 -port=8080"
     depends_on:
       seaweedfs-master:
@@ -900,7 +905,7 @@ services:
 
   seaweedfs-filer:
     image: chrislusf/seaweedfs:4.48
-    container_name: prompt-e2e-seaweedfs-filer
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-e2e-seaweedfs-filer
     command: "filer -master=seaweedfs-master:9333 -ip=seaweedfs-filer -ip.bind=0.0.0.0"
     depends_on:
       seaweedfs-master:
@@ -914,7 +919,7 @@ services:
 
   seaweedfs-s3:
     image: chrislusf/seaweedfs:4.48
-    container_name: prompt-e2e-seaweedfs-s3
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-e2e-seaweedfs-s3
     entrypoint:
       - /bin/sh
       - -ec
@@ -964,13 +969,13 @@ services:
   # the runner reads them back over the HTTP API (8025) to assert delivery.
   mailpit:
     image: axllent/mailpit:v1.31.6
-    container_name: prompt-e2e-mailpit
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-e2e-mailpit
     environment:
       - MP_SMTP_AUTH_ACCEPT_ANY=true
       - MP_SMTP_AUTH_ALLOW_INSECURE=true
     # HTTP UI/API published on 18025 so host-run Playwright can reach it too.
     ports:
-      - "18025:8025"
+      - "${PROMPT_PORT_18025:-18025}:8025"
 
   # Containerized Playwright runner. Waits for the app to be healthy, then runs
   # the suite. Its exit code is the suite result (read by `--exit-code-from`).
@@ -983,7 +988,7 @@ services:
   # `service_started` is enough of a dependency here.
   seed:
     image: "postgres:15.19-alpine"
-    container_name: prompt-e2e-seed
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-e2e-seed
     entrypoint: ["/seed.sh"]
     depends_on:
       server-core:
@@ -1057,7 +1062,7 @@ services:
     build:
       context: ./e2e
       dockerfile: Dockerfile
-    container_name: prompt-e2e-runner
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-e2e-runner
     depends_on:
       client-core:
         condition: service_healthy

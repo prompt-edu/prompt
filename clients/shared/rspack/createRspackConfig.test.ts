@@ -30,6 +30,25 @@ describe('createRspackConfig', () => {
     )
   })
 
+  it('follows the stack base port in development', () => {
+    process.env.PROMPT_CLIENT_PORT = '3100'
+    try {
+      const config = createRspackConfig({
+        name: 'interview_component',
+        port: 3002,
+        configUrl: import.meta.url,
+        consumesCore: true,
+      })({ NODE_ENV: 'development' })
+      const plugin = config.plugins.find(
+        (p) => p instanceof rspack.container.ModuleFederationPlugin,
+      )
+      expect(config.devServer.port).toBe(3102)
+      expect(plugin._options.remotes.core).toMatch(/^core@http:\/\/localhost:3100\/remoteEntry\.js/)
+    } finally {
+      delete process.env.PROMPT_CLIENT_PORT
+    }
+  })
+
   it('consumes core from the site root in production', () => {
     expect(federationOptions(true, 'production').remotes.core).toMatch(
       /^core@\/remoteEntry\.js\?\d+$/,

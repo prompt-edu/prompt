@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"fmt"
-	"net/url"
 	"sync"
 	"time"
 
@@ -28,7 +27,7 @@ type Export struct {
 	ExternalExports []ServiceExportRequest
 }
 
-func (s *PrivacyService) PrepareDataExport(c *gin.Context) (Export, error) {
+func (s *PrivacyService) PrepareDataExport(c *gin.Context) (_ Export, err error) {
 	subjectIdentifiers, err := s.subjects.GetSubjectIdentifiers(c)
 	if err != nil {
 		return Export{}, err
@@ -38,6 +37,15 @@ func (s *PrivacyService) PrepareDataExport(c *gin.Context) (Export, error) {
 	if err != nil {
 		return Export{}, err
 	}
+	defer func() {
+		if err == nil {
+			return
+		}
+		s.UpdateExportStatus(err, c, exportRecord.ID)
+		if resetErr := s.ResetExportRateLimit(c, exportRecord.ID); resetErr != nil {
+			log.WithError(resetErr).Error("failed to lift the rate limit of an export that could not be prepared")
+		}
+	}()
 
 	// prepare core
 	coreDoc, err := s.PrepareExportRecordDoc(c, exportRecord.ID, "Core", "")
@@ -53,16 +61,12 @@ func (s *PrivacyService) PrepareDataExport(c *gin.Context) (Export, error) {
 	externalExportDocs := make([]ServiceExportRequest, 0)
 
 	// prepare External Exports
-	for _, cpt := range coursePhaseTypes {
-		_, err := url.ParseRequestURI(cpt.BaseUrl)
+	for _, module := range s.externalModules(coursePhaseTypes) {
+		doc, err := s.PrepareExportRecordDoc(c, exportRecord.ID, module.Name, module.BaseURL+sdkTypes.PrivacyRouteDataExport)
 		if err != nil {
-			continue
+			return Export{}, err
 		}
-		comparedoc, err := s.PrepareExportRecordDoc(c, exportRecord.ID, cpt.Name, cpt.BaseUrl+sdkTypes.PrivacyRouteDataExport)
-		if err != nil {
-			continue
-		}
-		externalExportDocs = append(externalExportDocs, comparedoc)
+		externalExportDocs = append(externalExportDocs, doc)
 	}
 
 	return Export{

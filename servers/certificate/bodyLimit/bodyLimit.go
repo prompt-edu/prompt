@@ -112,3 +112,8 @@ func (w *tooLargeWriter) WriteHeader(code int) {
 	}
 	w.ResponseWriter.WriteHeader(code)
 }
+
+// Unwrap lets http.ResponseController reach the connection, e.g. to hijack it.
+func (w *tooLargeWriter) Unwrap() http.ResponseWriter {
+	return w.ResponseWriter
+}

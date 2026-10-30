@@ -21,6 +21,7 @@ jobs:
     strategy:
       matrix:
         module:
+          - ai
           - assessment
           - certificate
           - core

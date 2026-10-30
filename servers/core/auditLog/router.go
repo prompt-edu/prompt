@@ -2,7 +2,6 @@ package auditLog
 
 import (
 	"context"
-	"crypto/subtle"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -12,13 +11,12 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/prompt-edu/prompt-sdk/audit"
+	"github.com/prompt-edu/prompt-sdk/serviceAuth"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/core/auditLog/auditLogDTO"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 	log "github.com/sirupsen/logrus"
 )
-
-const ingestServiceContextKey = "auditServiceName"
 
 // RegisterCapture registers the auto-capture middleware on the API group so
 // every mutating core route is recorded. Gin snapshots the middleware chain when
@@ -76,7 +74,7 @@ func RegisterRoutes(api *gin.RouterGroup, service *AuditLogService, authMiddlewa
 
 	// Ingest endpoint for phase services, authenticated by a per-service shared
 	// secret (not a user/Keycloak token).
-	keys := parseIngestKeys(sdkUtils.GetEnv("AUDIT_INGEST_KEYS", ""))
+	keys := serviceAuth.ParseKeys(sdkUtils.GetEnv("AUDIT_INGEST_KEYS", ""))
 	api.POST("/audit", ingestAuth(keys), ingestAuditEvent(NewDBSink(service.queries)))
 
 	service.StartRetentionPruner(context.Background())
@@ -166,7 +164,7 @@ func ingestAuditEvent(sink *DBSink) gin.HandlerFunc {
 			return
 		}
 		// source_service is authoritative (from the matched key), never the body.
-		e.SourceService = c.GetString(ingestServiceContextKey)
+		e.SourceService = serviceAuth.ServiceName(c)
 		if err := validateIngestEvent(e); err != nil {
 			// The event payload and the token never reach the log; only why the
 			// delivery was refused and which service it came from.
@@ -214,61 +212,6 @@ func validateIngestEvent(e audit.Event) error {
 		}
 	}
 	return nil
-}
-
-// ingestAuth validates the per-service shared secret on the ingest endpoint. A
-// service may have more than one accepted key so a key can be rotated without
-// downtime; the request authenticates if its token matches any of them.
-func ingestAuth(keys map[string][]string) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		service := c.GetHeader("X-Audit-Service")
-		token := c.GetHeader("X-Audit-Token")
-		if service == "" || token == "" || !matchesAnyKey(token, keys[service]) {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, sdkUtils.ErrorResponse{Error: "invalid audit credentials"})
-			return
-		}
-		c.Set(ingestServiceContextKey, service)
-		c.Next()
-	}
-}
-
-// matchesAnyKey reports whether token equals one of the accepted keys using a
-// constant-time compare. It does not short-circuit, so its timing does not leak
-// which key matched. Empty keys are never stored (see parseIngestKeys), so an
-// empty token can never authenticate.
-func matchesAnyKey(token string, accepted []string) bool {
-	match := false
-	for _, key := range accepted {
-		if subtle.ConstantTimeCompare([]byte(token), []byte(key)) == 1 {
-			match = true
-		}
-	}
-	return match
-}
-
-// parseIngestKeys parses AUDIT_INGEST_KEYS ("service1:key1,service2:key2", with
-// a service repeated to list multiple accepted keys) into a per-service list of
-// keys. Empty keys are dropped: subtle.ConstantTimeCompare("", "") returns 1, so
-// a blank configured key would authenticate every request for that service.
-func parseIngestKeys(raw string) map[string][]string {
-	keys := make(map[string][]string)
-	for _, pair := range strings.Split(raw, ",") {
-		pair = strings.TrimSpace(pair)
-		if pair == "" {
-			continue
-		}
-		service, key, ok := strings.Cut(pair, ":")
-		if !ok {
-			continue
-		}
-		service = strings.TrimSpace(service)
-		key = strings.TrimSpace(key)
-		if service == "" || key == "" {
-			continue
-		}
-		keys[service] = append(keys[service], key)
-	}
-	return keys
 }
 
 // parseListFilters reads the query parameters into ListFilters. Unparseable
@@ -335,4 +278,8 @@ func parseTimeQuery(c *gin.Context, key string) (*time.Time, error) {
 		return nil, fmt.Errorf("invalid %s timestamp: %w", key, err)
 	}
 	return &t, nil
+}
+
+func ingestAuth(keys serviceAuth.Keys) gin.HandlerFunc {
+	return serviceAuth.Middleware(keys, "X-Audit-Service", "X-Audit-Token")
 }

@@ -8,6 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/prompt-edu/prompt-sdk/audit"
+	"github.com/prompt-edu/prompt-sdk/serviceAuth"
 	"github.com/prompt-edu/prompt/servers/core/auditLog/auditLogDTO"
 	"github.com/stretchr/testify/require"
 )
@@ -20,7 +21,7 @@ const ingestService = "interview"
 func (s *AuditLogTestSuite) ingestRouter() *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
-	keys := parseIngestKeys(ingestService + ":sekret")
+	keys := serviceAuth.ParseKeys(ingestService + ":sekret")
 	router.POST("/api/audit", ingestAuth(keys), ingestAuditEvent(s.sink))
 	return router
 }

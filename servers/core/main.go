@@ -13,6 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
+	"github.com/prompt-edu/prompt/servers/core/ai"
 	"github.com/prompt-edu/prompt/servers/core/announcement"
 	"github.com/prompt-edu/prompt/servers/core/applicationAdministration"
 	"github.com/prompt-edu/prompt/servers/core/auditLog"
@@ -36,6 +37,7 @@ import (
 	"github.com/prompt-edu/prompt/servers/core/privacy"
 	"github.com/prompt-edu/prompt/servers/core/privacy/service"
 	"github.com/prompt-edu/prompt/servers/core/profilePicture"
+	"github.com/prompt-edu/prompt/servers/core/standaloneModule"
 	"github.com/prompt-edu/prompt/servers/core/storage/files"
 	"github.com/prompt-edu/prompt/servers/core/storage/privacyexport"
 	"github.com/prompt-edu/prompt/servers/core/student"
@@ -242,6 +244,11 @@ func main() {
 	coreHost := sdkUtils.GetEnv("CORE_HOST", "localhost:8080")
 	resolutionService := resolution.NewResolutionService(coreHost)
 
+	var standaloneModules []standaloneModule.Module
+	if sdkUtils.GetEnv("AI_ENABLED", "") == "true" {
+		standaloneModules = append(standaloneModules, ai.Module(sdkUtils.GetEnv("SERVER_AI_HOST", ""), coreHost))
+	}
+
 	coursePhaseService := coursePhase.NewCoursePhaseService(*query, conn, resolutionService)
 	coursePhaseParticipationService := coursePhaseParticipation.NewCoursePhaseParticipationService(*query, conn, resolutionService)
 
@@ -287,7 +294,7 @@ func main() {
 		log.Fatalf("Failed to initialize privacy export storage: %v", err)
 	}
 
-	privacyService := service.NewPrivacyService(*query, conn, applicationService, authService, coursePhaseTypeService, studentService, instructorNoteService, fileStorageService, exportStorage, mailingService)
+	privacyService := service.NewPrivacyService(*query, conn, applicationService, authService, coursePhaseTypeService, studentService, instructorNoteService, fileStorageService, exportStorage, mailingService, standaloneModules...)
 	privacy.RegisterRoutes(api, privacyService, tokenVerifier.KeycloakMiddleware, permissionValidation.CheckAccessControlByRole)
 	privacyService.StartExportDeletionRoutine(context.Background())
 

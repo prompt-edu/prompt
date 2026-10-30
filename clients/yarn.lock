@@ -5282,6 +5282,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"ai_component@workspace:ai_component":
+  version: 0.0.0-use.local
+  resolution: "ai_component@workspace:ai_component"
+  dependencies:
+    "@rspack/cli": "npm:^2.2.9"
+    "@rspack/core": "npm:^2.2.9"
+    openai: "npm:^7.32.0"
+  languageName: unknown
+  linkType: soft
+
 "ajv-formats@npm:^2.1.1":
   version: 2.1.1
   resolution: "ajv-formats@npm:2.1.1"
@@ -5767,6 +5777,7 @@ __metadata:
   resolution: "client@workspace:core"
   dependencies:
     "@dagrejs/dagre": "npm:^3.1.1"
+    "@module-federation/runtime-tools": "npm:^2.9.2"
     "@rspack/cli": "npm:^2.2.9"
     "@rspack/core": "npm:^2.2.9"
     "@types/papaparse": "npm:^5.5.2"
@@ -8860,6 +8871,33 @@ __metadata:
     is-inside-container: "npm:^1.0.0"
     is-wsl: "npm:^3.1.0"
   checksum: 10c0/c86d0b94503d5f735f674158d5c5d339c25ec2927562f00ee74590727292ed23e1b8d9336cb41ffa7e1fa4d3641d29b199b4ea37c78cb557d72b511743e90ebb
+  languageName: node
+  linkType: hard
+
+"openai@npm:^7.32.0":
+  version: 7.32.0
+  resolution: "openai@npm:7.32.0"
+  peerDependencies:
+    "@aws-sdk/credential-provider-node": ">=3.972.0 <4"
+    "@smithy/hash-node": ">=4.3.0 <5"
+    "@smithy/signature-v4": ">=5.4.0 <6"
+    undici: ">=5 <9"
+    ws: ^8.21.0
+    zod: ^3.25 || ^4.0
+  peerDependenciesMeta:
+    "@aws-sdk/credential-provider-node":
+      optional: true
+    "@smithy/hash-node":
+      optional: true
+    "@smithy/signature-v4":
+      optional: true
+    undici:
+      optional: true
+    ws:
+      optional: true
+    zod:
+      optional: true
+  checksum: 10c0/b6adb111ed7c6ce5ce5b27696b4218de4e0cae5aacb256c0bbed574fd1f950d7c8066d0a813c31df44d46f946e1199867085fbe77253f33d829446583c3c4489
   languageName: node
   linkType: hard
 

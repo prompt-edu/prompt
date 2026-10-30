@@ -2,6 +2,7 @@
 declare module '*.css'
 
 declare const __PROMPT_REMOTES__: import('./managementConsole/pages/SystemStatusPage/interfaces/clientInfo').ClientRemote[]
+declare const __PROMPT_AI_REMOTE_ENTRY__: string
 
 declare module '*_component/routes' {
   import { RouteObject } from 'react-router-dom'

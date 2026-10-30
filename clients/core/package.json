@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@dagrejs/dagre": "^3.1.1",
+    "@module-federation/runtime-tools": "^2.9.2",
     "@xyflow/react": "^12.12.0",
     "date-fns-tz": "^3.2.0",
     "i18n-iso-countries": "^7.14.0",

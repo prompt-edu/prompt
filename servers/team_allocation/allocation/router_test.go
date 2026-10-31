@@ -6,12 +6,14 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"testing"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
+	promptSDK "github.com/prompt-edu/prompt-sdk"
 	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	"github.com/prompt-edu/prompt/servers/team_allocation/allocation/allocationDTO"
@@ -42,22 +44,32 @@ const (
 )
 
 // tutorAuthMiddleware mocks an authenticated CourseEditor (non-lecturer) so the tutor-scoping
-// middleware resolves a team instead of taking the lecturer/admin pass-through branch.
+// middleware resolves a team instead of taking the lecturer/admin pass-through branch. Like the
+// SDK middleware, it refuses the editor on a route that does not admit CourseEditor.
 func tutorAuthMiddleware(login string) func(allowedRoles ...string) gin.HandlerFunc {
+	return editorAuthMiddleware(keycloakTokenVerifier.TokenUser{
+		IsEditor:        true,
+		IsLecturer:      false,
+		UniversityLogin: login,
+	})
+}
+
+// editorAuthMiddleware sets tokenUser and answers 403 where the route does not
+// admit CourseEditor, as the SDK middleware does for a course editor.
+func editorAuthMiddleware(tokenUser keycloakTokenVerifier.TokenUser) func(allowedRoles ...string) gin.HandlerFunc {
 	return func(allowedRoles ...string) gin.HandlerFunc {
 		return func(c *gin.Context) {
-			keycloakTokenVerifier.SetTokenUser(c, keycloakTokenVerifier.TokenUser{
-				IsEditor:        true,
-				IsLecturer:      false,
-				UniversityLogin: login,
-			})
+			if !slices.Contains(allowedRoles, promptSDK.CourseEditor) {
+				c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Access denied"})
+				return
+			}
+			keycloakTokenVerifier.SetTokenUser(c, tokenUser)
 			c.Next()
 		}
 	}
 }
 
-// lecturerAuthMiddleware mocks a course lecturer: the scoping middleware passes
-// them through, so they must keep unrestricted write access.
+// lecturerAuthMiddleware mocks a course lecturer, who keeps unrestricted write access.
 func lecturerAuthMiddleware() func(allowedRoles ...string) gin.HandlerFunc {
 	return func(allowedRoles ...string) gin.HandlerFunc {
 		return func(c *gin.Context) {
@@ -72,26 +84,14 @@ func lecturerAuthMiddleware() func(allowedRoles ...string) gin.HandlerFunc {
 
 // promptLecturerTutorAuthMiddleware mocks a tutor who also holds the global
 // PROMPT_Lecturer role. The write routes do not admit that role directly, so the
-// user arrives as a course editor and must stay scoped to their team.
+// user arrives as a course editor.
 func promptLecturerTutorAuthMiddleware(login string) func(allowedRoles ...string) gin.HandlerFunc {
-	return func(allowedRoles ...string) gin.HandlerFunc {
-		return func(c *gin.Context) {
-			keycloakTokenVerifier.SetTokenUser(c, keycloakTokenVerifier.TokenUser{
-				Roles:           map[string]bool{keycloakTokenVerifier.PromptLecturer: true},
-				IsEditor:        true,
-				IsLecturer:      false,
-				UniversityLogin: login,
-			})
-			c.Next()
-		}
-	}
-}
-
-// anonymousAuthMiddleware leaves no token user in the context.
-func anonymousAuthMiddleware() func(allowedRoles ...string) gin.HandlerFunc {
-	return func(allowedRoles ...string) gin.HandlerFunc {
-		return func(c *gin.Context) { c.Next() }
-	}
+	return editorAuthMiddleware(keycloakTokenVerifier.TokenUser{
+		Roles:           map[string]bool{keycloakTokenVerifier.PromptLecturer: true},
+		IsEditor:        true,
+		IsLecturer:      false,
+		UniversityLogin: login,
+	})
 }
 
 // stubParticipants replaces the core lookup with a fixed membership set.
@@ -271,7 +271,7 @@ func (suite *AllocationRouterTestSuite) TestEditorReadsButCannotWriteInPhaseWith
 	assert.Len(suite.T(), allocations, 2, "An editor in a phase without tutors should see every allocation of the phase")
 
 	deleteResp := suite.deleteAllocation(router, tutorlessPhase, tutorlessParticip)
-	assert.Equal(suite.T(), http.StatusForbidden, deleteResp.Code, "an editor without a tutor team must not write")
+	assert.Equal(suite.T(), http.StatusForbidden, deleteResp.Code, "an editor must not write allocations")
 }
 
 func (suite *AllocationRouterTestSuite) putAllocation(router *gin.Engine, coursePhaseID, courseParticipationID, body string) *httptest.ResponseRecorder {
@@ -297,9 +297,18 @@ func (suite *AllocationRouterTestSuite) TestAdminAssignsParticipantToAnyTeam() {
 	resp := suite.putAllocation(suite.router, writePhase, staffFreeParticip, `{"teamID":"`+teamEpsilon+`"}`)
 	assert.Equal(suite.T(), http.StatusOK, resp.Code)
 
-	teamID, err := suite.storedTeam(staffFreeParticip)
+	var allocation allocationDTO.Allocation
+	assert.NoError(suite.T(), json.Unmarshal(resp.Body.Bytes(), &allocation))
+	assert.Equal(suite.T(), uuid.MustParse(teamEpsilon), allocation.TeamAllocation)
+
+	stored, err := suite.allocationService.queries.GetAllocationForStudent(suite.suiteCtx, db.GetAllocationForStudentParams{
+		CourseParticipationID: uuid.MustParse(staffFreeParticip),
+		CoursePhaseID:         uuid.MustParse(writePhase),
+	})
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), uuid.MustParse(teamEpsilon), teamID)
+	assert.Equal(suite.T(), uuid.MustParse(teamEpsilon), stored.TeamID)
+	assert.Equal(suite.T(), "Test", stored.StudentFirstName, "the participant's name is cached on the allocation")
+	assert.Equal(suite.T(), "Student", stored.StudentLastName)
 }
 
 func (suite *AllocationRouterTestSuite) TestCourseLecturerMovesParticipantBetweenTeams() {
@@ -314,43 +323,42 @@ func (suite *AllocationRouterTestSuite) TestCourseLecturerMovesParticipantBetwee
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), uuid.MustParse(teamDelta), teamID)
 
-	// Restore the fixture so the tutor cases below still start from a foreign team.
+	// Restore the seeded allocation so the other cases see the fixture unchanged.
 	restore := suite.putAllocation(router, writePhase, epsilonParticip, `{"teamID":"`+teamEpsilon+`"}`)
 	assert.Equal(suite.T(), http.StatusOK, restore.Code)
 }
 
-func (suite *AllocationRouterTestSuite) TestTutorAssignsUnallocatedParticipantToOwnTeam() {
-	router := suite.routerAs(scopedTutorLogin)
-	resp := suite.putAllocation(router, writePhase, tutorFreeParticip, `{"teamID":"`+teamDelta+`"}`)
+func (suite *AllocationRouterTestSuite) TestCourseLecturerRemovesAllocation() {
+	router := suite.routerWith(lecturerAuthMiddleware())
+
+	resp := suite.putAllocation(router, writePhase, staffFreeParticip, `{"teamID":"`+teamDelta+`"}`)
 	assert.Equal(suite.T(), http.StatusOK, resp.Code)
 
-	var allocation allocationDTO.Allocation
-	assert.NoError(suite.T(), json.Unmarshal(resp.Body.Bytes(), &allocation))
-	assert.Equal(suite.T(), uuid.MustParse(teamDelta), allocation.TeamAllocation)
+	deleteResp := suite.deleteAllocation(router, writePhase, staffFreeParticip)
+	assert.Equal(suite.T(), http.StatusNoContent, deleteResp.Code)
 
-	stored, err := suite.allocationService.queries.GetAllocationForStudent(suite.suiteCtx, db.GetAllocationForStudentParams{
-		CourseParticipationID: uuid.MustParse(tutorFreeParticip),
-		CoursePhaseID:         uuid.MustParse(writePhase),
-	})
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), "Test", stored.StudentFirstName, "the participant's name is cached on the allocation")
-	assert.Equal(suite.T(), "Student", stored.StudentLastName)
+	_, err := suite.storedTeam(staffFreeParticip)
+	assert.Error(suite.T(), err, "the allocation must be gone")
 }
 
-func (suite *AllocationRouterTestSuite) TestTutorCannotAssignToForeignTeam() {
+func (suite *AllocationRouterTestSuite) TestTutorCannotWriteOwnTeamAllocations() {
 	router := suite.routerAs(scopedTutorLogin)
-	resp := suite.putAllocation(router, writePhase, tutorFreeParticip, `{"teamID":"`+teamEpsilon+`"}`)
-	assert.Equal(suite.T(), http.StatusForbidden, resp.Code)
-}
 
-func (suite *AllocationRouterTestSuite) TestTutorCannotPullParticipantFromForeignTeam() {
-	router := suite.routerAs(scopedTutorLogin)
-	resp := suite.putAllocation(router, writePhase, epsilonParticip, `{"teamID":"`+teamDelta+`"}`)
-	assert.Equal(suite.T(), http.StatusForbidden, resp.Code)
+	assignResp := suite.putAllocation(router, writePhase, tutorFreeParticip, `{"teamID":"`+teamDelta+`"}`)
+	assert.Equal(suite.T(), http.StatusForbidden, assignResp.Code, "a tutor must not pick up an unallocated participant")
 
-	teamID, err := suite.storedTeam(epsilonParticip)
+	_, err := suite.storedTeam(tutorFreeParticip)
+	assert.Error(suite.T(), err, "a refused write must not create an allocation")
+
+	pullResp := suite.putAllocation(router, writePhase, epsilonParticip, `{"teamID":"`+teamDelta+`"}`)
+	assert.Equal(suite.T(), http.StatusForbidden, pullResp.Code, "a tutor must not pull a participant into their team")
+
+	deleteResp := suite.deleteAllocation(router, writePhase, deltaParticip)
+	assert.Equal(suite.T(), http.StatusForbidden, deleteResp.Code, "a tutor must not remove a participant from their team")
+
+	teamID, err := suite.storedTeam(deltaParticip)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), uuid.MustParse(teamEpsilon), teamID, "the foreign team must be untouched")
+	assert.Equal(suite.T(), uuid.MustParse(teamDelta), teamID, "the tutor's own team must be untouched")
 }
 
 func (suite *AllocationRouterTestSuite) TestNonTutorEditorCannotWrite() {
@@ -360,24 +368,6 @@ func (suite *AllocationRouterTestSuite) TestNonTutorEditorCannotWrite() {
 
 	deleteResp := suite.deleteAllocation(router, writePhase, epsilonParticip)
 	assert.Equal(suite.T(), http.StatusForbidden, deleteResp.Code)
-}
-
-func (suite *AllocationRouterTestSuite) TestTutorCannotDeleteForeignTeamAllocation() {
-	router := suite.routerAs(scopedTutorLogin)
-	resp := suite.deleteAllocation(router, writePhase, epsilonParticip)
-	assert.Equal(suite.T(), http.StatusForbidden, resp.Code)
-
-	_, err := suite.storedTeam(epsilonParticip)
-	assert.NoError(suite.T(), err, "the foreign allocation must still exist")
-}
-
-func (suite *AllocationRouterTestSuite) TestTutorDeletesOwnTeamAllocation() {
-	router := suite.routerAs(scopedTutorLogin)
-	resp := suite.deleteAllocation(router, writePhase, deltaParticip)
-	assert.Equal(suite.T(), http.StatusNoContent, resp.Code)
-
-	_, err := suite.storedTeam(deltaParticip)
-	assert.Error(suite.T(), err, "the allocation must be gone")
 }
 
 func (suite *AllocationRouterTestSuite) TestDeleteUnknownAllocationReturnsNotFound() {
@@ -438,43 +428,18 @@ func (suite *AllocationRouterTestSuite) routerWith(authMiddleware func(allowedRo
 	return router
 }
 
-func (suite *AllocationRouterTestSuite) TestPromptLecturerTutorStaysScoped() {
+func (suite *AllocationRouterTestSuite) TestPromptLecturerTutorCannotWrite() {
 	router := suite.routerWith(promptLecturerTutorAuthMiddleware(scopedTutorLogin))
 
-	resp := suite.putAllocation(router, writePhase, epsilonParticip, `{"teamID":"`+teamDelta+`"}`)
-	assert.Equal(suite.T(), http.StatusForbidden, resp.Code, "the global lecturer role must not unscope a tutor's writes")
+	resp := suite.putAllocation(router, writePhase, deltaParticip, `{"teamID":"`+teamDelta+`"}`)
+	assert.Equal(suite.T(), http.StatusForbidden, resp.Code, "the global lecturer role must not grant a tutor write access")
 
-	teamID, err := suite.storedTeam(epsilonParticip)
+	deleteResp := suite.deleteAllocation(router, writePhase, deltaParticip)
+	assert.Equal(suite.T(), http.StatusForbidden, deleteResp.Code)
+
+	teamID, err := suite.storedTeam(deltaParticip)
 	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), uuid.MustParse(teamEpsilon), teamID)
-}
-
-func (suite *AllocationRouterTestSuite) TestWriteWithoutTokenUserIsUnauthorized() {
-	router := suite.routerWith(anonymousAuthMiddleware())
-
-	resp := suite.putAllocation(router, writePhase, staffFreeParticip, `{"teamID":"`+teamDelta+`"}`)
-	assert.Equal(suite.T(), http.StatusUnauthorized, resp.Code)
-
-	deleteResp := suite.deleteAllocation(router, writePhase, epsilonParticip)
-	assert.Equal(suite.T(), http.StatusUnauthorized, deleteResp.Code)
-}
-
-func (suite *AllocationRouterTestSuite) TestEditorWriteWithoutScopingMiddlewareFailsClosed() {
-	router := gin.New()
-	allocationRouter := router.Group("/api/course_phase/:coursePhaseID/allocation")
-	editorAuth := tutorAuthMiddleware(scopedTutorLogin)()
-	allocationRouter.PUT("/:courseParticipationID", editorAuth, suite.allocationService.updateAllocation)
-	allocationRouter.DELETE("/:courseParticipationID", editorAuth, suite.allocationService.deleteAllocation)
-
-	resp := suite.putAllocation(router, writePhase, epsilonParticip, `{"teamID":"`+teamDelta+`"}`)
-	assert.Equal(suite.T(), http.StatusInternalServerError, resp.Code)
-
-	deleteResp := suite.deleteAllocation(router, writePhase, epsilonParticip)
-	assert.Equal(suite.T(), http.StatusInternalServerError, deleteResp.Code)
-
-	teamID, err := suite.storedTeam(epsilonParticip)
-	assert.NoError(suite.T(), err)
-	assert.Equal(suite.T(), uuid.MustParse(teamEpsilon), teamID, "a misconfigured route must not write")
+	assert.Equal(suite.T(), uuid.MustParse(teamDelta), teamID)
 }
 
 func TestAllocationRouterTestSuite(t *testing.T) {

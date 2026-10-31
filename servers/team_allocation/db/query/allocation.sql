@@ -115,10 +115,7 @@ SET student_first_name = $1,
 WHERE course_participation_id = $3
   AND course_phase_id = $4;
 
--- name: UpsertAllocationForParticipant :execrows
--- The COALESCE guard scopes the write to an expected source team: a NULL
--- expected_team_id writes unconditionally, a set one only updates a row that is
--- still in that team, so authorization and mutation stay a single statement.
+-- name: UpsertAllocationForParticipant :exec
 INSERT INTO allocations AS a (
   id,
   course_participation_id,
@@ -143,12 +140,10 @@ DO UPDATE
 SET team_id = EXCLUDED.team_id,
     student_first_name = EXCLUDED.student_first_name,
     student_last_name = EXCLUDED.student_last_name,
-    updated_at = CURRENT_TIMESTAMP
-WHERE a.team_id = COALESCE(sqlc.narg('expected_team_id')::uuid, a.team_id);
+    updated_at = CURRENT_TIMESTAMP;
 
 -- name: DeleteAllocationForParticipant :execrows
 DELETE
 FROM allocations a
 WHERE a.course_participation_id = @course_participation_id
-  AND a.course_phase_id = @course_phase_id
-  AND a.team_id = COALESCE(sqlc.narg('expected_team_id')::uuid, a.team_id);
+  AND a.course_phase_id = @course_phase_id;

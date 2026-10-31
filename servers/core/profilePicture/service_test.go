@@ -404,6 +404,20 @@ func (suite *ProfilePictureServiceTestSuite) TestCompleteUpload_RejectsForeignSt
 	assert.ErrorIs(suite.T(), err, ErrInvalidInput)
 }
 
+func (suite *ProfilePictureServiceTestSuite) TestCompleteUpload_RejectsKeyEscapingTheOwnPrefix() {
+	victim := uuid.New()
+	key := suite.upload(victim, pictureContentType, validJPEG)
+	_, err := suite.service.CompleteUpload(suite.ctx, Uploader{UserID: victim}, key)
+	require.NoError(suite.T(), err)
+
+	caller := uuid.New()
+	escapingKey := fmt.Sprintf("profile-picture-upload/%s/../../%s", caller, suite.storedKey(victim))
+
+	_, err = suite.service.CompleteUpload(suite.ctx, Uploader{UserID: caller}, escapingKey)
+
+	assert.ErrorIs(suite.T(), err, ErrInvalidInput)
+}
+
 func (suite *ProfilePictureServiceTestSuite) TestCompleteUpload_RejectsMissingUpload() {
 	userID := uuid.New()
 	key := fmt.Sprintf("profile-picture-upload/%s/never-uploaded.jpg", userID)

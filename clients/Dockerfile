@@ -5,9 +5,10 @@
 # `yarn install` only re-runs when a manifest or the lockfile changes. A source
 # edit then only invalidates the final `COPY . ./`.
 # Requires BuildKit (Docker 23+) for the cache mount below.
-FROM node:24.22.1 AS base
+FROM node:26.12.0 AS base
 
-RUN corepack enable
+# Node 25+ images no longer bundle Corepack, so install it from npm first.
+RUN npm install -g corepack@0.36.0 && corepack enable
 RUN yarn config set httpTimeout 300000 --home
 
 # Yarn 4 defaults to enableGlobalCache, which puts downloads in

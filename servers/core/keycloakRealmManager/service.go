@@ -38,6 +38,7 @@ func NewKeycloakRealmService(baseURL, realm, clientID, clientSecret, idOfClient 
 
 var TOP_LEVEL_GROUP_NAME = "Prompt"
 var CUSTOM_GROUPS_NAME = "CustomGroups"
+var ORGS_GROUP_NAME = "Orgs"
 
 // Sentinel errors for the course-staff management API. Handlers map these to
 // HTTP status codes; everything else is surfaced as 500.

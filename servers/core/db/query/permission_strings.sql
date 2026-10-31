@@ -32,3 +32,6 @@ SELECT CONCAT(c.semester_tag, '-', c.name, '-Lecturer')::text AS lecturer_role, 
 FROM course c
 JOIN course_phase cp ON c.id = cp.course_id
 WHERE cp.id = $1;
+
+-- name: GetOrgSlugByID :one
+SELECT slug FROM org WHERE id = $1;

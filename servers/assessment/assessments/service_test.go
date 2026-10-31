@@ -29,21 +29,38 @@ import (
 	"github.com/prompt-edu/prompt/servers/assessment/utils"
 )
 
+// The stubbed core lists every participation in every phase except these two.
+var (
+	outsideParticipationID      = uuid.MustParse("6f1c2a4e-3b5d-4e7f-8a9b-0c1d2e3f4a5b")
+	unverifiableParticipationID = uuid.MustParse("7a2d3b5f-4c6e-4f80-9bac-1d2e3f4a5b6c")
+)
+
+func checkTestParticipant(_ context.Context, _ string, _, courseParticipationID uuid.UUID) error {
+	switch courseParticipationID {
+	case outsideParticipationID:
+		return coursePhaseConfig.ErrParticipantNotInPhase
+	case unverifiableParticipationID:
+		return coursePhaseConfig.ErrParticipantLookup
+	}
+	return nil
+}
+
 func newTestCoursePhaseConfigService(queries db.Queries, conn *pgxpool.Pool) *coursePhaseConfig.CoursePhaseConfigService {
 	return coursePhaseConfig.NewCoursePhaseConfigService(queries, conn, assessmentSchemas.NewAssessmentSchemaService(queries, conn))
 }
 
 func newTestAssessmentService(queries db.Queries, conn *pgxpool.Pool, coursePhaseConfigService *coursePhaseConfig.CoursePhaseConfigService) *AssessmentService {
-	completionService := assessmentCompletion.NewAssessmentCompletionService(queries, conn, coursePhaseConfigService)
+	completionService := assessmentCompletion.NewAssessmentCompletionService(queries, conn, coursePhaseConfigService, checkTestParticipant)
 	return NewAssessmentService(
 		queries,
 		conn,
 		completionService,
-		categoryAssessment.NewCategoryAssessmentService(queries, conn, completionService),
-		actionItem.NewActionItemService(queries, completionService, coursePhaseConfigService),
+		categoryAssessment.NewCategoryAssessmentService(queries, conn, completionService, checkTestParticipant),
+		actionItem.NewActionItemService(queries, completionService, coursePhaseConfigService, checkTestParticipant),
 		scoreLevel.NewScoreLevelService(queries),
 		evaluations.NewEvaluationService(queries, conn, evaluationCompletion.NewEvaluationCompletionService(queries, conn, coursePhaseConfig.GetTeamsForCoursePhase, coursePhaseConfigService), coursePhaseConfigService),
 		coursePhaseConfigService,
+		checkTestParticipant,
 	)
 }
 
@@ -115,7 +132,7 @@ func (suite *AssessmentServiceTestSuite) TestCreateOrUpdateAssessmentWithEmptySc
 		Author:                "Test Author",
 	}
 
-	err := suite.service.CreateOrUpdateAssessment(suite.suiteCtx, req)
+	err := suite.service.CreateOrUpdateAssessment(suite.suiteCtx, "", req)
 	assert.Error(suite.T(), err, "Expected error for empty scoreLevel")
 	assert.Equal(suite.T(), ErrInvalidScoreLevel, err, "Expected ErrInvalidScoreLevel")
 }
@@ -203,7 +220,7 @@ func (suite *AssessmentServiceTestSuite) TestIndependentAssessmentsAreKeptPerAss
 	assert.NoError(suite.T(), err)
 
 	save := func(authorID string, scoreLevel scoreLevelDTO.ScoreLevel) error {
-		return suite.service.CreateOrUpdateIndependentAssessment(suite.suiteCtx, assessmentDTO.CreateOrUpdateAssessmentRequest{
+		return suite.service.CreateOrUpdateIndependentAssessment(suite.suiteCtx, "", assessmentDTO.CreateOrUpdateAssessmentRequest{
 			CourseParticipationID: partID,
 			CoursePhaseID:         phaseID,
 			CompetencyID:          competencyID,
@@ -239,7 +256,7 @@ func (suite *AssessmentServiceTestSuite) TestDeleteOwnIndependentAssessment() {
 		 VALUES ('550e8400-e29b-41d4-a716-446655440000', $1, NOW() - INTERVAL '1 day', TRUE)`, phaseID)
 	assert.NoError(suite.T(), err)
 	for _, authorID := range []string{"coach", "lecturer"} {
-		assert.NoError(suite.T(), suite.service.CreateOrUpdateIndependentAssessment(suite.suiteCtx, assessmentDTO.CreateOrUpdateAssessmentRequest{
+		assert.NoError(suite.T(), suite.service.CreateOrUpdateIndependentAssessment(suite.suiteCtx, "", assessmentDTO.CreateOrUpdateAssessmentRequest{
 			CourseParticipationID: partID,
 			CoursePhaseID:         phaseID,
 			CompetencyID:          uuid.MustParse("20725c05-bfd7-45a7-a981-d092e14f98d3"),
@@ -294,9 +311,27 @@ func (suite *AssessmentServiceTestSuite) TestSaveScoreRejectsCompetencyOutsidePh
 		Author:                "Lecturer",
 		AuthorID:              "lecturer",
 	}
-	assert.ErrorIs(suite.T(), suite.service.CreateOrUpdateAssessment(suite.suiteCtx, req), ErrCompetencyNotInPhase)
-	assert.ErrorIs(suite.T(), suite.service.CreateOrUpdateIndependentAssessment(suite.suiteCtx, req), ErrCompetencyNotInPhase)
+	assert.ErrorIs(suite.T(), suite.service.CreateOrUpdateAssessment(suite.suiteCtx, "", req), ErrCompetencyNotInPhase)
+	assert.ErrorIs(suite.T(), suite.service.CreateOrUpdateIndependentAssessment(suite.suiteCtx, "", req), ErrCompetencyNotInPhase)
 
 	req.CompetencyID = uuid.New()
-	assert.ErrorIs(suite.T(), suite.service.CreateOrUpdateAssessment(suite.suiteCtx, req), ErrCompetencyNotInPhase)
+	assert.ErrorIs(suite.T(), suite.service.CreateOrUpdateAssessment(suite.suiteCtx, "", req), ErrCompetencyNotInPhase)
+}
+
+func (suite *AssessmentServiceTestSuite) TestSaveScoreRejectsParticipantOutsidePhase() {
+	phaseID := uuid.MustParse("24461b6b-3c3a-4bc6-ba42-69eeb1514da9")
+	req := assessmentDTO.CreateOrUpdateAssessmentRequest{
+		CourseParticipationID: outsideParticipationID,
+		CoursePhaseID:         phaseID,
+		CompetencyID:          uuid.MustParse("01935143-5e85-7e1d-81bb-96fb3ebf34aa"),
+		ScoreLevel:            scoreLevelDTO.ScoreLevelGood,
+		Author:                "Lecturer",
+		AuthorID:              "lecturer",
+	}
+	assert.ErrorIs(suite.T(), suite.service.CreateOrUpdateAssessment(suite.suiteCtx, "", req), coursePhaseConfig.ErrParticipantNotInPhase)
+	assert.ErrorIs(suite.T(), suite.service.CreateOrUpdateIndependentAssessment(suite.suiteCtx, "", req), coursePhaseConfig.ErrParticipantNotInPhase)
+
+	assessments, err := suite.service.ListAssessmentsByStudentInPhase(suite.suiteCtx, outsideParticipationID, phaseID)
+	assert.NoError(suite.T(), err)
+	assert.Empty(suite.T(), assessments)
 }

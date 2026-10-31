@@ -145,6 +145,7 @@ func (s *AssessmentCompletionService) listAssessmentCompletionsByCoursePhase(c *
 // @Failure 400 {object} map[string]string
 // @Failure 403 {object} map[string]string
 // @Failure 500 {object} map[string]string
+// @Failure 502 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/student-assessment/completed [post]
 // @Router /course_phase/{coursePhaseID}/student-assessment/completed [put]
 func (s *AssessmentCompletionService) createOrUpdateAssessmentCompletion(c *gin.Context) {
@@ -160,10 +161,14 @@ func (s *AssessmentCompletionService) createOrUpdateAssessmentCompletion(c *gin.
 	}
 	// The authorized phase is the one in the URL; ignore any client-sent phase.
 	req.CoursePhaseID = coursePhaseID
-	err = s.CreateOrUpdateAssessmentCompletion(c, req)
+	err = s.CreateOrUpdateAssessmentCompletion(c, c.GetHeader("Authorization"), req)
 	if err != nil {
-		if errors.Is(err, ErrInvalidGradeSuggestion) {
+		if errors.Is(err, ErrInvalidGradeSuggestion) || errors.Is(err, coursePhaseConfig.ErrParticipantNotInPhase) {
 			sdkUtils.HandleError(c, http.StatusBadRequest, err)
+			return
+		}
+		if errors.Is(err, coursePhaseConfig.ErrParticipantLookup) {
+			sdkUtils.HandleError(c, http.StatusBadGateway, err)
 			return
 		}
 		if errors.Is(err, coursePhaseConfig.ErrNotStarted) {

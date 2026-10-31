@@ -11,6 +11,7 @@ import (
 	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/categoryAssessment/categoryAssessmentDTO"
+	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	"github.com/prompt-edu/prompt/servers/assessment/teamScope"
 )
 
@@ -41,6 +42,7 @@ func RegisterRoutes(routerGroup *gin.RouterGroup, service *CategoryAssessmentSer
 // @Failure 400 {object} map[string]string
 // @Failure 403 {object} map[string]string
 // @Failure 500 {object} map[string]string
+// @Failure 502 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/category-assessment [post]
 func (s *CategoryAssessmentService) createOrUpdateCategoryAssessment(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
@@ -64,12 +66,17 @@ func (s *CategoryAssessmentService) createOrUpdateCategoryAssessment(c *gin.Cont
 	req.Author = tokenUser.FirstName + " " + tokenUser.LastName
 	req.AuthorID = tokenUser.ID
 
-	if err := s.CreateOrUpdateCategoryAssessment(c, coursePhaseID, req); err != nil {
-		if errors.Is(err, ErrNotEditable) {
+	if err := s.CreateOrUpdateCategoryAssessment(c, c.GetHeader("Authorization"), coursePhaseID, req); err != nil {
+		switch {
+		case errors.Is(err, ErrNotEditable):
 			sdkUtils.HandleError(c, http.StatusForbidden, err)
-			return
+		case errors.Is(err, ErrCategoryNotInPhase), errors.Is(err, coursePhaseConfig.ErrParticipantNotInPhase):
+			sdkUtils.HandleError(c, http.StatusBadRequest, err)
+		case errors.Is(err, coursePhaseConfig.ErrParticipantLookup):
+			sdkUtils.HandleError(c, http.StatusBadGateway, err)
+		default:
+			sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		}
-		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Category assessment created/updated successfully"})

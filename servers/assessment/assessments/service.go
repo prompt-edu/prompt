@@ -52,6 +52,8 @@ type coursePhaseConfigProvider interface {
 	GetStoredCoursePhaseConfig(ctx context.Context, coursePhaseID uuid.UUID) (coursePhaseConfigDTO.CoursePhaseConfig, error)
 }
 
+type participantChecker func(ctx context.Context, authHeader string, coursePhaseID, courseParticipationID uuid.UUID) error
+
 type AssessmentService struct {
 	queries              db.Queries
 	conn                 *pgxpool.Pool
@@ -61,6 +63,7 @@ type AssessmentService struct {
 	scoreLevel           scoreLevelProvider
 	evaluations          evaluationProvider
 	coursePhaseConfig    coursePhaseConfigProvider
+	checkParticipant     participantChecker
 }
 
 func NewAssessmentService(
@@ -72,6 +75,7 @@ func NewAssessmentService(
 	scoreLevel scoreLevelProvider,
 	evaluations evaluationProvider,
 	coursePhaseConfig coursePhaseConfigProvider,
+	checkParticipant participantChecker,
 ) *AssessmentService {
 	return &AssessmentService{
 		queries:              queries,
@@ -82,6 +86,7 @@ func NewAssessmentService(
 		scoreLevel:           scoreLevel,
 		evaluations:          evaluations,
 		coursePhaseConfig:    coursePhaseConfig,
+		checkParticipant:     checkParticipant,
 	}
 }
 
@@ -93,8 +98,8 @@ var ErrCompetencyNotInPhase = errors.New("competency does not belong to this cou
 
 const AssessmentExportFormatJSON = "json"
 
-func (s *AssessmentService) CreateOrUpdateAssessment(ctx context.Context, req assessmentDTO.CreateOrUpdateAssessmentRequest) error {
-	return s.saveScore(ctx, req, func(qtx *db.Queries) error {
+func (s *AssessmentService) CreateOrUpdateAssessment(ctx context.Context, authHeader string, req assessmentDTO.CreateOrUpdateAssessmentRequest) error {
+	return s.saveScore(ctx, authHeader, req, func(qtx *db.Queries) error {
 		return qtx.CreateOrUpdateAssessment(ctx, db.CreateOrUpdateAssessmentParams{
 			CourseParticipationID: req.CourseParticipationID,
 			CoursePhaseID:         req.CoursePhaseID,
@@ -106,8 +111,8 @@ func (s *AssessmentService) CreateOrUpdateAssessment(ctx context.Context, req as
 	})
 }
 
-func (s *AssessmentService) CreateOrUpdateIndependentAssessment(ctx context.Context, req assessmentDTO.CreateOrUpdateAssessmentRequest) error {
-	return s.saveScore(ctx, req, func(qtx *db.Queries) error {
+func (s *AssessmentService) CreateOrUpdateIndependentAssessment(ctx context.Context, authHeader string, req assessmentDTO.CreateOrUpdateAssessmentRequest) error {
+	return s.saveScore(ctx, authHeader, req, func(qtx *db.Queries) error {
 		return qtx.CreateOrUpdateIndependentAssessment(ctx, db.CreateOrUpdateIndependentAssessmentParams{
 			CourseParticipationID: req.CourseParticipationID,
 			CoursePhaseID:         req.CoursePhaseID,
@@ -119,9 +124,12 @@ func (s *AssessmentService) CreateOrUpdateIndependentAssessment(ctx context.Cont
 	})
 }
 
-func (s *AssessmentService) saveScore(ctx context.Context, req assessmentDTO.CreateOrUpdateAssessmentRequest, write func(qtx *db.Queries) error) error {
+func (s *AssessmentService) saveScore(ctx context.Context, authHeader string, req assessmentDTO.CreateOrUpdateAssessmentRequest, write func(qtx *db.Queries) error) error {
 	if req.ScoreLevel == "" {
 		return ErrInvalidScoreLevel
+	}
+	if err := s.checkParticipant(ctx, authHeader, req.CoursePhaseID, req.CourseParticipationID); err != nil {
+		return err
 	}
 
 	tx, err := s.conn.Begin(ctx)

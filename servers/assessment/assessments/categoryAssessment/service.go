@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentCompletion"
@@ -19,19 +20,25 @@ type assessmentCompletionProvider interface {
 	CheckAssessmentIsEditable(ctx context.Context, qtx *db.Queries, courseParticipationID, coursePhaseID uuid.UUID) error
 }
 
+type participantChecker func(ctx context.Context, authHeader string, coursePhaseID, courseParticipationID uuid.UUID) error
+
 type CategoryAssessmentService struct {
 	queries              db.Queries
 	conn                 *pgxpool.Pool
 	assessmentCompletion assessmentCompletionProvider
+	checkParticipant     participantChecker
 }
 
-func NewCategoryAssessmentService(queries db.Queries, conn *pgxpool.Pool, assessmentCompletion assessmentCompletionProvider) *CategoryAssessmentService {
+func NewCategoryAssessmentService(queries db.Queries, conn *pgxpool.Pool, assessmentCompletion assessmentCompletionProvider, checkParticipant participantChecker) *CategoryAssessmentService {
 	return &CategoryAssessmentService{
 		queries:              queries,
 		conn:                 conn,
 		assessmentCompletion: assessmentCompletion,
+		checkParticipant:     checkParticipant,
 	}
 }
+
+var ErrCategoryNotInPhase = errors.New("category does not belong to this course phase's assessment schema")
 
 // ErrNotEditable is returned when the assessment is not editable yet, past
 // the deadline, or already finalized. The router maps this to 403.
@@ -49,7 +56,11 @@ func wrapEditabilityError(err error) error {
 	return err
 }
 
-func (s *CategoryAssessmentService) CreateOrUpdateCategoryAssessment(ctx context.Context, coursePhaseID uuid.UUID, req categoryAssessmentDTO.CreateOrUpdateCategoryAssessmentRequest) error {
+func (s *CategoryAssessmentService) CreateOrUpdateCategoryAssessment(ctx context.Context, authHeader string, coursePhaseID uuid.UUID, req categoryAssessmentDTO.CreateOrUpdateCategoryAssessmentRequest) error {
+	if err := s.checkParticipant(ctx, authHeader, coursePhaseID, req.CourseParticipationID); err != nil {
+		return err
+	}
+
 	tx, err := s.conn.Begin(ctx)
 	if err != nil {
 		log.Error("could not begin category assessment transaction: ", err)
@@ -60,6 +71,10 @@ func (s *CategoryAssessmentService) CreateOrUpdateCategoryAssessment(ctx context
 	qtx := s.queries.WithTx(tx)
 
 	if err := wrapEditabilityError(s.assessmentCompletion.CheckAssessmentIsEditable(ctx, qtx, req.CourseParticipationID, coursePhaseID)); err != nil {
+		return err
+	}
+
+	if err := checkCategoryInPhaseSchema(ctx, qtx, req.CategoryID, coursePhaseID); err != nil {
 		return err
 	}
 
@@ -78,6 +93,27 @@ func (s *CategoryAssessmentService) CreateOrUpdateCategoryAssessment(ctx context
 	if err := tx.Commit(ctx); err != nil {
 		log.Error("could not commit category assessment transaction: ", err)
 		return errors.New("could not commit category assessment")
+	}
+	return nil
+}
+
+func checkCategoryInPhaseSchema(ctx context.Context, qtx *db.Queries, categoryID, coursePhaseID uuid.UUID) error {
+	category, err := qtx.GetCategory(ctx, categoryID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return ErrCategoryNotInPhase
+	}
+	if err != nil {
+		log.Error("could not get category: ", err)
+		return errors.New("could not get category")
+	}
+
+	config, err := qtx.GetCoursePhaseConfig(ctx, coursePhaseID)
+	if err != nil {
+		log.Error("could not get course phase config: ", err)
+		return errors.New("could not get course phase config")
+	}
+	if category.AssessmentSchemaID != config.AssessmentSchemaID {
+		return ErrCategoryNotInPhase
 	}
 	return nil
 }

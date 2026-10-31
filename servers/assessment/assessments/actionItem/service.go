@@ -25,17 +25,21 @@ type coursePhaseConfigProvider interface {
 	GetCoursePhaseConfig(ctx context.Context, coursePhaseID uuid.UUID) (coursePhaseConfigDTO.CoursePhaseConfig, error)
 }
 
+type participantChecker func(ctx context.Context, authHeader string, coursePhaseID, courseParticipationID uuid.UUID) error
+
 type ActionItemService struct {
 	queries              db.Queries
 	assessmentCompletion assessmentCompletionProvider
 	coursePhaseConfig    coursePhaseConfigProvider
+	checkParticipant     participantChecker
 }
 
-func NewActionItemService(queries db.Queries, assessmentCompletion assessmentCompletionProvider, coursePhaseConfig coursePhaseConfigProvider) *ActionItemService {
+func NewActionItemService(queries db.Queries, assessmentCompletion assessmentCompletionProvider, coursePhaseConfig coursePhaseConfigProvider, checkParticipant participantChecker) *ActionItemService {
 	return &ActionItemService{
 		queries:              queries,
 		assessmentCompletion: assessmentCompletion,
 		coursePhaseConfig:    coursePhaseConfig,
+		checkParticipant:     checkParticipant,
 	}
 }
 
@@ -82,8 +86,12 @@ func (s *ActionItemService) GetStudentActionItemsForCoursePhaseCommunication(ctx
 	return actionItems, nil
 }
 
-func (s *ActionItemService) CreateActionItem(ctx context.Context, coursePhaseID uuid.UUID, req actionItemDTO.CreateActionItemRequest) error {
-	err := s.assessmentCompletion.CheckAssessmentIsEditable(ctx, &s.queries, req.CourseParticipationID, coursePhaseID)
+func (s *ActionItemService) CreateActionItem(ctx context.Context, authHeader string, coursePhaseID uuid.UUID, req actionItemDTO.CreateActionItemRequest) error {
+	err := s.checkParticipant(ctx, authHeader, coursePhaseID, req.CourseParticipationID)
+	if err != nil {
+		return err
+	}
+	err = s.assessmentCompletion.CheckAssessmentIsEditable(ctx, &s.queries, req.CourseParticipationID, coursePhaseID)
 	if err != nil {
 		return err
 	}

@@ -101,7 +101,7 @@
     "pacote": "^22.0.1"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.6.2",
+    "@biomejs/biome": "2.6.3",
     "@module-federation/runtime-tools": "^2.9.2",
     "@rspack/cli": "^2.2.9",
     "@rspack/dev-server": "^2.2.1",

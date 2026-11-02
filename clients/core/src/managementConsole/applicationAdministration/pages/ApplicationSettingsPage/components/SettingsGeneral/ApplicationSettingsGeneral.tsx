@@ -22,14 +22,14 @@ import type {
   ApplicationMetaData,
   ApplicationMode,
 } from '../../../../interfaces/applicationMetaData'
+import {
+  getGeneralSettingsValues,
+  hasGeneralSettingsChanges,
+} from '../../../../utils/generalSettingsValues'
 import { ApplicationConfigDialogError } from './ApplicationSettingsGeneralErrorMessage'
 
 interface ApplicationConfigDialogProps {
   initialData: ApplicationMetaData
-}
-
-const getTimeString = (date: Date) => {
-  return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
 }
 
 export function ApplicationGeneralSettings({ initialData }: ApplicationConfigDialogProps) {
@@ -54,29 +54,32 @@ export function ApplicationGeneralSettings({ initialData }: ApplicationConfigDia
 
   // Initialize form values when initialData changes
   useEffect(() => {
-    setStartDate(
-      initialData.applicationStartDate ? new Date(initialData.applicationStartDate) : undefined,
-    )
-    setEndDate(
-      initialData.applicationEndDate ? new Date(initialData.applicationEndDate) : undefined,
-    )
-    setStartTime(
-      initialData.applicationStartDate
-        ? getTimeString(new Date(initialData.applicationStartDate))
-        : '00:00',
-    )
-    setEndTime(
-      initialData.applicationEndDate
-        ? getTimeString(new Date(initialData.applicationEndDate))
-        : '23:59',
-    )
-    setAutoAccept(initialData?.autoAccept ?? false)
-    setExternalStudentsAllowed(initialData?.externalStudentsAllowed ?? false)
-    setUniversityLoginAvailable(initialData?.universityLoginAvailable ?? false)
+    const storedValues = getGeneralSettingsValues(initialData)
+    setStartDate(storedValues.startDate)
+    setEndDate(storedValues.endDate)
+    setStartTime(storedValues.startTime)
+    setEndTime(storedValues.endTime)
+    setAutoAccept(storedValues.autoAccept)
+    setExternalStudentsAllowed(storedValues.externalStudentsAllowed)
+    setUniversityLoginAvailable(storedValues.universityLoginAvailable)
     setUseCustomScores(initialData?.useCustomScores ?? false)
-    setMode(initialData?.applicationMode === 'import' ? 'import' : 'apply')
+    setMode(storedValues.mode)
     setDateError(null)
   }, [initialData])
+
+  const hasChanges = hasGeneralSettingsChanges(
+    {
+      startDate,
+      endDate,
+      startTime,
+      endTime,
+      externalStudentsAllowed,
+      universityLoginAvailable,
+      autoAccept,
+      mode,
+    },
+    getGeneralSettingsValues(initialData),
+  )
 
   const {
     mutate: mutatePhase,
@@ -322,7 +325,9 @@ export function ApplicationGeneralSettings({ initialData }: ApplicationConfigDia
               </div>
 
               <div className='flex justify-end'>
-                <Button type='submit'>Save changes</Button>
+                <Button type='submit' disabled={!hasChanges}>
+                  Save changes
+                </Button>
               </div>
             </form>
           </>

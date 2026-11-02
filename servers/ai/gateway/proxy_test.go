@@ -12,9 +12,11 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
+	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	"github.com/prompt-edu/prompt/servers/ai/calls"
+	db "github.com/prompt-edu/prompt/servers/ai/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/ai/encryption"
-	"github.com/prompt-edu/prompt/servers/ai/testutils"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -26,7 +28,7 @@ const (
 type ProxySuite struct {
 	suite.Suite
 	ctx     context.Context
-	db      *testutils.TestDB
+	db      *sdkTestUtils.TestDB[*db.Queries]
 	cleanup func()
 	calls   *calls.Service
 }
@@ -35,7 +37,7 @@ func (s *ProxySuite) SetupSuite() {
 	s.ctx = context.Background()
 	s.T().Setenv("AI_ENCRYPTION_KEYS", "1:ZTJlLWFpLXRlc3Qta2V5LW5vdC1hLXJlYWwtc2VjcmU=")
 	gin.SetMode(gin.TestMode)
-	testDB, cleanup, err := testutils.SetupTestDB(s.ctx)
+	testDB, cleanup, err := sdkTestUtils.SetupTestDBWithMigrations(s.ctx, "../db/migration", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) })
 	s.Require().NoError(err)
 	s.db, s.cleanup = testDB, cleanup
 	box, err := encryption.New()

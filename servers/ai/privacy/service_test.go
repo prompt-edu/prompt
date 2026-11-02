@@ -8,13 +8,15 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
+	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	"github.com/prompt-edu/prompt/servers/ai/calls"
 	"github.com/prompt-edu/prompt/servers/ai/calls/callDTO"
+	db "github.com/prompt-edu/prompt/servers/ai/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/ai/encryption"
 	"github.com/prompt-edu/prompt/servers/ai/feature"
 	"github.com/prompt-edu/prompt/servers/ai/privacy/privacyDTO"
-	"github.com/prompt-edu/prompt/servers/ai/testutils"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -23,7 +25,7 @@ const lowRiskFeature = "example.course_editing"
 type PrivacySuite struct {
 	suite.Suite
 	ctx     context.Context
-	db      *testutils.TestDB
+	db      *sdkTestUtils.TestDB[*db.Queries]
 	cleanup func()
 	calls   *calls.Service
 	service *Service
@@ -36,7 +38,7 @@ type PrivacySuite struct {
 func (s *PrivacySuite) SetupTest() {
 	s.ctx = context.Background()
 	s.T().Setenv("AI_ENCRYPTION_KEYS", "1:ZTJlLWFpLXRlc3Qta2V5LW5vdC1hLXJlYWwtc2VjcmU=")
-	testDB, cleanup, err := testutils.SetupTestDB(s.ctx)
+	testDB, cleanup, err := sdkTestUtils.SetupTestDBWithMigrations(s.ctx, "../db/migration", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) })
 	s.Require().NoError(err)
 	s.db, s.cleanup = testDB, cleanup
 	box, err := encryption.New()

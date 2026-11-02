@@ -6,7 +6,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/prompt-edu/prompt/servers/ai/testutils"
+	"github.com/jackc/pgx/v5/pgxpool"
+	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
+	db "github.com/prompt-edu/prompt/servers/ai/db/sqlc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -18,7 +20,7 @@ func TestValidate(t *testing.T) {
 
 func TestPurge(t *testing.T) {
 	ctx := context.Background()
-	testDB, cleanup, err := testutils.SetupTestDB(ctx)
+	testDB, cleanup, err := sdkTestUtils.SetupTestDBWithMigrations(ctx, "../db/migration", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) })
 	require.NoError(t, err)
 	defer cleanup()
 	now := time.Now()

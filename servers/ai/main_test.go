@@ -15,10 +15,13 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	"github.com/prompt-edu/prompt-sdk/serviceAuth"
+	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	"github.com/prompt-edu/prompt/servers/ai/calls"
 	"github.com/prompt-edu/prompt/servers/ai/calls/callDTO"
+	db "github.com/prompt-edu/prompt/servers/ai/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/ai/encryption"
 	"github.com/prompt-edu/prompt/servers/ai/gateway"
 	"github.com/prompt-edu/prompt/servers/ai/testutils"
@@ -40,7 +43,7 @@ const (
 type AIServerSuite struct {
 	suite.Suite
 	ctx      context.Context
-	db       *testutils.TestDB
+	db       *sdkTestUtils.TestDB[*db.Queries]
 	aimock   *testutils.AIMock
 	identity *testutils.Identity
 	server   *httptest.Server
@@ -55,7 +58,7 @@ func (s *AIServerSuite) SetupSuite() {
 	s.T().Setenv("AI_ENCRYPTION_KEYS", "1:"+testEncryptionKey)
 	gin.SetMode(gin.TestMode)
 
-	testDB, stopDB, err := testutils.SetupTestDB(s.ctx)
+	testDB, stopDB, err := sdkTestUtils.SetupTestDBWithMigrations(s.ctx, "db/migration", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) })
 	s.Require().NoError(err)
 	s.cleanups = append(s.cleanups, stopDB)
 	s.db = testDB

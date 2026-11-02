@@ -5,6 +5,7 @@ import {
   FULL_COURSE_PHASES,
   TEAM_ALLOCATION_FOREIGN_PHASE_ID,
   TEAM_ALLOCATION_TUTOR_SCOPE,
+  TUTOR_SCOPE_PARTICIPANTS,
 } from '../../src/data/constants'
 
 // The team allocation server is reached on the browser origin through the e2e
@@ -64,9 +65,15 @@ test.describe('team allocation API auth', () => {
 // course-editor tutors one team of the tutor scope phase. Allocations are the
 // lecturer's decision: the tutor reads their own team but writes nothing.
 test.describe('team allocation API tutor access', () => {
-  const { phaseId, ownTeamId, ownTeamParticipationIds, unallocatedParticipationId } =
-    TEAM_ALLOCATION_TUTOR_SCOPE
+  const { phaseId, ownTeamId } = TEAM_ALLOCATION_TUTOR_SCOPE
+  const ownTeamParticipationIds = TUTOR_SCOPE_PARTICIPANTS.ownTeam.map(
+    (p) => p.courseParticipationId,
+  )
   const [ownMember] = ownTeamParticipationIds
+  // New Test user is the only participant of the phase without an allocation.
+  const unallocated = TUTOR_SCOPE_PARTICIPANTS.hidden.find((p) => p.name === 'New Test user')
+  if (!unallocated) throw new Error('the tutor scope fixture lost its unallocated participant')
+  const unallocatedParticipationId = unallocated.courseParticipationId
 
   test('lets a tutor read only their own team allocations', async ({ apiAs }) => {
     const api = await apiAs('course-editor')

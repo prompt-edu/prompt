@@ -57,7 +57,7 @@ export class CourseMailingPage {
 
   async save() {
     await this.page.getByRole('button', { name: 'Save', exact: true }).click()
-    await expect(this.page.getByText(/Draft created|Campaign saved/)).toBeVisible()
+    await expect(this.page.getByText(/^(Draft created|Campaign saved)$/)).toBeVisible()
   }
 
   async showRecipients() {

@@ -29,7 +29,7 @@ const CONTENT_NOTICE: Record<AICallContentState, string> = {
   [AICallContentState.RESTRICTED]:
     'The content is restricted after an erasure request and stays hidden until it is purged.',
   [AICallContentState.UNAVAILABLE]:
-    'No content is stored: it was purged after its retention, or the call was denied.',
+    'The content cannot be shown: it was purged after its retention, the call was denied, or it can no longer be decrypted.',
 }
 
 const requestMessages = (content: AICallContent) =>

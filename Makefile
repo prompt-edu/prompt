@@ -1,5 +1,6 @@
 .PHONY: help server servers client-core client-certificate client-presentation client-assessment \
-	client-interview client-matching clients db db-down \
+	client-interview client-matching client-example client-team-allocation \
+	client-self-team-allocation client-infrastructure-setup clients db db-down \
 	server-core server-assessment server-interview \
 	server-team-allocation server-self-team-allocation server-example \
 	server-certificate server-presentation server-infrastructure-setup \
@@ -172,6 +173,18 @@ client-interview: ## Start only the interview client
 
 client-matching: ## Start only the matching client
 	cd clients/matching_component && yarn dev
+
+client-example: ## Start only the example client
+	cd clients/example_component && yarn dev
+
+client-team-allocation: ## Start only the team allocation client
+	cd clients/team_allocation_component && yarn dev
+
+client-self-team-allocation: ## Start only the self team allocation client
+	cd clients/self_team_allocation_component && yarn dev
+
+client-infrastructure-setup: ## Start only the infrastructure setup client
+	cd clients/infrastructure_setup_component && yarn dev
 
 DB_SERVICES = db db-team-allocation db-assessment db-self-team-allocation \
 	db-example-server db-interview db-certificate db-presentation \

@@ -604,11 +604,14 @@ This installs the workspace dependencies (`yarn install`) and starts every micro
 | `presentation_component` | 3011 |
 | `infrastructure_setup_component` | 3012 |
 
-To run only a subset, use one of the per-client targets — `make client-core`, `make client-assessment`, `make client-certificate`, `make client-interview`, `make client-matching`, `make client-presentation`. The remaining components (example, team allocation, self team allocation, infrastructure setup) have no target; run `yarn dev` inside the corresponding folder:
+To run only a subset, use the per-client targets: `make client-core`, `make client-example`, `make client-interview`, `make client-matching`, `make client-assessment`, `make client-team-allocation`, `make client-self-team-allocation`, `make client-certificate`, `make client-presentation` and `make client-infrastructure-setup`. For example:
 
 ```bash
-cd clients/core && yarn dev
+make client-core
+make client-assessment   # in another terminal
 ```
+
+Prefer these targets over `yarn dev` inside a component folder. A plain `yarn dev` doesn't get the stack's client port, so in a worktree (see [Run Several Stacks Side by Side](#run-several-stacks-side-by-side)) it binds stack 0's port.
 
 Phases developed in their own repositories (for example the intro course and the GitHub challenge) are loaded as external remotes and served by those projects.
 

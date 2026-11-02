@@ -317,5 +317,5 @@ Remaining manual steps (see docs/contributor/new_course_phase.md):
   3. Optional: add ${UPPER}_HOST to the EnvType in @tumaet/prompt-shared-state.
   4. Implement your schema (db/migration, db/query, 'make sqlc-${KEBAB}') and logic.
 
-Try it: make db && make server-${KEBAB}   and   cd clients && yarn dev
+Try it: make db && make server-${KEBAB}   and   make clients
 EOF

@@ -190,13 +190,11 @@ The `.env` file is not automatically loaded by Go. Use one of these methods:
 
 ```bash
 make clients
-# or manually:
-cd clients && yarn install && yarn run dev
 ```
 
 This launches all micro-frontends simultaneously using Lerna. The app runs at [http://localhost:3000](http://localhost:3000).
 
-To start a specific micro-frontend only, navigate to its subdirectory and run `yarn run dev` there.
+To start a specific micro-frontend only, use its target, for example `make client-core` or `make client-team-allocation` (`make help` lists them all).
 
 #### 7. Seed the Databases (optional)
 

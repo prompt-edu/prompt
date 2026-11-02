@@ -1,4 +1,4 @@
-import { axiosInstance, notAuthenticatedAxiosInstance } from '@tumaet/prompt-shared-state'
+import { axiosInstance, notAuthenticatedAxiosInstance, parseURL } from '@tumaet/prompt-shared-state'
 import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios'
 import axios, { isAxiosError } from 'axios'
 
@@ -101,9 +101,10 @@ export const coreRequest = requestsThrough(axiosInstance, 'Core')
 export const publicRequest = requestsThrough(notAuthenticatedAxiosInstance, 'Public core')
 
 // Read off window.env: the shared `env` object drops keys its EnvType does not know. Unauthenticated,
-// since core only reads the public info route, so the token never goes to AI_HOST.
+// since core only reads the public info route, so the token never goes to AI_HOST. parseURL adds the
+// scheme to the bare host production sets, which axios would otherwise resolve as a relative path.
 export const aiAxiosInstance = axios.create({
-  baseURL: (window.env as { AI_HOST?: string }).AI_HOST ?? '',
+  baseURL: parseURL((window.env as { AI_HOST?: string }).AI_HOST ?? ''),
 })
 
 export const aiRequest = requestsThrough(aiAxiosInstance, 'AI')

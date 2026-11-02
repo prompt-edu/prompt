@@ -21,6 +21,11 @@ the Go services validate tokens through `prompt-sdk`.
 - `make db` starts Postgres + Keycloak (detached); `make db-down` stops them.
 - The realm is imported from `keycloakConfig.json` at the repo root on first start. If roles/clients
   look wrong, stop, remove the `keycloak_postgres_data/` volume, and re-import.
+- In a linked worktree `make db` starts that worktree's own stack: Keycloak on `8081 + 100n`
+  (`make stack` prints it), a realm imported for the stack's client port, and the realm's
+  placeholder `prompt-server` secret, which the Makefile hands to the servers. No secret to
+  regenerate there; `make stack-down` resets it. See "Run Several Stacks Side by Side" in
+  `docs/contributor/setup.md`.
 
 ## Common failures
 

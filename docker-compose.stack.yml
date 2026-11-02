@@ -1,0 +1,80 @@
+# ============================================================================
+# Overlay for a parallel local stack (stack number 1 and up).
+#
+# The Makefile adds it on top of docker-compose.yml in every linked worktree,
+# under the Compose project prompt-<n>, and exports the shifted host ports
+# (PROMPT_PORT_<port>) and container names (PROMPT_CONTAINER_PREFIX) the base
+# file reads. Stack 0, the main checkout, runs without it and keeps its data
+# in the bind-mounted directories next to docker-compose.yml.
+#
+# Here every database and SeaweedFS keeps its data in a named volume instead.
+# Compose scopes those by project, so each stack has its own data and migration
+# state, and `make stack-down` removes exactly this stack's volumes.
+#
+# Docs: docs/contributor/setup.md ("Run several stacks side by side")
+# ============================================================================
+
+services:
+  db:
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+  db-team-allocation:
+    volumes:
+      - postgres_team_allocation_data:/var/lib/postgresql/data
+  db-assessment:
+    volumes:
+      - postgres_assessment_data:/var/lib/postgresql/data
+  db-example-server:
+    volumes:
+      - postgres_example_server_data:/var/lib/postgresql/data
+  db-interview:
+    volumes:
+      - postgres_interview_data:/var/lib/postgresql/data
+  db-self-team-allocation:
+    volumes:
+      - postgres_self_team_allocation_data:/var/lib/postgresql/data
+  db-certificate:
+    volumes:
+      - postgres_certificate_data:/var/lib/postgresql/data
+  db-presentation:
+    volumes:
+      - postgres_presentation_data:/var/lib/postgresql/data
+  db-infrastructure-setup:
+    volumes:
+      - postgres_infrastructure_setup_data:/var/lib/postgresql/data
+  keycloak-db:
+    volumes:
+      - keycloak_postgres_data:/var/lib/postgresql/data
+
+  keycloak:
+    environment:
+      # Read by the placeholders in keycloakConfig.json, so the imported realm
+      # accepts this stack's client and core server origins.
+      PROMPT_PORT_3000: ${PROMPT_PORT_3000:-3000}
+      PROMPT_PORT_3001: ${PROMPT_PORT_3001:-3001}
+      PROMPT_PORT_8080: ${PROMPT_PORT_8080:-8080}
+
+  seaweedfs-master:
+    volumes:
+      - seaweedfs_master_data:/data
+  seaweedfs-volume:
+    volumes:
+      - seaweedfs_volume_data:/data
+  seaweedfs-filer:
+    volumes:
+      - seaweedfs_filer_data:/data
+
+volumes:
+  postgres_data:
+  postgres_team_allocation_data:
+  postgres_assessment_data:
+  postgres_example_server_data:
+  postgres_interview_data:
+  postgres_self_team_allocation_data:
+  postgres_certificate_data:
+  postgres_presentation_data:
+  postgres_infrastructure_setup_data:
+  keycloak_postgres_data:
+  seaweedfs_master_data:
+  seaweedfs_volume_data:
+  seaweedfs_filer_data:

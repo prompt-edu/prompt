@@ -225,7 +225,10 @@ stack: ## Show this checkout's stack number, ports and the allocated stacks
 	@./scripts/stack-number.sh --list | sed 's/^/            /'
 
 # Also works for the stack of a worktree that is already gone:
-# make stack-down PROMPT_STACK=<n> from any checkout.
+# make stack-down PROMPT_STACK=<n> from any checkout. down -v only removes the
+# volumes the Compose files on disk declare, and a stack started from another
+# branch can own more. scripts/stack-number.sh keeps a number taken while any
+# volume carries the project label, so the volumes are removed by label too.
 stack-down: ## Remove this stack's dev and e2e containers and volumes (stack 1 and up)
 	@if [ "$(STACK)" = 0 ]; then \
 		echo "make stack-down: stack 0 is the main checkout's stack, which keeps its data in bind-mounted"; \
@@ -234,6 +237,10 @@ stack-down: ## Remove this stack's dev and e2e containers and volumes (stack 1 a
 	fi
 	$(DEV_COMPOSE) down -v --remove-orphans
 	unset $(E2E_ENV_KEYS); $(E2E_COMPOSE) down -v --remove-orphans
+	@for project in $(STACK_PREFIX) $(E2E_PROJECT); do \
+		vols=$$(docker volume ls -q --filter label=com.docker.compose.project=$$project); \
+		[ -z "$$vols" ] || docker volume rm $$vols; \
+	done
 
 # ─── Code Quality ──────────────────────────────────────────────────────────────
 

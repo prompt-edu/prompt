@@ -93,6 +93,11 @@ leftovers() {
 }
 
 if [ -z "$assigned" ]; then
+    # Without a running daemon, docker ps and docker volume ls print nothing, so
+    # leftovers() would report every number as free.
+    if command -v docker >/dev/null 2>&1 && ! docker info >/dev/null 2>&1; then
+        die "Docker is not running, so free stack numbers can't be checked for leftovers. Start Docker, or set PROMPT_STACK=<n>."
+    fi
     n=1
     skipped=""
     while [ "$n" -le "$STACK_MAX" ]; do

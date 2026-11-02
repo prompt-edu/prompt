@@ -308,7 +308,8 @@ Done. Phase '${NAME}' scaffolded and registered.
 
 Remaining manual steps (see docs/contributor/new_course_phase.md):
   1. Course phase type: add init${PASCAL}() in
-     servers/core/coursePhaseType/initializeTypes.go (name key: '${NAME}_component').
+     servers/core/coursePhaseType/initializeTypes.go (name key: '${NAME}_component',
+     dev BaseUrl: devServiceURL(${SERVER_PORT}, "/${KEBAB}-service/api")).
   2. Deployment: docker-compose.prod.yml service + traefik labels, and the
      build-and-push-clients.yml (pass MF_BUILD_VERSION like the other remotes) /
      deploy-docker.yml / dev.yml / prod.yml wiring.

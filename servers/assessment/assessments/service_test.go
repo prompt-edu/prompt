@@ -26,41 +26,26 @@ import (
 	"github.com/prompt-edu/prompt/servers/assessment/evaluations"
 	"github.com/prompt-edu/prompt/servers/assessment/evaluations/evaluationCompletion"
 	"github.com/prompt-edu/prompt/servers/assessment/teamScope"
+	"github.com/prompt-edu/prompt/servers/assessment/testutils"
 	"github.com/prompt-edu/prompt/servers/assessment/utils"
 )
-
-// The stubbed core lists every participation in every phase except these two.
-var (
-	outsideParticipationID      = uuid.MustParse("6f1c2a4e-3b5d-4e7f-8a9b-0c1d2e3f4a5b")
-	unverifiableParticipationID = uuid.MustParse("7a2d3b5f-4c6e-4f80-9bac-1d2e3f4a5b6c")
-)
-
-func checkTestParticipant(_ context.Context, _ string, _, courseParticipationID uuid.UUID) error {
-	switch courseParticipationID {
-	case outsideParticipationID:
-		return coursePhaseConfig.ErrParticipantNotInPhase
-	case unverifiableParticipationID:
-		return coursePhaseConfig.ErrParticipantLookup
-	}
-	return nil
-}
 
 func newTestCoursePhaseConfigService(queries db.Queries, conn *pgxpool.Pool) *coursePhaseConfig.CoursePhaseConfigService {
 	return coursePhaseConfig.NewCoursePhaseConfigService(queries, conn, assessmentSchemas.NewAssessmentSchemaService(queries, conn))
 }
 
 func newTestAssessmentService(queries db.Queries, conn *pgxpool.Pool, coursePhaseConfigService *coursePhaseConfig.CoursePhaseConfigService) *AssessmentService {
-	completionService := assessmentCompletion.NewAssessmentCompletionService(queries, conn, coursePhaseConfigService, checkTestParticipant)
+	completionService := assessmentCompletion.NewAssessmentCompletionService(queries, conn, coursePhaseConfigService, testutils.CheckTestParticipant)
 	return NewAssessmentService(
 		queries,
 		conn,
 		completionService,
-		categoryAssessment.NewCategoryAssessmentService(queries, conn, completionService, checkTestParticipant),
-		actionItem.NewActionItemService(queries, completionService, coursePhaseConfigService, checkTestParticipant),
+		categoryAssessment.NewCategoryAssessmentService(queries, conn, completionService, testutils.CheckTestParticipant),
+		actionItem.NewActionItemService(queries, completionService, coursePhaseConfigService, testutils.CheckTestParticipant),
 		scoreLevel.NewScoreLevelService(queries),
 		evaluations.NewEvaluationService(queries, conn, evaluationCompletion.NewEvaluationCompletionService(queries, conn, coursePhaseConfig.GetTeamsForCoursePhase, coursePhaseConfigService), coursePhaseConfigService),
 		coursePhaseConfigService,
-		checkTestParticipant,
+		testutils.CheckTestParticipant,
 	)
 }
 
@@ -321,7 +306,7 @@ func (suite *AssessmentServiceTestSuite) TestSaveScoreRejectsCompetencyOutsidePh
 func (suite *AssessmentServiceTestSuite) TestSaveScoreRejectsParticipantOutsidePhase() {
 	phaseID := uuid.MustParse("24461b6b-3c3a-4bc6-ba42-69eeb1514da9")
 	req := assessmentDTO.CreateOrUpdateAssessmentRequest{
-		CourseParticipationID: outsideParticipationID,
+		CourseParticipationID: testutils.OutsideParticipationID,
 		CoursePhaseID:         phaseID,
 		CompetencyID:          uuid.MustParse("01935143-5e85-7e1d-81bb-96fb3ebf34aa"),
 		ScoreLevel:            scoreLevelDTO.ScoreLevelGood,
@@ -331,7 +316,7 @@ func (suite *AssessmentServiceTestSuite) TestSaveScoreRejectsParticipantOutsideP
 	assert.ErrorIs(suite.T(), suite.service.CreateOrUpdateAssessment(suite.suiteCtx, "", req), coursePhaseConfig.ErrParticipantNotInPhase)
 	assert.ErrorIs(suite.T(), suite.service.CreateOrUpdateIndependentAssessment(suite.suiteCtx, "", req), coursePhaseConfig.ErrParticipantNotInPhase)
 
-	assessments, err := suite.service.ListAssessmentsByStudentInPhase(suite.suiteCtx, outsideParticipationID, phaseID)
+	assessments, err := suite.service.ListAssessmentsByStudentInPhase(suite.suiteCtx, testutils.OutsideParticipationID, phaseID)
 	assert.NoError(suite.T(), err)
 	assert.Empty(suite.T(), assessments)
 }

@@ -17,6 +17,7 @@ import (
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentDTO"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/categoryAssessment/categoryAssessmentDTO"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/scoreLevel/scoreLevelDTO"
+	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig/coursePhaseConfigDTO"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/assessment/evaluations"
@@ -52,8 +53,6 @@ type coursePhaseConfigProvider interface {
 	GetStoredCoursePhaseConfig(ctx context.Context, coursePhaseID uuid.UUID) (coursePhaseConfigDTO.CoursePhaseConfig, error)
 }
 
-type participantChecker func(ctx context.Context, authHeader string, coursePhaseID, courseParticipationID uuid.UUID) error
-
 type AssessmentService struct {
 	queries              db.Queries
 	conn                 *pgxpool.Pool
@@ -63,7 +62,7 @@ type AssessmentService struct {
 	scoreLevel           scoreLevelProvider
 	evaluations          evaluationProvider
 	coursePhaseConfig    coursePhaseConfigProvider
-	checkParticipant     participantChecker
+	checkParticipant     coursePhaseConfig.ParticipantChecker
 }
 
 func NewAssessmentService(
@@ -75,7 +74,7 @@ func NewAssessmentService(
 	scoreLevel scoreLevelProvider,
 	evaluations evaluationProvider,
 	coursePhaseConfig coursePhaseConfigProvider,
-	checkParticipant participantChecker,
+	checkParticipant coursePhaseConfig.ParticipantChecker,
 ) *AssessmentService {
 	return &AssessmentService{
 		queries:              queries,

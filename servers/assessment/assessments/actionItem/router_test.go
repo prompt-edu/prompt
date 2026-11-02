@@ -20,6 +20,7 @@ import (
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentCompletion"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/assessment/testutils"
 )
 
 type ActionItemRouterTestSuite struct {
@@ -40,7 +41,7 @@ func (suite *ActionItemRouterTestSuite) SetupSuite() {
 	suite.cleanup = cleanup
 
 	suite.coursePhaseConfigService = coursePhaseConfig.NewCoursePhaseConfigService(*testDB.Queries, testDB.Conn, assessmentSchemas.NewAssessmentSchemaService(*testDB.Queries, testDB.Conn))
-	suite.service = NewActionItemService(*testDB.Queries, assessmentCompletion.NewAssessmentCompletionService(*testDB.Queries, testDB.Conn, suite.coursePhaseConfigService, checkTestParticipant), suite.coursePhaseConfigService, checkTestParticipant)
+	suite.service = NewActionItemService(*testDB.Queries, assessmentCompletion.NewAssessmentCompletionService(*testDB.Queries, testDB.Conn, suite.coursePhaseConfigService, testutils.CheckTestParticipant), suite.coursePhaseConfigService, testutils.CheckTestParticipant)
 
 	suite.router = gin.Default()
 	api := suite.router.Group("/api/course_phase/:coursePhaseID")
@@ -99,10 +100,10 @@ func (suite *ActionItemRouterTestSuite) postActionItem(pathPhaseID, coursePartic
 func (suite *ActionItemRouterTestSuite) TestCreateActionItemForParticipantOutsidePhase() {
 	phaseID := uuid.MustParse("24461b6b-3c3a-4bc6-ba42-69eeb1514da9")
 
-	resp := suite.postActionItem(phaseID, outsideParticipationID)
+	resp := suite.postActionItem(phaseID, testutils.OutsideParticipationID)
 	assert.Equal(suite.T(), http.StatusBadRequest, resp.Code)
 
-	items, err := suite.service.ListActionItemsForStudentInPhase(suite.suiteCtx, outsideParticipationID, phaseID)
+	items, err := suite.service.ListActionItemsForStudentInPhase(suite.suiteCtx, testutils.OutsideParticipationID, phaseID)
 	assert.NoError(suite.T(), err)
 	assert.Empty(suite.T(), items)
 }
@@ -110,7 +111,7 @@ func (suite *ActionItemRouterTestSuite) TestCreateActionItemForParticipantOutsid
 func (suite *ActionItemRouterTestSuite) TestCreateActionItemWhenParticipantLookupFails() {
 	phaseID := uuid.MustParse("24461b6b-3c3a-4bc6-ba42-69eeb1514da9")
 
-	resp := suite.postActionItem(phaseID, unverifiableParticipationID)
+	resp := suite.postActionItem(phaseID, testutils.UnverifiableParticipationID)
 	assert.Equal(suite.T(), http.StatusBadGateway, resp.Code)
 }
 

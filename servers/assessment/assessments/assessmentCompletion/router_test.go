@@ -24,6 +24,7 @@ import (
 	dto "github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentCompletion/assessmentCompletionDTO"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/assessment/testutils"
 	"github.com/prompt-edu/prompt/servers/assessment/utils"
 )
 
@@ -45,7 +46,7 @@ func (suite *AssessmentCompletionRouterTestSuite) SetupSuite() {
 	suite.cleanup = cleanup
 
 	suite.coursePhaseConfigService = coursePhaseConfig.NewCoursePhaseConfigService(*testDB.Queries, testDB.Conn, assessmentSchemas.NewAssessmentSchemaService(*testDB.Queries, testDB.Conn))
-	suite.service = NewAssessmentCompletionService(*testDB.Queries, testDB.Conn, suite.coursePhaseConfigService, checkTestParticipant)
+	suite.service = NewAssessmentCompletionService(*testDB.Queries, testDB.Conn, suite.coursePhaseConfigService, testutils.CheckTestParticipant)
 
 	suite.router = gin.Default()
 	api := suite.router.Group("/api/course_phase/:coursePhaseID")
@@ -204,11 +205,11 @@ func (suite *AssessmentCompletionRouterTestSuite) TestCreateOrUpdateAssessmentCo
 	}
 
 	for _, method := range []string{"POST", "PUT"} {
-		assert.Equal(suite.T(), http.StatusBadRequest, send(method, outsideParticipationID), method)
-		assert.Equal(suite.T(), http.StatusBadGateway, send(method, unverifiableParticipationID), method)
+		assert.Equal(suite.T(), http.StatusBadRequest, send(method, testutils.OutsideParticipationID), method)
+		assert.Equal(suite.T(), http.StatusBadGateway, send(method, testutils.UnverifiableParticipationID), method)
 	}
 
-	exists, err := suite.service.CheckAssessmentCompletionExists(suite.suiteCtx, outsideParticipationID, phaseID)
+	exists, err := suite.service.CheckAssessmentCompletionExists(suite.suiteCtx, testutils.OutsideParticipationID, phaseID)
 	assert.NoError(suite.T(), err)
 	assert.False(suite.T(), exists)
 }

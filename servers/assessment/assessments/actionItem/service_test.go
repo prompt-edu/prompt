@@ -16,23 +16,8 @@ import (
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/assessment/teamScope"
+	"github.com/prompt-edu/prompt/servers/assessment/testutils"
 )
-
-// The stubbed core lists every participation in every phase except these two.
-var (
-	outsideParticipationID      = uuid.MustParse("6f1c2a4e-3b5d-4e7f-8a9b-0c1d2e3f4a5b")
-	unverifiableParticipationID = uuid.MustParse("7a2d3b5f-4c6e-4f80-9bac-1d2e3f4a5b6c")
-)
-
-func checkTestParticipant(_ context.Context, _ string, _, courseParticipationID uuid.UUID) error {
-	switch courseParticipationID {
-	case outsideParticipationID:
-		return coursePhaseConfig.ErrParticipantNotInPhase
-	case unverifiableParticipationID:
-		return coursePhaseConfig.ErrParticipantLookup
-	}
-	return nil
-}
 
 type ActionItemServiceTestSuite struct {
 	suite.Suite
@@ -52,7 +37,7 @@ func (suite *ActionItemServiceTestSuite) SetupSuite() {
 	}
 	suite.cleanup = cleanup
 	coursePhaseConfigService := coursePhaseConfig.NewCoursePhaseConfigService(*testDB.Queries, testDB.Conn, assessmentSchemas.NewAssessmentSchemaService(*testDB.Queries, testDB.Conn))
-	suite.actionItemService = NewActionItemService(*testDB.Queries, assessmentCompletion.NewAssessmentCompletionService(*testDB.Queries, testDB.Conn, coursePhaseConfigService, checkTestParticipant), coursePhaseConfigService, checkTestParticipant)
+	suite.actionItemService = NewActionItemService(*testDB.Queries, assessmentCompletion.NewAssessmentCompletionService(*testDB.Queries, testDB.Conn, coursePhaseConfigService, testutils.CheckTestParticipant), coursePhaseConfigService, testutils.CheckTestParticipant)
 
 	// Use predefined test UUIDs from the database dump
 	// This phase has assessment open (start in past, deadline in future)
@@ -81,13 +66,13 @@ func (suite *ActionItemServiceTestSuite) TestCreateActionItem() {
 
 func (suite *ActionItemServiceTestSuite) TestCreateActionItemForParticipantOutsidePhase() {
 	err := suite.actionItemService.CreateActionItem(suite.suiteCtx, "", suite.testCoursePhaseID, actionItemDTO.CreateActionItemRequest{
-		CourseParticipationID: outsideParticipationID,
+		CourseParticipationID: testutils.OutsideParticipationID,
 		Action:                "Orphaned action",
 		Author:                "tester",
 	})
 	assert.ErrorIs(suite.T(), err, coursePhaseConfig.ErrParticipantNotInPhase)
 
-	items, err := suite.actionItemService.ListActionItemsForStudentInPhase(suite.suiteCtx, outsideParticipationID, suite.testCoursePhaseID)
+	items, err := suite.actionItemService.ListActionItemsForStudentInPhase(suite.suiteCtx, testutils.OutsideParticipationID, suite.testCoursePhaseID)
 	assert.NoError(suite.T(), err)
 	assert.Empty(suite.T(), items)
 }

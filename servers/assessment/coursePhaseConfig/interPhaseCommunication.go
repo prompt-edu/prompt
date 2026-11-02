@@ -25,6 +25,10 @@ type participationIDsResponse struct {
 	} `json:"participations"`
 }
 
+// ParticipantChecker reports whether a course participation belongs to a course phase.
+// CheckParticipantInPhase is the implementation the services use; tests pass a stub.
+type ParticipantChecker func(ctx context.Context, authHeader string, coursePhaseID, courseParticipationID uuid.UUID) error
+
 // CheckParticipantInPhase returns ErrParticipantNotInPhase when core does not list the
 // course participation as a participant of the course phase.
 func CheckParticipantInPhase(ctx context.Context, authHeader string, coursePhaseID, courseParticipationID uuid.UUID) error {

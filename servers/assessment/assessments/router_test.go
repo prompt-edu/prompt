@@ -17,6 +17,7 @@ import (
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	assessmentDTO "github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentDTO"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/assessment/testutils"
 )
 
 // AssessmentRouterTestSuite tests HTTP routes for assessments
@@ -212,8 +213,8 @@ func (suite *AssessmentRouterTestSuite) TestSaveScoreRejectsUnverifiedParticipan
 	}
 
 	for _, path := range []string{"/student-assessment", "/student-assessment/independent"} {
-		assert.Equal(suite.T(), http.StatusBadRequest, post(path, outsideParticipationID), path)
-		assert.Equal(suite.T(), http.StatusBadGateway, post(path, unverifiableParticipationID), path)
+		assert.Equal(suite.T(), http.StatusBadRequest, post(path, testutils.OutsideParticipationID), path)
+		assert.Equal(suite.T(), http.StatusBadGateway, post(path, testutils.UnverifiableParticipationID), path)
 	}
 }
 

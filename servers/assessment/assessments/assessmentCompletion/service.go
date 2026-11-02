@@ -25,16 +25,14 @@ type coursePhaseConfigProvider interface {
 	IsAssessmentDeadlinePassed(ctx context.Context, coursePhaseID uuid.UUID) (bool, error)
 }
 
-type participantChecker func(ctx context.Context, authHeader string, coursePhaseID, courseParticipationID uuid.UUID) error
-
 type AssessmentCompletionService struct {
 	queries           db.Queries
 	conn              *pgxpool.Pool
 	coursePhaseConfig coursePhaseConfigProvider
-	checkParticipant  participantChecker
+	checkParticipant  coursePhaseConfig.ParticipantChecker
 }
 
-func NewAssessmentCompletionService(queries db.Queries, conn *pgxpool.Pool, coursePhaseConfig coursePhaseConfigProvider, checkParticipant participantChecker) *AssessmentCompletionService {
+func NewAssessmentCompletionService(queries db.Queries, conn *pgxpool.Pool, coursePhaseConfig coursePhaseConfigProvider, checkParticipant coursePhaseConfig.ParticipantChecker) *AssessmentCompletionService {
 	return &AssessmentCompletionService{
 		queries:           queries,
 		conn:              conn,

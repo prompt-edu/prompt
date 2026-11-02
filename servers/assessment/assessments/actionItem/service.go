@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/actionItem/actionItemDTO"
+	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig/coursePhaseConfigDTO"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/assessment/teamScope"
@@ -25,16 +26,14 @@ type coursePhaseConfigProvider interface {
 	GetCoursePhaseConfig(ctx context.Context, coursePhaseID uuid.UUID) (coursePhaseConfigDTO.CoursePhaseConfig, error)
 }
 
-type participantChecker func(ctx context.Context, authHeader string, coursePhaseID, courseParticipationID uuid.UUID) error
-
 type ActionItemService struct {
 	queries              db.Queries
 	assessmentCompletion assessmentCompletionProvider
 	coursePhaseConfig    coursePhaseConfigProvider
-	checkParticipant     participantChecker
+	checkParticipant     coursePhaseConfig.ParticipantChecker
 }
 
-func NewActionItemService(queries db.Queries, assessmentCompletion assessmentCompletionProvider, coursePhaseConfig coursePhaseConfigProvider, checkParticipant participantChecker) *ActionItemService {
+func NewActionItemService(queries db.Queries, assessmentCompletion assessmentCompletionProvider, coursePhaseConfig coursePhaseConfigProvider, checkParticipant coursePhaseConfig.ParticipantChecker) *ActionItemService {
 	return &ActionItemService{
 		queries:              queries,
 		assessmentCompletion: assessmentCompletion,

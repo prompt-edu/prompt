@@ -20,16 +20,14 @@ type assessmentCompletionProvider interface {
 	CheckAssessmentIsEditable(ctx context.Context, qtx *db.Queries, courseParticipationID, coursePhaseID uuid.UUID) error
 }
 
-type participantChecker func(ctx context.Context, authHeader string, coursePhaseID, courseParticipationID uuid.UUID) error
-
 type CategoryAssessmentService struct {
 	queries              db.Queries
 	conn                 *pgxpool.Pool
 	assessmentCompletion assessmentCompletionProvider
-	checkParticipant     participantChecker
+	checkParticipant     coursePhaseConfig.ParticipantChecker
 }
 
-func NewCategoryAssessmentService(queries db.Queries, conn *pgxpool.Pool, assessmentCompletion assessmentCompletionProvider, checkParticipant participantChecker) *CategoryAssessmentService {
+func NewCategoryAssessmentService(queries db.Queries, conn *pgxpool.Pool, assessmentCompletion assessmentCompletionProvider, checkParticipant coursePhaseConfig.ParticipantChecker) *CategoryAssessmentService {
 	return &CategoryAssessmentService{
 		queries:              queries,
 		conn:                 conn,

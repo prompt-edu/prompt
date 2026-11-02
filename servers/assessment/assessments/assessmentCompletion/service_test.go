@@ -16,24 +16,9 @@ import (
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentCompletion/assessmentCompletionDTO"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/assessment/testutils"
 	"github.com/prompt-edu/prompt/servers/assessment/utils"
 )
-
-// The stubbed core lists every participation in every phase except these two.
-var (
-	outsideParticipationID      = uuid.MustParse("6f1c2a4e-3b5d-4e7f-8a9b-0c1d2e3f4a5b")
-	unverifiableParticipationID = uuid.MustParse("7a2d3b5f-4c6e-4f80-9bac-1d2e3f4a5b6c")
-)
-
-func checkTestParticipant(_ context.Context, _ string, _, courseParticipationID uuid.UUID) error {
-	switch courseParticipationID {
-	case outsideParticipationID:
-		return coursePhaseConfig.ErrParticipantNotInPhase
-	case unverifiableParticipationID:
-		return coursePhaseConfig.ErrParticipantLookup
-	}
-	return nil
-}
 
 type AssessmentCompletionServiceTestSuite struct {
 	suite.Suite
@@ -54,7 +39,7 @@ func (suite *AssessmentCompletionServiceTestSuite) SetupSuite() {
 		*testDB.Queries,
 		testDB.Conn,
 		coursePhaseConfig.NewCoursePhaseConfigService(*testDB.Queries, testDB.Conn, assessmentSchemas.NewAssessmentSchemaService(*testDB.Queries, testDB.Conn)),
-		checkTestParticipant,
+		testutils.CheckTestParticipant,
 	)
 }
 

@@ -268,6 +268,8 @@ echo "-> Makefile"
 perl -pi -e "s/\bserver-example\b/server-example server-${KEBAB}/ if \$. < 15" Makefile
 perl -pi -e "s/\btest-example\b/test-example test-${KEBAB}/ if \$. < 15" Makefile
 perl -pi -e "s/\bsqlc-example\b/sqlc-example sqlc-${KEBAB}/ if \$. < 15" Makefile
+# make db starts the databases listed here, in every stack.
+perl -pi -e "s/^DB_SERVICES = /DB_SERVICES = db-${KEBAB}-server /" Makefile
 insert_after Makefile '^\t@\$\(MAKE\) server-example &$' "	@\$(MAKE) server-${KEBAB} &"
 insert_after Makefile '^export DB_PORT_EXAMPLE_SERVER := ' \
   "export DB_PORT_${UPPER}_SERVER := \$(PROMPT_PORT_${DB_PORT})"

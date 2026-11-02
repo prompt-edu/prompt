@@ -179,6 +179,7 @@ privacy request reports the AI part as failed.
 | `AI_AUDIT_METADATA_RETENTION_DAYS` | Call metadata retention in days |
 | `AI_SERVICE_KEYS` | Phase services allowed to call the model, `service1:key1,service2:key2` like `AUDIT_INGEST_KEYS` |
 | `AI_HOST` | Where the core client and the AI client reach the AI server; the core host in production |
+| `DB_HOST_AI`, `DB_PORT_AI` | The service's own database (local default port 5442) |
 
 Provision `AI_SERVICE_KEYS` like the audit ingest keys: one key per calling service, each generated
 with `openssl rand -hex 32` and never the same as that service's audit ingest key. The service name

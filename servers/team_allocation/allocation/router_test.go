@@ -44,22 +44,25 @@ const (
 )
 
 // tutorAuthMiddleware mocks an authenticated CourseEditor (non-lecturer) so the tutor-scoping
-// middleware resolves a team instead of taking the lecturer/admin pass-through branch. Like the
-// SDK middleware, it refuses the editor on a route that does not admit CourseEditor.
+// middleware resolves a team instead of taking the lecturer/admin pass-through branch.
 func tutorAuthMiddleware(login string) func(allowedRoles ...string) gin.HandlerFunc {
-	return editorAuthMiddleware(keycloakTokenVerifier.TokenUser{
+	return roleAuthMiddleware(keycloakTokenVerifier.TokenUser{
 		IsEditor:        true,
 		IsLecturer:      false,
 		UniversityLogin: login,
 	})
 }
 
-// editorAuthMiddleware sets tokenUser and answers 403 where the route does not
-// admit CourseEditor, as the SDK middleware does for a course editor.
-func editorAuthMiddleware(tokenUser keycloakTokenVerifier.TokenUser) func(allowedRoles ...string) gin.HandlerFunc {
+// roleAuthMiddleware sets tokenUser and answers 403 unless the route admits one of the roles
+// the user holds, as the SDK's authorization middleware does for the built-in roles.
+func roleAuthMiddleware(tokenUser keycloakTokenVerifier.TokenUser) func(allowedRoles ...string) gin.HandlerFunc {
 	return func(allowedRoles ...string) gin.HandlerFunc {
 		return func(c *gin.Context) {
-			if !slices.Contains(allowedRoles, promptSDK.CourseEditor) {
+			admits := func(role string, held bool) bool { return held && slices.Contains(allowedRoles, role) }
+			if !admits(promptSDK.PromptAdmin, tokenUser.Roles[promptSDK.PromptAdmin]) &&
+				!admits(promptSDK.PromptLecturer, tokenUser.Roles[promptSDK.PromptLecturer]) &&
+				!admits(promptSDK.CourseLecturer, tokenUser.IsLecturer) &&
+				!admits(promptSDK.CourseEditor, tokenUser.IsEditor) {
 				c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Access denied"})
 				return
 			}
@@ -71,23 +74,15 @@ func editorAuthMiddleware(tokenUser keycloakTokenVerifier.TokenUser) func(allowe
 
 // lecturerAuthMiddleware mocks a course lecturer, who keeps unrestricted write access.
 func lecturerAuthMiddleware() func(allowedRoles ...string) gin.HandlerFunc {
-	return func(allowedRoles ...string) gin.HandlerFunc {
-		return func(c *gin.Context) {
-			keycloakTokenVerifier.SetTokenUser(c, keycloakTokenVerifier.TokenUser{
-				IsEditor:   false,
-				IsLecturer: true,
-			})
-			c.Next()
-		}
-	}
+	return roleAuthMiddleware(keycloakTokenVerifier.TokenUser{IsLecturer: true})
 }
 
 // promptLecturerTutorAuthMiddleware mocks a tutor who also holds the global
 // PROMPT_Lecturer role. The write routes do not admit that role directly, so the
 // user arrives as a course editor.
 func promptLecturerTutorAuthMiddleware(login string) func(allowedRoles ...string) gin.HandlerFunc {
-	return editorAuthMiddleware(keycloakTokenVerifier.TokenUser{
-		Roles:           map[string]bool{keycloakTokenVerifier.PromptLecturer: true},
+	return roleAuthMiddleware(keycloakTokenVerifier.TokenUser{
+		Roles:           map[string]bool{promptSDK.PromptLecturer: true},
 		IsEditor:        true,
 		IsLecturer:      false,
 		UniversityLogin: login,

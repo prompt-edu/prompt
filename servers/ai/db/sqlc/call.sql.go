@@ -136,16 +136,18 @@ WHERE ai_call.id = $4
   AND ai_call.course_phase_id = $5
   AND ai_call.outcome <> 'denied'
   AND ($6::boolean OR ai_call.actor_id = $1)
+  AND ($7::text IS NULL OR ai_call.caller_service = $7)
 RETURNING id, call_id, actor_id, type, data, created_at
 `
 
 type CreateCallEventParams struct {
-	ActorID       string    `json:"actor_id"`
-	Type          string    `json:"type"`
-	Data          []byte    `json:"data"`
-	CallID        uuid.UUID `json:"call_id"`
-	CoursePhaseID uuid.UUID `json:"course_phase_id"`
-	ByAdmin       bool      `json:"by_admin"`
+	ActorID       string      `json:"actor_id"`
+	Type          string      `json:"type"`
+	Data          []byte      `json:"data"`
+	CallID        uuid.UUID   `json:"call_id"`
+	CoursePhaseID uuid.UUID   `json:"course_phase_id"`
+	ByAdmin       bool        `json:"by_admin"`
+	CallerService pgtype.Text `json:"caller_service"`
 }
 
 func (q *Queries) CreateCallEvent(ctx context.Context, arg CreateCallEventParams) (AiCallEvent, error) {
@@ -156,6 +158,7 @@ func (q *Queries) CreateCallEvent(ctx context.Context, arg CreateCallEventParams
 		arg.CallID,
 		arg.CoursePhaseID,
 		arg.ByAdmin,
+		arg.CallerService,
 	)
 	var i AiCallEvent
 	err := row.Scan(

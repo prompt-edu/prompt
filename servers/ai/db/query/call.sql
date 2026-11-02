@@ -74,4 +74,5 @@ WHERE ai_call.id = @call_id
   AND ai_call.course_phase_id = @course_phase_id
   AND ai_call.outcome <> 'denied'
   AND (@by_admin::boolean OR ai_call.actor_id = @actor_id)
+  AND (sqlc.narg(caller_service)::text IS NULL OR ai_call.caller_service = sqlc.narg(caller_service))
 RETURNING *;

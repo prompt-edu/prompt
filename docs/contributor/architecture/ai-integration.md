@@ -107,7 +107,7 @@ service key is the phase server's entry in `AI_SERVICE_KEYS`; it never goes to t
 | --- | --- | --- |
 | `POST /v1/chat/completions` | Phase service key, then PromptAdmin, CourseLecturer, CourseEditor | Streamed or plain completion |
 | `GET /v1/models` | Phase service key, then PromptAdmin, CourseLecturer, CourseEditor | Models both allowed and available to the key sent along |
-| `POST /calls/:callID/events` | Phase service key, then PromptAdmin, CourseLecturer, CourseEditor | Oversight events, on the caller's own calls (any call for PromptAdmin) |
+| `POST /calls/:callID/events` | Phase service key, then PromptAdmin, CourseLecturer, CourseEditor | Oversight events, on the caller's own calls made by the same service (any call of that service for PromptAdmin) |
 | `GET /calls`, `GET /calls/:callID` | PromptAdmin | Audit metadata, and one call's content |
 
 The gateway forwards the body unchanged, except that the `model` must be in `AI_ALLOWED_MODELS`,
@@ -123,7 +123,8 @@ chunk.
 
 Oversight events need the service key like inference: the phase server knows what its UI showed,
 accepted, edited or rejected, and reports it with the staff member's token. A token alone cannot
-write oversight evidence.
+write oversight evidence, and an event is only accepted with the key of the service that made the
+call, so another phase's key gets the same `404` as another phase's id.
 
 `X-Prompt-Subjects` takes at most 100 course participation ids. They are recorded as given, so the
 calling service is responsible for naming the right students.

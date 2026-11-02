@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
+	"github.com/prompt-edu/prompt-sdk/serviceAuth"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/ai/calls/callDTO"
 	log "github.com/sirupsen/logrus"
@@ -20,14 +21,14 @@ const (
 	maxPageSize     = 200
 )
 
-// serviceAuth guards the oversight events, so only the phase server that made a call reports what its UI did with it.
-func RegisterRoutes(coursePhaseAPI *gin.RouterGroup, service *Service, serviceAuth gin.HandlerFunc) {
+// serviceKeyAuth guards the oversight events, and AddEvent binds them to the call's service, so only the phase server that made a call reports what its UI did with it.
+func RegisterRoutes(coursePhaseAPI *gin.RouterGroup, service *Service, serviceKeyAuth gin.HandlerFunc) {
 	callAPI := coursePhaseAPI.Group("/calls")
 	adminOnly := promptSDK.AuthenticationMiddleware(promptSDK.PromptAdmin)
 	callAPI.GET("", adminOnly, service.listCalls)
 	callAPI.GET("/:callID", adminOnly, service.getCall)
 	callAPI.POST("/:callID/events",
-		serviceAuth,
+		serviceKeyAuth,
 		promptSDK.AuthenticationMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor),
 		service.addEvent)
 }
@@ -82,7 +83,7 @@ func (s *Service) addEvent(c *gin.Context) {
 		return
 	}
 	user, _ := keycloakTokenVerifier.GetTokenUser(c)
-	event, err := s.AddEvent(c.Request.Context(), coursePhaseID, callID, user.ID, user.Roles[promptSDK.PromptAdmin], request)
+	event, err := s.AddEvent(c.Request.Context(), coursePhaseID, callID, user.ID, serviceAuth.ServiceName(c), user.Roles[promptSDK.PromptAdmin], request)
 	switch {
 	case errors.Is(err, ErrInvalidEvent):
 		c.JSON(http.StatusBadRequest, sdkUtils.ErrorResponse{Error: err.Error()})

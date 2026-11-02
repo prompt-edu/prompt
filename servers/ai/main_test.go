@@ -31,6 +31,8 @@ const (
 	testFeature       = "assessment.action_item_suggestions"
 	testService       = "assessment"
 	testServiceKey    = "assessment-service-key"
+	otherService      = "interview"
+	otherServiceKey   = "interview-service-key"
 	summaryPrompt     = "Summarize the peer feedback"
 	summaryAnswer     = "The team communicates well and should record its decisions earlier."
 )
@@ -81,7 +83,7 @@ func (s *AIServerSuite) SetupSuite() {
 		serverVersion:         "test",
 		coreURL:               identity.CoreURL,
 		clientHost:            "http://localhost:3000",
-		serviceKeys:           serviceAuth.ParseKeys(testService + ":" + testServiceKey),
+		serviceKeys:           serviceAuth.ParseKeys(testService + ":" + testServiceKey + "," + otherService + ":" + otherServiceKey),
 		box:                   box,
 	})
 	s.server = httptest.NewServer(router)
@@ -560,6 +562,12 @@ func (s *AIServerSuite) TestAuditReadsAndEvents() {
 	s.Equal(http.StatusUnauthorized, response.StatusCode, "a staff token alone cannot write oversight evidence")
 	response, _ = s.send(http.MethodPost, callPath+"/events", s.editor(coursePhaseID), map[string]any{"type": "shown"}, serviceHeaders())
 	s.Equal(http.StatusNotFound, response.StatusCode, "only the caller reports events on their call")
+	response, _ = s.send(http.MethodPost, callPath+"/events", s.lecturer(coursePhaseID), map[string]any{"type": "accepted"},
+		map[string]string{gateway.ServiceHeader: otherService, gateway.ServiceTokenHeader: otherServiceKey})
+	s.Equal(http.StatusNotFound, response.StatusCode, "only the service that made the call reports events on it")
+	response, _ = s.send(http.MethodPost, callPath+"/events", s.admin(), map[string]any{"type": "accepted"},
+		map[string]string{gateway.ServiceHeader: otherService, gateway.ServiceTokenHeader: otherServiceKey})
+	s.Equal(http.StatusNotFound, response.StatusCode, "not even with an admin's token")
 	response, _ = s.send(http.MethodPost, callPath+"/events", s.lecturer(coursePhaseID), map[string]any{"type": "shown"}, serviceHeaders())
 	s.Equal(http.StatusCreated, response.StatusCode)
 	response, _ = s.send(http.MethodPost, callPath+"/events", s.lecturer(coursePhaseID), map[string]any{"type": "edited"}, serviceHeaders())

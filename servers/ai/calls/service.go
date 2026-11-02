@@ -210,7 +210,7 @@ func (s *Service) Get(ctx context.Context, coursePhaseID, callID uuid.UUID, view
 			log.WithError(err).WithField("callID", callID).Error("Could not decrypt AI call content")
 			break
 		}
-		if _, err := s.recordEvent(ctx, coursePhaseID, callID, viewerID, true, callDTO.EventContentViewed, nil); err != nil {
+		if _, err := s.recordEvent(ctx, coursePhaseID, callID, viewerID, "", true, callDTO.EventContentViewed, nil); err != nil {
 			return callDTO.Detail{}, fmt.Errorf("record content view: %w", err)
 		}
 		detail.ContentState = callDTO.ContentAvailable
@@ -235,8 +235,8 @@ func (s *Service) Get(ctx context.Context, coursePhaseID, callID uuid.UUID, view
 	return detail, nil
 }
 
-// Only an admin may report events on a call someone else made.
-func (s *Service) AddEvent(ctx context.Context, coursePhaseID, callID uuid.UUID, actorID string, byAdmin bool, request callDTO.EventRequest) (callDTO.Event, error) {
+// Only the service that made a call may report events on it, and only an admin may do so on a call someone else made.
+func (s *Service) AddEvent(ctx context.Context, coursePhaseID, callID uuid.UUID, actorID, callerService string, byAdmin bool, request callDTO.EventRequest) (callDTO.Event, error) {
 	if request.Type == callDTO.EventEdited && request.EditDistance == nil {
 		return callDTO.Event{}, ErrInvalidEvent
 	}
@@ -244,10 +244,11 @@ func (s *Service) AddEvent(ctx context.Context, coursePhaseID, callID uuid.UUID,
 	if err != nil {
 		return callDTO.Event{}, err
 	}
-	return s.recordEvent(ctx, coursePhaseID, callID, actorID, byAdmin, request.Type, data)
+	return s.recordEvent(ctx, coursePhaseID, callID, actorID, callerService, byAdmin, request.Type, data)
 }
 
-func (s *Service) recordEvent(ctx context.Context, coursePhaseID, callID uuid.UUID, actorID string, byAdmin bool, eventType string, data []byte) (callDTO.Event, error) {
+// An empty callerService skips the service check, which only the audit view's content_viewed event may do.
+func (s *Service) recordEvent(ctx context.Context, coursePhaseID, callID uuid.UUID, actorID, callerService string, byAdmin bool, eventType string, data []byte) (callDTO.Event, error) {
 	if data == nil {
 		data = []byte("{}")
 	}
@@ -258,6 +259,7 @@ func (s *Service) recordEvent(ctx context.Context, coursePhaseID, callID uuid.UU
 		CallID:        callID,
 		CoursePhaseID: coursePhaseID,
 		ByAdmin:       byAdmin,
+		CallerService: optionalText(callerService),
 	})
 	if errors.Is(err, pgx.ErrNoRows) {
 		return callDTO.Event{}, ErrNotFound

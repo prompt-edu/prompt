@@ -4,6 +4,7 @@ SELECT course_participation_id
 FROM tutor
 WHERE course_phase_id = $1
   AND university_login = $2
+ORDER BY course_participation_id
 LIMIT 1;
 
 -- name: DeleteTutorAssignments :exec

@@ -83,6 +83,7 @@ func (s *AssessmentService) listAssessmentsByCoursePhase(c *gin.Context) {
 // @Failure 401 {object} map[string]string
 // @Failure 409 {object} map[string]string
 // @Failure 500 {object} map[string]string
+// @Failure 502 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/student-assessment [post]
 func (s *AssessmentService) createOrUpdateAssessment(c *gin.Context) {
 	saveScoreFromRequest(c, s.CreateOrUpdateAssessment)
@@ -101,12 +102,13 @@ func (s *AssessmentService) createOrUpdateAssessment(c *gin.Context) {
 // @Failure 401 {object} map[string]string
 // @Failure 409 {object} map[string]string
 // @Failure 500 {object} map[string]string
+// @Failure 502 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/student-assessment/independent [post]
 func (s *AssessmentService) createOrUpdateIndependentAssessment(c *gin.Context) {
 	saveScoreFromRequest(c, s.CreateOrUpdateIndependentAssessment)
 }
 
-func saveScoreFromRequest(c *gin.Context, save func(context.Context, assessmentDTO.CreateOrUpdateAssessmentRequest) error) {
+func saveScoreFromRequest(c *gin.Context, save func(context.Context, string, assessmentDTO.CreateOrUpdateAssessmentRequest) error) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		sdkUtils.HandleError(c, http.StatusBadRequest, err)
@@ -129,11 +131,13 @@ func saveScoreFromRequest(c *gin.Context, save func(context.Context, assessmentD
 	// The authorized phase is the one in the URL; ignore any client-sent phase.
 	req.CoursePhaseID = coursePhaseID
 
-	err = save(c, req)
+	err = save(c, c.GetHeader("Authorization"), req)
 	if err != nil {
 		switch {
-		case errors.Is(err, ErrInvalidScoreLevel), errors.Is(err, ErrCompetencyNotInPhase):
+		case errors.Is(err, ErrInvalidScoreLevel), errors.Is(err, ErrCompetencyNotInPhase), errors.Is(err, coursePhaseConfig.ErrParticipantNotInPhase):
 			sdkUtils.HandleError(c, http.StatusBadRequest, err)
+		case errors.Is(err, coursePhaseConfig.ErrParticipantLookup):
+			sdkUtils.HandleError(c, http.StatusBadGateway, err)
 		case errors.Is(err, assessmentCompletion.ErrAssessmentCompleted), errors.Is(err, coursePhaseConfig.ErrNotStarted):
 			sdkUtils.HandleError(c, http.StatusConflict, err)
 		default:

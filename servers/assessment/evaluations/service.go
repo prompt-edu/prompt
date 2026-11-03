@@ -19,6 +19,7 @@ import (
 
 var ErrEvaluationNotFound = errors.New("evaluation not found")
 var ErrNotEvaluationAuthor = errors.New("you are not the author of this evaluation")
+var ErrCompetencyNotInEvaluationSchema = errors.New("competency is not part of this evaluation's schema")
 
 type evaluationCompletionProvider interface {
 	CheckEvaluationIsEditable(ctx context.Context, qtx *db.Queries, authHeader string, courseParticipationID, coursePhaseID, authorCourseParticipationID uuid.UUID, evaluationType assessmentType.AssessmentType) error
@@ -59,6 +60,10 @@ func (s *EvaluationService) CreateOrUpdateEvaluation(ctx context.Context, authHe
 		return err
 	}
 
+	if err := checkCompetencyInEvaluationSchema(ctx, qtx, req.CompetencyID, coursePhaseID, req.Type); err != nil {
+		return err
+	}
+
 	err = qtx.CreateOrUpdateEvaluation(ctx, db.CreateOrUpdateEvaluationParams{
 		CourseParticipationID:       req.CourseParticipationID,
 		CoursePhaseID:               coursePhaseID,
@@ -77,6 +82,34 @@ func (s *EvaluationService) CreateOrUpdateEvaluation(ctx context.Context, authHe
 		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
+	return nil
+}
+
+// checkCompetencyInEvaluationSchema rejects a competency that does not belong to the schema the
+// course phase uses for this evaluation type.
+func checkCompetencyInEvaluationSchema(ctx context.Context, qtx *db.Queries, competencyID, coursePhaseID uuid.UUID, evaluationType assessmentType.AssessmentType) error {
+	schemaID, err := qtx.GetAssessmentSchemaIDByCompetency(ctx, competencyID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return ErrCompetencyNotInEvaluationSchema
+	}
+	if err != nil {
+		log.Error("could not get assessment schema of competency: ", err)
+		return errors.New("could not get assessment schema of competency")
+	}
+
+	config, err := qtx.GetCoursePhaseConfig(ctx, coursePhaseID)
+	if err != nil {
+		log.Error("could not get course phase config: ", err)
+		return errors.New("could not get course phase config")
+	}
+	expected := map[assessmentType.AssessmentType]uuid.UUID{
+		assessmentType.Self:  config.SelfEvaluationSchema,
+		assessmentType.Peer:  config.PeerEvaluationSchema,
+		assessmentType.Tutor: config.TutorEvaluationSchema,
+	}[evaluationType]
+	if expected == uuid.Nil || schemaID != expected {
+		return ErrCompetencyNotInEvaluationSchema
+	}
 	return nil
 }
 

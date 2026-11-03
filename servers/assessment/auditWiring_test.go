@@ -130,11 +130,11 @@ func auditRouter(sink audit.Sink, authMiddleware func(allowedRoles ...string) gi
 	evaluationService := evaluations.NewEvaluationService(*queries, conn, evaluationCompletionService, coursePhaseConfigService)
 	feedbackItemService := feedbackItem.NewFeedbackItemService(*queries, conn, evaluationCompletionService)
 
-	assessmentCompletionService := assessmentCompletion.NewAssessmentCompletionService(*queries, conn, coursePhaseConfigService)
-	categoryAssessmentService := categoryAssessment.NewCategoryAssessmentService(*queries, conn, assessmentCompletionService)
-	actionItemService := actionItem.NewActionItemService(*queries, assessmentCompletionService, coursePhaseConfigService)
+	assessmentCompletionService := assessmentCompletion.NewAssessmentCompletionService(*queries, conn, coursePhaseConfigService, coursePhaseConfig.CheckParticipantInPhase)
+	categoryAssessmentService := categoryAssessment.NewCategoryAssessmentService(*queries, conn, assessmentCompletionService, coursePhaseConfig.CheckParticipantInPhase)
+	actionItemService := actionItem.NewActionItemService(*queries, assessmentCompletionService, coursePhaseConfigService, coursePhaseConfig.CheckParticipantInPhase)
 	scoreLevelService := scoreLevel.NewScoreLevelService(*queries)
-	assessmentService := assessments.NewAssessmentService(*queries, conn, assessmentCompletionService, categoryAssessmentService, actionItemService, scoreLevelService, evaluationService, coursePhaseConfigService)
+	assessmentService := assessments.NewAssessmentService(*queries, conn, assessmentCompletionService, categoryAssessmentService, actionItemService, scoreLevelService, evaluationService, coursePhaseConfigService, coursePhaseConfig.CheckParticipantInPhase)
 
 	competencies.RegisterRoutes(coursePhaseApi, competencyService, authMiddleware)
 	categories.RegisterRoutes(coursePhaseApi, categoryService, authMiddleware)

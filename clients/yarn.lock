@@ -5776,7 +5776,6 @@ __metadata:
     i18n-iso-countries: "npm:^7.14.0"
     papaparse: "npm:^5.7.0"
     react-beautiful-dnd: "npm:^13.1.1"
-    react-easy-crop: "npm:^6.2.4"
     sha256: "npm:^0.2.0"
     typescript: "npm:^6.0.3"
     webpack-bundle-analyzer: "npm:^5.4.0"

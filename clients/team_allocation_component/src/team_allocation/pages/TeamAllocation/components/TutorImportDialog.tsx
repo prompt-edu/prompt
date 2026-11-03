@@ -22,10 +22,11 @@ import { teamAllocationCache, teamAllocationKeys } from '../../../network/cache'
 import { importTutors } from '../../../network/mutations/importTutors'
 import { getAllTeams } from '../../../network/queries/getAllTeams'
 import { TutorImportFromCourse } from './TutorImportFromCourse'
+import { TutorImportFromStaff } from './TutorImportFromStaff'
 import { TutorSearchStudents } from './TutorSearchStudents'
 
 export function TutorImportDialog() {
-  const { phaseId } = useParams<{ phaseId: string }>()
+  const { courseId, phaseId } = useParams<{ courseId: string; phaseId: string }>()
   const queryClient = useQueryClient()
   const { permissions } = useAuthStore()
   const canSearchStudents = permissions.some(
@@ -71,9 +72,9 @@ export function TutorImportDialog() {
   const handleImport = (tutors: Tutor[]) => {
     if (tutors.length === 0) return
 
-    const allAssigned = tutors.every((t) => t.TeamID !== '')
+    const allAssigned = tutors.every((t) => t.teamIDs.length > 0)
     if (!allAssigned) {
-      setImportError('Please assign a team for each selected tutor.')
+      setImportError('Please assign at least one team to each selected tutor.')
       return
     }
 
@@ -96,19 +97,29 @@ export function TutorImportDialog() {
         <DialogHeader>
           <DialogTitle>Import Tutors</DialogTitle>
           <DialogDescription>
-            Import tutors from another course phase or search all students to add them directly.
+            Import tutors from another course phase, from the editors of this course, or search all
+            students to add them directly. A tutor can lead several teams.
           </DialogDescription>
         </DialogHeader>
 
         <Tabs defaultValue='course' onValueChange={() => setImportError(null)}>
-          <TabsList className={`grid w-full ${canSearchStudents ? 'grid-cols-2' : 'grid-cols-1'}`}>
+          <TabsList className={`grid w-full ${canSearchStudents ? 'grid-cols-3' : 'grid-cols-2'}`}>
             <TabsTrigger value='course'>From Course</TabsTrigger>
+            <TabsTrigger value='staff'>Course Staff</TabsTrigger>
             {canSearchStudents && <TabsTrigger value='search'>Search Students</TabsTrigger>}
           </TabsList>
 
           <TabsContent value='course'>
             <TutorImportFromCourse
-              phaseId={phaseId ?? ''}
+              teamOptions={teamOptions}
+              isImporting={isImporting}
+              onImport={handleImport}
+            />
+          </TabsContent>
+
+          <TabsContent value='staff'>
+            <TutorImportFromStaff
+              courseId={courseId ?? ''}
               teamOptions={teamOptions}
               isImporting={isImporting}
               onImport={handleImport}
@@ -118,7 +129,6 @@ export function TutorImportDialog() {
           {canSearchStudents && (
             <TabsContent value='search'>
               <TutorSearchStudents
-                phaseId={phaseId ?? ''}
                 teamOptions={teamOptions}
                 isImporting={isImporting}
                 onImport={handleImport}

@@ -1,24 +1,15 @@
-import type { Student } from '@tumaet/prompt-shared-state'
-import {
-  Button,
-  Checkbox,
-  getStudentName,
-  Label,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@tumaet/prompt-ui-components'
+import { Button, Checkbox, getStudentName, Label, MultiSelect } from '@tumaet/prompt-ui-components'
+import type { TutorCandidate } from '../../../interfaces/tutor'
+import { isSelectableTutor } from '../utils/tutorImport'
 
 interface TutorSelectionProps {
-  tutors: Student[]
+  tutors: TutorCandidate[]
   selectedTutors: string[]
   onTutorToggle: (tutorId: string) => void
   onSelectAll: () => void
   teamOptions: { id: string; name: string }[]
-  teamAssignments: Record<string, string>
-  onTeamChange: (tutorId: string, teamId: string) => void
+  teamAssignments: Record<string, string[]>
+  onTeamChange: (tutorId: string, teamIds: string[]) => void
 }
 
 export const TutorSelection = ({
@@ -30,7 +21,8 @@ export const TutorSelection = ({
   teamAssignments,
   onTeamChange,
 }: TutorSelectionProps) => {
-  const selectableCount = tutors.filter((t) => t.universityLogin).length
+  const selectableCount = tutors.filter(isSelectableTutor).length
+  const options = teamOptions.map((team) => ({ label: team.name, value: team.id }))
   return (
     <div className='grid gap-2'>
       <div className='flex items-center justify-between'>
@@ -43,41 +35,36 @@ export const TutorSelection = ({
       </div>
       <div className='overflow-y-auto border rounded-md p-2 max-h-[300px]'>
         {tutors.map((tutor) => {
-          const hasLogin = !!tutor.universityLogin
+          const selectable = isSelectableTutor(tutor)
+          const selected = selectedTutors.includes(tutor.id)
           return (
             <div key={tutor.id} className='flex flex-col gap-1 py-2'>
               <div className='flex items-center space-x-2'>
                 <Checkbox
                   id={`tutor-${tutor.id}`}
-                  checked={selectedTutors.includes(tutor.id ?? '')}
-                  disabled={!hasLogin}
-                  onCheckedChange={() => hasLogin && tutor.id && onTutorToggle(tutor.id)}
+                  checked={selected}
+                  disabled={!selectable}
+                  onCheckedChange={() => selectable && onTutorToggle(tutor.id)}
                 />
                 <Label
                   htmlFor={`tutor-${tutor.id}`}
                   className='flex-1 cursor-pointer aria-disabled:cursor-not-allowed aria-disabled:text-muted-foreground'
-                  aria-disabled={!hasLogin}
+                  aria-disabled={!selectable}
                 >
                   {getStudentName(tutor)}
-                  {!hasLogin && ' (no university login)'}
+                  {!selectable && ' (no university login)'}
                 </Label>
               </div>
-              {selectedTutors.includes(tutor.id ?? '') && (
-                <Select
-                  value={teamAssignments[tutor.id ?? ''] || ''}
-                  onValueChange={(val) => tutor.id && onTeamChange(tutor.id, val)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder='Assign team' />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {teamOptions.map((team) => (
-                      <SelectItem key={team.id} value={team.id}>
-                        {team.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              {selected && (
+                <MultiSelect
+                  aria-label={`Teams of ${getStudentName(tutor)}`}
+                  options={options}
+                  defaultValue={teamAssignments[tutor.id] ?? []}
+                  onValueChange={(teamIds) => onTeamChange(tutor.id, teamIds)}
+                  placeholder='Assign teams'
+                  maxCount={3}
+                  modalPopover
+                />
               )}
             </div>
           )

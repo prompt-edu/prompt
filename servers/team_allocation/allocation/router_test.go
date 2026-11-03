@@ -11,6 +11,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
@@ -23,6 +24,8 @@ import (
 
 const (
 	scopedTutorLogin  = "ab12cde"
+	projectLeadLogin  = "pl34ead"
+	teamGammaParticip = "99999999-9999-9999-9999-999999999993"
 	teamAlphaParticip = "99999999-9999-9999-9999-999999999991"
 	teamBetaParticip  = "99999999-9999-9999-9999-999999999992"
 
@@ -218,6 +221,43 @@ func (suite *AllocationRouterTestSuite) TestTutorSeesOnlyOwnTeamAllocations() {
 	assert.NoError(suite.T(), json.Unmarshal(resp.Body.Bytes(), &allocations))
 	assert.Len(suite.T(), allocations, 1, "Tutor should only see allocations for their team")
 	assert.Equal(suite.T(), teamAlphaParticip, allocations[0]["courseParticipationID"])
+}
+
+func (suite *AllocationRouterTestSuite) TestTutorOfSeveralTeamsSeesTheirAllocations() {
+	coursePhaseID := "4179d58a-d00d-4fa7-94a5-397bc69fab02"
+	router := suite.routerAs(projectLeadLogin)
+	req, _ := http.NewRequest("GET", "/api/course_phase/"+coursePhaseID+"/allocation", nil)
+	resp := httptest.NewRecorder()
+
+	router.ServeHTTP(resp, req)
+
+	assert.Equal(suite.T(), http.StatusOK, resp.Code)
+	var allocations []map[string]interface{}
+	assert.NoError(suite.T(), json.Unmarshal(resp.Body.Bytes(), &allocations))
+	participations := make([]interface{}, 0, len(allocations))
+	for _, allocation := range allocations {
+		participations = append(participations, allocation["courseParticipationID"])
+	}
+	assert.ElementsMatch(suite.T(), []interface{}{teamAlphaParticip, teamGammaParticip}, participations)
+
+	for participation, expected := range map[string]int{teamAlphaParticip: http.StatusOK, teamGammaParticip: http.StatusOK, teamBetaParticip: http.StatusForbidden} {
+		req, _ := http.NewRequest("GET", "/api/course_phase/"+coursePhaseID+"/allocation/"+participation, nil)
+		resp := httptest.NewRecorder()
+		router.ServeHTTP(resp, req)
+		assert.Equal(suite.T(), expected, resp.Code, "allocation of %s", participation)
+	}
+}
+
+func (suite *AllocationRouterTestSuite) TestTutorOfSeveralTeamsCannotWrite() {
+	router := suite.routerAs(projectLeadLogin)
+	resp := suite.putAllocation(router, writePhase, unknownParticipant, `{"teamID":"`+teamDelta+`"}`)
+	assert.Equal(suite.T(), http.StatusForbidden, resp.Code)
+
+	_, err := suite.allocationService.queries.GetAllocationForStudent(suite.suiteCtx, db.GetAllocationForStudentParams{
+		CourseParticipationID: uuid.MustParse(unknownParticipant),
+		CoursePhaseID:         uuid.MustParse(writePhase),
+	})
+	assert.ErrorIs(suite.T(), err, pgx.ErrNoRows, "the refused write must not allocate the participant")
 }
 
 func (suite *AllocationRouterTestSuite) TestTutorAllowedOnOwnAllocation() {

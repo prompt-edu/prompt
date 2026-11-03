@@ -508,6 +508,38 @@
         ]
       },
       "subGroups": []
+    },
+    {
+      "name": "Prompt",
+      "path": "/Prompt",
+      "subGroups": [
+        {
+          "name": "ios2425-iPraktikumFull",
+          "path": "/Prompt/ios2425-iPraktikumFull",
+          "subGroups": [
+            {
+              "name": "Lecturer",
+              "path": "/Prompt/ios2425-iPraktikumFull/Lecturer",
+              "subGroups": [],
+              "clientRoles": {
+                "prompt-server": [
+                  "ios2425-iPraktikumFull-Lecturer"
+                ]
+              }
+            },
+            {
+              "name": "Editor",
+              "path": "/Prompt/ios2425-iPraktikumFull/Editor",
+              "subGroups": [],
+              "clientRoles": {
+                "prompt-server": [
+                  "ios2425-iPraktikumFull-Editor"
+                ]
+              }
+            }
+          ]
+        }
+      ]
     }
   ],
   "defaultRole": {
@@ -702,7 +734,10 @@
           "PROMPT_Course_Editor",
           "ios2425-iPraktikumFull-Editor"
         ]
-      }
+      },
+      "groups": [
+        "/Prompt/ios2425-iPraktikumFull/Editor"
+      ]
     },
     {
       "username": "student",

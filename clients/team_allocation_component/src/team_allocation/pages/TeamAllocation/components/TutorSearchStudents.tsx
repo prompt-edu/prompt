@@ -2,14 +2,15 @@ import { useQuery } from '@tanstack/react-query'
 import type { Student } from '@tumaet/prompt-shared-state'
 import { Button, DialogFooter, Input, Label } from '@tumaet/prompt-ui-components'
 import { Loader2, Search } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { Tutor } from '../../../interfaces/tutor'
 import { teamAllocationKeys } from '../../../network/cache'
 import { searchStudents } from '../../../network/queries/searchStudents'
+import { useTutorSelection } from '../hooks/useTutorSelection'
+import { studentToTutorCandidate } from '../utils/tutorImport'
 import { TutorSelection } from './TutorSelection'
 
 interface TutorSearchStudentsProps {
-  phaseId: string
   teamOptions: { id: string; name: string }[]
   isImporting: boolean
   onImport: (tutors: Tutor[]) => void
@@ -25,22 +26,19 @@ const useDebouncedValue = <T,>(value: T, delayMs = 300): T => {
 }
 
 export const TutorSearchStudents = ({
-  phaseId,
   teamOptions,
   isImporting,
   onImport,
 }: TutorSearchStudentsProps) => {
   const [query, setQuery] = useState('')
   const debouncedQuery = useDebouncedValue(query, 300)
-  const [selectedStudents, setSelectedStudents] = useState<string[]>([])
-  const [teamAssignments, setTeamAssignments] = useState<Record<string, string>>({})
+  const selection = useTutorSelection()
 
   const trimmedQuery = debouncedQuery.trim()
 
   const handleQueryChange = (value: string) => {
     setQuery(value)
-    setSelectedStudents([])
-    setTeamAssignments({})
+    selection.reset()
   }
 
   const {
@@ -53,44 +51,11 @@ export const TutorSearchStudents = ({
     enabled: trimmedQuery.length >= 2,
   })
 
-  const handleStudentToggle = (studentId: string) => {
-    setSelectedStudents((prev) =>
-      prev.includes(studentId) ? prev.filter((id) => id !== studentId) : [...prev, studentId],
-    )
-  }
+  // From search, the id is the student's own id (not a course participation id); team scoping is
+  // login-based, so the tutor is still scoped to their teams.
+  const candidates = useMemo(() => (students ?? []).map(studentToTutorCandidate), [students])
 
-  const handleSelectAll = (allStudents: Student[]) => {
-    const selectableIds = allStudents
-      .filter((s) => s.universityLogin)
-      .map((s) => s.id)
-      .filter((id): id is string => !!id)
-    if (selectedStudents.length === selectableIds.length) {
-      setSelectedStudents([])
-    } else {
-      setSelectedStudents(selectableIds)
-    }
-  }
-
-  const handleTeamChange = (studentId: string, teamId: string) => {
-    setTeamAssignments((prev) => ({ ...prev, [studentId]: teamId }))
-  }
-
-  const handleImport = () => {
-    const selectedStudentData = (students || []).filter(
-      (s) => s.id && selectedStudents.includes(s.id),
-    )
-    const studentsAsTutors: Tutor[] = selectedStudentData.map((s) => ({
-      CoursePhaseID: phaseId,
-      // From search, s.id is the student's own ID (not a course participation ID); team scoping is
-      // login-based, so any join of tutor.course_participation_id against participations will skip these.
-      CourseParticipationID: s.id!,
-      FirstName: s.firstName,
-      LastName: s.lastName,
-      TeamID: teamAssignments[s.id!] || '',
-      UniversityLogin: s.universityLogin ?? '',
-    }))
-    onImport(studentsAsTutors)
-  }
+  const handleImport = () => onImport(selection.buildImport(candidates))
 
   return (
     <div className='grid gap-4 py-4'>
@@ -123,13 +88,13 @@ export const TutorSearchStudents = ({
       )}
       {students && students.length > 0 && (
         <TutorSelection
-          tutors={students}
-          selectedTutors={selectedStudents}
-          onTutorToggle={handleStudentToggle}
-          onSelectAll={() => handleSelectAll(students)}
+          tutors={candidates}
+          selectedTutors={selection.selectedTutors}
+          onTutorToggle={selection.toggleTutor}
+          onSelectAll={() => selection.toggleAll(candidates)}
           teamOptions={teamOptions}
-          teamAssignments={teamAssignments}
-          onTeamChange={handleTeamChange}
+          teamAssignments={selection.teamAssignments}
+          onTeamChange={selection.setTeams}
         />
       )}
 
@@ -137,7 +102,7 @@ export const TutorSearchStudents = ({
         <Button
           type='submit'
           onClick={handleImport}
-          disabled={selectedStudents.length === 0 || isImporting}
+          disabled={selection.selectedTutors.length === 0 || isImporting}
         >
           {isImporting ? (
             <>

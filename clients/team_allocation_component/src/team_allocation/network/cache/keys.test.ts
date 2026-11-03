@@ -41,6 +41,10 @@ describe('teamAllocationKeys', () => {
   it('builds the tutor import keys, including the one shared with Self Team Allocation', () => {
     expect(teamAllocationKeys.tutorImport.studentsOfPhase(PHASE)).toEqual(['students', PHASE])
     expect(teamAllocationKeys.tutorImport.studentSearch('ab')).toEqual(['student-search', 'ab'])
+    expect(teamAllocationKeys.tutorImport.courseStaff('course-1')).toEqual([
+      'team_allocation_course_staff',
+      'course-1',
+    ])
   })
 
   it('reproduces the key owned by the shared state package', () => {

@@ -11,21 +11,21 @@ import {
   SelectValue,
 } from '@tumaet/prompt-ui-components'
 import { Loader2 } from 'lucide-react'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { Tutor } from '../../../interfaces/tutor'
 import { teamAllocationKeys } from '../../../network/cache'
 import { getStudentsOfCoursePhase } from '../../../network/queries/getStudentsOfCoursePhase'
+import { useTutorSelection } from '../hooks/useTutorSelection'
+import { studentToTutorCandidate } from '../utils/tutorImport'
 import { TutorSelection } from './TutorSelection'
 
 interface TutorImportFromCourseProps {
-  phaseId: string
   teamOptions: { id: string; name: string }[]
   isImporting: boolean
   onImport: (tutors: Tutor[]) => void
 }
 
 export const TutorImportFromCourse = ({
-  phaseId,
   teamOptions,
   isImporting,
   onImport,
@@ -34,42 +34,17 @@ export const TutorImportFromCourse = ({
 
   const [selectedSourceCourse, setSelectedSourceCourse] = useState<string | null>(null)
   const [selectedSourcePhase, setSelectedSourcePhase] = useState<string | null>(null)
-  const [selectedStudents, setSelectedStudents] = useState<string[]>([])
-  const [teamAssignments, setTeamAssignments] = useState<Record<string, string>>({})
+  const selection = useTutorSelection()
 
   const handleCourseChange = (courseID: string) => {
     setSelectedSourceCourse(courseID)
     setSelectedSourcePhase(null)
-    setSelectedStudents([])
-    setTeamAssignments({})
+    selection.reset()
   }
 
   const handlePhaseChange = (phaseID: string) => {
     setSelectedSourcePhase(phaseID)
-    setSelectedStudents([])
-    setTeamAssignments({})
-  }
-
-  const handleStudentToggle = (studentId: string) => {
-    setSelectedStudents((prev) =>
-      prev.includes(studentId) ? prev.filter((id) => id !== studentId) : [...prev, studentId],
-    )
-  }
-
-  const handleSelectAll = (allStudents: Student[]) => {
-    const selectableIds = allStudents
-      .filter((s) => s.universityLogin)
-      .map((s) => s.id)
-      .filter((id): id is string => !!id)
-    if (selectedStudents.length === selectableIds.length) {
-      setSelectedStudents([])
-    } else {
-      setSelectedStudents(selectableIds)
-    }
-  }
-
-  const handleTeamChange = (studentId: string, teamId: string) => {
-    setTeamAssignments((prev) => ({ ...prev, [studentId]: teamId }))
+    selection.reset()
   }
 
   const {
@@ -87,20 +62,9 @@ export const TutorImportFromCourse = ({
     enabled: !!selectedSourceCourse && !!selectedSourcePhase,
   })
 
-  const handleImport = () => {
-    const selectedStudentData = (students || []).filter(
-      (s) => s.id && selectedStudents.includes(s.id),
-    )
-    const studentsAsTutors: Tutor[] = selectedStudentData.map((s) => ({
-      CoursePhaseID: phaseId,
-      CourseParticipationID: s.id!,
-      FirstName: s.firstName,
-      LastName: s.lastName,
-      TeamID: teamAssignments[s.id!] || '',
-      UniversityLogin: s.universityLogin ?? '',
-    }))
-    onImport(studentsAsTutors)
-  }
+  const candidates = useMemo(() => (students ?? []).map(studentToTutorCandidate), [students])
+
+  const handleImport = () => onImport(selection.buildImport(candidates))
 
   const currentSourceCourse = selectedSourceCourse
     ? courses.find((c) => c.id === selectedSourceCourse)
@@ -153,13 +117,13 @@ export const TutorImportFromCourse = ({
           )}
           {students && (
             <TutorSelection
-              tutors={students}
-              selectedTutors={selectedStudents}
-              onTutorToggle={handleStudentToggle}
-              onSelectAll={() => handleSelectAll(students)}
+              tutors={candidates}
+              selectedTutors={selection.selectedTutors}
+              onTutorToggle={selection.toggleTutor}
+              onSelectAll={() => selection.toggleAll(candidates)}
               teamOptions={teamOptions}
-              teamAssignments={teamAssignments}
-              onTeamChange={handleTeamChange}
+              teamAssignments={selection.teamAssignments}
+              onTeamChange={selection.setTeams}
             />
           )}
         </div>
@@ -172,7 +136,7 @@ export const TutorImportFromCourse = ({
           disabled={
             !selectedSourceCourse ||
             !selectedSourcePhase ||
-            selectedStudents.length === 0 ||
+            selection.selectedTutors.length === 0 ||
             isImporting
           }
         >

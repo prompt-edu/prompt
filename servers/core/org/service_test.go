@@ -387,9 +387,10 @@ func (suite *OrgServiceTestSuite) TestConcurrentParentUpdatesCannotCreateACycle(
 func (suite *OrgServiceTestSuite) TestDeleteOrgRemovesTheOrgAndItsKeycloakArtifacts() {
 	org := suite.createOrg("delete-me", nil)
 
-	err := suite.service.DeleteOrg(suite.ctx, org.ID)
+	slug, err := suite.service.DeleteOrg(suite.ctx, org.ID)
 
 	require.NoError(suite.T(), err)
+	assert.Equal(suite.T(), "delete-me", slug)
 	assert.Equal(suite.T(), []string{"delete-me"}, suite.keycloak.deleted)
 	_, err = suite.service.GetOrg(suite.ctx, org.ID)
 	assert.ErrorIs(suite.T(), err, ErrOrgNotFound)
@@ -399,7 +400,7 @@ func (suite *OrgServiceTestSuite) TestDeleteOrgWithChildOrgsIsRejectedBeforeKeyc
 	parent := suite.createOrg("delete-parent", nil)
 	suite.createOrg("delete-parent-child", &parent.ID)
 
-	err := suite.service.DeleteOrg(suite.ctx, parent.ID)
+	_, err := suite.service.DeleteOrg(suite.ctx, parent.ID)
 
 	assert.ErrorIs(suite.T(), err, ErrOrgHasChildOrgs)
 	assert.Empty(suite.T(), suite.keycloak.deleted)
@@ -414,7 +415,7 @@ func (suite *OrgServiceTestSuite) TestDeleteOrgWithCoursesIsRejectedBeforeKeyclo
 		uuid.New(), org.ID)
 	require.NoError(suite.T(), err)
 
-	err = suite.service.DeleteOrg(suite.ctx, org.ID)
+	_, err = suite.service.DeleteOrg(suite.ctx, org.ID)
 
 	assert.ErrorIs(suite.T(), err, ErrOrgHasCourses)
 	assert.Empty(suite.T(), suite.keycloak.deleted)
@@ -425,7 +426,7 @@ func (suite *OrgServiceTestSuite) TestDeleteOrgKeepsTheOrgWhenKeycloakFails() {
 	org := suite.createOrg("delete-fails", nil)
 	suite.keycloak.deleteErr = errors.New("keycloak unavailable")
 
-	err := suite.service.DeleteOrg(suite.ctx, org.ID)
+	_, err := suite.service.DeleteOrg(suite.ctx, org.ID)
 
 	assert.ErrorIs(suite.T(), err, suite.keycloak.deleteErr)
 	assert.Equal(suite.T(), 1, suite.countOrgs("delete-fails"))
@@ -437,7 +438,7 @@ func (suite *OrgServiceTestSuite) TestDeleteOrgReportsAFailedRestore() {
 	suite.keycloak.deleteErr = errors.New("keycloak unavailable")
 	suite.keycloak.createErr = errors.New("restore failed")
 
-	err := suite.service.DeleteOrg(suite.ctx, org.ID)
+	_, err := suite.service.DeleteOrg(suite.ctx, org.ID)
 
 	assert.ErrorIs(suite.T(), err, suite.keycloak.deleteErr)
 	assert.ErrorIs(suite.T(), err, suite.keycloak.createErr)
@@ -445,7 +446,7 @@ func (suite *OrgServiceTestSuite) TestDeleteOrgReportsAFailedRestore() {
 }
 
 func (suite *OrgServiceTestSuite) TestDeleteOrgNotFound() {
-	err := suite.service.DeleteOrg(suite.ctx, uuid.New())
+	_, err := suite.service.DeleteOrg(suite.ctx, uuid.New())
 
 	assert.ErrorIs(suite.T(), err, ErrOrgNotFound)
 	assert.Empty(suite.T(), suite.keycloak.deleted)

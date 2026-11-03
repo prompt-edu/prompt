@@ -206,11 +206,12 @@ func (s *OrgService) deleteOrg(c *gin.Context) {
 		return
 	}
 
-	if err := s.DeleteOrg(c, id); err != nil {
+	slug, err := s.DeleteOrg(c, id)
+	if err != nil {
 		handleServiceError(c, err, "failed to delete org")
 		return
 	}
-	recordOrgAudit(c, id, "")
+	recordOrgAudit(c, id, slug)
 	c.Status(http.StatusNoContent)
 }
 

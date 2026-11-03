@@ -177,20 +177,20 @@ func (s *OrgService) UpdateOrgParent(ctx context.Context, id uuid.UUID, input or
 	return orgDTO.GetOrgDTOFromDBModel(updated), nil
 }
 
-func (s *OrgService) DeleteOrg(ctx context.Context, id uuid.UUID) error {
+func (s *OrgService) DeleteOrg(ctx context.Context, id uuid.UUID) (string, error) {
 	tx, err := s.conn.Begin(ctx)
 	if err != nil {
-		return err
+		return "", err
 	}
 	defer promptSDK.DeferDBRollback(tx, ctx)
 	qtx := s.queries.WithTx(tx)
 
 	slug, err := qtx.DeleteOrg(ctx, id)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return ErrOrgNotFound
+		return "", ErrOrgNotFound
 	}
 	if err != nil {
-		return mapDeleteViolation(err)
+		return "", mapDeleteViolation(err)
 	}
 
 	keycloakCtx, cancel := context.WithTimeout(ctx, keycloakTimeout)
@@ -198,15 +198,15 @@ func (s *OrgService) DeleteOrg(ctx context.Context, id uuid.UUID) error {
 	if err := s.deleteOrgGroupsAndRoles(keycloakCtx, slug); err != nil {
 		deleteErr := fmt.Errorf("failed to delete keycloak groups and roles: %w", err)
 		if restoreErr := s.restoreKeycloak(ctx, slug); restoreErr != nil {
-			return errors.Join(deleteErr, fmt.Errorf("failed to restore keycloak groups and roles: %w", restoreErr))
+			return "", errors.Join(deleteErr, fmt.Errorf("failed to restore keycloak groups and roles: %w", restoreErr))
 		}
-		return deleteErr
+		return "", deleteErr
 	}
 
 	if err := tx.Commit(ctx); err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
+		return "", fmt.Errorf("failed to commit transaction: %w", err)
 	}
-	return nil
+	return slug, nil
 }
 
 func (s *OrgService) restoreKeycloak(ctx context.Context, slug string) error {

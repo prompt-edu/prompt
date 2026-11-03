@@ -283,7 +283,7 @@ func (suite *OrgRouterTestSuite) TestAuditEntriesNameTheOrg() {
 	}{
 		{http.MethodPut, orgPath(created.ID), orgDTO.UpdateOrg{Name: "Audited Org Renamed"}, http.StatusOK, "Updated an org", slug},
 		{http.MethodPut, orgPath(created.ID) + "/parent", orgDTO.UpdateOrgParent{ParentOrgID: &suite.otherOrg.ID}, http.StatusOK, "Moved an org", slug},
-		{http.MethodDelete, orgPath(created.ID), nil, http.StatusNoContent, "Deleted an org", ""},
+		{http.MethodDelete, orgPath(created.ID), nil, http.StatusNoContent, "Deleted an org", slug},
 	} {
 		w := serve(router, request.method, request.path, request.body)
 		require.Equal(suite.T(), request.status, w.Code, request.action)

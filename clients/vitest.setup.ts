@@ -17,6 +17,7 @@ const TEST_ENV = {
   TEMPLATE_HOST: 'http://template.test',
   CERTIFICATE_HOST: 'http://certificate.test',
   SENTRY_DSN_CLIENT: 'http://sentry.test',
+  AI_HOST: 'http://ai.test',
 }
 
 const memoryStorage = new Map<string, string>()

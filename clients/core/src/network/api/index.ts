@@ -1,3 +1,4 @@
+import { ai } from './ai'
 import { announcements } from './announcements'
 import { applications } from './applications'
 import { apply } from './apply'
@@ -11,7 +12,6 @@ import { mailCampaigns } from './mailCampaigns'
 import { mailing } from './mailing'
 import { orgs } from './orgs'
 import { privacy } from './privacy'
-import { profilePictures } from './profilePictures'
 import { students } from './students'
 import { studyPrograms } from './studyPrograms'
 import { system } from './system'
@@ -21,6 +21,7 @@ import { system } from './system'
  * `coreApi.applications.form(phaseId)` and the resource id comes first.
  */
 export const coreApi = {
+  ai,
   announcements,
   applications,
   apply,
@@ -34,7 +35,6 @@ export const coreApi = {
   mailing,
   orgs,
   privacy,
-  profilePictures,
   students,
   studyPrograms,
   system,

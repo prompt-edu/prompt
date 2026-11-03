@@ -56,6 +56,9 @@ jobs:
       PW_SHARD_NAME: ${{ matrix.name }}
       # Bounds the Playwright phase only (~2-3 min per shard today).
       PW_GLOBAL_TIMEOUT_MIN: "20"
+      # A shard with aiEnabled boots the AI server, its database and aimock.
+      AI_ENABLED: ${{ matrix.aiEnabled && 'true' || 'false' }}
+      COMPOSE_PROFILES: ${{ matrix.aiEnabled && 'ai' || '' }}
     steps:
       - uses: actions/checkout@v7
 
@@ -85,6 +88,8 @@ jobs:
         env:
           # Only the cacheWriter shard exports; the rest are readers.
           CACHE_WRITE: ${{ matrix.cacheWriter && '-f docker-compose.e2e.cache-write.yml' || '' }}
+          # The cacheWriter also builds the AI images, so the ai shard reads them; it never boots them.
+          COMPOSE_PROFILES: ${{ (matrix.cacheWriter || matrix.aiEnabled) && 'ai' || '' }}
         run: |
           # shellcheck disable=SC2086 # both hold multiple flags; splitting is the point
           docker compose ${E2E_COMPOSE} ${CACHE_WRITE} build

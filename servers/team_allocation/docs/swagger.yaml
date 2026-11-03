@@ -219,14 +219,14 @@ definitions:
     properties:
       courseParticipationID:
         type: string
-      coursePhaseID:
-        type: string
       firstName:
         type: string
       lastName:
         type: string
-      teamID:
-        type: string
+      teamIDs:
+        items:
+          type: string
+        type: array
       universityLogin:
         type: string
     type: object
@@ -234,13 +234,6 @@ definitions:
     properties:
       newTeamName:
         type: string
-    type: object
-  teamDTO.UpdateTutorTeamRequest:
-    properties:
-      teamID:
-        type: string
-    required:
-    - teamID
     type: object
   teaseDTO.Allocation:
     properties:
@@ -1129,7 +1122,9 @@ paths:
     post:
       consumes:
       - application/json
-      description: Import tutors for teams in a course phase
+      description: 'Set the teams of each listed tutor. A tutor is identified by their
+        university login, which is required: their previous assignments in the phase
+        are replaced, and an existing tutor keeps their id.'
       parameters:
       - description: Course Phase UUID
         in: path
@@ -1155,12 +1150,6 @@ paths:
             additionalProperties:
               type: string
             type: object
-        "409":
-          description: Conflict
-          schema:
-            additionalProperties:
-              type: string
-            type: object
         "500":
           description: Internal Server Error
           schema:
@@ -1170,57 +1159,6 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Import tutors
-      tags:
-      - team
-  /course_phase/{coursePhaseID}/team/tutors/{universityLogin}:
-    put:
-      consumes:
-      - application/json
-      description: Reassign a tutor to a different team by their university login
-      parameters:
-      - description: Course Phase UUID
-        in: path
-        name: coursePhaseID
-        required: true
-        type: string
-      - description: Tutor university login (trimmed and lowercased; used as a lookup
-          key, not format-validated)
-        in: path
-        name: universityLogin
-        required: true
-        type: string
-      - description: New team ID
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/teamDTO.UpdateTutorTeamRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "404":
-          description: Not Found
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      security:
-      - ApiKeyAuth: []
-      summary: Update tutor team assignment
       tags:
       - team
   /tease/course_phase/{coursePhaseID}/save:

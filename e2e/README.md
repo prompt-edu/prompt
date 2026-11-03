@@ -136,6 +136,12 @@ shards mirror the `tests/<module>/` layout plus that module's
 `tests/api/<module>.api.spec.ts`. When you add a **new** microservice suite, add
 an entry to `shards.json` and cache scopes to the two cache override files.
 
+The `ai` shard sets `"aiEnabled": true`: its stack runs with `AI_ENABLED=true`
+and the compose profile `ai`, which adds the AI server, its database and aimock
+as the model provider (fixtures in `fixtures/aimock/`, shared with the AI
+server's Go tests). Every other shard runs with AI off, so the check that no AI
+surface shows then lives in the `core` shard (`tests/ai-disabled/`).
+
 Note that Playwright's path arguments are **regexes matched against the absolute
 spec path**, not directory names — so the patterns are anchored on both ends
 (`/tests/interview/.*\.spec\.ts$`). Unanchored, a later `tests/interview-v2/`

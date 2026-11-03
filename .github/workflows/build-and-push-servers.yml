@@ -32,6 +32,9 @@ on:
       server_infrastructure_setup_image_tag:
         description: "The tag of the infrastructure setup server image that was built"
         value: ${{ jobs.infrastructure-setup.outputs.image_tag }}
+      server_ai_image_tag:
+        description: "The tag of the AI server image that was built"
+        value: ${{ jobs.ai.outputs.image_tag }}
 
 permissions:
   contents: read
@@ -100,5 +103,13 @@ jobs:
       image-name: ghcr.io/prompt-edu/prompt/prompt-server-infrastructure-setup
       docker-file: servers/Dockerfile
       docker-context: ./servers/infrastructure_setup
+      tags: ${{ inputs.release_tag }}
+    secrets: inherit
+  ai:
+    uses: ls1intum/.github/.github/workflows/build-and-push-docker-image.yml@v1.2.0
+    with:
+      image-name: ghcr.io/prompt-edu/prompt/prompt-server-ai
+      docker-file: servers/Dockerfile
+      docker-context: ./servers/ai
       tags: ${{ inputs.release_tag }}
     secrets: inherit

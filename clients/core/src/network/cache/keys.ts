@@ -134,5 +134,9 @@ export const coreKeys = {
     status: () => ['auditLogStatus'] as const,
   },
 
+  ai: {
+    info: () => ['aiInfo'] as const,
+  },
+
   githubPullRequest: (pullRequestNumber: Id) => ['github-pr', pullRequestNumber] as const,
 }

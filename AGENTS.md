@@ -140,6 +140,12 @@ Agent configuration is shared with the team and split by purpose:
     `react-performance`, `docker-patterns`.
 - **Subagents** — focused reviewers in `.claude/agents/`: `go-service-reviewer`,
   `frontend-reviewer`, `migration-auditor`.
+- **MCP servers** in `.mcp.json`, registered for the whole project:
+  - `playwright` drives a real browser for the `verify` skill.
+  - `outline` connects to the team's Outline wiki (<https://outline.aet.cit.tum.de>). It signs in
+    with your own Outline account through OAuth, so run `/mcp` in Claude Code once to authenticate.
+    The instance is shared with other teams: keep every read and write inside the `Prompt`
+    collection.
 
 ## Creating New Course Phases
 

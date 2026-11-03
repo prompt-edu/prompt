@@ -203,7 +203,7 @@
     "method": "PUT",
     "path": "/team-allocation/api/course_phase/{coursePhaseID}/allocation/{courseParticipationID}",
     "pathParams": ["coursePhaseID", "courseParticipationID"],
-    "roles": ["PromptAdmin", "CourseLecturer", "CourseEditor"],
+    "roles": ["PromptAdmin", "CourseLecturer"],
     "category": "write",
     "handler": "updateAllocation",
     "bodyType": "allocationDTO.UpdateAllocationRequest"
@@ -214,7 +214,7 @@
     "method": "DELETE",
     "path": "/team-allocation/api/course_phase/{coursePhaseID}/allocation/{courseParticipationID}",
     "pathParams": ["coursePhaseID", "courseParticipationID"],
-    "roles": ["PromptAdmin", "CourseLecturer", "CourseEditor"],
+    "roles": ["PromptAdmin", "CourseLecturer"],
     "category": "destructive",
     "handler": "deleteAllocation",
     "bodyType": null

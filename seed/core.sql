@@ -274,7 +274,7 @@ INSERT INTO course_phase (id, course_id, name, restricted_data, is_initial_phase
 -- d0000012 = CampusOnline grade export spec (Stan + Selma participate),
 -- d0000013 = evaluation-only spec (Stan participates),
 -- d0000018 = tutor scope spec (five participants; its teams come from the
--- standalone Team Allocation phase b3000004, where course-editor tutors one team),
+-- standalone Team Allocation phase b3000004, where course-editor leads two of three teams),
 -- d0000019 = tutor scope spec for an editor who tutors no team (Stan participates;
 -- its teams come from b3000005, whose only tutor is not course-editor).
 INSERT INTO course_phase (id, course_id, name, restricted_data, is_initial_phase, course_phase_type_id, student_readable_data)

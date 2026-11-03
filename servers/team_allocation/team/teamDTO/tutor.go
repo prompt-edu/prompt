@@ -3,31 +3,18 @@ package teamDTO
 import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
-	db "github.com/prompt-edu/prompt/servers/team_allocation/db/sqlc"
 )
 
+// Tutor is one person to import as a tutor of a course phase. The university login identifies the
+// tutor: an import sets exactly the listed teams for that login. CourseParticipationID is the id
+// other phases evaluate the tutor under (the participation of a coach in the tutor course, or the
+// Keycloak user id of a course editor). A tutor who already exists keeps the id they have.
 type Tutor struct {
-	CoursePhaseID         uuid.UUID `json:"coursePhaseID"`
-	CourseParticipationID uuid.UUID `json:"courseParticipationID"`
-	FirstName             string    `json:"firstName"`
-	LastName              string    `json:"lastName"`
-	TeamID                uuid.UUID `json:"teamID"`
-	UniversityLogin       string    `json:"universityLogin"`
-}
-
-type UpdateTutorTeamRequest struct {
-	TeamID uuid.UUID `json:"teamID" binding:"required"`
-}
-
-func GetTutorDTOFromDBModel(dbTutor db.Tutor) Tutor {
-	return Tutor{
-		CoursePhaseID:         dbTutor.CoursePhaseID,
-		CourseParticipationID: dbTutor.CourseParticipationID,
-		FirstName:             dbTutor.FirstName,
-		LastName:              dbTutor.LastName,
-		TeamID:                dbTutor.TeamID,
-		UniversityLogin:       dbTutor.UniversityLogin.String,
-	}
+	CourseParticipationID uuid.UUID   `json:"courseParticipationID"`
+	FirstName             string      `json:"firstName"`
+	LastName              string      `json:"lastName"`
+	UniversityLogin       string      `json:"universityLogin"`
+	TeamIDs               []uuid.UUID `json:"teamIDs"`
 }
 
 func UniversityLoginParam(login string) pgtype.Text {

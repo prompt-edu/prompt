@@ -3,6 +3,7 @@ package teams
 import (
 	"errors"
 	"net/http"
+	"slices"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -18,7 +19,7 @@ import (
 
 func RegisterRoutes(routerGroup *gin.RouterGroup, service *TeamsService, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
 	teamRouter := routerGroup.Group("/team")
-	scopingMW := tutorscope.Middleware(tutorscope.NewPgxResolver(service.conn))
+	scopingMW := tutorscope.TeamsMiddleware(tutorscope.NewPgxTeamsResolver(service.conn))
 
 	teamRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.CourseStudent), scopingMW, service.getAllTeams)
 	teamRouter.POST("", audit.Describe("Created teams"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.createTeams)
@@ -28,7 +29,6 @@ func RegisterRoutes(routerGroup *gin.RouterGroup, service *TeamsService, authMid
 	teamRouter.POST("/student-names", audit.Describe("Added student names to team allocations"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.addStudentNamesToTeams)
 
 	teamRouter.POST("/tutors", audit.Describe("Imported tutors"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.importTutors)
-	teamRouter.PUT("/tutors/:universityLogin", audit.Describe("Updated a tutor's team"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.updateTutorTeam)
 
 	// required for inter-phase communication protocol
 	teamRouter.GET("/:teamID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.CourseStudent), scopingMW, service.getTeamByID)
@@ -60,20 +60,21 @@ func (s *TeamsService) getAllTeams(c *gin.Context) {
 		return
 	}
 
-	if tutorTeamID, scoped := tutorscope.TeamID(c); scoped {
-		teams = filterTeamsByID(teams, tutorTeamID)
+	if tutorTeamIDs, scoped := tutorscope.TeamIDs(c); scoped {
+		teams = filterTeamsByID(teams, tutorTeamIDs)
 	}
 
 	c.JSON(http.StatusOK, gin.H{"teams": teams})
 }
 
-func filterTeamsByID(teams []promptTypes.Team, teamID uuid.UUID) []promptTypes.Team {
+func filterTeamsByID(teams []promptTypes.Team, teamIDs []uuid.UUID) []promptTypes.Team {
+	result := make([]promptTypes.Team, 0, len(teamIDs))
 	for _, t := range teams {
-		if t.ID == teamID {
-			return []promptTypes.Team{t}
+		if slices.Contains(teamIDs, t.ID) {
+			result = append(result, t)
 		}
 	}
-	return []promptTypes.Team{}
+	return result
 }
 
 // getTeamByID godoc
@@ -104,8 +105,8 @@ func (s *TeamsService) getTeamByID(c *gin.Context) {
 		return
 	}
 
-	if tutorTeamID, scoped := tutorscope.TeamID(c); scoped && teamID != tutorTeamID {
-		c.JSON(http.StatusForbidden, gin.H{"error": "access restricted to assigned team"})
+	if tutorTeamIDs, scoped := tutorscope.TeamIDs(c); scoped && !slices.Contains(tutorTeamIDs, teamID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access restricted to assigned teams"})
 		return
 	}
 
@@ -271,7 +272,7 @@ func (s *TeamsService) addStudentNamesToTeams(c *gin.Context) {
 
 // importTutors godoc
 // @Summary Import tutors
-// @Description Import tutors for teams in a course phase
+// @Description Set the teams of each listed tutor. A tutor is identified by their university login, which is required: their previous assignments in the phase are replaced, and an existing tutor keeps their id.
 // @Tags team
 // @Accept json
 // @Produce json
@@ -279,7 +280,6 @@ func (s *TeamsService) addStudentNamesToTeams(c *gin.Context) {
 // @Param request body []teamDTO.Tutor true "Tutors to import"
 // @Success 201
 // @Failure 400 {object} map[string]string
-// @Failure 409 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Security ApiKeyAuth
 // @Router /course_phase/{coursePhaseID}/team/tutors [post]
@@ -299,8 +299,9 @@ func (s *TeamsService) importTutors(c *gin.Context) {
 	}
 
 	if err := s.ImportTutors(c, coursePhaseID, tutors); err != nil {
-		if errors.Is(err, ErrDuplicateLogin) {
-			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+		if errors.Is(err, ErrMissingLogin) || errors.Is(err, ErrMissingTutorID) || errors.Is(err, ErrDuplicateLogin) ||
+			errors.Is(err, ErrNoTeams) || errors.Is(err, ErrInvalidTeamForPhase) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 		log.Error("Error importing tutors: ", err)
@@ -309,56 +310,4 @@ func (s *TeamsService) importTutors(c *gin.Context) {
 	}
 
 	c.Status(http.StatusCreated)
-}
-
-// updateTutorTeam godoc
-// @Summary Update tutor team assignment
-// @Description Reassign a tutor to a different team by their university login
-// @Tags team
-// @Accept json
-// @Produce json
-// @Param coursePhaseID path string true "Course Phase UUID"
-// @Param universityLogin path string true "Tutor university login (trimmed and lowercased; used as a lookup key, not format-validated)"
-// @Param request body teamDTO.UpdateTutorTeamRequest true "New team ID"
-// @Success 200
-// @Failure 400 {object} map[string]string
-// @Failure 404 {object} map[string]string
-// @Failure 500 {object} map[string]string
-// @Security ApiKeyAuth
-// @Router /course_phase/{coursePhaseID}/team/tutors/{universityLogin} [put]
-func (s *TeamsService) updateTutorTeam(c *gin.Context) {
-	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
-	if err != nil {
-		log.Error("Error parsing coursePhaseID: ", err)
-		sdkUtils.HandleError(c, http.StatusBadRequest, err)
-		return
-	}
-
-	universityLogin := tutorscope.NormalizeLogin(c.Param("universityLogin"))
-	if universityLogin == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "university login is required"})
-		return
-	}
-
-	var req teamDTO.UpdateTutorTeamRequest
-	if err := c.BindJSON(&req); err != nil {
-		sdkUtils.HandleError(c, http.StatusBadRequest, err)
-		return
-	}
-
-	if err := s.UpdateTutorTeam(c, coursePhaseID, universityLogin, req.TeamID); err != nil {
-		if errors.Is(err, ErrTutorNotFound) {
-			c.JSON(http.StatusNotFound, gin.H{"error": "tutor not found"})
-			return
-		}
-		if errors.Is(err, ErrInvalidTeamForPhase) {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "team does not belong to this course phase"})
-			return
-		}
-		log.Error("Error updating tutor team: ", err)
-		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
-		return
-	}
-
-	c.Status(http.StatusOK)
 }

@@ -3,6 +3,7 @@ import { test, expect } from '../../src/fixtures/api'
 import { tokenFor } from '../../src/fixtures/api'
 import { CORE_API_URL } from '../../src/env'
 import { SEEDED_COURSES } from '../../src/data/constants'
+import { cleanupCourses, createCourseViaApi, uniqueSuffix } from '../courses/helpers'
 
 // Course-staff (Lecturer / Editor) management endpoints. The seeded e2e realm
 // does not create per-course /Prompt/<courseGroupName>/{Lecturer,Editor}
@@ -17,6 +18,7 @@ interface StaffMember {
   email: string
   firstName: string
   lastName: string
+  universityLogin: string
 }
 
 interface CourseStaff {
@@ -89,6 +91,40 @@ test.describe('core API: keycloak course-staff', () => {
     expect(res.status()).toBe(400)
     const body = (await res.json()) as { error: string }
     expect(body.error).toMatch(/cannot remove yourself/i)
+  })
+})
+
+test.describe('core API: keycloak course-staff of a provisioned course', () => {
+  let courseId: string | undefined
+
+  test.afterAll(async () => {
+    await cleanupCourses(courseId)
+  })
+
+  test('GET /keycloak/:courseID/group/staff returns the university login of each member', async ({
+    apiAs,
+  }, testInfo) => {
+    const api = await apiAs('admin')
+    const suffix = uniqueSuffix(testInfo.workerIndex)
+    courseId = await createCourseViaApi(api, {
+      name: `E2EStaffLogin${suffix}`,
+      semesterTag: `e2estafflogin${suffix}`,
+    })
+
+    const editorSub = subjectFromJwt(await tokenFor('course-editor'))
+    const addRes = await api.put(`/api/keycloak/${courseId}/group/Editor/members/${editorSub}`)
+    expect(addRes.status()).toBe(204)
+
+    const res = await api.get(`/api/keycloak/${courseId}/group/staff`)
+    expect(res.ok()).toBeTruthy()
+    const staff = (await res.json()) as CourseStaff
+
+    const creator = staff.lecturers.find((m) => m.username === 'admin')
+    expect(creator?.universityLogin).toBe('ad12min')
+
+    const editor = staff.editors.find((m) => m.keycloakUserID === editorSub)
+    expect(editor?.username).toBe('course-editor')
+    expect(editor?.universityLogin).toBe('co69edt')
   })
 })
 

@@ -36,6 +36,14 @@ TestResults-*.xml
 # =============================================================================
 **/.gocache/
 **/.cache/
+/servers/assessment/assessment
+/servers/certificate/certificate
+/servers/core/core
+/servers/example_server/example_server
+/servers/infrastructure_setup/infrastructure_setup
+/servers/interview/interview
+/servers/self_team_allocation/self_team_allocation
+/servers/team_allocation/team_allocation
 
 # =============================================================================
 # IDE & Editor

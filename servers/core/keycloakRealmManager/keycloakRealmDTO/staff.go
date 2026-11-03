@@ -9,7 +9,13 @@ type StaffMember struct {
 	Email          string `json:"email"`
 	FirstName      string `json:"firstName"`
 	LastName       string `json:"lastName"`
+	// UniversityLogin is the user's university_login attribute, the login phases match tutors
+	// against. It is empty when the user has none or the lookup returned a brief representation.
+	UniversityLogin string `json:"universityLogin"`
 }
+
+// universityLoginAttribute is the Keycloak user attribute that also feeds the token claim.
+const universityLoginAttribute = "university_login"
 
 // CourseStaff is the Lecturer / Editor membership of a single course.
 type CourseStaff struct {
@@ -22,17 +28,26 @@ type CourseStaff struct {
 // should narrow their query.
 type UserSearchResults struct {
 	Results   []StaffMember `json:"results"`
-	Truncated bool         `json:"truncated"`
+	Truncated bool          `json:"truncated"`
 }
 
 // GetStaffMemberFromKeycloakUser maps a gocloak.User to a StaffMember,
 // safely handling nil pointer fields by substituting empty strings.
 func GetStaffMemberFromKeycloakUser(user *gocloak.User) StaffMember {
 	return StaffMember{
-		KeycloakUserID: gocloak.PString(user.ID),
-		Username:       gocloak.PString(user.Username),
-		Email:          gocloak.PString(user.Email),
-		FirstName:      gocloak.PString(user.FirstName),
-		LastName:       gocloak.PString(user.LastName),
+		KeycloakUserID:  gocloak.PString(user.ID),
+		Username:        gocloak.PString(user.Username),
+		Email:           gocloak.PString(user.Email),
+		FirstName:       gocloak.PString(user.FirstName),
+		LastName:        gocloak.PString(user.LastName),
+		UniversityLogin: firstAttribute(user, universityLoginAttribute),
 	}
+}
+
+func firstAttribute(user *gocloak.User, name string) string {
+	values := user.Attributes[name]
+	if len(values) == 0 {
+		return ""
+	}
+	return values[0]
 }

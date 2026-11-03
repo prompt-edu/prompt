@@ -3,6 +3,10 @@
     "playwright": {
       "command": "npx",
       "args": ["@playwright/mcp@0.0.79"]
+    },
+    "outline": {
+      "type": "http",
+      "url": "https://outline.aet.cit.tum.de/mcp"
     }
   }
 }

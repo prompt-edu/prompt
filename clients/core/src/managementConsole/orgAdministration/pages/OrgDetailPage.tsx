@@ -16,11 +16,10 @@ export const OrgDetailPage = () => {
   }
 
   return (
-    <QueryGate queries={[orgQuery, orgsQuery]}>
+    <QueryGate queries={[orgQuery]}>
       {() => {
         const org = orgQuery.data
-        const orgs = orgsQuery.data
-        if (!org || !orgs) {
+        if (!org) {
           return null
         }
         return (
@@ -30,7 +29,17 @@ export const OrgDetailPage = () => {
               <p className='-mt-4 text-muted-foreground'>{org.slug}</p>
             </div>
             <OrgDetailsSettings key={`details-${org.id}`} org={org} />
-            <OrgHierarchySettings key={`hierarchy-${org.id}`} org={org} orgs={orgs} />
+            <QueryGate queries={[orgsQuery]} loadingFallback={null}>
+              {() =>
+                orgsQuery.data && (
+                  <OrgHierarchySettings
+                    key={`hierarchy-${org.id}-${org.parentOrgID ?? 'none'}`}
+                    org={org}
+                    orgs={orgsQuery.data}
+                  />
+                )
+              }
+            </QueryGate>
             <OrgDangerZone org={org} />
           </div>
         )

@@ -42,6 +42,7 @@ export const CreateOrgDialog = ({ orgs, isPending, onClose, onSubmit }: CreateOr
   const values: CreateOrg = { ...trimOrgDetails(details), slug: slugInput.trim(), parentOrgID }
   const errors = validateCreateOrg(values)
   const isValid = Object.keys(errors).length === 0
+  const showSlugError = editedSlug !== null || details.name.trim() !== ''
 
   return (
     <Dialog open onOpenChange={(isOpen) => !isOpen && onClose()}>
@@ -70,10 +71,10 @@ export const CreateOrgDialog = ({ orgs, isPending, onClose, onSubmit }: CreateOr
               maxLength={MAX_SLUG_LENGTH}
               placeholder='e.g. aet'
               disabled={isPending}
-              aria-invalid={values.slug !== '' && errors.slug !== undefined}
+              aria-invalid={showSlugError && errors.slug !== undefined}
               onChange={(e) => setEditedSlug(e.target.value)}
             />
-            {values.slug !== '' && errors.slug ? (
+            {showSlugError && errors.slug ? (
               <p className='text-sm text-destructive'>{errors.slug}</p>
             ) : (
               <p className='text-sm text-muted-foreground'>

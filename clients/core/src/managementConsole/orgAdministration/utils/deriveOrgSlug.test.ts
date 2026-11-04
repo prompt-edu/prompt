@@ -9,6 +9,7 @@ describe('deriveOrgSlug', () => {
     ['Lehrstuhl für Rechnerarchitektur', 'lehrstuhl-fuer-rechnerarchitektur'],
     ['Größe & Übung', 'groesse-uebung'],
     ['Lehrstuhl fu\u0308r Informatik', 'lehrstuhl-fuer-informatik'],
+    ['M\u01d8nchen', 'muenchen'],
     ['École Polytechnique', 'ecole-polytechnique'],
     ['TUM CIT 2026', 'tum-cit-2026'],
     ['', ''],

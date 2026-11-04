@@ -17,6 +17,7 @@ import (
 	"github.com/prompt-edu/prompt-sdk/audit"
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/core/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt/servers/core/org/orgDTO"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 	"github.com/stretchr/testify/assert"
@@ -67,10 +68,17 @@ func (suite *OrgRouterTestSuite) routerFor(roles ...string) *gin.Engine {
 }
 
 func (suite *OrgRouterTestSuite) routerWith(roles []string, middleware ...gin.HandlerFunc) *gin.Engine {
+	return suite.routerForTokenIssuedAt(time.Now(), roles, middleware...)
+}
+
+func (suite *OrgRouterTestSuite) routerForTokenIssuedAt(issuedAt time.Time, roles []string, middleware ...gin.HandlerFunc) *gin.Engine {
 	router := gin.Default()
 	api := router.Group("/api", middleware...)
 	RegisterRoutes(api, suite.service, func() gin.HandlerFunc {
-		return sdkTestUtils.MockAuthMiddleware(roles)
+		return func(c *gin.Context) {
+			c.Set(keycloakTokenVerifier.CtxTokenIssuedAt, issuedAt)
+			sdkTestUtils.MockAuthMiddleware(roles)(c)
+		}
 	}, suite.validationService.CheckOrgPermission)
 	return router
 }
@@ -165,6 +173,20 @@ func (suite *OrgRouterTestSuite) TestDeleteOrgPermissions() {
 	suite.expectStatus(http.MethodDelete, func() string {
 		return orgPath(suite.createOrg("disposable-"+uuid.NewString()[:8], nil).ID)
 	}, noBody, http.StatusNoContent, promptAdmin)
+}
+
+func (suite *OrgRouterTestSuite) TestRolesOfADeletedOrgGrantNothingOnAnOrgReusingItsSlug() {
+	deleted := suite.createOrg("reused", nil)
+	_, err := suite.service.DeleteOrg(suite.ctx, deleted.ID)
+	require.NoError(suite.T(), err)
+	reused := suite.createOrg("reused", nil)
+	roles := []string{"org-reused-Admin"}
+
+	staleToken := suite.routerForTokenIssuedAt(reused.CreatedAt.Add(-time.Minute), roles)
+	freshToken := suite.routerForTokenIssuedAt(time.Now(), roles)
+
+	assert.Equal(suite.T(), http.StatusForbidden, serve(staleToken, http.MethodGet, orgPath(reused.ID), nil).Code)
+	assert.Equal(suite.T(), http.StatusOK, serve(freshToken, http.MethodGet, orgPath(reused.ID), nil).Code)
 }
 
 func (suite *OrgRouterTestSuite) TestUnknownOrgIsNotFoundForAdminsOnly() {

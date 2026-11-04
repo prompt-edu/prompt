@@ -3,10 +3,12 @@ package permissionValidation
 import (
 	"errors"
 	"slices"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/prompt-edu/prompt/servers/core/keycloakTokenVerifier"
 )
 
 func (s *ValidationService) CheckOrgPermission(c *gin.Context, orgID uuid.UUID, allowedRoles ...string) (bool, error) {
@@ -23,7 +25,7 @@ func (s *ValidationService) CheckOrgPermission(c *gin.Context, orgID uuid.UUID, 
 		return true, nil
 	}
 
-	slug, err := s.queries.GetOrgSlugByID(c, orgID)
+	org, err := s.queries.GetOrgByID(c, orgID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return false, nil
 	}
@@ -31,8 +33,21 @@ func (s *ValidationService) CheckOrgPermission(c *gin.Context, orgID uuid.UUID, 
 		return false, err
 	}
 
+	issuedAtVal, exists := c.Get(keycloakTokenVerifier.CtxTokenIssuedAt)
+	if !exists {
+		return false, errors.New("token issue time not found in context")
+	}
+	issuedAt, ok := issuedAtVal.(time.Time)
+	if !ok {
+		return false, errors.New("invalid token issue time format in context")
+	}
+	// A token issued before the org existed holds the roles of a deleted org with the same slug.
+	if issuedAt.Before(org.CreatedAt.Time.Truncate(time.Second)) {
+		return false, nil
+	}
+
 	for _, role := range allowedRoles {
-		if (role == OrgAdmin || role == OrgMember) && userRoles[OrgRoleName(slug, role)] {
+		if (role == OrgAdmin || role == OrgMember) && userRoles[OrgRoleName(org.Slug, role)] {
 			return true, nil
 		}
 	}

@@ -145,6 +145,11 @@ describe('coreKeys', () => {
     expect(coreKeys.studyPrograms.studentCounts()).toEqual(['studyPrograms', 'studentCounts'])
   })
 
+  it('puts each org under the org list, so one invalidation reaches both', () => {
+    expect(coreKeys.orgs.all()).toEqual(['orgs'])
+    expect(coreKeys.orgs.byId('org-1')).toEqual(['orgs', 'org-1'])
+  })
+
   it('builds the privacy keys, with the resource folded into the second element', () => {
     expect(coreKeys.privacy.latest('data-export')).toEqual(['privacy', 'data-export-latest'])
     expect(coreKeys.privacy.create('data-export')).toEqual(['privacy', 'data-export-create'])

@@ -11,6 +11,8 @@ const OTHER_PHASE = 'phase-2'
 const PARTICIPATION = 'participation-1'
 const CAMPAIGN = 'campaign-1'
 const STUDENT = 'student-1'
+const ORG = 'org-1'
+const OTHER_ORG = 'org-2'
 
 let queryClient: QueryClient
 
@@ -335,6 +337,28 @@ describe('study program events', () => {
     expect(isInvalidated(coreKeys.students.byId(STUDENT))).toBe(true)
     expect(isInvalidated(coreKeys.applications.ofParticipation(PARTICIPATION))).toBe(true)
     expect(isInvalidated(coreKeys.applications.participations.inPhase(PHASE))).toBe(true)
+  })
+})
+
+describe('org events', () => {
+  it('invalidates the org list and every org on a change', () => {
+    seed(coreKeys.orgs.all(), coreKeys.orgs.byId(ORG), coreKeys.orgs.byId(OTHER_ORG))
+
+    coreCache.orgsChanged(queryClient)
+
+    expect(isInvalidated(coreKeys.orgs.all())).toBe(true)
+    expect(isInvalidated(coreKeys.orgs.byId(ORG))).toBe(true)
+    expect(isInvalidated(coreKeys.orgs.byId(OTHER_ORG))).toBe(true)
+  })
+
+  it('invalidates only the org list on a delete, so the deleted org is never refetched into a 404', () => {
+    seed(coreKeys.orgs.all(), coreKeys.orgs.byId(ORG), coreKeys.orgs.byId(OTHER_ORG))
+
+    coreCache.orgDeleted(queryClient)
+
+    expect(isInvalidated(coreKeys.orgs.all())).toBe(true)
+    expect(isInvalidated(coreKeys.orgs.byId(ORG))).toBe(false)
+    expect(isInvalidated(coreKeys.orgs.byId(OTHER_ORG))).toBe(false)
   })
 })
 

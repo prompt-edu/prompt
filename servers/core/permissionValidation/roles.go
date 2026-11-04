@@ -5,6 +5,8 @@ const PromptLecturer = "PROMPT_Lecturer"
 const CourseLecturer = "Lecturer"
 const CourseEditor = "Editor"
 const CourseStudent = "Student"
+const OrgAdmin = "Admin"
+const OrgMember = "Member"
 
 // CourseIdentifier builds the "<semesterTag>-<name>" prefix shared by a course's
 // Keycloak group and role names.
@@ -16,4 +18,8 @@ func CourseIdentifier(semesterTag, name string) string {
 // from a course identifier (see CourseIdentifier) and a course role such as CourseLecturer.
 func CourseRoleName(courseIdentifier, role string) string {
 	return courseIdentifier + "-" + role
+}
+
+func OrgRoleName(slug, role string) string {
+	return "org-" + slug + "-" + role
 }

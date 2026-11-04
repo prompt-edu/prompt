@@ -127,6 +127,12 @@ export const coreCache = {
       coreKeys.applications.participations.all(),
     ]),
 
+  orgsChanged: (queryClient: QueryClient): void => invalidate(queryClient, [coreKeys.orgs.all()]),
+
+  orgDeleted: (queryClient: QueryClient): void => {
+    queryClient.invalidateQueries({ queryKey: coreKeys.orgs.all(), exact: true })
+  },
+
   privacyDeletionsChanged: (queryClient: QueryClient): void =>
     invalidate(queryClient, [coreKeys.privacy.admin.deletions()]),
 

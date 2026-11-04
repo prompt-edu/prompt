@@ -507,6 +507,7 @@ func (suite *OrgServiceTestSuite) TestDeleteOrgRestoresKeycloakWhenTheCommitFail
 	_, err := suite.service.DeleteOrg(suite.ctx, org.ID)
 
 	assert.ErrorContains(suite.T(), err, "commit rejected")
+	assert.ErrorIs(suite.T(), err, ErrOrgMembersRemoved)
 	assert.Equal(suite.T(), 1, suite.countOrgs("delete-commit-fails"))
 	assert.Equal(suite.T(), []string{"delete-commit-fails"}, suite.keycloak.deleted)
 	assert.Equal(suite.T(), []string{"delete-commit-fails", "delete-commit-fails"}, suite.keycloak.created, "the failed commit is followed by a restore")

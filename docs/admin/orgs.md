@@ -48,3 +48,13 @@ for now: the Admins and Members of a parent org get no rights on its child orgs.
 - **Delete** an org in the **Danger Zone**. This also removes its Keycloak groups and roles and every
   membership. An org that still has child orgs or courses cannot be deleted: move or delete those
   first.
+
+## When deleting fails
+
+A failed delete shows an error and keeps the org. In most cases its Keycloak groups and members are
+unchanged, so you can simply delete it again.
+
+If the error says that the Keycloak groups were recreated without members, Keycloak had already
+removed the org's groups before the delete failed. PROMPT restored the groups and roles so the org
+stays usable, but its members are gone. Either delete the org again, or keep it and re-add its
+members to the `/Orgs/<slug>/Admin` and `/Orgs/<slug>/Member` groups in Keycloak.

@@ -227,6 +227,9 @@ func handleServiceError(c *gin.Context, err error, fallbackMessage string) {
 		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 	case errors.Is(err, ErrDuplicateOrgSlug), errors.Is(err, ErrOrgHasChildOrgs), errors.Is(err, ErrOrgHasCourses):
 		sdkUtils.HandleError(c, http.StatusConflict, err)
+	case errors.Is(err, ErrOrgMembersRemoved):
+		log.Error(err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, ErrOrgMembersRemoved)
 	default:
 		log.Error(err)
 		sdkUtils.HandleError(c, http.StatusInternalServerError, errors.New(fallbackMessage))

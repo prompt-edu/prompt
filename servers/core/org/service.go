@@ -36,6 +36,7 @@ var (
 	ErrOrgCycle          = errors.New("an org cannot be placed under itself or one of its descendants")
 	ErrOrgHasChildOrgs   = errors.New("the org still has child orgs")
 	ErrOrgHasCourses     = errors.New("the org still has courses")
+	ErrOrgMembersRemoved = errors.New("the org was not deleted, but its Keycloak groups were recreated without members: re-add its Admins and Members, or delete the org again")
 )
 
 type OrgService struct {
@@ -255,7 +256,7 @@ func (s *OrgService) reconcileFailedDeleteCommit(ctx context.Context, id uuid.UU
 	if err := s.restoreKeycloak(ctx, slug); err != nil {
 		return "", errors.Join(commitErr, fmt.Errorf("failed to restore keycloak groups and roles: %w", err))
 	}
-	return "", commitErr
+	return "", errors.Join(ErrOrgMembersRemoved, commitErr)
 }
 
 func (s *OrgService) restoreKeycloak(ctx context.Context, slug string) error {

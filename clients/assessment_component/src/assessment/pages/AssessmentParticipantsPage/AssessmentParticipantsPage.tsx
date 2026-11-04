@@ -23,6 +23,7 @@ import { useGetAllScoreLevels } from '../hooks/useGetAllScoreLevels'
 import { useGetAllTeams } from '../hooks/useGetAllTeams'
 import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
 import { useGetCoursePhaseParticipations } from '../hooks/useGetCoursePhaseParticipations'
+import type { ParticipantDetailLocationState } from '../hooks/useParticipantNavigation'
 import { getTutorLabel } from '../hooks/useTutorLabel'
 import {
   createGradeSuggestionColumn,
@@ -55,13 +56,17 @@ export const AssessmentParticipantsPage = () => {
   // shared table's onClickRowAction doesn't forward the event, so capture the modifier here
   const openInNewTabRef = useRef(false)
 
-  const openAssessment = (courseParticipationID: string) => {
-    const target = `${path}/${courseParticipationID}`
+  const openAssessment = (row: ParticipantRow, orderedRows: ParticipantRow[]) => {
+    const target = `${path}/${row.courseParticipationID}`
     if (openInNewTabRef.current) {
       window.open(`${window.location.origin}${target}`, '_blank', 'noopener,noreferrer')
       return
     }
-    navigate(target)
+    navigate(target, {
+      state: {
+        orderedParticipationIds: toParticipationIDs(orderedRows),
+      } satisfies ParticipantDetailLocationState,
+    })
   }
 
   const coursePhaseConfigQuery = useGetCoursePhaseConfig()
@@ -257,9 +262,7 @@ export const AssessmentParticipantsPage = () => {
             extraColumns={extraColumns}
             extraFilters={extraFilters}
             extraActions={extraActions}
-            onClickRowAction={
-              assessmentEnabled ? (row) => openAssessment(row.courseParticipationID) : undefined
-            }
+            onClickRowAction={assessmentEnabled ? openAssessment : undefined}
           />
         </div>
       </div>

@@ -5,6 +5,7 @@ const TRANSLITERATIONS: Record<string, string> = { ä: 'ae', ö: 'oe', ü: 'ue',
 export const deriveOrgSlug = (name: string): string =>
   name
     .toLowerCase()
+    .normalize('NFC')
     .replace(/[äöüß]/g, (char) => TRANSLITERATIONS[char])
     .normalize('NFKD')
     .replace(/\p{M}/gu, '')

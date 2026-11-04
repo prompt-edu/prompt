@@ -6,6 +6,9 @@ RETURNING *;
 -- name: GetOrgByID :one
 SELECT * FROM org WHERE id = $1;
 
+-- name: GetOrgIDBySlug :one
+SELECT id FROM org WHERE slug = $1;
+
 -- name: GetAllOrgs :many
 SELECT * FROM org ORDER BY name ASC, slug ASC;
 

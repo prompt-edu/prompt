@@ -22,11 +22,13 @@ import (
 )
 
 type keycloakSpy struct {
-	created   []string
-	deleted   []string
-	createErr error
-	deleteErr error
-	onDelete  func(slug string)
+	created           []string
+	deleted           []string
+	createErr         error
+	deleteErr         error
+	existErr          error
+	deletedDespiteErr bool
+	onDelete          func(slug string)
 }
 
 func (k *keycloakSpy) create(_ context.Context, slug string) error {
@@ -40,6 +42,10 @@ func (k *keycloakSpy) delete(_ context.Context, slug string) error {
 		k.onDelete(slug)
 	}
 	return k.deleteErr
+}
+
+func (k *keycloakSpy) exist(_ context.Context, _ string) (bool, error) {
+	return !k.deletedDespiteErr, k.existErr
 }
 
 type OrgServiceTestSuite struct {
@@ -60,7 +66,7 @@ func (suite *OrgServiceTestSuite) SetupSuite() {
 	suite.cleanup = cleanup
 	suite.conn = testDB.Conn
 	suite.keycloak = &keycloakSpy{}
-	suite.service = NewOrgService(*testDB.Queries, testDB.Conn, suite.keycloak.create, suite.keycloak.delete)
+	suite.service = NewOrgService(*testDB.Queries, testDB.Conn, suite.keycloak.create, suite.keycloak.delete, suite.keycloak.exist)
 }
 
 func (suite *OrgServiceTestSuite) TearDownSuite() {
@@ -105,6 +111,19 @@ func (suite *OrgServiceTestSuite) insertBlocksOnSlug(slug string) bool {
 
 	var pgErr *pgconn.PgError
 	return errors.As(err, &pgErr) && pgErr.Code == "55P03"
+}
+
+func (suite *OrgServiceTestSuite) failCommitOn(event, row, slug string) {
+	_, err := suite.conn.Exec(suite.ctx, fmt.Sprintf(`
+		CREATE FUNCTION fail_commit() RETURNS trigger LANGUAGE plpgsql AS $fn$
+		BEGIN RAISE EXCEPTION 'commit rejected'; END $fn$;
+		CREATE CONSTRAINT TRIGGER fail_commit AFTER %s ON org DEFERRABLE INITIALLY DEFERRED
+		FOR EACH ROW WHEN (%s.slug = '%s') EXECUTE FUNCTION fail_commit();`, event, row, slug))
+	require.NoError(suite.T(), err)
+	suite.T().Cleanup(func() {
+		_, err := suite.conn.Exec(suite.ctx, "DROP TRIGGER fail_commit ON org; DROP FUNCTION fail_commit();")
+		require.NoError(suite.T(), err)
+	})
 }
 
 func (suite *OrgServiceTestSuite) TestCreateOrgStoresTrimmedInputAndProvisionsKeycloak() {
@@ -214,6 +233,16 @@ func (suite *OrgServiceTestSuite) TestCreateOrgSucceedsOnRetryAfterKeycloakFailu
 	require.NoError(suite.T(), err)
 	assert.Equal(suite.T(), "retried", created.Slug)
 	assert.Equal(suite.T(), []string{"retried", "retried"}, suite.keycloak.created)
+}
+
+func (suite *OrgServiceTestSuite) TestCreateOrgCleansUpKeycloakWhenTheCommitFails() {
+	suite.failCommitOn("INSERT", "NEW", "commit-fails")
+
+	_, err := suite.service.CreateOrg(suite.ctx, orgDTO.CreateOrg{Name: "Commit Fails", Slug: "commit-fails"})
+
+	assert.ErrorContains(suite.T(), err, "commit rejected")
+	assert.Zero(suite.T(), suite.countOrgs("commit-fails"))
+	assert.Equal(suite.T(), []string{"commit-fails"}, suite.keycloak.deleted)
 }
 
 func (suite *OrgServiceTestSuite) TestDatabaseRejectsInvalidSlugs() {
@@ -443,6 +472,44 @@ func (suite *OrgServiceTestSuite) TestDeleteOrgReportsAFailedRestore() {
 	assert.ErrorIs(suite.T(), err, suite.keycloak.deleteErr)
 	assert.ErrorIs(suite.T(), err, suite.keycloak.createErr)
 	assert.Equal(suite.T(), 1, suite.countOrgs("restore-fails"))
+}
+
+func (suite *OrgServiceTestSuite) TestDeleteOrgCompletesWhenKeycloakDeletedEverythingDespiteAnError() {
+	org := suite.createOrg("deleted-despite-error", nil)
+	suite.keycloak.deleteErr = errors.New("response lost")
+	suite.keycloak.deletedDespiteErr = true
+
+	slug, err := suite.service.DeleteOrg(suite.ctx, org.ID)
+
+	require.NoError(suite.T(), err)
+	assert.Equal(suite.T(), "deleted-despite-error", slug)
+	assert.Zero(suite.T(), suite.countOrgs("deleted-despite-error"))
+	assert.Equal(suite.T(), []string{"deleted-despite-error"}, suite.keycloak.created, "nothing is restored")
+}
+
+func (suite *OrgServiceTestSuite) TestDeleteOrgKeepsTheOrgWithoutRestoringWhenTheKeycloakCheckFails() {
+	org := suite.createOrg("check-fails", nil)
+	suite.keycloak.deleteErr = errors.New("keycloak unavailable")
+	suite.keycloak.existErr = errors.New("check failed")
+
+	_, err := suite.service.DeleteOrg(suite.ctx, org.ID)
+
+	assert.ErrorIs(suite.T(), err, suite.keycloak.deleteErr)
+	assert.ErrorIs(suite.T(), err, suite.keycloak.existErr)
+	assert.Equal(suite.T(), 1, suite.countOrgs("check-fails"))
+	assert.Equal(suite.T(), []string{"check-fails"}, suite.keycloak.created, "nothing is restored")
+}
+
+func (suite *OrgServiceTestSuite) TestDeleteOrgRestoresKeycloakWhenTheCommitFails() {
+	org := suite.createOrg("delete-commit-fails", nil)
+	suite.failCommitOn("DELETE", "OLD", "delete-commit-fails")
+
+	_, err := suite.service.DeleteOrg(suite.ctx, org.ID)
+
+	assert.ErrorContains(suite.T(), err, "commit rejected")
+	assert.Equal(suite.T(), 1, suite.countOrgs("delete-commit-fails"))
+	assert.Equal(suite.T(), []string{"delete-commit-fails"}, suite.keycloak.deleted)
+	assert.Equal(suite.T(), []string{"delete-commit-fails", "delete-commit-fails"}, suite.keycloak.created, "the failed commit is followed by a restore")
 }
 
 func (suite *OrgServiceTestSuite) TestDeleteOrgNotFound() {

@@ -43,7 +43,8 @@ func (suite *OrgRouterTestSuite) SetupSuite() {
 	}
 	suite.cleanup = cleanup
 	noKeycloak := func(context.Context, string) error { return nil }
-	suite.service = NewOrgService(*testDB.Queries, testDB.Conn, noKeycloak, noKeycloak)
+	noKeycloakArtifacts := func(context.Context, string) (bool, error) { return false, nil }
+	suite.service = NewOrgService(*testDB.Queries, testDB.Conn, noKeycloak, noKeycloak, noKeycloakArtifacts)
 	suite.validationService = permissionValidation.NewValidationService(*testDB.Queries)
 
 	suite.org = suite.createOrg("ase", nil)

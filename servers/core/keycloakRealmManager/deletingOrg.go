@@ -37,3 +37,27 @@ func (s *KeycloakRealmService) DeleteOrgGroupsAndRoles(ctx context.Context, slug
 	}
 	return nil
 }
+
+func (s *KeycloakRealmService) OrgGroupsOrRolesExist(ctx context.Context, slug string) (bool, error) {
+	token, err := s.LoginClient(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	_, found, err := s.findGroupAtPath(ctx, token.AccessToken, ORGS_GROUP_NAME+"/"+slug)
+	if err != nil || found {
+		return found, err
+	}
+
+	for _, orgRole := range []string{permissionValidation.OrgAdmin, permissionValidation.OrgMember} {
+		roleName := permissionValidation.OrgRoleName(slug, orgRole)
+		_, err := s.client.GetClientRole(ctx, token.AccessToken, s.Realm, s.idOfClient, roleName)
+		if err == nil {
+			return true, nil
+		}
+		if !hasStatus(err, http.StatusNotFound) {
+			return false, fmt.Errorf("failed to get client role %s: %w", roleName, err)
+		}
+	}
+	return false, nil
+}

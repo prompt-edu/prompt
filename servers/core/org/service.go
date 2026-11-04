@@ -43,16 +43,19 @@ type OrgService struct {
 	conn                    *pgxpool.Pool
 	createOrgGroupsAndRoles func(ctx context.Context, slug string) error
 	deleteOrgGroupsAndRoles func(ctx context.Context, slug string) error
+	orgGroupsOrRolesExist   func(ctx context.Context, slug string) (bool, error)
 }
 
 func NewOrgService(queries db.Queries, conn *pgxpool.Pool,
 	createOrgGroupsAndRoles func(ctx context.Context, slug string) error,
-	deleteOrgGroupsAndRoles func(ctx context.Context, slug string) error) *OrgService {
+	deleteOrgGroupsAndRoles func(ctx context.Context, slug string) error,
+	orgGroupsOrRolesExist func(ctx context.Context, slug string) (bool, error)) *OrgService {
 	return &OrgService{
 		queries:                 queries,
 		conn:                    conn,
 		createOrgGroupsAndRoles: createOrgGroupsAndRoles,
 		deleteOrgGroupsAndRoles: deleteOrgGroupsAndRoles,
+		orgGroupsOrRolesExist:   orgGroupsOrRolesExist,
 	}
 }
 
@@ -105,9 +108,24 @@ func (s *OrgService) CreateOrg(ctx context.Context, input orgDTO.CreateOrg) (org
 	}
 
 	if err := tx.Commit(ctx); err != nil {
-		return orgDTO.Org{}, fmt.Errorf("failed to commit transaction: %w", err)
+		return s.reconcileFailedCreateCommit(ctx, created, fmt.Errorf("failed to commit transaction: %w", err))
 	}
 	return orgDTO.GetOrgDTOFromDBModel(created), nil
+}
+
+func (s *OrgService) reconcileFailedCreateCommit(ctx context.Context, created db.Org, commitErr error) (orgDTO.Org, error) {
+	checkCtx, cancel := db.GetTimeoutContext(context.WithoutCancel(ctx))
+	defer cancel()
+	orgID, err := s.queries.GetOrgIDBySlug(checkCtx, created.Slug)
+	switch {
+	case err == nil && orgID == created.ID:
+		return orgDTO.GetOrgDTOFromDBModel(created), nil
+	case errors.Is(err, pgx.ErrNoRows):
+		s.cleanUpKeycloak(ctx, created.Slug)
+	case err != nil:
+		return orgDTO.Org{}, errors.Join(commitErr, fmt.Errorf("failed to check whether the org was created: %w", err))
+	}
+	return orgDTO.Org{}, commitErr
 }
 
 func (s *OrgService) cleanUpKeycloak(ctx context.Context, slug string) {
@@ -196,17 +214,48 @@ func (s *OrgService) DeleteOrg(ctx context.Context, id uuid.UUID) (string, error
 	keycloakCtx, cancel := context.WithTimeout(ctx, keycloakTimeout)
 	defer cancel()
 	if err := s.deleteOrgGroupsAndRoles(keycloakCtx, slug); err != nil {
-		deleteErr := fmt.Errorf("failed to delete keycloak groups and roles: %w", err)
-		if restoreErr := s.restoreKeycloak(ctx, slug); restoreErr != nil {
-			return "", errors.Join(deleteErr, fmt.Errorf("failed to restore keycloak groups and roles: %w", restoreErr))
+		if err := s.reconcileFailedKeycloakDelete(ctx, slug, fmt.Errorf("failed to delete keycloak groups and roles: %w", err)); err != nil {
+			return "", err
 		}
-		return "", deleteErr
 	}
 
 	if err := tx.Commit(ctx); err != nil {
-		return "", fmt.Errorf("failed to commit transaction: %w", err)
+		return s.reconcileFailedDeleteCommit(ctx, id, slug, fmt.Errorf("failed to commit transaction: %w", err))
 	}
 	return slug, nil
+}
+
+func (s *OrgService) reconcileFailedKeycloakDelete(ctx context.Context, slug string, deleteErr error) error {
+	checkCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), keycloakTimeout)
+	defer cancel()
+	exist, err := s.orgGroupsOrRolesExist(checkCtx, slug)
+	if err != nil {
+		return errors.Join(deleteErr, fmt.Errorf("failed to check the keycloak groups and roles: %w", err))
+	}
+	if !exist {
+		log.Warn("keycloak deleted the groups and roles of org ", slug, " despite an error: ", deleteErr)
+		return nil
+	}
+	if err := s.restoreKeycloak(ctx, slug); err != nil {
+		return errors.Join(deleteErr, fmt.Errorf("failed to restore keycloak groups and roles: %w", err))
+	}
+	return deleteErr
+}
+
+func (s *OrgService) reconcileFailedDeleteCommit(ctx context.Context, id uuid.UUID, slug string, commitErr error) (string, error) {
+	checkCtx, cancel := db.GetTimeoutContext(context.WithoutCancel(ctx))
+	defer cancel()
+	_, err := s.queries.GetOrgByID(checkCtx, id)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return slug, nil
+	}
+	if err != nil {
+		return "", errors.Join(commitErr, fmt.Errorf("failed to check whether the org was deleted: %w", err))
+	}
+	if err := s.restoreKeycloak(ctx, slug); err != nil {
+		return "", errors.Join(commitErr, fmt.Errorf("failed to restore keycloak groups and roles: %w", err))
+	}
+	return "", commitErr
 }
 
 func (s *OrgService) restoreKeycloak(ctx context.Context, slug string) error {

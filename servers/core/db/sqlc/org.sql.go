@@ -155,6 +155,17 @@ func (q *Queries) GetOrgByID(ctx context.Context, id uuid.UUID) (Org, error) {
 	return i, err
 }
 
+const getOrgIDBySlug = `-- name: GetOrgIDBySlug :one
+SELECT id FROM org WHERE slug = $1
+`
+
+func (q *Queries) GetOrgIDBySlug(ctx context.Context, slug string) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, getOrgIDBySlug, slug)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
+}
+
 const lockOrgHierarchy = `-- name: LockOrgHierarchy :exec
 SELECT pg_advisory_xact_lock(hashtext('org_hierarchy'))
 `

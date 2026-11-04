@@ -42,7 +42,8 @@ func (suite *OrgHierarchyTestSuite) SetupSuite() {
 	suite.conn = testDB.Conn
 	suite.queries = testDB.Queries
 	noKeycloak := func(context.Context, string) error { return nil }
-	suite.service = NewOrgService(*testDB.Queries, testDB.Conn, noKeycloak, noKeycloak)
+	noKeycloakArtifacts := func(context.Context, string) (bool, error) { return false, nil }
+	suite.service = NewOrgService(*testDB.Queries, testDB.Conn, noKeycloak, noKeycloak, noKeycloakArtifacts)
 
 	_, err = suite.conn.Exec(suite.ctx, `
 		INSERT INTO org (id, parent_org_id, name, slug)

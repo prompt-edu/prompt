@@ -45,7 +45,7 @@ export const CreateOrgDialog = ({ orgs, isPending, onClose, onSubmit }: CreateOr
   const showSlugError = editedSlug !== null || details.name.trim() !== ''
 
   return (
-    <Dialog open onOpenChange={(isOpen) => !isOpen && onClose()}>
+    <Dialog open onOpenChange={(isOpen) => !isOpen && !isPending && onClose()}>
       <DialogContent className='sm:max-w-xl max-h-[90vh] overflow-y-auto'>
         <DialogHeader>
           <DialogTitle>Add Org</DialogTitle>
@@ -103,7 +103,7 @@ export const CreateOrgDialog = ({ orgs, isPending, onClose, onSubmit }: CreateOr
           />
         </div>
         <DialogFooter>
-          <Button variant='outline' onClick={onClose}>
+          <Button variant='outline' onClick={onClose} disabled={isPending}>
             Cancel
           </Button>
           <Button onClick={() => onSubmit(values)} disabled={!isValid || isPending}>

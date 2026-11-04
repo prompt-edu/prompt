@@ -72,12 +72,15 @@ export const CreateOrgDialog = ({ orgs, isPending, onClose, onSubmit }: CreateOr
               placeholder='e.g. aet'
               disabled={isPending}
               aria-invalid={showSlugError && errors.slug !== undefined}
+              aria-describedby='create-org-slug-description'
               onChange={(e) => setEditedSlug(e.target.value)}
             />
             {showSlugError && errors.slug ? (
-              <p className='text-sm text-destructive'>{errors.slug}</p>
+              <p id='create-org-slug-description' className='text-sm text-destructive'>
+                {errors.slug}
+              </p>
             ) : (
-              <p className='text-sm text-muted-foreground'>
+              <p id='create-org-slug-description' className='text-sm text-muted-foreground'>
                 Names the org&apos;s Keycloak roles, such as{' '}
                 <code>org-{values.slug || '<slug>'}-Admin</code>. It cannot be changed later.
               </p>

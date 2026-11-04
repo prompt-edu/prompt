@@ -64,6 +64,7 @@ export const OrgDetailsFields = ({
       {FIELDS.filter(({ field }) => fields === undefined || fields.includes(field)).map(
         ({ field, label, placeholder, type }) => {
           const id = `${idPrefix}-${field}`
+          const errorId = `${id}-error`
           const error =
             editedFields.includes(field) || values[field].trim() !== '' ? errors[field] : undefined
           return (
@@ -76,6 +77,7 @@ export const OrgDetailsFields = ({
                 placeholder={placeholder}
                 disabled={disabled}
                 aria-invalid={error !== undefined}
+                aria-describedby={error ? errorId : undefined}
                 onChange={(e) => {
                   if (!editedFields.includes(field)) {
                     setEditedFields([...editedFields, field])
@@ -83,7 +85,11 @@ export const OrgDetailsFields = ({
                   onChange({ ...values, [field]: e.target.value })
                 }}
               />
-              {error && <p className='text-sm text-destructive'>{error}</p>}
+              {error && (
+                <p id={errorId} className='text-sm text-destructive'>
+                  {error}
+                </p>
+              )}
             </div>
           )
         },

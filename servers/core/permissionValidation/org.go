@@ -41,8 +41,9 @@ func (s *ValidationService) CheckOrgPermission(c *gin.Context, orgID uuid.UUID, 
 	if !ok {
 		return false, errors.New("invalid token issue time format in context")
 	}
-	// A token issued before the org existed holds the roles of a deleted org with the same slug.
-	if issuedAt.Before(org.CreatedAt.Time.Truncate(time.Second)) {
+	// A token issued before the org existed holds the roles of a deleted org with the same slug. The
+	// issue time has whole seconds, so a token from the second the org was created is rejected too.
+	if !issuedAt.After(org.CreatedAt.Time) {
 		return false, nil
 	}
 

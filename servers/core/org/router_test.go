@@ -68,7 +68,8 @@ func (suite *OrgRouterTestSuite) routerFor(roles ...string) *gin.Engine {
 }
 
 func (suite *OrgRouterTestSuite) routerWith(roles []string, middleware ...gin.HandlerFunc) *gin.Engine {
-	return suite.routerForTokenIssuedAt(time.Now(), roles, middleware...)
+	// Issued after every org the tests create, even if the database clock runs slightly ahead.
+	return suite.routerForTokenIssuedAt(time.Now().Add(time.Minute), roles, middleware...)
 }
 
 func (suite *OrgRouterTestSuite) routerForTokenIssuedAt(issuedAt time.Time, roles []string, middleware ...gin.HandlerFunc) *gin.Engine {
@@ -183,9 +184,11 @@ func (suite *OrgRouterTestSuite) TestRolesOfADeletedOrgGrantNothingOnAnOrgReusin
 	roles := []string{"org-reused-Admin"}
 
 	staleToken := suite.routerForTokenIssuedAt(reused.CreatedAt.Add(-time.Minute), roles)
-	freshToken := suite.routerForTokenIssuedAt(time.Now(), roles)
+	sameSecondToken := suite.routerForTokenIssuedAt(reused.CreatedAt.Truncate(time.Second), roles)
+	freshToken := suite.routerForTokenIssuedAt(reused.CreatedAt.Add(time.Second), roles)
 
 	assert.Equal(suite.T(), http.StatusForbidden, serve(staleToken, http.MethodGet, orgPath(reused.ID), nil).Code)
+	assert.Equal(suite.T(), http.StatusForbidden, serve(sameSecondToken, http.MethodGet, orgPath(reused.ID), nil).Code)
 	assert.Equal(suite.T(), http.StatusOK, serve(freshToken, http.MethodGet, orgPath(reused.ID), nil).Code)
 }
 

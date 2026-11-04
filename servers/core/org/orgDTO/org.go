@@ -41,7 +41,7 @@ type UpdateOrg struct {
 }
 
 type UpdateOrgParent struct {
-	ParentOrgID *uuid.UUID `json:"parentOrgID"`
+	ParentOrgID *uuid.UUID `json:"parentOrgID" validate:"required" extensions:"x-nullable"`
 }
 
 func (u *UpdateOrgParent) UnmarshalJSON(data []byte) error {

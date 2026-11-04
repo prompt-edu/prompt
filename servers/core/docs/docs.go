@@ -9087,9 +9087,13 @@ const docTemplate = `{
         },
         "orgDTO.UpdateOrgParent": {
             "type": "object",
+            "required": [
+                "parentOrgID"
+            ],
             "properties": {
                 "parentOrgID": {
-                    "type": "string"
+                    "type": "string",
+                    "x-nullable": true
                 }
             }
         },

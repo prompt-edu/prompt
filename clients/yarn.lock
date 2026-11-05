@@ -1126,90 +1126,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@hookform/resolvers@npm:^5.9.2":
-  version: 5.9.2
-  resolution: "@hookform/resolvers@npm:5.9.2"
-  dependencies:
-    "@standard-schema/utils": "npm:^0.3.0"
-  peerDependencies:
-    "@sinclair/typebox": ">=0.25.24"
-    "@standard-schema/spec": ^1.0.0
-    "@typeschema/main": ">=0.13.7"
-    "@vinejs/vine": ^2.0.0 || ^3.0.0 || ^4.0.0
-    ajv: ^8.12.0
-    ajv-errors: ^3.0.0
-    ajv-formats: ^2.1.1
-    arktype: ^2.0.0
-    ata-validator: ^1.23.0
-    class-transformer: ">=0.4.0"
-    class-validator: ">=0.12.0"
-    computed-types: ^1.0.0
-    effect: ^3.10.3
-    fluentvalidation-ts: ^3.0.0
-    fp-ts: ^2.7.0
-    io-ts: ^2.0.0
-    joi: ^17.0.0 || ^18.0.0
-    nope-validator: ">=0.12.0"
-    react-hook-form: ^7.55.0
-    superstruct: ">=0.12.0"
-    typanion: ^3.3.2
-    valibot: ">=0.31.0 || ^1.0.0-beta.4 || ^1.0.0-rc"
-    vest: ">=6.0.0"
-    yup: ^1.0.0
-    zod: ^3.25.0 || ^4.0.0
-  peerDependenciesMeta:
-    "@sinclair/typebox":
-      optional: true
-    "@standard-schema/spec":
-      optional: true
-    "@typeschema/main":
-      optional: true
-    "@vinejs/vine":
-      optional: true
-    ajv:
-      optional: true
-    ajv-errors:
-      optional: true
-    ajv-formats:
-      optional: true
-    arktype:
-      optional: true
-    ata-validator:
-      optional: true
-    class-transformer:
-      optional: true
-    class-validator:
-      optional: true
-    computed-types:
-      optional: true
-    effect:
-      optional: true
-    fluentvalidation-ts:
-      optional: true
-    fp-ts:
-      optional: true
-    io-ts:
-      optional: true
-    joi:
-      optional: true
-    nope-validator:
-      optional: true
-    superstruct:
-      optional: true
-    typanion:
-      optional: true
-    valibot:
-      optional: true
-    vest:
-      optional: true
-    yup:
-      optional: true
-    zod:
-      optional: true
-  checksum: 10c0/a1dfbb21ca5c65cba81fb82b1176c4788b8fe6a591886c16908995c1c21fdb1426bce8f013c6d90c00d511b44c481f99bc9b897b8c6ca3f61e0db5f4fe7dfd4a
-  languageName: node
-  linkType: hard
-
 "@hookform/resolvers@npm:^6.0.0":
   version: 6.0.0
   resolution: "@hookform/resolvers@npm:6.0.0"
@@ -4652,11 +4568,11 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tumaet/prompt-ui-components@npm:1.9.0":
-  version: 1.9.0
-  resolution: "@tumaet/prompt-ui-components@npm:1.9.0"
+"@tumaet/prompt-ui-components@npm:1.10.0":
+  version: 1.10.0
+  resolution: "@tumaet/prompt-ui-components@npm:1.10.0"
   dependencies:
-    "@hookform/resolvers": "npm:^5.9.2"
+    "@hookform/resolvers": "npm:^6.0.0"
     "@radix-ui/react-accordion": "npm:^1.3.1"
     "@radix-ui/react-alert-dialog": "npm:^1.2.1"
     "@radix-ui/react-avatar": "npm:^1.3.1"
@@ -4722,7 +4638,7 @@ __metadata:
     react: ^19.3.1
     react-dom: ^19.3.1
     react-router-dom: ^7.18.4
-  checksum: 10c0/8159ad1f4fc67ffe8f37b5817fb41af042233642a0c922faadbb7a4f6ad0b377becc4571fe687df261468fb698f20078948ea6bbd0657f293d7e8614c7d89ba4
+  checksum: 10c0/9d77cfe058e1f8380575846ec78decae6e3f946c7aac239f71e172d0ac0f1bb9c801b3157503658440578e8c176a52dd47378ead51f436278ff726a884e6145f
   languageName: node
   linkType: hard
 
@@ -9735,7 +9651,7 @@ __metadata:
     "@tiptap/react": "npm:^3.32.0"
     "@tiptap/starter-kit": "npm:^3.32.0"
     "@tumaet/prompt-shared-state": "npm:1.4.0"
-    "@tumaet/prompt-ui-components": "npm:1.9.0"
+    "@tumaet/prompt-ui-components": "npm:1.10.0"
     "@types/node": "npm:^25.9.9"
     "@types/react": "npm:^19.3.0"
     "@types/react-beautiful-dnd": "npm:^13.1.8"

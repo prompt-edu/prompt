@@ -1308,7 +1308,7 @@ SELECT
     COALESCE(cp.restricted_data->>'profilePictureRequirement', 'off')::text AS profile_picture_requirement,
     COALESCE(cp.restricted_data->>'profilePictureExplanation', '')::text AS profile_picture_explanation,
     -- hiding is on unless a lecturer turned it off
-    COALESCE((cp.restricted_data->>'hideProfilePicturesUntilAccepted')::boolean, true)::boolean AS hide_profile_pictures_until_accepted
+    (cp.restricted_data->'hideProfilePicturesUntilAccepted' IS DISTINCT FROM 'false'::jsonb)::boolean AS hide_profile_pictures_until_accepted
 FROM
     course_phase cp
 JOIN

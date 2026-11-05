@@ -26,13 +26,15 @@ WHERE pp.user_id = ANY(sqlc.arg(user_ids)::uuid[])
       SELECT 1
       FROM student s
       JOIN course_participation hidden_cp ON hidden_cp.student_id = s.id
+      JOIN course c ON c.id = hidden_cp.course_id
       JOIN course_phase_participation cpp ON cpp.course_participation_id = hidden_cp.id
       JOIN course_phase ph ON ph.id = cpp.course_phase_id
       JOIN course_phase_type t ON t.id = ph.course_phase_type_id
       WHERE s.university_login = pp.university_login
         AND t.name = 'Application'
-        AND COALESCE((ph.restricted_data->>'hideProfilePicturesUntilAccepted')::boolean, true)
-        AND cpp.pass_status IS DISTINCT FROM 'passed'
+        AND ph.restricted_data->'hideProfilePicturesUntilAccepted' IS DISTINCT FROM 'false'::jsonb
+        AND COALESCE(cpp.pass_status, 'not_assessed') = 'not_assessed'
+        AND (c.end_date IS NULL OR c.end_date >= CURRENT_DATE)
   );
 
 -- If several accounts share a university login, the most recent upload wins.
@@ -45,13 +47,15 @@ WHERE s.id = ANY(sqlc.arg(student_ids)::uuid[])
   AND NOT EXISTS (
       SELECT 1
       FROM course_participation hidden_cp
+      JOIN course c ON c.id = hidden_cp.course_id
       JOIN course_phase_participation cpp ON cpp.course_participation_id = hidden_cp.id
       JOIN course_phase ph ON ph.id = cpp.course_phase_id
       JOIN course_phase_type t ON t.id = ph.course_phase_type_id
       WHERE hidden_cp.student_id = s.id
         AND t.name = 'Application'
-        AND COALESCE((ph.restricted_data->>'hideProfilePicturesUntilAccepted')::boolean, true)
-        AND cpp.pass_status IS DISTINCT FROM 'passed'
+        AND ph.restricted_data->'hideProfilePicturesUntilAccepted' IS DISTINCT FROM 'false'::jsonb
+        AND COALESCE(cpp.pass_status, 'not_assessed') = 'not_assessed'
+        AND (c.end_date IS NULL OR c.end_date >= CURRENT_DATE)
   )
 ORDER BY s.id, pp.updated_at DESC;
 
@@ -69,7 +73,7 @@ WHERE cp.id = ANY(sqlc.arg(course_participation_ids)::uuid[])
       JOIN course_phase_type t ON t.id = ph.course_phase_type_id
       WHERE cpp.course_participation_id = cp.id
         AND t.name = 'Application'
-        AND COALESCE((ph.restricted_data->>'hideProfilePicturesUntilAccepted')::boolean, true)
+        AND ph.restricted_data->'hideProfilePicturesUntilAccepted' IS DISTINCT FROM 'false'::jsonb
         AND cpp.pass_status IS DISTINCT FROM 'passed'
   )
 ORDER BY cp.id, pp.updated_at DESC;

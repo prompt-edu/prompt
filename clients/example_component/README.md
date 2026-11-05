@@ -15,11 +15,11 @@ PROMPT's core client (`clients/core`) is a Webpack Module Federation host. Each 
 exactly three modules (`exposes` in `clients/shared/rspack/createRspackConfig.mjs`, which is where
 this component's entire rspack config comes from):
 
-| Exposed module | File           | Consumed by core as                               |
-| -------------- | -------------- | ------------------------------------------------- |
-| `./routes`     | `routes/`      | React Router routes rendered inside the console   |
-| `./sidebar`    | `sidebar/`     | Sidebar menu entry (title, icon, subitems)        |
-| `./provide`    | `src/provide/` | Optional extension points (e.g. `StudentDetail`)  |
+| Exposed module | File           | Consumed by core as                              |
+| -------------- | -------------- | ------------------------------------------------ |
+| `./routes`     | `routes/`      | React Router routes rendered inside the console  |
+| `./sidebar`    | `sidebar/`     | Sidebar menu entry (title, icon, subitems)       |
+| `./provide`    | `src/provide/` | Optional extension points (e.g. `StudentDetail`) |
 
 Routes and sidebar items carry `requiredPermissions` (roles from `@tumaet/prompt-shared-state`);
 core filters them per user.
@@ -65,7 +65,6 @@ Open <http://localhost:3000> and add a phase of type `example_component` to a co
 ## Creating your own phase from this component
 
 Prefer `make new-phase` (see above). To do it manually:
-
 1. `cp -R clients/example_component clients/<name>_component` and rename the inner
    `src/example_component` directory.
 2. Update `name` and `port` in `rspack.config.mjs`, `"name"` in `package.json`, and the root

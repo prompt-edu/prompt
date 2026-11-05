@@ -59,3 +59,32 @@ func (suite *ApplicationAdminServiceTestSuite) TestValidateProfilePictureRequire
 	// Without the requirement, nobody is held back
 	assert.NoError(suite.T(), suite.applicationAdminService.ValidateProfilePictureRequirement(suite.ctx, phaseWithoutPictureSettings, applicantWithoutPicture))
 }
+
+func (suite *ApplicationAdminServiceTestSuite) TestSyncProfilePictureUniversityLogin() {
+	conn := suite.applicationAdminService.conn
+	userID, fileID := uuid.New(), uuid.New()
+	_, err := conn.Exec(suite.ctx,
+		`INSERT INTO files (id, filename, original_filename, content_type, size_bytes, storage_key, uploaded_by_user_id)
+		 VALUES ($1, 'p.jpg', 'p.jpg', 'image/jpeg', 100, $2, $3)`,
+		fileID, "profile-picture/"+userID.String()+"/p.jpg", userID.String())
+	require.NoError(suite.T(), err)
+	_, err = conn.Exec(suite.ctx, `INSERT INTO profile_picture (user_id, file_id) VALUES ($1, $2)`, userID, fileID)
+	require.NoError(suite.T(), err)
+
+	storedLogin := func() *string {
+		var login *string
+		require.NoError(suite.T(), conn.QueryRow(suite.ctx,
+			`SELECT university_login FROM profile_picture WHERE user_id = $1`, userID).Scan(&login))
+		return login
+	}
+
+	require.NoError(suite.T(), suite.applicationAdminService.SyncProfilePictureUniversityLogin(suite.ctx, userID, ""))
+	assert.Nil(suite.T(), storedLogin(), "an account without a login has nothing to link")
+
+	require.NoError(suite.T(), suite.applicationAdminService.SyncProfilePictureUniversityLogin(suite.ctx, userID, "ap10pli"))
+	require.NotNil(suite.T(), storedLogin())
+	assert.Equal(suite.T(), "ap10pli", *storedLogin())
+
+	assert.NoError(suite.T(), suite.applicationAdminService.SyncProfilePictureUniversityLogin(suite.ctx, uuid.New(), "ap11pli"),
+		"applicants without a picture are not an error")
+}

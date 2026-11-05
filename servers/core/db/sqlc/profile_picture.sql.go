@@ -227,6 +227,23 @@ func (q *Queries) LockProfilePictureOfUser(ctx context.Context, userID uuid.UUID
 	return err
 }
 
+const syncProfilePictureUniversityLogin = `-- name: SyncProfilePictureUniversityLogin :exec
+UPDATE profile_picture
+SET university_login = $1
+WHERE user_id = $2
+  AND university_login IS DISTINCT FROM $1
+`
+
+type SyncProfilePictureUniversityLoginParams struct {
+	UniversityLogin pgtype.Text `json:"university_login"`
+	UserID          uuid.UUID   `json:"user_id"`
+}
+
+func (q *Queries) SyncProfilePictureUniversityLogin(ctx context.Context, arg SyncProfilePictureUniversityLoginParams) error {
+	_, err := q.db.Exec(ctx, syncProfilePictureUniversityLogin, arg.UniversityLogin, arg.UserID)
+	return err
+}
+
 const upsertProfilePicture = `-- name: UpsertProfilePicture :one
 INSERT INTO profile_picture (user_id, university_login, file_id)
 VALUES ($1, $2, $3)

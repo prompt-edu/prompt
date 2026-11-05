@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 )
 
@@ -39,6 +40,26 @@ func (s *ApplicationService) ValidateProfilePictureRequirement(ctx context.Conte
 	}
 	if err != nil {
 		return fmt.Errorf("failed to load the profile picture: %w", err)
+	}
+	return nil
+}
+
+// SyncProfilePictureUniversityLogin links a picture uploaded before the account had a university
+// login to the applicant, so hiding pictures until acceptance also covers it.
+func (s *ApplicationService) SyncProfilePictureUniversityLogin(ctx context.Context, userID uuid.UUID, universityLogin string) error {
+	if universityLogin == "" {
+		return nil
+	}
+
+	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
+	defer cancel()
+
+	err := s.queries.SyncProfilePictureUniversityLogin(ctxWithTimeout, db.SyncProfilePictureUniversityLoginParams{
+		UserID:          userID,
+		UniversityLogin: pgtype.Text{String: universityLogin, Valid: true},
+	})
+	if err != nil {
+		return fmt.Errorf("failed to sync the profile picture login: %w", err)
 	}
 	return nil
 }

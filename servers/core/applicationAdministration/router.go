@@ -446,6 +446,11 @@ func (s *ApplicationService) postApplicationAuthenticated(c *gin.Context) {
 		sdkUtils.HandleError(c, http.StatusInternalServerError, errors.New("could not check the profile picture"))
 		return
 	}
+	if err := s.SyncProfilePictureUniversityLogin(c, userUUID, universityLogin); err != nil {
+		log.Error(err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, errors.New("could not link the profile picture"))
+		return
+	}
 
 	application.Student.Email = userEmail
 	if firstName != "" && lastName != "" {

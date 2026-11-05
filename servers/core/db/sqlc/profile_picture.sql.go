@@ -88,11 +88,13 @@ WHERE cp.id = ANY($1::uuid[])
       SELECT 1
       FROM course_phase_participation cpp
       JOIN course_phase ph ON ph.id = cpp.course_phase_id
+      JOIN course c ON c.id = ph.course_id
       JOIN course_phase_type t ON t.id = ph.course_phase_type_id
       WHERE cpp.course_participation_id = cp.id
         AND t.name = 'Application'
         AND ph.restricted_data->'hideProfilePicturesUntilAccepted' IS DISTINCT FROM 'false'::jsonb
         AND cpp.pass_status IS DISTINCT FROM 'passed'
+        AND (c.end_date IS NULL OR c.end_date >= CURRENT_DATE)
   )
 ORDER BY cp.id, pp.updated_at DESC
 `

@@ -584,9 +584,9 @@ func (suite *ProfilePictureServiceTestSuite) TestLookupPictureURLs_OnlyUndecided
 	}{
 		"undecided in a running course": {"ap03pli", "not_assessed", &nextMonth, false, false},
 		"undecided without an end date": {"ap04pli", "not_assessed", nil, false, false},
-		"undecided in an ended course":  {"ap05pli", "not_assessed", &yesterday, true, false},
+		"undecided in an ended course":  {"ap05pli", "not_assessed", &yesterday, true, true},
 		"rejected in a running course":  {"ap06pli", "failed", &nextMonth, true, false},
-		"rejected in an ended course":   {"ap07pli", "failed", &yesterday, true, false},
+		"rejected in an ended course":   {"ap07pli", "failed", &yesterday, true, true},
 		"accepted in a running course":  {"ap08pli", "passed", &nextMonth, true, true},
 	} {
 		suite.Run(name, func() {

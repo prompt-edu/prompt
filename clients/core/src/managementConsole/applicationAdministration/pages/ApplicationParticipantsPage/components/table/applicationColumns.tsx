@@ -17,7 +17,7 @@ export function getApplicationColumns(
       enableSorting: false,
       cell: ({ row }) => (
         <ProfilePicture
-          courseParticipationId={row.original.courseParticipationID}
+          studentId={row.original.student.id}
           firstName={row.original.student.firstName}
           lastName={row.original.student.lastName}
           hiddenReason={getApplicantPictureHiddenReason(

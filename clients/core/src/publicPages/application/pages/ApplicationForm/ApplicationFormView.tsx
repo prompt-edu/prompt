@@ -80,7 +80,8 @@ export const ApplicationFormView = ({
   const [studentData, setStudentData] = useState<Student>(student ?? ({} as Student))
   const studentRef = useRef<StudentComponentRef>(null)
   const profilePictureRef = useRef<ProfilePictureSectionRef>(null)
-  const asksForProfilePicture = profilePicture !== undefined && profilePicture.requirement !== 'off'
+  const asksForProfilePicture =
+    profilePicture?.requirement === 'optional' || profilePicture?.requirement === 'required'
   const questionTextRefs = useRef<Array<QuestionTextFormRef | null | undefined>>([])
   const questionMultiSelectRefs = useRef<Array<QuestionMultiSelectFormRef | null | undefined>>([])
   const questionFileUploadRefs = useRef<Array<QuestionFileUploadFormRef | null | undefined>>([])

@@ -16,6 +16,7 @@ import (
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/assessment/teamScope"
+	"github.com/prompt-edu/prompt/servers/assessment/testutils"
 )
 
 type ActionItemServiceTestSuite struct {
@@ -36,7 +37,7 @@ func (suite *ActionItemServiceTestSuite) SetupSuite() {
 	}
 	suite.cleanup = cleanup
 	coursePhaseConfigService := coursePhaseConfig.NewCoursePhaseConfigService(*testDB.Queries, testDB.Conn, assessmentSchemas.NewAssessmentSchemaService(*testDB.Queries, testDB.Conn))
-	suite.actionItemService = NewActionItemService(*testDB.Queries, assessmentCompletion.NewAssessmentCompletionService(*testDB.Queries, testDB.Conn, coursePhaseConfigService), coursePhaseConfigService)
+	suite.actionItemService = NewActionItemService(*testDB.Queries, assessmentCompletion.NewAssessmentCompletionService(*testDB.Queries, testDB.Conn, coursePhaseConfigService, testutils.CheckTestParticipant), coursePhaseConfigService, testutils.CheckTestParticipant)
 
 	// Use predefined test UUIDs from the database dump
 	// This phase has assessment open (start in past, deadline in future)
@@ -59,8 +60,21 @@ func (suite *ActionItemServiceTestSuite) TestCreateActionItem() {
 		Author:                "test.author@example.com",
 	}
 
-	err := suite.actionItemService.CreateActionItem(suite.suiteCtx, suite.testCoursePhaseID, createRequest)
+	err := suite.actionItemService.CreateActionItem(suite.suiteCtx, "", suite.testCoursePhaseID, createRequest)
 	assert.NoError(suite.T(), err, "Should be able to create action item")
+}
+
+func (suite *ActionItemServiceTestSuite) TestCreateActionItemForParticipantOutsidePhase() {
+	err := suite.actionItemService.CreateActionItem(suite.suiteCtx, "", suite.testCoursePhaseID, actionItemDTO.CreateActionItemRequest{
+		CourseParticipationID: testutils.OutsideParticipationID,
+		Action:                "Orphaned action",
+		Author:                "tester",
+	})
+	assert.ErrorIs(suite.T(), err, coursePhaseConfig.ErrParticipantNotInPhase)
+
+	items, err := suite.actionItemService.ListActionItemsForStudentInPhase(suite.suiteCtx, testutils.OutsideParticipationID, suite.testCoursePhaseID)
+	assert.NoError(suite.T(), err)
+	assert.Empty(suite.T(), items)
 }
 
 func (suite *ActionItemServiceTestSuite) TestGetActionItemNonExistent() {
@@ -79,7 +93,7 @@ func (suite *ActionItemServiceTestSuite) TestUpdateActionItem() {
 		Author:                "original.author@example.com",
 	}
 
-	err := suite.actionItemService.CreateActionItem(suite.suiteCtx, suite.testCoursePhaseID, createRequest)
+	err := suite.actionItemService.CreateActionItem(suite.suiteCtx, "", suite.testCoursePhaseID, createRequest)
 	assert.NoError(suite.T(), err)
 
 	// Get the created action item by listing items for the student in this phase
@@ -130,7 +144,7 @@ func (suite *ActionItemServiceTestSuite) TestDeleteActionItemNonExistent() {
 
 func (suite *ActionItemServiceTestSuite) TestDeleteActionItemOutsideScope() {
 	participant := suite.testCourseParticipationID
-	err := suite.actionItemService.CreateActionItem(suite.suiteCtx, suite.testCoursePhaseID, actionItemDTO.CreateActionItemRequest{
+	err := suite.actionItemService.CreateActionItem(suite.suiteCtx, "", suite.testCoursePhaseID, actionItemDTO.CreateActionItemRequest{
 		CourseParticipationID: participant,
 		Action:                "Scoped action",
 		Author:                "tutor@example.com",
@@ -173,7 +187,7 @@ func (suite *ActionItemServiceTestSuite) TestListActionItemsForCoursePhase() {
 
 	// Create the action items
 	for _, item := range actionItems {
-		err := suite.actionItemService.CreateActionItem(suite.suiteCtx, testCoursePhaseID, item)
+		err := suite.actionItemService.CreateActionItem(suite.suiteCtx, "", testCoursePhaseID, item)
 		assert.NoError(suite.T(), err)
 	}
 
@@ -213,7 +227,7 @@ func (suite *ActionItemServiceTestSuite) TestListActionItemsForStudentInPhase() 
 
 	// Create the action items
 	for _, item := range actionItems {
-		err := suite.actionItemService.CreateActionItem(suite.suiteCtx, testCoursePhaseID, item)
+		err := suite.actionItemService.CreateActionItem(suite.suiteCtx, "", testCoursePhaseID, item)
 		assert.NoError(suite.T(), err)
 	}
 
@@ -254,7 +268,7 @@ func (suite *ActionItemServiceTestSuite) TestCountActionItemsForStudentInPhase()
 
 	// Create the action items
 	for _, item := range actionItems {
-		err := suite.actionItemService.CreateActionItem(suite.suiteCtx, testCoursePhaseID, item)
+		err := suite.actionItemService.CreateActionItem(suite.suiteCtx, "", testCoursePhaseID, item)
 		assert.NoError(suite.T(), err)
 	}
 
@@ -300,7 +314,7 @@ func (suite *ActionItemServiceTestSuite) TestGetAllActionItemsForCoursePhaseComm
 
 	// Create the action items
 	for _, item := range actionItems {
-		err := suite.actionItemService.CreateActionItem(suite.suiteCtx, testCoursePhaseID, item)
+		err := suite.actionItemService.CreateActionItem(suite.suiteCtx, "", testCoursePhaseID, item)
 		assert.NoError(suite.T(), err)
 	}
 
@@ -355,7 +369,7 @@ func (suite *ActionItemServiceTestSuite) TestGetStudentActionItemsForCoursePhase
 
 	// Create the action items
 	for _, item := range actionItems {
-		err := suite.actionItemService.CreateActionItem(suite.suiteCtx, testCoursePhaseID, item)
+		err := suite.actionItemService.CreateActionItem(suite.suiteCtx, "", testCoursePhaseID, item)
 		assert.NoError(suite.T(), err)
 	}
 

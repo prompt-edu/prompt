@@ -109,9 +109,11 @@ test.describe('team allocation API tutor access', () => {
 
   test('admits a lecturer to the allocation write routes', async ({ apiAs }) => {
     const api = await apiAs('course-lecturer')
-    // The participant has no allocation, so the 404 proves the request passed
-    // auth and reached the handler without changing the fixture.
+    // The participant has no allocation, so the handler answers 404 without
+    // changing the shared fixture. Its error body tells that 404 apart from one
+    // the proxy would return for a route that never reached the server.
     const res = await api.delete(phaseUrl(phaseId, `allocation/${unallocatedParticipationId}`))
     expect(res.status()).toBe(404)
+    expect(await res.json()).toEqual({ error: 'allocation not found' })
   })
 })

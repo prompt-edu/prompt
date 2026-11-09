@@ -84,13 +84,11 @@ a populated course. `cd000009` to `cd000011` are the three tutors: course partic
 without phase participations, assigned to the teams in Team Allocation and evaluated by
 their teams' students in Assessment.
 
-Two things are intentionally absent:
+One thing is intentionally absent:
 
 - **File-upload answers.** `application_answer_file_upload` needs a `files` row backed
   by a real object in SeaweedFS, which SQL alone cannot create. The upload *question*
   is seeded.
-- **Peer evaluations.** The config leaves that schema column to its migration-set
-  default; only the self- and tutor-evaluation rounds are seeded.
 
 ## The demo timeline
 

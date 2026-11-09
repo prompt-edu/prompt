@@ -160,8 +160,8 @@ export function ApplicationSettingsProfilePicture({
             <div className='space-y-1'>
               <Label htmlFor='hide-profile-pictures'>Hide pictures until acceptance</Label>
               <p className='text-sm text-muted-foreground'>
-                Reviewers see no applicant pictures until the applicant is accepted, so pictures
-                cannot influence the decision.
+                The participant list and the application pages hide applicant pictures until the
+                applicant is accepted, so pictures cannot influence the decision.
               </p>
             </div>
             <Switch

@@ -29,9 +29,8 @@ export const ShowProfilePicturesConfirmation = ({
           Show pictures to reviewers?
         </AlertDialogTitle>
         <AlertDialogDescription>
-          Applicants who already applied were told their picture stays hidden until they are
-          accepted. Once you save, reviewers see the pictures of all applicants who are not accepted
-          yet.
+          Applicants who already applied were told their picture is hidden in the application review
+          until they are accepted. Once you save, the review shows the pictures of all applicants.
         </AlertDialogDescription>
       </AlertDialogHeader>
       <AlertDialogFooter>

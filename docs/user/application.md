@@ -57,7 +57,7 @@ Only applicants who log in with their university account are asked, so **Require
 
 Under **Explanation for applicants** you can add a short text that is shown next to the upload, for example why you ask for a picture and how you use it.
 
-**Hide pictures until acceptance** is on by default. Reviewers then see no applicant pictures anywhere in PROMPT until the applicant is accepted, so pictures cannot influence the decision. Once an application is decided, the picture shows up across PROMPT again, while applicants who were not accepted stay hidden in that course. After a course has ended, its applications no longer hide pictures elsewhere in PROMPT. Hidden pictures are marked in the participant list and on the application page. Switching it off asks for confirmation, because applicants who already applied were told that their picture stays hidden.
+**Hide pictures until acceptance** is on by default. The participant list and the application page of this phase then show a hidden marker instead of the picture until the applicant is accepted, so pictures cannot influence the decision. The setting only covers these two views; other pages of PROMPT, such as the Students page, always show pictures. Switching it off asks for confirmation, because applicants who already applied were told that their picture is hidden in the review.
 
 ---
 

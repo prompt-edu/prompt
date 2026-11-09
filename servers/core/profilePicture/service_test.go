@@ -11,7 +11,6 @@ import (
 	"strings"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -488,125 +487,6 @@ func (suite *ProfilePictureServiceTestSuite) TestLookupPictureURLs() {
 
 	assert.Len(suite.T(), urls.CourseParticipations, 1)
 	assert.Contains(suite.T(), urls.CourseParticipations[adaParticipationID], adaPictureStorageKey)
-}
-
-func (suite *ProfilePictureServiceTestSuite) TestLookupPictureURLs_HidesApplicantsUntilAccepted() {
-	nextMonth := time.Now().AddDate(0, 1, 0)
-	applicant := suite.applicantWithPicture("ap01pli", "not_assessed", "{}", &nextMonth)
-	phaseID, participationID := applicant.phaseID, applicant.participationID
-	lookup := func() profilePictureDTO.ProfilePictureURLs {
-		return suite.lookupApplicant(applicant)
-	}
-
-	hidden := lookup()
-	assert.Empty(suite.T(), hidden.Users, "an applicant's picture must not resolve by user id before acceptance")
-	assert.Empty(suite.T(), hidden.Students)
-	assert.Empty(suite.T(), hidden.CourseParticipations)
-
-	_, err := suite.conn.Exec(suite.ctx, `UPDATE course_phase SET restricted_data = '{"hideProfilePicturesUntilAccepted": false}' WHERE id = $1`, phaseID)
-	require.NoError(suite.T(), err)
-	shownWithoutHiding := lookup()
-	assert.Len(suite.T(), shownWithoutHiding.Users, 1)
-	assert.Len(suite.T(), shownWithoutHiding.Students, 1)
-	assert.Len(suite.T(), shownWithoutHiding.CourseParticipations, 1)
-
-	_, err = suite.conn.Exec(suite.ctx, `UPDATE course_phase SET restricted_data = '{}' WHERE id = $1`, phaseID)
-	require.NoError(suite.T(), err)
-	_, err = suite.conn.Exec(suite.ctx, `UPDATE course_phase_participation SET pass_status = 'passed' WHERE course_participation_id = $1`, participationID)
-	require.NoError(suite.T(), err)
-	shownAfterAcceptance := lookup()
-	assert.Len(suite.T(), shownAfterAcceptance.Users, 1)
-	assert.Len(suite.T(), shownAfterAcceptance.Students, 1)
-	assert.Len(suite.T(), shownAfterAcceptance.CourseParticipations, 1)
-}
-
-type pictureApplicant struct {
-	userID          uuid.UUID
-	studentID       uuid.UUID
-	participationID uuid.UUID
-	phaseID         uuid.UUID
-}
-
-// applicantWithPicture gives a new student a picture and one application with the given status in
-// a new course ending on endDate, in a phase with the given restricted data.
-func (suite *ProfilePictureServiceTestSuite) applicantWithPicture(universityLogin, passStatus, restrictedData string, endDate *time.Time) pictureApplicant {
-	applicant := pictureApplicant{
-		userID:          uuid.New(),
-		studentID:       suite.insertStudent(universityLogin),
-		participationID: uuid.New(),
-		phaseID:         uuid.New(),
-	}
-	key := suite.upload(applicant.userID, pictureContentType, validJPEG)
-	_, err := suite.service.CompleteUpload(suite.ctx, Uploader{UserID: applicant.userID, UniversityLogin: universityLogin}, key)
-	require.NoError(suite.T(), err)
-
-	courseID := uuid.New()
-	for _, statement := range []struct {
-		sql  string
-		args []any
-	}{
-		{`INSERT INTO course (id, name, semester_tag, course_type, ects, end_date)
-		  VALUES ($1, $2, 'ws2526', 'practical course', 10, $3)`, []any{courseID, "Course " + universityLogin, endDate}},
-		{`INSERT INTO course_phase_type (id, name)
-		  SELECT $1, 'Application' WHERE NOT EXISTS (SELECT 1 FROM course_phase_type WHERE name = 'Application')`, []any{uuid.New()}},
-		{`INSERT INTO course_phase (id, course_id, name, restricted_data, is_initial_phase, course_phase_type_id)
-		  SELECT $1, $2, 'Application', $3::jsonb, true, id FROM course_phase_type WHERE name = 'Application'`, []any{applicant.phaseID, courseID, restrictedData}},
-		{`INSERT INTO course_participation (id, course_id, student_id) VALUES ($1, $2, $3)`, []any{applicant.participationID, courseID, applicant.studentID}},
-		{`INSERT INTO course_phase_participation (course_participation_id, course_phase_id, restricted_data, pass_status)
-		  VALUES ($1, $2, '{}', $3::pass_status)`, []any{applicant.participationID, applicant.phaseID, passStatus}},
-	} {
-		_, err := suite.conn.Exec(suite.ctx, statement.sql, statement.args...)
-		require.NoError(suite.T(), err)
-	}
-	return applicant
-}
-
-func (suite *ProfilePictureServiceTestSuite) lookupApplicant(applicant pictureApplicant) profilePictureDTO.ProfilePictureURLs {
-	urls, err := suite.service.LookupPictureURLs(suite.ctx, profilePictureDTO.LookupRequest{
-		UserIDs:                []uuid.UUID{applicant.userID},
-		StudentIDs:             []uuid.UUID{applicant.studentID},
-		CourseParticipationIDs: []uuid.UUID{applicant.participationID},
-	})
-	require.NoError(suite.T(), err)
-	return urls
-}
-
-func (suite *ProfilePictureServiceTestSuite) TestLookupPictureURLs_OnlyUndecidedApplicationsOfRunningCoursesHide() {
-	yesterday := time.Now().AddDate(0, 0, -1)
-	nextMonth := time.Now().AddDate(0, 1, 0)
-
-	for name, tc := range map[string]struct {
-		login                 string
-		passStatus            string
-		endDate               *time.Time
-		wantUserAndStudent    bool
-		wantCourseParticipant bool
-	}{
-		"undecided in a running course": {"ap03pli", "not_assessed", &nextMonth, false, false},
-		"undecided without an end date": {"ap04pli", "not_assessed", nil, false, false},
-		"undecided in an ended course":  {"ap05pli", "not_assessed", &yesterday, true, true},
-		"rejected in a running course":  {"ap06pli", "failed", &nextMonth, true, false},
-		"rejected in an ended course":   {"ap07pli", "failed", &yesterday, true, true},
-		"accepted in a running course":  {"ap08pli", "passed", &nextMonth, true, true},
-	} {
-		suite.Run(name, func() {
-			urls := suite.lookupApplicant(suite.applicantWithPicture(tc.login, tc.passStatus, "{}", tc.endDate))
-
-			assert.Equal(suite.T(), tc.wantUserAndStudent, len(urls.Users) == 1)
-			assert.Equal(suite.T(), tc.wantUserAndStudent, len(urls.Students) == 1)
-			assert.Equal(suite.T(), tc.wantCourseParticipant, len(urls.CourseParticipations) == 1)
-		})
-	}
-}
-
-func (suite *ProfilePictureServiceTestSuite) TestLookupPictureURLs_IgnoresNonBooleanHideSetting() {
-	nextMonth := time.Now().AddDate(0, 1, 0)
-	urls := suite.lookupApplicant(suite.applicantWithPicture("ap09pli", "not_assessed",
-		`{"hideProfilePicturesUntilAccepted": "x"}`, &nextMonth))
-
-	assert.Empty(suite.T(), urls.Users, "anything but false keeps the picture hidden")
-	assert.Empty(suite.T(), urls.Students)
-	assert.Empty(suite.T(), urls.CourseParticipations)
 }
 
 func (suite *ProfilePictureServiceTestSuite) TestLookupPictureURLs_EmptyRequest() {

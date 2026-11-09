@@ -45,7 +45,7 @@ func (s *ApplicationService) ValidateProfilePictureRequirement(ctx context.Conte
 }
 
 // SyncProfilePictureUniversityLogin links a picture uploaded before the account had a university
-// login to the applicant, so hiding pictures until acceptance also covers it.
+// login to the applicant, so lookups by student find it.
 func (s *ApplicationService) SyncProfilePictureUniversityLogin(ctx context.Context, userID uuid.UUID, universityLogin string) error {
 	if universityLogin == "" {
 		return nil

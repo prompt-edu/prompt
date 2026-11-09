@@ -27,9 +27,7 @@ export const useTutorNavigation = (): TutorNavigation => {
   const orderedTutors = useMemo(() => {
     const tutorById = new Map<string, NavigableParticipant>()
     for (const tutor of teams.flatMap((team) => team.tutors)) {
-      if (tutor.id && !tutorById.has(tutor.id)) {
-        tutorById.set(tutor.id, { courseParticipationID: tutor.id, student: tutor })
-      }
+      if (tutor.id) tutorById.set(tutor.id, { courseParticipationID: tutor.id, student: tutor })
     }
     return resolveNavigationOrder(snapshotIds, [...tutorById.keys()], tutorId).flatMap(
       (id) => tutorById.get(id) ?? [],

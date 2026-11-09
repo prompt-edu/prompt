@@ -1,11 +1,13 @@
 import {
+  Badge,
   Button,
   Card,
   CardContent,
+  CardHeader,
   ErrorPage,
   getStudentName,
-  ManagementPageHeader,
   ParticipantNavigation,
+  ProfilePicture,
   QueryGate,
   StickyHeader,
 } from '@tumaet/prompt-ui-components'
@@ -94,14 +96,31 @@ export const TutorEvaluationResultsPage = () => {
           return <ErrorPage message={`The requested ${tutorLabel.text} could not be found.`} />
         }
 
-        const pageTitle = `${tutorLabel.title} Evaluation Results for ${getStudentName(tutor)}`
+        const tutorName = getStudentName(tutor)
+        const pageTitle = `${tutorLabel.title} Evaluation Results`
+        const teamBadge = <Badge variant='outline'>{tutor.teamName}</Badge>
 
         return (
           <>
             <div className='space-y-4 print:hidden'>
               <StickyHeader
                 floating
-                expandedContent={<ManagementPageHeader>{pageTitle}</ManagementPageHeader>}
+                expandedContent={
+                  // Tutors have no participation in this phase, so only name and team.
+                  <Card>
+                    <CardHeader className='flex-row flex-wrap items-center gap-2 space-y-0'>
+                      <ProfilePicture
+                        courseParticipationId={tutor.id}
+                        firstName={tutor.firstName}
+                        lastName={tutor.lastName}
+                        size='lg'
+                        className='mr-2'
+                      />
+                      <h1 className='text-2xl font-bold'>{tutorName}</h1>
+                      {teamBadge}
+                    </CardHeader>
+                  </Card>
+                }
               >
                 {(docked) => (
                   <ParticipantNavigation
@@ -110,10 +129,20 @@ export const TutorEvaluationResultsPage = () => {
                     onNavigate={navigateToTutor}
                     compact={docked}
                   >
-                    <span className='truncate font-semibold'>{pageTitle}</span>
+                    <ProfilePicture
+                      courseParticipationId={tutor.id}
+                      firstName={tutor.firstName}
+                      lastName={tutor.lastName}
+                      size='sm'
+                      className='shrink-0'
+                    />
+                    <span className='truncate font-semibold'>{tutorName}</span>
+                    <div className='hidden shrink-0 sm:flex'>{teamBadge}</div>
                   </ParticipantNavigation>
                 )}
               </StickyHeader>
+
+              <h2 className='text-2xl font-bold'>{pageTitle}</h2>
 
               {tutorEvaluationCategories.length === 0 ? (
                 <Card>
@@ -167,7 +196,7 @@ export const TutorEvaluationResultsPage = () => {
             </div>
 
             <PrintReport
-              title={pageTitle}
+              title={`${pageTitle} for ${tutorName}`}
               subtitle={tutor.teamName}
               meta={
                 evaluatorCount > 1 ? (

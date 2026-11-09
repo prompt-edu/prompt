@@ -113,10 +113,7 @@ export const TutorOverviewPage = (): ReactNode => {
           if (coursePhaseConfig?.tutorEvaluationEnabled) {
             navigate(`${path}/${row.id}`, {
               state: {
-                // A tutor of several teams has a row per team.
-                orderedTutorIds: Array.from(
-                  new Set(orderedRows.map((orderedRow) => orderedRow.id)),
-                ),
+                orderedTutorIds: orderedRows.map((orderedRow) => orderedRow.id),
               } satisfies TutorDetailLocationState,
             })
           }

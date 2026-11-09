@@ -9,7 +9,7 @@
 	test-team-allocation test-self-team-allocation test-example \
 	test-certificate test-presentation test-infrastructure-setup test-ai \
 	test-e2e test-e2e-shard test-e2e-ui test-e2e-down \
-	verify-up verify-down stack stack-down s3 \
+	verify-up verify-down stack stop stack-down s3 \
 	sqlc sqlc-core sqlc-assessment sqlc-interview \
 	sqlc-team-allocation sqlc-self-team-allocation sqlc-example \
 	sqlc-certificate sqlc-presentation sqlc-infrastructure-setup sqlc-ai \
@@ -212,7 +212,8 @@ DB_SERVICES = db db-team-allocation db-assessment db-self-team-allocation \
 db: ## Start every service database and Keycloak
 	$(DEV_COMPOSE) up -d $(DB_SERVICES) keycloak
 
-db-down: ## Stop every service database and Keycloak
+db-down: ## Stop this stack's servers and client dev servers, its databases and Keycloak
+	@./scripts/stack-stop.sh $(STACK_OFFSET) $(DEV_PROCESS_PORTS)
 	$(DEV_COMPOSE) stop $(DB_SERVICES) keycloak
 
 # The core and presentation servers refuse to start without their bucket store.
@@ -227,11 +228,18 @@ seed: ## Load the demo course into every service database (re-runnable)
 seed-check: ## Verify the cross-database references in seed/ resolve
 	./scripts/seed-check.sh
 
+# The host ports, as in stack 0, that `make servers` and `make clients` listen on.
+DEV_PROCESS_PORTS := 8080 8083 8084 8085 8086 8087 8088 8089 8091 8092 \
+	3000 3001 3002 3003 3005 3006 3007 3008 3009 3010 3011 3012 3013
+
 ifeq (none,$(STACK))
 stack:
 	@echo "stack       none yet, the first make db, make servers or make clients here assigns one"
 	@echo "allocated   (<git common dir>/prompt-stacks)"
 	@./scripts/stack-number.sh --list | sed 's/^/            /'
+
+stop:
+	@echo "This worktree has no stack yet, so nothing of it runs."
 else
 stack: ## Show this checkout's stack number, ports and the allocated stacks
 	@echo "stack       $(STACK) (containers $(STACK_PREFIX)-*, e2e containers $(STACK_PREFIX)-e2e-*)"
@@ -249,6 +257,10 @@ stack: ## Show this checkout's stack number, ports and the allocated stacks
 	@echo "            $(E2E_COMPOSE)"
 	@echo "allocated   (<git common dir>/prompt-stacks)"
 	@./scripts/stack-number.sh --list | sed 's/^/            /'
+
+# make servers and make clients run in the background, so Ctrl-C doesn't stop them.
+stop: ## Stop this stack's servers and client dev servers (make servers, make clients)
+	@./scripts/stack-stop.sh $(STACK_OFFSET) $(DEV_PROCESS_PORTS)
 endif
 
 # Also works for the stack of a worktree that is already gone:
@@ -257,12 +269,13 @@ endif
 # branch can own more. scripts/stack-number.sh keeps a number taken while any
 # volume carries the project label, so the volumes are removed by label too.
 # Afterwards the stack's number is free again for any worktree.
-stack-down: ## Remove this stack's dev and e2e containers and volumes (stack 1 and up)
+stack-down: ## Stop this stack's processes, remove its dev and e2e containers and volumes, free its number (stack 1 and up)
 	@if [ "$(STACK)" = 0 ]; then \
 		echo "make stack-down: stack 0 is the main checkout's stack, which keeps its data in bind-mounted"; \
 		echo "directories. Use make db-down and make test-e2e-down there, or PROMPT_STACK=<n> for another stack."; \
 		exit 2; \
 	fi
+	@./scripts/stack-stop.sh $(STACK_OFFSET) $(DEV_PROCESS_PORTS)
 	$(DEV_COMPOSE) down -v --remove-orphans
 	unset $(E2E_ENV_KEYS); $(E2E_COMPOSE) down -v --remove-orphans
 	@for project in $(STACK_PREFIX) $(E2E_PROJECT); do \

@@ -4,13 +4,15 @@ import {
   CardContent,
   ErrorPage,
   getStudentName,
+  ManagementPageHeader,
+  ParticipantNavigation,
   QueryGate,
+  StickyHeader,
 } from '@tumaet/prompt-ui-components'
-import { ChevronLeft, ChevronRight, Printer } from 'lucide-react'
+import { Printer } from 'lucide-react'
 import { useMemo } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { AssessmentType } from '../../interfaces/assessmentType'
-import { EvaluationHeader } from '../components/EvaluationHeader'
 import { FeedbackItemDisplayPanel } from '../components/FeedbackItemDisplayPanel/FeedbackItemDisplayPanel'
 import { PrintReport } from '../components/PrintReport/PrintReport'
 import { useGetAllTeams } from '../hooks/useGetAllTeams'
@@ -26,8 +28,7 @@ import { useTutorNavigation } from './hooks/useTutorNavigation'
 
 export const TutorEvaluationResultsPage = () => {
   const { tutorId } = useParams<{ tutorId: string }>()
-  const navigate = useNavigate()
-  const { prevTutor, nextTutor } = useTutorNavigation()
+  const { orderedTutors, navigateToTutor } = useTutorNavigation()
 
   const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
   const tutorLabel = getTutorLabel(coursePhaseConfig)
@@ -93,39 +94,26 @@ export const TutorEvaluationResultsPage = () => {
           return <ErrorPage message={`The requested ${tutorLabel.text} could not be found.`} />
         }
 
+        const pageTitle = `${tutorLabel.title} Evaluation Results for ${getStudentName(tutor)}`
+
         return (
           <>
             <div className='space-y-4 print:hidden'>
-              <EvaluationHeader
-                previousAction={
-                  prevTutor && (
-                    <Button
-                      variant='outline'
-                      className='h-10 shrink-0'
-                      aria-label={`Navigate to previous ${tutorLabel.text}: ${getStudentName(prevTutor)}`}
-                      onClick={() => navigate(`../${prevTutor.id}`, { relative: 'path' })}
-                    >
-                      <ChevronLeft className='h-4 w-4' />
-                      <span className='hidden md:inline'>{getStudentName(prevTutor)}</span>
-                    </Button>
-                  )
-                }
-                nextAction={
-                  nextTutor && (
-                    <Button
-                      variant='outline'
-                      className='h-10 shrink-0'
-                      aria-label={`Navigate to next ${tutorLabel.text}: ${getStudentName(nextTutor)}`}
-                      onClick={() => navigate(`../${nextTutor.id}`, { relative: 'path' })}
-                    >
-                      <span className='hidden md:inline'>{getStudentName(nextTutor)}</span>
-                      <ChevronRight className='h-4 w-4' />
-                    </Button>
-                  )
-                }
+              <StickyHeader
+                floating
+                expandedContent={<ManagementPageHeader>{pageTitle}</ManagementPageHeader>}
               >
-                {tutorLabel.title} Evaluation Results for {getStudentName(tutor)}
-              </EvaluationHeader>
+                {(docked) => (
+                  <ParticipantNavigation
+                    participants={orderedTutors}
+                    currentId={tutorId}
+                    onNavigate={navigateToTutor}
+                    compact={docked}
+                  >
+                    <span className='truncate font-semibold'>{pageTitle}</span>
+                  </ParticipantNavigation>
+                )}
+              </StickyHeader>
 
               {tutorEvaluationCategories.length === 0 ? (
                 <Card>
@@ -179,7 +167,7 @@ export const TutorEvaluationResultsPage = () => {
             </div>
 
             <PrintReport
-              title={`${tutorLabel.title} Evaluation Results for ${getStudentName(tutor)}`}
+              title={pageTitle}
               subtitle={tutor.teamName}
               meta={
                 evaluatorCount > 1 ? (

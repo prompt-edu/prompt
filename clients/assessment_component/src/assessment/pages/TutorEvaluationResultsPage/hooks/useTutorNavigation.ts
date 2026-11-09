@@ -1,48 +1,49 @@
+import { type NavigableParticipant, resolveNavigationOrder } from '@tumaet/prompt-ui-components'
 import { useMemo } from 'react'
-import { useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useGetAllTeams } from '../../hooks/useGetAllTeams'
 
-interface NavigationTutor {
-  id: string
-  firstName: string
-  lastName: string
+export interface TutorDetailLocationState {
+  /** The tutor table's order when the results were opened, for previous / next. */
+  orderedTutorIds?: string[]
 }
 
 interface TutorNavigation {
-  prevTutor?: NavigationTutor
-  nextTutor?: NavigationTutor
+  orderedTutors: NavigableParticipant[]
+  navigateToTutor: (tutor: NavigableParticipant) => void
 }
 
 /**
- * Resolves the previous and next tutor relative to the one currently in the
- * URL. Unlike participant navigation, this always cycles through every tutor
- * across all teams.
+ * Steps through the tutors in the order the tutor table showed them, or through every tutor
+ * across all teams when the results were opened without that order, e.g. in a new tab.
  */
 export const useTutorNavigation = (): TutorNavigation => {
   const { tutorId } = useParams<{ tutorId: string }>()
+  const navigate = useNavigate()
+  const location = useLocation()
+  const snapshotIds = (location.state as TutorDetailLocationState | null)?.orderedTutorIds
   const { data: teams } = useGetAllTeams()
 
-  const tutors = useMemo<NavigationTutor[]>(() => {
-    const seen = new Set<string>()
-    const result: NavigationTutor[] = []
-    for (const team of teams) {
-      for (const tutor of team.tutors) {
-        if (!tutor.id || seen.has(tutor.id)) continue
-        seen.add(tutor.id)
-        result.push({ id: tutor.id, firstName: tutor.firstName, lastName: tutor.lastName })
+  const orderedTutors = useMemo(() => {
+    const tutorById = new Map<string, NavigableParticipant>()
+    for (const tutor of teams.flatMap((team) => team.tutors)) {
+      if (tutor.id && !tutorById.has(tutor.id)) {
+        tutorById.set(tutor.id, { courseParticipationID: tutor.id, student: tutor })
       }
     }
-    return result
-  }, [teams])
+    return resolveNavigationOrder(snapshotIds, [...tutorById.keys()], tutorId).flatMap(
+      (id) => tutorById.get(id) ?? [],
+    )
+  }, [teams, snapshotIds, tutorId])
 
-  const currentIndex = tutors.findIndex((tutor) => tutor.id === tutorId)
-
-  if (currentIndex === -1 || tutors.length <= 1) {
-    return {}
+  const navigateToTutor = (tutor: NavigableParticipant) => {
+    navigate(`../${tutor.courseParticipationID}`, {
+      relative: 'path',
+      state: {
+        orderedTutorIds: orderedTutors.map((t) => t.courseParticipationID),
+      } satisfies TutorDetailLocationState,
+    })
   }
 
-  return {
-    prevTutor: tutors[(currentIndex - 1 + tutors.length) % tutors.length],
-    nextTutor: tutors[(currentIndex + 1) % tutors.length],
-  }
+  return { orderedTutors, navigateToTutor }
 }

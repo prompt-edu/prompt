@@ -13,6 +13,7 @@ import { useGetAllEvaluations } from '../hooks/useGetAllEvaluations'
 import { useGetAllTeams } from '../hooks/useGetAllTeams'
 import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
 import { getTutorLabel } from '../hooks/useTutorLabel'
+import type { TutorDetailLocationState } from '../TutorEvaluationResultsPage/hooks/useTutorNavigation'
 import { getScoreLevelsFromEvaluations } from '../utils/getScoreLevelsFromEvaluations'
 
 interface TutorRow {
@@ -108,9 +109,16 @@ export const TutorOverviewPage = (): ReactNode => {
       <PromptTable<TutorRow>
         data={data}
         columns={columns}
-        onRowClick={(row) => {
+        onRowClick={(row, orderedRows) => {
           if (coursePhaseConfig?.tutorEvaluationEnabled) {
-            navigate(`${path}/${row.id}`)
+            navigate(`${path}/${row.id}`, {
+              state: {
+                // A tutor of several teams has a row per team.
+                orderedTutorIds: Array.from(
+                  new Set(orderedRows.map((orderedRow) => orderedRow.id)),
+                ),
+              } satisfies TutorDetailLocationState,
+            })
           }
         }}
       />

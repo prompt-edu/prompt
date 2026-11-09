@@ -1,13 +1,18 @@
 import type { ExportedApplicationAnswer } from '@tumaet/prompt-shared-state'
 import {
+  Badge,
   Card,
   CardContent,
   CardHeader,
   CardTitle,
   ExportedApplicationAnswerTable,
+  getStatusBadge,
+  getStudentName,
   ParticipantNavigation,
+  ProfilePicture,
+  StickyHeader,
 } from '@tumaet/prompt-ui-components'
-import { FileUserIcon } from 'lucide-react'
+import { FileUserIcon, Mic } from 'lucide-react'
 import { useParams } from 'react-router-dom'
 import { InterviewCard } from '../../components/InterviewCard'
 import { StudentCard } from '../../components/StudentCard'
@@ -24,7 +29,7 @@ export interface ProfileDetailLocationState {
 
 export const ProfileDetailPage = () => {
   const { studentId } = useParams<{ studentId: string }>()
-  const { participations } = useParticipationStore()
+  const { participations, interviewReviews } = useParticipationStore()
   const { coursePhase } = useCoursePhaseStore()
   const showStudentHistory = coursePhase?.restrictedData?.showStudentHistory === true
   const participation = participations.find((p) => p.student.id === studentId)
@@ -35,14 +40,48 @@ export const ProfileDetailPage = () => {
     (participation?.prevData?.applicationAnswers as ExportedApplicationAnswer[]) ?? []
 
   return (
-    <div className=''>
-      <div className='pb-4'>
-        <ParticipantNavigation
-          participants={orderedParticipations}
-          currentId={currentParticipationId}
-          onNavigate={navigateToParticipation}
-          colorByStatus
-        />
+    <div>
+      <div className='mb-8'>
+        <StickyHeader
+          floating
+          expandedContent={participation && <StudentCard participation={participation} />}
+        >
+          {(docked) => (
+            <ParticipantNavigation
+              participants={orderedParticipations}
+              currentId={currentParticipationId}
+              onNavigate={navigateToParticipation}
+              colorByStatus
+              compact={docked}
+            >
+              {participation && (
+                <>
+                  <ProfilePicture
+                    studentId={participation.student.id}
+                    firstName={participation.student.firstName}
+                    lastName={participation.student.lastName}
+                    size='sm'
+                    className='shrink-0'
+                  />
+                  <span className='truncate font-semibold'>
+                    {getStudentName(participation.student)}
+                  </span>
+                  <div className='hidden shrink-0 items-center gap-1 sm:flex'>
+                    {getStatusBadge(participation.passStatus)}
+                    <Badge variant='outline' className='gap-1' title='Application score'>
+                      <FileUserIcon className='h-3 w-3' />
+                      {participation.prevData?.score ?? 'N/A'}
+                    </Badge>
+                    <Badge variant='outline' className='gap-1' title='Interview score'>
+                      <Mic className='h-3 w-3' />
+                      {interviewReviews[participation.courseParticipationID]?.score ?? 'N/A'}
+                    </Badge>
+                  </div>
+                </>
+              )}
+            </ParticipantNavigation>
+          )}
+        </StickyHeader>
         {!participation && (
           <div className='flex justify-center items-center h-64'>
             <p className='text-lg text-muted-foreground'>Participant not found</p>
@@ -50,35 +89,30 @@ export const ProfileDetailPage = () => {
         )}
       </div>
       {participation && (
-        <>
-          <div className='pt-6 mb-8'>
-            <StudentCard participation={participation} />
-          </div>
-          <div className='grid grid-cols-1 lg:grid-cols-2 xl:has-[>[data-student-history]]:grid-cols-[1fr_1fr_20rem] gap-8'>
-            <Card>
-              <CardHeader>
-                <CardTitle className='flex items-center'>
-                  <FileUserIcon className='h-5 w-5 mr-2' />
-                  Application
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {applicationAnswers.length === 0 ? (
-                  <div>
-                    No Application Exported - Please check your export Settings in Application
-                    Configuration
-                  </div>
-                ) : (
-                  <ExportedApplicationAnswerTable applicationAnswers={applicationAnswers} />
-                )}
-              </CardContent>
-            </Card>
-            <InterviewCard />
-            {showStudentHistory && participation.student.id && (
-              <StudentHistoryCard studentId={participation.student.id} />
-            )}
-          </div>
-        </>
+        <div className='grid grid-cols-1 lg:grid-cols-2 xl:has-[>[data-student-history]]:grid-cols-[1fr_1fr_20rem] gap-8'>
+          <Card>
+            <CardHeader>
+              <CardTitle className='flex items-center'>
+                <FileUserIcon className='h-5 w-5 mr-2' />
+                Application
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {applicationAnswers.length === 0 ? (
+                <div>
+                  No Application Exported - Please check your export Settings in Application
+                  Configuration
+                </div>
+              ) : (
+                <ExportedApplicationAnswerTable applicationAnswers={applicationAnswers} />
+              )}
+            </CardContent>
+          </Card>
+          <InterviewCard />
+          {showStudentHistory && participation.student.id && (
+            <StudentHistoryCard studentId={participation.student.id} />
+          )}
+        </div>
       )}
     </div>
   )

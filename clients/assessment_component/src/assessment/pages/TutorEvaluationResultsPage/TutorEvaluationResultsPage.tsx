@@ -138,15 +138,7 @@ export const TutorEvaluationResultsPage = () => {
                     onNavigate={navigateToTutor}
                     compact={docked}
                   >
-                    <ProfilePicture
-                      courseParticipationId={tutor.id}
-                      firstName={tutor.firstName}
-                      lastName={tutor.lastName}
-                      size='sm'
-                      className='shrink-0'
-                    />
-                    <span className='truncate font-semibold'>{tutorName}</span>
-                    <div className='hidden shrink-0 items-center gap-1 sm:flex'>{badges}</div>
+                    {badges}
                   </ParticipantNavigation>
                 )}
               </StickyHeader>

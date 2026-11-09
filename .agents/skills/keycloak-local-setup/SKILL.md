@@ -11,8 +11,9 @@ the Go services validate tokens through `prompt-sdk`.
 - Copy templates: `.env.template` → `.env`, `.env.dev.template` → `.env.dev`.
 - `.env` holds Docker-hostname values (service-to-service inside compose); `.env.dev` holds the
   localhost overrides for running a server on the host. Both are loaded by the Makefile (`.env`
-  first, then `.env.dev` overrides). Never commit `.env*` (gitignored); they are copied into
-  worktrees via `.worktreeinclude`.
+  first, then `.env.dev` overrides). Never commit `.env*` (gitignored). Worktrees that Claude Code
+  creates get copies through `.worktreeinclude`; a plain `git worktree add` copies nothing, and the
+  Makefile then reads the main checkout's files.
 - Key vars: `KEYCLOAK_HOST`, `KEYCLOAK_REALM_NAME`, `CORE_HOST` (frontend URL for CORS),
   `SERVER_CORE_HOST` (inter-service base URL).
 

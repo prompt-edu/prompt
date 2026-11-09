@@ -591,6 +591,8 @@ make clients
 
 This installs the workspace dependencies (`yarn install`) and starts every microfrontend in parallel on its own rspack dev server. Then open [http://localhost:3000](http://localhost:3000).
 
+`make servers` and `make clients` keep running in the background, so Ctrl-C in their terminal doesn't stop them. `make stop` stops every server and client dev server of the stack, and `make db-down` does the same before it stops the databases.
+
 | Microfrontend | Port |
 | --- | --- |
 | `core` | 3000 |
@@ -645,8 +647,8 @@ Every git worktree of the repository can run its own complete stack (databases, 
 Each checkout has a **stack number** `n`:
 
 - The main checkout (the clone itself) is stack `0`. It keeps the ports, container names (`prompt-db`, `prompt-keycloak`, ...) and bind-mounted data directories described above, so nothing changes for it.
-- A linked worktree (`git worktree add ...`) gets the first free number from `1` to `7` the first time a target needs one. The allocation is recorded in `$(git rev-parse --git-common-dir)/prompt-stacks`, and removing the worktree frees its number. A number whose stack still has containers or volumes is not handed out again until you remove them (see below).
-- `PROMPT_STACK=<n>` overrides the number for one command, for example `make db PROMPT_STACK=3`. It is not recorded, so pick a number no worktree uses.
+- A linked worktree (`git worktree add ...`) gets the first free number from `1` to `7` the first time a target needs one. `make stack` and `make stop` only look, so they never take one. The allocation is recorded in `$(git rev-parse --git-common-dir)/prompt-stacks`, and `make stack-down` or removing the worktree frees its number. A number whose stack still has containers or volumes is not handed out again until you remove them (see below).
+- `PROMPT_STACK=<n>` overrides the number for one command, for example `make db PROMPT_STACK=3`. It is not recorded. It refuses a number another worktree holds (stack `0` belongs to the main checkout) and names that worktree; add `PROMPT_STACK_FORCE=1` only when you mean to work on its stack from here.
 
 There is nothing to configure: run the usual targets inside the worktree.
 
@@ -660,7 +662,7 @@ make clients        # in a third terminal
 make seed           # once the servers have migrated
 ```
 
-A worktree has no `.env` or `.env.dev` of its own (both are gitignored), so the Makefile reads the main checkout's copies. A file you create in the worktree takes precedence.
+Both `.env` and `.env.dev` are gitignored, so a plain `git worktree add` doesn't copy them, and the Makefile then reads the main checkout's copies. Worktrees that Claude Code creates get their own copies through `.worktreeinclude`. A file in the worktree takes precedence, and a copy can go stale when the templates change: if a database exits right after `make db`, compare the files with `.env.template` and `.env.dev.template`.
 
 ### What a stack number changes
 
@@ -668,8 +670,9 @@ Stack `n` shifts every published host port by `n * 100` and puts everything else
 
 | | Stack 0 | Stack n (e.g. 1) |
 | --- | --- | --- |
-| Client dev servers | `3000` (core) to `3012` | `3000 + 100n` to `3012 + 100n` (`3100` to `3112`) |
+| Client dev servers | `3000` (core) to `3013` | `3000 + 100n` to `3013 + 100n` (`3100` to `3113`) |
 | Core API, phase servers | `8080`, `8083` to `8091` | `8180`, `8183` to `8191` |
+| AI server, its PostgreSQL (with `AI_ENABLED=true`) | `8092`, `5442` | `8192`, `5542` |
 | Keycloak | `8081` | `8181` |
 | PostgreSQL | `5431` (Keycloak), `5432` to `5441` | `5531`, `5532` to `5541` |
 | SeaweedFS S3 | `8334` | `8434` |
@@ -689,14 +692,14 @@ The ports are spaced so that stacks `0` to `7` never collide with each other or 
 
 ### Tear a stack down
 
-`make db-down` stops the stack's databases and keeps the data. To remove a worktree's containers and volumes for good, run this before you remove the worktree:
+`make stop` stops the stack's servers and client dev servers. `make db-down` stops them as well as the stack's databases, and keeps the data. To remove a worktree's processes, containers and volumes for good and free its stack number, run this before you remove the worktree:
 
 ```bash
 make stack-down
 git worktree remove ../prompt-my-feature
 ```
 
-For a worktree that is already gone, run `make stack-down PROMPT_STACK=<n>` from any checkout. `make stack` in any worktree lists the current allocations, and `docker ps -a --filter name=prompt-<n>-` shows what a stack still runs. `make stack-down` refuses to touch stack 0, whose data lives in the main checkout's bind-mounted directories.
+For a worktree that is already gone, run `make stack-down PROMPT_STACK=<n>` from any checkout. `make stack` in any worktree lists the current allocations and every number whose removed worktree left containers or volumes behind, with the command to remove them. `docker ps -a --filter name=prompt-<n>-` shows what a stack still runs. `make stack-down` refuses to touch stack 0, whose data lives in the main checkout's bind-mounted directories.
 
 ## Optional: IDE Configuration
 

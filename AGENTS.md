@@ -116,6 +116,17 @@ stack number `n` on first use and every host port shifts by `n * 100`. Run `make
 worktree for its ports, and `make stack-down` before removing it. Details: "Run Several Stacks Side
 by Side" in `docs/contributor/setup.md`.
 
+- In a worktree, use the ports `make stack` prints, never the ones above.
+- Use `make` targets. A bare `docker compose` runs with stack 0's names and ports. A stack's
+  containers are named `prompt-<n>-*`.
+- `make servers` and `make clients` run in the background, so Ctrl-C doesn't stop them. `make stop`
+  does. `make db-down` stops them too, then the databases, and keeps the data. `make stack-down`
+  deletes the stack's data and frees its number.
+- A worktree without its own `.env` or `.env.dev` reads the main checkout's. If a database exits,
+  compare them with the templates.
+- There are only 7 stack numbers. `PROMPT_STACK=<n>` refuses a number another worktree holds; only
+  add `PROMPT_STACK_FORCE=1` when you mean to work on that worktree's stack.
+
 **Environment Setup:** Copy `.env.template` to `.env` and `.env.dev.template` to `.env.dev`. The `.env.dev` file contains localhost overrides for local development (vs Docker hostnames in `.env`). Each microservice has separate DB configuration (e.g., `DB_CORE_*`, `DB_TEAM_ALLOCATION_*`). For auth/Keycloak setup and common failures, use the `keycloak-local-setup` skill.
 
 ## Technology Stack

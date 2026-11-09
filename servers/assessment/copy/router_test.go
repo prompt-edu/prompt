@@ -141,12 +141,12 @@ func (suite *CopyRouterTestSuite) TestCopyEndpoint_SameSourceAndTarget() {
 	assert.Equal(suite.T(), http.StatusOK, resp.Code, "Should succeed when source and target are the same")
 }
 
-func (suite *CopyRouterTestSuite) TestCopyEndpoint_NonExistentSource() {
-	nonExistentSourceID := uuid.New()
+func (suite *CopyRouterTestSuite) TestCopyEndpoint_SourceWithoutConfig() {
+	unconfiguredSourceID := uuid.New()
 	targetCoursePhaseID := uuid.New()
 
 	copyReq := promptTypes.PhaseCopyRequest{
-		SourceCoursePhaseID: nonExistentSourceID,
+		SourceCoursePhaseID: unconfiguredSourceID,
 		TargetCoursePhaseID: targetCoursePhaseID,
 	}
 	body, _ := json.Marshal(copyReq)
@@ -156,7 +156,10 @@ func (suite *CopyRouterTestSuite) TestCopyEndpoint_NonExistentSource() {
 
 	suite.router.ServeHTTP(resp, req)
 
-	assert.Equal(suite.T(), http.StatusInternalServerError, resp.Code, "Should fail when source doesn't exist")
+	assert.Equal(suite.T(), http.StatusOK, resp.Code, "Should copy a source phase whose config was never saved")
+
+	_, err := suite.copyService.queries.GetCoursePhaseConfig(suite.suiteCtx, targetCoursePhaseID)
+	assert.NoError(suite.T(), err, "Target should receive the default config")
 }
 
 func TestRegisterRoutesRequiresAuthentication(t *testing.T) {

@@ -7,9 +7,7 @@ import { useQuery } from '@tanstack/react-query'
 import {
   Badge,
   ErrorPage,
-  getStudentName,
   ParticipantNavigation,
-  ProfilePicture,
   resolveNavigationOrder,
   StickyHeader,
   StudentProfile,
@@ -141,23 +139,13 @@ export const ApplicationDetailsPage = () => {
             colorByStatus
             compact={docked}
           >
-            <ProfilePicture
-              studentId={participation.student.id}
-              firstName={participation.student.firstName}
-              lastName={participation.student.lastName}
-              size='sm'
-              className='shrink-0'
-            />
-            <span className='truncate font-semibold'>{getStudentName(participation.student)}</span>
-            <div className='hidden shrink-0 items-center gap-1 sm:flex'>
-              {status && getApplicationStatusBadge(status)}
-              {score !== null && (
-                <Badge variant='outline' className='gap-1' title='Application score'>
-                  <FileUserIcon className='h-3 w-3' />
-                  {score}
-                </Badge>
-              )}
-            </div>
+            {status && getApplicationStatusBadge(status)}
+            {score !== null && (
+              <Badge variant='outline' className='gap-1' title='Application score'>
+                <FileUserIcon className='h-3 w-3' />
+                {score}
+              </Badge>
+            )}
           </ParticipantNavigation>
         )}
       </StickyHeader>

@@ -6,9 +6,9 @@ import {
 import { type ReactNode, useMemo } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { AssessmentType } from '../../interfaces/assessmentType'
-import { GradeSuggestionBadge, StudentScoreBadge } from '../components/badges'
 import { AssessmentDiagram } from '../components/diagrams/AssessmentDiagram'
 import { ScoreLevelDistributionDiagram } from '../components/diagrams/ScoreLevelDistributionDiagram'
+import { createScoreColumns } from '../components/EvaluationScore'
 import { useGetAllEvaluationCompletions } from '../hooks/useGetAllEvaluationCompletions'
 import { useGetAllEvaluations } from '../hooks/useGetAllEvaluations'
 import { useGetAllTeams } from '../hooks/useGetAllTeams'
@@ -63,10 +63,6 @@ export const TutorOverviewPage = (): ReactNode => {
     () => getScoreLevelsFromEvaluations(evaluations, AssessmentType.TUTOR),
     [evaluations],
   )
-  const tutorScoreById = useMemo(
-    () => new Map(tutorScoreLevels.map((score) => [score.courseParticipationID, score])),
-    [tutorScoreLevels],
-  )
 
   const columns: PromptTableColumnDef<TutorRow>[] = useMemo(
     () => [
@@ -82,27 +78,9 @@ export const TutorOverviewPage = (): ReactNode => {
         accessorKey: 'teamName',
         header: 'Team',
       },
-      // The average of the students' tutor evaluations, as a level and as a grade.
-      {
-        id: 'scoreLevel',
-        header: 'Score Level',
-        accessorFn: (row) => tutorScoreById.get(row.id)?.scoreNumeric,
-        cell: ({ row }) => (
-          <StudentScoreBadge scoreLevel={tutorScoreById.get(row.original.id)?.scoreLevel} />
-        ),
-      },
-      {
-        id: 'grade',
-        header: 'Grade',
-        accessorFn: (row) => tutorScoreById.get(row.id)?.scoreNumeric,
-        cell: ({ row }) => (
-          <GradeSuggestionBadge
-            gradeSuggestion={tutorScoreById.get(row.original.id)?.scoreNumeric}
-          />
-        ),
-      },
+      ...createScoreColumns<TutorRow>(tutorScoreLevels),
     ],
-    [tutorScoreById],
+    [tutorScoreLevels],
   )
 
   return (

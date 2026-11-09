@@ -15,7 +15,7 @@ import { Printer } from 'lucide-react'
 import { useMemo } from 'react'
 import { useParams } from 'react-router-dom'
 import { AssessmentType } from '../../interfaces/assessmentType'
-import { GradeSuggestionBadge, StudentScoreBadge } from '../components/badges'
+import { ScoreBadges } from '../components/EvaluationScore'
 import { FeedbackItemDisplayPanel } from '../components/FeedbackItemDisplayPanel/FeedbackItemDisplayPanel'
 import { PrintReport } from '../components/PrintReport/PrintReport'
 import { useGetAllTeams } from '../hooks/useGetAllTeams'
@@ -100,13 +100,12 @@ export const TutorEvaluationResultsPage = () => {
 
         const tutorName = getStudentName(tutor)
         const pageTitle = `${tutorLabel.title} Evaluation Results`
-        // The average of the students' evaluations of this tutor, as a level and as a grade.
-        const score = getScoreLevelsFromEvaluations(tutorEvaluations, AssessmentType.TUTOR)[0]
         const badges = (
           <>
             <Badge variant='outline'>{tutor.teamName}</Badge>
-            <StudentScoreBadge scoreLevel={score?.scoreLevel} />
-            <GradeSuggestionBadge gradeSuggestion={score?.scoreNumeric} />
+            <ScoreBadges
+              score={getScoreLevelsFromEvaluations(tutorEvaluations, AssessmentType.TUTOR)[0]}
+            />
           </>
         )
 
@@ -151,7 +150,6 @@ export const TutorEvaluationResultsPage = () => {
                   </ParticipantNavigation>
                 )}
               </StickyHeader>
-
 
               {tutorEvaluationCategories.length === 0 ? (
                 <Card>

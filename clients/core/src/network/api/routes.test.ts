@@ -4,6 +4,7 @@ import type { CoursePhaseType } from '@core/managementConsole/pages/SystemStatus
 import { axiosInstance, notAuthenticatedAxiosInstance } from '@tumaet/prompt-shared-state'
 import axios, { type AxiosResponse, type InternalAxiosRequestConfig } from 'axios'
 import { afterEach, beforeEach, describe, expect, it, type MockInstance, vi } from 'vitest'
+import { aiAxiosInstance } from '../client'
 import { coreApi } from './index'
 
 const CORE = 'http://core.test'
@@ -42,7 +43,7 @@ const serializedCopy = { ...copyCourse, startDate: '2026-09-01', endDate: '2026-
 
 const service = { id: 'assessment', baseUrl: 'http://assessment.test' } as CoursePhaseType
 
-type Instance = 'core' | 'public' | 'raw'
+type Instance = 'core' | 'public' | 'raw' | 'ai'
 
 interface Route {
   name: string
@@ -58,13 +59,19 @@ const coursesPath = `${CORE}/api/courses`
 const notesPath = `${CORE}/api/instructor-notes`
 const keycloakPath = `${CORE}/api/keycloak`
 const campaignsPath = `${coursesPath}/${COURSE}/mail-campaigns`
-const ownProfilePicturePath = `${CORE}/api/profile-pictures/me`
 const privacyPath = `${CORE}/api/privacy`
 const studentsPath = `${CORE}/api/students`
 const announcementsPath = `${CORE}/api/announcements`
 const studyProgramsPath = `${CORE}/api/study-programs`
 
 const ROUTES: Route[] = [
+  {
+    name: 'ai.info',
+    run: () => coreApi.ai.info(),
+    method: 'get',
+    url: 'http://ai.test/ai/api/info',
+    instance: 'ai',
+  },
   {
     name: 'announcements.active',
     run: () => coreApi.announcements.active(),
@@ -640,32 +647,6 @@ const ROUTES: Route[] = [
   },
 
   {
-    name: 'profilePictures.own',
-    run: () => coreApi.profilePictures.own(),
-    method: 'get',
-    url: ownProfilePicturePath,
-  },
-  {
-    name: 'profilePictures.presignUpload',
-    run: () => coreApi.profilePictures.presignUpload(),
-    method: 'post',
-    url: `${ownProfilePicturePath}/presign`,
-  },
-  {
-    name: 'profilePictures.completeUpload',
-    run: () => coreApi.profilePictures.completeUpload('profile-picture/user-1/picture.jpg'),
-    method: 'post',
-    url: `${ownProfilePicturePath}/complete`,
-    data: { storageKey: 'profile-picture/user-1/picture.jpg' },
-  },
-  {
-    name: 'profilePictures.removeOwn',
-    run: () => coreApi.profilePictures.removeOwn(),
-    method: 'delete',
-    url: ownProfilePicturePath,
-  },
-
-  {
     name: 'students.byID',
     run: () => coreApi.students.byID(STUDENT),
     method: 'get',
@@ -752,6 +733,7 @@ const INSTANCES = {
   core: axiosInstance,
   public: notAuthenticatedAxiosInstance,
   raw: axios,
+  ai: aiAxiosInstance,
 } as const
 
 let captured: InternalAxiosRequestConfig[]
@@ -860,14 +842,6 @@ describe('coreApi routes', () => {
 
     await expect(coreApi.courses.list()).resolves.toEqual([])
     await expect(coreApi.courses.listOwnIDs()).resolves.toEqual([])
-
-    expect(coreFailureLogs()).toHaveLength(0)
-  })
-
-  it('answers null without logging when the user has no profile picture', async () => {
-    axiosInstance.defaults.adapter = rejectingAdapter(404)
-
-    await expect(coreApi.profilePictures.own()).resolves.toBeNull()
 
     expect(coreFailureLogs()).toHaveLength(0)
   })

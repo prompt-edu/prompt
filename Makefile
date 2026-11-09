@@ -1,18 +1,18 @@
-.PHONY: help server servers client-core client-certificate client-presentation client-assessment \
+.PHONY: help server servers client-core client-certificate client-ai client-presentation client-assessment \
 	client-interview client-matching client-example client-team-allocation \
 	client-self-team-allocation client-infrastructure-setup clients db db-down \
 	server-core server-assessment server-interview \
 	server-team-allocation server-self-team-allocation server-example \
-	server-certificate server-presentation server-infrastructure-setup \
+	server-certificate server-presentation server-infrastructure-setup server-ai \
 	lint lint-clients lint-servers \
 	test test-clients test-core test-assessment test-interview \
 	test-team-allocation test-self-team-allocation test-example \
-	test-certificate test-presentation test-infrastructure-setup \
+	test-certificate test-presentation test-infrastructure-setup test-ai \
 	test-e2e test-e2e-shard test-e2e-ui test-e2e-down \
 	verify-up verify-down stack stack-down s3 \
 	sqlc sqlc-core sqlc-assessment sqlc-interview \
 	sqlc-team-allocation sqlc-self-team-allocation sqlc-example \
-	sqlc-certificate sqlc-presentation sqlc-infrastructure-setup \
+	sqlc-certificate sqlc-presentation sqlc-infrastructure-setup sqlc-ai \
 	swagger install-clients install-hooks setup-skills new-phase \
 	seed seed-check
 
@@ -88,6 +88,7 @@ export DB_PORT_EXAMPLE_SERVER := $(PROMPT_PORT_5437)
 export DB_PORT_INTERVIEW := $(PROMPT_PORT_5438)
 export DB_PORT_PRESENTATION := $(PROMPT_PORT_5440)
 export DB_PORT_INFRASTRUCTURE_SETUP := $(PROMPT_PORT_5441)
+export DB_PORT_AI := $(PROMPT_PORT_5442)
 export KEYCLOAK_HOST := http://localhost:$(PROMPT_PORT_8081)
 # The stack's Keycloak imports keycloakConfig.json on its first start, which
 # stores this placeholder as the prompt-server secret.
@@ -95,10 +96,15 @@ export KEYCLOAK_CLIENT_SECRET := **********
 export S3_ENDPOINT := http://localhost:$(PROMPT_PORT_8334)
 export S3_PUBLIC_ENDPOINT := http://localhost:$(PROMPT_PORT_8334)
 export SERVER_CORE_HOST := http://localhost:$(PROMPT_PORT_8080)
+export SERVER_AI_HOST := http://localhost:$(PROMPT_PORT_8092)
 export CORE_HOST := http://localhost:$(PROMPT_PORT_3000)
 endif
 E2E_PROJECT := $(STACK_PREFIX)-e2e
 endif
+
+# AI_ENABLED is the one switch for the AI server and its database (compose profile `ai`).
+AI_PROFILE := $(if $(filter true,$(AI_ENABLED)),ai)
+export COMPOSE_PROFILES := $(AI_PROFILE)
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
@@ -123,6 +129,7 @@ servers: ## Start all servers (core + all microservices)
 	@$(MAKE) server-certificate &
 	@$(MAKE) server-presentation &
 	@$(MAKE) server-infrastructure-setup &
+	$(if $(AI_PROFILE),@$(MAKE) server-ai &)
 	@wait
 	@echo "All servers started."
 
@@ -153,6 +160,9 @@ server-presentation: ## Start presentation server (port 8089)
 server-infrastructure-setup: ## Start infrastructure setup server (port 8091)
 	$(call run-server,infrastructure_setup,$(PROMPT_PORT_8091))
 
+server-ai: ## Start AI server (port 8092), needs AI_ENABLED=true for its database
+	$(call run-server,ai,$(PROMPT_PORT_8092))
+
 clients: ## Start all client micro-frontends
 	cd clients && yarn install && yarn run dev
 
@@ -161,6 +171,9 @@ client-core: ## Start only the core client
 
 client-certificate: ## Start only the certificate client
 	cd clients/certificate_component && yarn dev
+
+client-ai: ## Start only the AI audit client
+	cd clients/ai_component && yarn dev
 
 client-presentation: ## Start only the presentation client
 	cd clients/presentation_component && yarn dev
@@ -188,7 +201,7 @@ client-infrastructure-setup: ## Start only the infrastructure setup client
 
 DB_SERVICES = db db-team-allocation db-assessment db-self-team-allocation \
 	db-example-server db-interview db-certificate db-presentation \
-	db-infrastructure-setup
+	db-infrastructure-setup $(if $(AI_PROFILE),db-ai)
 
 db: ## Start every service database and Keycloak
 	$(DEV_COMPOSE) up -d $(DB_SERVICES) keycloak
@@ -215,6 +228,7 @@ stack: ## Show this checkout's stack number, ports and the allocated stacks
 	@echo "servers     team allocation $(PROMPT_PORT_8083), self team allocation $(PROMPT_PORT_8084), assessment $(PROMPT_PORT_8085),"
 	@echo "            example $(PROMPT_PORT_8086), interview $(PROMPT_PORT_8087), certificate $(PROMPT_PORT_8088),"
 	@echo "            presentation $(PROMPT_PORT_8089), infrastructure setup $(PROMPT_PORT_8091)"
+	@echo "ai          server $(PROMPT_PORT_8092), client $(PROMPT_PORT_3013), postgres $(PROMPT_PORT_5442) (with AI_ENABLED=true)"
 	@echo "keycloak    http://localhost:$(PROMPT_PORT_8081)"
 	@echo "postgres    core $(PROMPT_PORT_5432), keycloak $(PROMPT_PORT_5431), phase services $(PROMPT_PORT_5434)-$(PROMPT_PORT_5441)"
 	@echo "s3          http://localhost:$(PROMPT_PORT_8334)"
@@ -260,10 +274,11 @@ lint-servers: ## Run go vet on all servers
 	cd servers/certificate && go vet ./...
 	cd servers/presentation && go vet ./...
 	cd servers/infrastructure_setup && go vet ./...
+	cd servers/ai && go vet ./...
 
 # ─── Testing ───────────────────────────────────────────────────────────────────
 
-test: test-clients test-core test-assessment test-interview test-team-allocation test-self-team-allocation test-example test-certificate test-presentation test-infrastructure-setup ## Run all client and server tests
+test: test-clients test-core test-assessment test-interview test-team-allocation test-self-team-allocation test-example test-certificate test-presentation test-infrastructure-setup test-ai ## Run all client and server tests
 
 test-clients: ## Run all client unit tests
 	cd clients && yarn install && yarn test
@@ -294,6 +309,9 @@ test-presentation: ## Run presentation server tests
 
 test-infrastructure-setup: ## Run infrastructure setup server tests
 	cd servers/infrastructure_setup && go test ./...
+
+test-ai: ## Run AI server tests
+	cd servers/ai && go test ./...
 
 # ─── End-to-End Tests ──────────────────────────────────────────────────────────
 
@@ -327,6 +345,9 @@ test-e2e-shard: ## Run one CI module shard locally, e.g. make test-e2e-shard SHA
 	@set -e; \
 		paths="$(PATHS)"; \
 		if [ -z "$$paths" ]; then paths="$$(cd e2e && node scripts/shards.mjs paths "$(SHARD)")"; fi; \
+		ai="$(AI_ENABLED)"; \
+		if [ -n "$(SHARD)" ]; then ai="$$(cd e2e && node scripts/shards.mjs ai-enabled "$(SHARD)")"; fi; \
+		export AI_ENABLED="$$ai" COMPOSE_PROFILES="$$(if [ "$$ai" = true ]; then echo ai; fi)"; \
 		set -f; \
 		unset $(E2E_ENV_KEYS); \
 		$(E2E_BUILD); \
@@ -336,7 +357,7 @@ test-e2e-shard: ## Run one CI module shard locally, e.g. make test-e2e-shard SHA
 		exit $$status
 
 test-e2e-down: ## Tear down the e2e stack and remove volumes
-	unset $(E2E_ENV_KEYS); $(E2E_COMPOSE) down -v
+	unset $(E2E_ENV_KEYS); COMPOSE_PROFILES=ai $(E2E_COMPOSE) down -v
 
 test-e2e-ui: ## Interactive Playwright UI in Docker - then open http://127.0.0.1:8123 (shifted in stack n)
 	@mkdir -p e2e/playwright-report e2e/test-results
@@ -359,9 +380,9 @@ test-e2e-ui: ## Interactive Playwright UI in Docker - then open http://127.0.0.1
 VERIFY_COMPOSE = docker compose -p $(E2E_PROJECT) -f docker-compose.e2e.yml -f e2e/docker-compose.browser.yml --env-file e2e/.env.e2e
 
 verify-up: ## Boot the seeded stack for host-browser verification (SKIP_BUILD=1 reuses existing images)
-	set -e; unset $(E2E_ENV_KEYS); \
+	set -e; unset $(E2E_ENV_KEYS); export AI_ENABLED="$(AI_ENABLED)"; \
 		$(if $(SKIP_BUILD),true,$(VERIFY_COMPOSE) build); \
-		$(VERIFY_COMPOSE) up -d client-core server-core seed
+		$(VERIFY_COMPOSE) up -d client-core server-core seed $(if $(AI_PROFILE),server-ai client-ai)
 	@echo ""
 	@echo "client    http://localhost:$(PROMPT_PORT_4000)/management"
 	@echo "core API  http://localhost:$(PROMPT_PORT_18090)"
@@ -372,11 +393,11 @@ verify-up: ## Boot the seeded stack for host-browser verification (SKIP_BUILD=1 
 	@echo "logins    username == password (lecturer, admin, student, ...)"
 
 verify-down: ## Tear down the host-browser stack and remove volumes
-	unset $(E2E_ENV_KEYS); $(VERIFY_COMPOSE) down -v
+	unset $(E2E_ENV_KEYS); COMPOSE_PROFILES=ai $(VERIFY_COMPOSE) down -v
 
 # ─── Code Generation ──────────────────────────────────────────────────────────
 
-sqlc: sqlc-core sqlc-assessment sqlc-interview sqlc-team-allocation sqlc-self-team-allocation sqlc-example sqlc-certificate sqlc-presentation sqlc-infrastructure-setup ## Generate sqlc code for all servers
+sqlc: sqlc-core sqlc-assessment sqlc-interview sqlc-team-allocation sqlc-self-team-allocation sqlc-example sqlc-certificate sqlc-presentation sqlc-infrastructure-setup sqlc-ai ## Generate sqlc code for all servers
 
 sqlc-core: ## Generate sqlc code for core server
 	cd servers/core && sqlc generate
@@ -404,6 +425,9 @@ sqlc-presentation: ## Generate sqlc code for presentation server
 
 sqlc-infrastructure-setup: ## Generate sqlc code for infrastructure setup server
 	cd servers/infrastructure_setup && sqlc generate
+
+sqlc-ai: ## Generate sqlc code for AI server
+	cd servers/ai && sqlc generate
 
 swagger: ## Generate swagger docs for core server
 	cd servers/core && swag init

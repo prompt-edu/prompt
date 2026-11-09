@@ -319,7 +319,8 @@ func evaluationErrorStatus(err error) int {
 	case errors.Is(err, evaluationCompletion.ErrEvaluationAlreadyCompleted):
 		return http.StatusConflict
 	case errors.Is(err, evaluationCompletion.ErrInvalidEvaluationType),
-		errors.Is(err, evaluationCompletion.ErrSelfEvaluationTargetMismatch):
+		errors.Is(err, evaluationCompletion.ErrSelfEvaluationTargetMismatch),
+		errors.Is(err, ErrCompetencyNotInEvaluationSchema):
 		return http.StatusBadRequest
 	default:
 		return http.StatusInternalServerError

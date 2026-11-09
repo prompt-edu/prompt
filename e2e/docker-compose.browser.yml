@@ -52,6 +52,7 @@ services:
   server-presentation: *host-phase-server
   server-infrastructure-setup: *host-phase-server
   server-team-allocation: *host-phase-server
+  server-ai: *host-phase-server
 
   keycloak:
     environment:

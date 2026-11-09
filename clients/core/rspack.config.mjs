@@ -24,6 +24,7 @@ const config = (env = {}) => {
 
   const remotes = resolveRemotes(IS_DEV)
   const portOffset = devPortOffset()
+  const aiURL = IS_DEV ? `http://localhost:${devPort(3013)}` : `/ai`
 
   return {
     target: 'web',
@@ -110,7 +111,11 @@ const config = (env = {}) => {
         ),
         shared: federatedDependencies(),
       }),
-      new rspack.DefinePlugin({ __PROMPT_REMOTES__: JSON.stringify(remotes) }),
+      new rspack.DefinePlugin({
+        __PROMPT_REMOTES__: JSON.stringify(remotes),
+        // Registered at runtime once AI is on, see aiRemote.ts.
+        __PROMPT_AI_REMOTE_ENTRY__: JSON.stringify(`${aiURL}/remoteEntry.js?${Date.now()}`),
+      }),
       new rspack.HtmlRspackPlugin({
         template: 'public/template.html',
         minify: !IS_DEV,

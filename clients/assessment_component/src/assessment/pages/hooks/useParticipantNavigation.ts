@@ -1,7 +1,7 @@
+import { resolveNavigationOrder } from '@tumaet/prompt-ui-components'
 import { useMemo } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import type { AssessmentParticipationWithStudent } from '../../interfaces/assessmentParticipationWithStudent'
-import { resolveNavigationOrder } from '../utils/resolveNavigationOrder'
 import { useGetCoursePhaseParticipations } from './useGetCoursePhaseParticipations'
 
 export interface ParticipantDetailLocationState {

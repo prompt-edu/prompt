@@ -41,22 +41,18 @@ export const AssessmentHeader = ({
           colorByStatus
           compact={docked}
         >
-          {docked && (
-            <>
-              <span className='truncate font-semibold'>{studentName}</span>
-              <StudentAssessmentBadges
-                studentAssessment={studentAssessment}
-                remainingAssessments={remainingAssessments}
-                variant='compact'
-                className='flex-nowrap hidden sm:flex xl:hidden'
-              />
-              <StudentAssessmentBadges
-                studentAssessment={studentAssessment}
-                remainingAssessments={remainingAssessments}
-                className='flex-nowrap hidden xl:flex'
-              />
-            </>
-          )}
+          <span className='truncate font-semibold'>{studentName}</span>
+          <StudentAssessmentBadges
+            studentAssessment={studentAssessment}
+            remainingAssessments={remainingAssessments}
+            variant='compact'
+            className='flex-nowrap hidden sm:flex xl:hidden'
+          />
+          <StudentAssessmentBadges
+            studentAssessment={studentAssessment}
+            remainingAssessments={remainingAssessments}
+            className='flex-nowrap hidden xl:flex'
+          />
         </ParticipantNavigation>
       )}
     </StickyHeader>

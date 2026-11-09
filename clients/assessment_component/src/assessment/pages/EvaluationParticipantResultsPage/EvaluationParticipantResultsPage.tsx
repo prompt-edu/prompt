@@ -161,11 +161,9 @@ export const EvaluationParticipantResultsPage = ({
                     onNavigate={navigateToParticipation}
                     compact={docked}
                   >
-                    {docked && (
-                      <span className='truncate font-semibold'>
-                        {pageTitle} for {studentName}
-                      </span>
-                    )}
+                    <span className='truncate font-semibold'>
+                      {pageTitle} for {studentName}
+                    </span>
                   </ParticipantNavigation>
                 )}
               </StickyHeader>

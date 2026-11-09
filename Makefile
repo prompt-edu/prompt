@@ -44,15 +44,20 @@ endif
 # prompt-<n> and prompt-<n>-e2e. Docs: docs/contributor/setup.md.
 #
 # Only the targets that touch a stack ask for a number, so `make lint` or
-# `make test` in a fresh worktree never takes one.
-STACK_GOALS := stack stack-down server servers server-% clients client-% db db-down s3 \
+# `make test` in a fresh worktree never takes one. `make stack` and `make stop`
+# only look at a stack, so on their own they never take one either.
+STACK_GOALS := stack stop stack-down server servers server-% clients client-% db db-down s3 \
 	seed test-e2e test-e2e-shard test-e2e-down test-e2e-ui verify-up verify-down
+STACK_PEEK_GOALS := stack stop
 
 ifneq (,$(filter $(STACK_GOALS),$(MAKECMDGOALS)))
-STACK := $(shell PROMPT_STACK='$(PROMPT_STACK)' ./scripts/stack-number.sh)
+STACK_PEEK := $(if $(filter-out $(STACK_PEEK_GOALS),$(filter $(STACK_GOALS),$(MAKECMDGOALS))),,--peek)
+STACK := $(shell PROMPT_STACK='$(PROMPT_STACK)' PROMPT_STACK_FORCE='$(PROMPT_STACK_FORCE)' \
+	./scripts/stack-number.sh $(STACK_PEEK))
 ifeq (,$(STACK))
 $(error No stack number for this checkout, see the message above)
 endif
+ifneq (none,$(STACK))
 export PROMPT_STACK := $(STACK)
 STACK_OFFSET := $(shell echo $$(($(STACK) * 100)))
 
@@ -100,6 +105,7 @@ export SERVER_AI_HOST := http://localhost:$(PROMPT_PORT_8092)
 export CORE_HOST := http://localhost:$(PROMPT_PORT_3000)
 endif
 E2E_PROJECT := $(STACK_PREFIX)-e2e
+endif
 endif
 
 # AI_ENABLED is the one switch for the AI server and its database (compose profile `ai`).
@@ -221,6 +227,12 @@ seed: ## Load the demo course into every service database (re-runnable)
 seed-check: ## Verify the cross-database references in seed/ resolve
 	./scripts/seed-check.sh
 
+ifeq (none,$(STACK))
+stack:
+	@echo "stack       none yet, the first make db, make servers or make clients here assigns one"
+	@echo "allocated   (<git common dir>/prompt-stacks)"
+	@./scripts/stack-number.sh --list | sed 's/^/            /'
+else
 stack: ## Show this checkout's stack number, ports and the allocated stacks
 	@echo "stack       $(STACK) (containers $(STACK_PREFIX)-*, e2e containers $(STACK_PREFIX)-e2e-*)"
 	@echo "client      http://localhost:$(PROMPT_PORT_3000) (remotes up to $(PROMPT_PORT_3012))"
@@ -237,12 +249,14 @@ stack: ## Show this checkout's stack number, ports and the allocated stacks
 	@echo "            $(E2E_COMPOSE)"
 	@echo "allocated   (<git common dir>/prompt-stacks)"
 	@./scripts/stack-number.sh --list | sed 's/^/            /'
+endif
 
 # Also works for the stack of a worktree that is already gone:
 # make stack-down PROMPT_STACK=<n> from any checkout. down -v only removes the
 # volumes the Compose files on disk declare, and a stack started from another
 # branch can own more. scripts/stack-number.sh keeps a number taken while any
 # volume carries the project label, so the volumes are removed by label too.
+# Afterwards the stack's number is free again for any worktree.
 stack-down: ## Remove this stack's dev and e2e containers and volumes (stack 1 and up)
 	@if [ "$(STACK)" = 0 ]; then \
 		echo "make stack-down: stack 0 is the main checkout's stack, which keeps its data in bind-mounted"; \
@@ -255,6 +269,7 @@ stack-down: ## Remove this stack's dev and e2e containers and volumes (stack 1 a
 		vols=$$(docker volume ls -q --filter label=com.docker.compose.project=$$project); \
 		[ -z "$$vols" ] || docker volume rm $$vols; \
 	done
+	@./scripts/stack-number.sh --release $(STACK)
 
 # ─── Code Quality ──────────────────────────────────────────────────────────────
 

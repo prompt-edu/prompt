@@ -1,4 +1,4 @@
-import type { ExportedApplicationAnswer } from '@tumaet/prompt-shared-state'
+import { type ExportedApplicationAnswer, PassStatus } from '@tumaet/prompt-shared-state'
 import {
   Badge,
   Card,
@@ -6,7 +6,6 @@ import {
   CardHeader,
   CardTitle,
   ExportedApplicationAnswerTable,
-  getStatusBadge,
   getStudentName,
   ParticipantNavigation,
   ProfilePicture,
@@ -25,6 +24,13 @@ export interface ProfileDetailLocationState {
   tableSearch?: string
   /** The participants table's order when the profile was opened, for previous / next. */
   orderedParticipationIds?: string[]
+}
+
+/** The interview decides on acceptance, so the status reads like the application's. */
+const statusBadges: Record<PassStatus, { label: string; className: string }> = {
+  [PassStatus.PASSED]: { label: 'Accepted', className: 'bg-green-500 hover:bg-green-500' },
+  [PassStatus.FAILED]: { label: 'Rejected', className: 'bg-red-500 hover:bg-red-500' },
+  [PassStatus.NOT_ASSESSED]: { label: 'Not Assessed', className: 'bg-gray-500 hover:bg-gray-500' },
 }
 
 export const ProfileDetailPage = () => {
@@ -67,7 +73,9 @@ export const ProfileDetailPage = () => {
                     {getStudentName(participation.student)}
                   </span>
                   <div className='hidden shrink-0 items-center gap-1 sm:flex'>
-                    {getStatusBadge(participation.passStatus)}
+                    <Badge className={statusBadges[participation.passStatus].className}>
+                      {statusBadges[participation.passStatus].label}
+                    </Badge>
                     <Badge variant='outline' className='gap-1' title='Application score'>
                       <FileUserIcon className='h-3 w-3' />
                       {participation.prevData?.score ?? 'N/A'}

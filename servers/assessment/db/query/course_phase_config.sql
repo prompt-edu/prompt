@@ -94,7 +94,8 @@ WHERE course_phase_id = $1;
 
 -- name: CreateDefaultCoursePhaseConfig :exec
 INSERT INTO course_phase_config (course_phase_id)
-VALUES ($1);
+VALUES ($1)
+ON CONFLICT (course_phase_id) DO NOTHING;
 
 -- name: CheckAssessmentSchemaUsageInOtherPhases :one
 SELECT EXISTS(

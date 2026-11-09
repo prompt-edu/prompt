@@ -156,6 +156,20 @@ func (suite *CopyServiceTestSuite) TestHandlePhaseCopy_SourceWithoutConfigCopies
 	assert.False(suite.T(), targetConfig.ResultsReleased)
 }
 
+// A concurrent copy of the same unconfigured source can insert the default config between this
+// copy's read and insert. The insert must then keep the existing row instead of failing.
+func (suite *CopyServiceTestSuite) TestCreateDefaultCoursePhaseConfig_KeepsExistingConfig() {
+	coursePhaseID := uuid.New()
+	suite.seedCoursePhaseConfig(coursePhaseID, false)
+
+	err := suite.copyService.queries.CreateDefaultCoursePhaseConfig(suite.suiteCtx, coursePhaseID)
+	assert.NoError(suite.T(), err, "Inserting the default over an existing config should be a no-op")
+
+	config, err := suite.copyService.queries.GetCoursePhaseConfig(suite.suiteCtx, coursePhaseID)
+	assert.NoError(suite.T(), err)
+	assert.False(suite.T(), config.AssessmentEnabled, "The existing config should stay unchanged")
+}
+
 // seedCoursePhaseConfig writes a minimal config so a copy has something to read or overwrite.
 func (suite *CopyServiceTestSuite) seedCoursePhaseConfig(coursePhaseID uuid.UUID, assessmentEnabled bool) {
 	now := pgtype.Timestamptz{Time: time.Now(), Valid: true}

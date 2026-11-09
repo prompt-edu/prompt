@@ -1,4 +1,9 @@
-import { getStudentName, ParticipantNavigation, StickyHeader } from '@tumaet/prompt-ui-components'
+import {
+  getStatusBadge,
+  getStudentName,
+  ParticipantNavigation,
+  StickyHeader,
+} from '@tumaet/prompt-ui-components'
 
 import type { AssessmentParticipationWithStudent } from '../../../interfaces/assessmentParticipationWithStudent'
 import type { StudentAssessment } from '../../../interfaces/studentAssessment'
@@ -27,6 +32,7 @@ export const AssessmentHeader = ({
       floating
       expandedContent={
         <ParticipantProfile participant={participant}>
+          {getStatusBadge(participant.passStatus)}
           <StudentAssessmentBadges
             studentAssessment={studentAssessment}
             remainingAssessments={remainingAssessments}
@@ -43,6 +49,7 @@ export const AssessmentHeader = ({
           compact={docked}
         >
           <span className='truncate font-semibold'>{studentName}</span>
+          <div className='hidden shrink-0 sm:flex'>{getStatusBadge(participant.passStatus)}</div>
           <StudentAssessmentBadges
             studentAssessment={studentAssessment}
             remainingAssessments={remainingAssessments}

@@ -2,10 +2,12 @@ package copy
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
@@ -73,10 +75,8 @@ func (s *CopyService) CopyPhase(ctx context.Context, sourceCoursePhaseID, target
 
 	qtx := s.queries.WithTx(tx)
 
-	// Get the course phase config from the source course phase
-	sourceConfig, err := qtx.GetCoursePhaseConfig(ctx, sourceCoursePhaseID)
+	sourceConfig, err := getOrCreateDefaultCoursePhaseConfig(ctx, qtx, sourceCoursePhaseID)
 	if err != nil {
-		log.WithError(err).Error("Failed to get source course phase config")
 		return err
 	}
 
@@ -130,4 +130,29 @@ func (s *CopyService) CopyPhase(ctx context.Context, sourceCoursePhaseID, target
 		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 	return nil
+}
+
+// getOrCreateDefaultCoursePhaseConfig applies the fallback of CoursePhaseConfigService.GetCoursePhaseConfig:
+// a phase whose config was never saved gets the default config, so an unconfigured source copies as defaults.
+func getOrCreateDefaultCoursePhaseConfig(ctx context.Context, qtx *db.Queries, coursePhaseID uuid.UUID) (db.CoursePhaseConfig, error) {
+	config, err := qtx.GetCoursePhaseConfig(ctx, coursePhaseID)
+	if err == nil {
+		return config, nil
+	}
+	if !errors.Is(err, pgx.ErrNoRows) {
+		log.WithError(err).Error("Failed to get source course phase config")
+		return db.CoursePhaseConfig{}, err
+	}
+
+	if err := qtx.CreateDefaultCoursePhaseConfig(ctx, coursePhaseID); err != nil {
+		log.WithError(err).Error("Failed to create default config for source course phase")
+		return db.CoursePhaseConfig{}, err
+	}
+
+	config, err = qtx.GetCoursePhaseConfig(ctx, coursePhaseID)
+	if err != nil {
+		log.WithError(err).Error("Failed to get default config for source course phase")
+		return db.CoursePhaseConfig{}, err
+	}
+	return config, nil
 }

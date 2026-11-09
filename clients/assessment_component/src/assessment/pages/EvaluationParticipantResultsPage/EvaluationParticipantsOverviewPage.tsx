@@ -23,6 +23,7 @@ import {
 import { PeerEvaluationCompletionBadge } from '../components/badges'
 import { AssessmentDiagram } from '../components/diagrams/AssessmentDiagram'
 import { ScoreLevelDistributionDiagram } from '../components/diagrams/ScoreLevelDistributionDiagram'
+import { createScoreColumns } from '../components/EvaluationScore'
 import { PrintReport } from '../components/PrintReport/PrintReport'
 import { useGetAllEvaluationCompletions } from '../hooks/useGetAllEvaluationCompletions'
 import { useGetAllEvaluations } from '../hooks/useGetAllEvaluations'
@@ -210,8 +211,9 @@ export const EvaluationParticipantsOverviewPage = ({
         ),
         enableSorting: true,
       },
+      ...createScoreColumns<EvaluationParticipantRow>(typedScoreLevels),
     ],
-    [],
+    [typedScoreLevels],
   )
 
   return (

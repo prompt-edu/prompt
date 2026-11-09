@@ -4,7 +4,6 @@ import {
   Card,
   CardContent,
   ErrorPage,
-  getStatusBadge,
   getStudentName,
   ParticipantNavigation,
   ProfilePicture,
@@ -17,6 +16,7 @@ import { useParams } from 'react-router-dom'
 import { AssessmentType } from '../../interfaces/assessmentType'
 import { assessmentApi } from '../../network/api'
 import { assessmentKeys } from '../../network/cache'
+import { ScoreBadges } from '../components/EvaluationScore'
 import { FeedbackItemDisplayPanel } from '../components/FeedbackItemDisplayPanel/FeedbackItemDisplayPanel'
 import { ParticipantProfile } from '../components/ParticipantProfile'
 import { PrintReport } from '../components/PrintReport/PrintReport'
@@ -26,6 +26,7 @@ import { useGetCoursePhaseParticipations } from '../hooks/useGetCoursePhaseParti
 import { useGetEvaluationCategoriesWithCompetencies } from '../hooks/useGetEvaluationCategoriesWithCompetencies'
 import { useParticipantNavigation } from '../hooks/useParticipantNavigation'
 import { CategoryEvaluation } from '../TutorEvaluationResultsPage/components/CategoryEvaluation'
+import { getScoreLevelsFromEvaluations } from '../utils/getScoreLevelsFromEvaluations'
 import { getTeamMemberName } from '../utils/getTeamMemberName'
 import { printPage } from '../utils/printPage'
 
@@ -75,6 +76,10 @@ export const EvaluationParticipantResultsPage = ({
   })
 
   const evaluations = evaluationsQuery.data ?? []
+  const score = useMemo(
+    () => getScoreLevelsFromEvaluations(evaluations, assessmentType)[0],
+    [evaluations, assessmentType],
+  )
   const feedbackItems = feedbackItemsQuery.data ?? []
 
   const participant = useMemo(
@@ -152,7 +157,7 @@ export const EvaluationParticipantResultsPage = ({
                 floating
                 expandedContent={
                   <ParticipantProfile participant={participant}>
-                    {getStatusBadge(participant.passStatus)}
+                    <ScoreBadges score={score} />
                   </ParticipantProfile>
                 }
               >
@@ -161,7 +166,6 @@ export const EvaluationParticipantResultsPage = ({
                     participants={orderedParticipations}
                     currentId={courseParticipationID}
                     onNavigate={navigateToParticipation}
-                    colorByStatus
                     compact={docked}
                   >
                     <ProfilePicture
@@ -172,13 +176,12 @@ export const EvaluationParticipantResultsPage = ({
                       className='shrink-0'
                     />
                     <span className='truncate font-semibold'>{studentName}</span>
-                    <div className='hidden shrink-0 sm:flex'>
-                      {getStatusBadge(participant.passStatus)}
+                    <div className='hidden shrink-0 items-center gap-1 sm:flex'>
+                      <ScoreBadges score={score} />
                     </div>
                   </ParticipantNavigation>
                 )}
               </StickyHeader>
-
 
               {categories.length === 0 ? (
                 <Card>

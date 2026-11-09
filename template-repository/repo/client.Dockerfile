@@ -1,11 +1,12 @@
 # Self-contained build (no prompt-clients-base image needed outside the monorepo)
-FROM node:24.22.1-alpine AS build
+FROM node:26.12.1-alpine AS build
 
 WORKDIR /app
 # .yarnrc.yml is optional (Corepack reads the Yarn version from package.json);
 # the [l] glob copies it when present but does not fail the build if absent.
 COPY package.json yarn.lock .yarnrc.ym[l] ./
-RUN corepack enable && yarn install --immutable
+# Node 25+ images no longer bundle Corepack, so install it from npm first.
+RUN npm install -g corepack@0.36.0 && corepack enable && yarn install --immutable
 
 COPY . ./
 RUN yarn build

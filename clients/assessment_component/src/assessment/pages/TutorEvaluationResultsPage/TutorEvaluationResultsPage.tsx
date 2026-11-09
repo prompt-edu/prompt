@@ -152,7 +152,6 @@ export const TutorEvaluationResultsPage = () => {
                 )}
               </StickyHeader>
 
-              <h2 className='text-2xl font-bold'>{pageTitle}</h2>
 
               {tutorEvaluationCategories.length === 0 ? (
                 <Card>

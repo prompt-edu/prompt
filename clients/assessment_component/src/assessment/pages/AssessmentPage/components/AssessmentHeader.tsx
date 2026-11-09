@@ -1,9 +1,4 @@
-import {
-  getStatusBadge,
-  getStudentName,
-  ParticipantNavigation,
-  StickyHeader,
-} from '@tumaet/prompt-ui-components'
+import { getStatusBadge, ParticipantNavigation, StickyHeader } from '@tumaet/prompt-ui-components'
 
 import type { AssessmentParticipationWithStudent } from '../../../interfaces/assessmentParticipationWithStudent'
 import type { StudentAssessment } from '../../../interfaces/studentAssessment'
@@ -24,8 +19,6 @@ export const AssessmentHeader = ({
   remainingAssessments,
 }: AssessmentHeaderProps) => {
   const { orderedParticipations, navigateToParticipation } = useParticipantNavigation()
-
-  const studentName = getStudentName(participant.student)
 
   return (
     <StickyHeader
@@ -48,13 +41,12 @@ export const AssessmentHeader = ({
           colorByStatus
           compact={docked}
         >
-          <span className='truncate font-semibold'>{studentName}</span>
-          <div className='hidden shrink-0 sm:flex'>{getStatusBadge(participant.passStatus)}</div>
+          {getStatusBadge(participant.passStatus)}
           <StudentAssessmentBadges
             studentAssessment={studentAssessment}
             remainingAssessments={remainingAssessments}
             variant='compact'
-            className='flex-nowrap hidden sm:flex xl:hidden'
+            className='flex-nowrap xl:hidden'
           />
           <StudentAssessmentBadges
             studentAssessment={studentAssessment}

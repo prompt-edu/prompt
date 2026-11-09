@@ -6,7 +6,6 @@ import {
   ErrorPage,
   getStudentName,
   ParticipantNavigation,
-  ProfilePicture,
   QueryGate,
   StickyHeader,
 } from '@tumaet/prompt-ui-components'
@@ -168,17 +167,7 @@ export const EvaluationParticipantResultsPage = ({
                     onNavigate={navigateToParticipation}
                     compact={docked}
                   >
-                    <ProfilePicture
-                      courseParticipationId={participant.courseParticipationID}
-                      firstName={participant.student.firstName}
-                      lastName={participant.student.lastName}
-                      size='sm'
-                      className='shrink-0'
-                    />
-                    <span className='truncate font-semibold'>{studentName}</span>
-                    <div className='hidden shrink-0 items-center gap-1 sm:flex'>
-                      <ScoreBadges score={score} />
-                    </div>
+                    <ScoreBadges score={score} />
                   </ParticipantNavigation>
                 )}
               </StickyHeader>

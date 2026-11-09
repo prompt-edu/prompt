@@ -39,7 +39,7 @@ export const AssessmentHeader = ({
           currentId={participant.courseParticipationID}
           onNavigate={navigateToParticipation}
           colorByStatus
-          floating={docked}
+          compact={docked}
         >
           {docked && (
             <>

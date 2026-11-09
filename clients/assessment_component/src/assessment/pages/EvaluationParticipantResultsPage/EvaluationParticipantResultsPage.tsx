@@ -159,7 +159,7 @@ export const EvaluationParticipantResultsPage = ({
                     participants={orderedParticipations}
                     currentId={courseParticipationID}
                     onNavigate={navigateToParticipation}
-                    floating={docked}
+                    compact={docked}
                   >
                     {docked && (
                       <span className='truncate font-semibold'>

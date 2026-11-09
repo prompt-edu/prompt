@@ -140,7 +140,8 @@ Agent configuration is shared with the team and split by purpose:
     `react-performance`, `docker-patterns`.
 - **Subagents** — focused reviewers in `.claude/agents/`: `go-service-reviewer`,
   `frontend-reviewer`, `migration-auditor`.
-- **MCP servers** in `.mcp.json`, registered for the whole project:
+- **MCP servers** in `.mcp.json`, registered for Claude Code in this project. Codex does not read
+  `.mcp.json`: add the same servers to your own Codex `config.toml` to use them there.
   - `playwright` drives a real browser for the `verify` skill.
   - `outline` connects to the team's Outline wiki (<https://outline.aet.cit.tum.de>). It signs in
     with your own Outline account through OAuth, so run `/mcp` in Claude Code once to authenticate.

@@ -7,7 +7,6 @@ import { useQuery } from '@tanstack/react-query'
 import {
   Badge,
   ErrorPage,
-  getStatusBadge,
   getStudentName,
   ParticipantNavigation,
   ProfilePicture,
@@ -20,6 +19,7 @@ import { useMemo } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import type { ApplicationForm } from '../../../../interfaces/form/applicationForm'
 import { ApplicationAnswers } from '../applicationAnswers/ApplicationAnswers'
+import { getApplicationStatusBadge } from '../table/getApplicationStatusBadge'
 import { ApplicationDetailPageLayout } from './components/ApplicationDetailPageLayout'
 import { AssessmentCard } from './components/AssessmentCard'
 import { CustomScoresCard } from './components/CustomScoresCard'
@@ -150,7 +150,7 @@ export const ApplicationDetailsPage = () => {
             />
             <span className='truncate font-semibold'>{getStudentName(participation.student)}</span>
             <div className='hidden shrink-0 items-center gap-1 sm:flex'>
-              {status && getStatusBadge(status)}
+              {status && getApplicationStatusBadge(status)}
               {score !== null && (
                 <Badge variant='outline' className='gap-1' title='Application score'>
                   <FileUserIcon className='h-3 w-3' />

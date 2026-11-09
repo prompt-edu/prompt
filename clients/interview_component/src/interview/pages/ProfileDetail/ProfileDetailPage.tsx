@@ -6,9 +6,7 @@ import {
   CardHeader,
   CardTitle,
   ExportedApplicationAnswerTable,
-  getStudentName,
   ParticipantNavigation,
-  ProfilePicture,
   StickyHeader,
 } from '@tumaet/prompt-ui-components'
 import { FileUserIcon, Mic } from 'lucide-react'
@@ -62,29 +60,17 @@ export const ProfileDetailPage = () => {
             >
               {participation && (
                 <>
-                  <ProfilePicture
-                    studentId={participation.student.id}
-                    firstName={participation.student.firstName}
-                    lastName={participation.student.lastName}
-                    size='sm'
-                    className='shrink-0'
-                  />
-                  <span className='truncate font-semibold'>
-                    {getStudentName(participation.student)}
-                  </span>
-                  <div className='hidden shrink-0 items-center gap-1 sm:flex'>
-                    <Badge className={statusBadges[participation.passStatus].className}>
-                      {statusBadges[participation.passStatus].label}
-                    </Badge>
-                    <Badge variant='outline' className='gap-1' title='Application score'>
-                      <FileUserIcon className='h-3 w-3' />
-                      {participation.prevData?.score ?? 'N/A'}
-                    </Badge>
-                    <Badge variant='outline' className='gap-1' title='Interview score'>
-                      <Mic className='h-3 w-3' />
-                      {interviewReviews[participation.courseParticipationID]?.score ?? 'N/A'}
-                    </Badge>
-                  </div>
+                  <Badge className={statusBadges[participation.passStatus].className}>
+                    {statusBadges[participation.passStatus].label}
+                  </Badge>
+                  <Badge variant='outline' className='gap-1' title='Application score'>
+                    <FileUserIcon className='h-3 w-3' />
+                    {participation.prevData?.score ?? 'N/A'}
+                  </Badge>
+                  <Badge variant='outline' className='gap-1' title='Interview score'>
+                    <Mic className='h-3 w-3' />
+                    {interviewReviews[participation.courseParticipationID]?.score ?? 'N/A'}
+                  </Badge>
                 </>
               )}
             </ParticipantNavigation>

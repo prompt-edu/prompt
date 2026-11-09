@@ -6,7 +6,7 @@ require (
 	github.com/getsentry/sentry-go v0.50.0
 	github.com/getsentry/sentry-go/gin v0.50.0
 	github.com/gin-gonic/gin v1.12.0
-	github.com/go-jose/go-jose/v4 v4.1.4
+	github.com/go-jose/go-jose/v4 v4.1.6
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.11.0
 	github.com/prompt-edu/prompt-sdk v1.4.3-0.20261027173950-555f2394f47e

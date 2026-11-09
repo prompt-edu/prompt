@@ -15,12 +15,14 @@ import { Printer } from 'lucide-react'
 import { useMemo } from 'react'
 import { useParams } from 'react-router-dom'
 import { AssessmentType } from '../../interfaces/assessmentType'
+import { GradeSuggestionBadge, StudentScoreBadge } from '../components/badges'
 import { FeedbackItemDisplayPanel } from '../components/FeedbackItemDisplayPanel/FeedbackItemDisplayPanel'
 import { PrintReport } from '../components/PrintReport/PrintReport'
 import { useGetAllTeams } from '../hooks/useGetAllTeams'
 import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
 import { useGetEvaluationCategoriesWithCompetencies } from '../hooks/useGetEvaluationCategoriesWithCompetencies'
 import { getTutorLabel } from '../hooks/useTutorLabel'
+import { getScoreLevelsFromEvaluations } from '../utils/getScoreLevelsFromEvaluations'
 import { getTeamMemberName } from '../utils/getTeamMemberName'
 import { printPage } from '../utils/printPage'
 import { CategoryEvaluation } from './components/CategoryEvaluation'
@@ -98,7 +100,15 @@ export const TutorEvaluationResultsPage = () => {
 
         const tutorName = getStudentName(tutor)
         const pageTitle = `${tutorLabel.title} Evaluation Results`
-        const teamBadge = <Badge variant='outline'>{tutor.teamName}</Badge>
+        // The average of the students' evaluations of this tutor, as a level and as a grade.
+        const score = getScoreLevelsFromEvaluations(tutorEvaluations, AssessmentType.TUTOR)[0]
+        const badges = (
+          <>
+            <Badge variant='outline'>{tutor.teamName}</Badge>
+            <StudentScoreBadge scoreLevel={score?.scoreLevel} />
+            <GradeSuggestionBadge gradeSuggestion={score?.scoreNumeric} />
+          </>
+        )
 
         return (
           <>
@@ -117,7 +127,7 @@ export const TutorEvaluationResultsPage = () => {
                         className='mr-2'
                       />
                       <h1 className='text-2xl font-bold'>{tutorName}</h1>
-                      {teamBadge}
+                      {badges}
                     </CardHeader>
                   </Card>
                 }
@@ -137,7 +147,7 @@ export const TutorEvaluationResultsPage = () => {
                       className='shrink-0'
                     />
                     <span className='truncate font-semibold'>{tutorName}</span>
-                    <div className='hidden shrink-0 sm:flex'>{teamBadge}</div>
+                    <div className='hidden shrink-0 items-center gap-1 sm:flex'>{badges}</div>
                   </ParticipantNavigation>
                 )}
               </StickyHeader>

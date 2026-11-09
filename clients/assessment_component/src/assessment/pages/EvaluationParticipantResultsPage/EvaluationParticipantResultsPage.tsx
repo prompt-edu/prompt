@@ -4,9 +4,10 @@ import {
   Card,
   CardContent,
   ErrorPage,
+  getStatusBadge,
   getStudentName,
-  ManagementPageHeader,
   ParticipantNavigation,
+  ProfilePicture,
   QueryGate,
   StickyHeader,
 } from '@tumaet/prompt-ui-components'
@@ -17,6 +18,7 @@ import { AssessmentType } from '../../interfaces/assessmentType'
 import { assessmentApi } from '../../network/api'
 import { assessmentKeys } from '../../network/cache'
 import { FeedbackItemDisplayPanel } from '../components/FeedbackItemDisplayPanel/FeedbackItemDisplayPanel'
+import { ParticipantProfile } from '../components/ParticipantProfile'
 import { PrintReport } from '../components/PrintReport/PrintReport'
 import { useGetAllTeams } from '../hooks/useGetAllTeams'
 import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
@@ -149,9 +151,9 @@ export const EvaluationParticipantResultsPage = ({
               <StickyHeader
                 floating
                 expandedContent={
-                  <ManagementPageHeader>
-                    {pageTitle} for {studentName}
-                  </ManagementPageHeader>
+                  <ParticipantProfile participant={participant}>
+                    {getStatusBadge(participant.passStatus)}
+                  </ParticipantProfile>
                 }
               >
                 {(docked) => (
@@ -159,14 +161,24 @@ export const EvaluationParticipantResultsPage = ({
                     participants={orderedParticipations}
                     currentId={courseParticipationID}
                     onNavigate={navigateToParticipation}
+                    colorByStatus
                     compact={docked}
                   >
-                    <span className='truncate font-semibold'>
-                      {pageTitle} for {studentName}
-                    </span>
+                    <ProfilePicture
+                      courseParticipationId={participant.courseParticipationID}
+                      firstName={participant.student.firstName}
+                      lastName={participant.student.lastName}
+                      size='sm'
+                      className='shrink-0'
+                    />
+                    <span className='truncate font-semibold'>{studentName}</span>
+                    <div className='hidden shrink-0 sm:flex'>
+                      {getStatusBadge(participant.passStatus)}
+                    </div>
                   </ParticipantNavigation>
                 )}
               </StickyHeader>
+
 
               {categories.length === 0 ? (
                 <Card>

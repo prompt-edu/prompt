@@ -2,9 +2,9 @@ import { getStudentName, ParticipantNavigation, StickyHeader } from '@tumaet/pro
 
 import type { AssessmentParticipationWithStudent } from '../../../interfaces/assessmentParticipationWithStudent'
 import type { StudentAssessment } from '../../../interfaces/studentAssessment'
+import { ParticipantProfile } from '../../components/ParticipantProfile'
 import { useParticipantNavigation } from '../../hooks/useParticipantNavigation'
 
-import { AssessmentProfile } from './AssessmentProfile'
 import { StudentAssessmentBadges } from './StudentAssessmentBadges'
 
 interface AssessmentHeaderProps {
@@ -26,11 +26,12 @@ export const AssessmentHeader = ({
     <StickyHeader
       floating
       expandedContent={
-        <AssessmentProfile
-          participant={participant}
-          studentAssessment={studentAssessment}
-          remainingAssessments={remainingAssessments}
-        />
+        <ParticipantProfile participant={participant}>
+          <StudentAssessmentBadges
+            studentAssessment={studentAssessment}
+            remainingAssessments={remainingAssessments}
+          />
+        </ParticipantProfile>
       }
     >
       {(docked) => (

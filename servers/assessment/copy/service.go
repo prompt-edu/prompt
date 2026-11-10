@@ -69,15 +69,22 @@ func (s *CopyService) CopyPhase(ctx context.Context, sourceCoursePhaseID, target
 
 	tx, err := s.conn.Begin(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to begin phase copy transaction: %w", err)
 	}
 	defer promptSDK.DeferDBRollback(tx, ctx)
 
 	qtx := s.queries.WithTx(tx)
 
-	sourceConfig, err := getOrCreateDefaultCoursePhaseConfig(ctx, qtx, sourceCoursePhaseID)
+	sourceConfig, err := qtx.GetCoursePhaseConfig(ctx, sourceCoursePhaseID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		// A phase whose config was never saved has nothing to copy, and a copy must not write to
+		// the source. The target stays unconfigured too and, like the source, gets the default
+		// config when CoursePhaseConfigService.GetCoursePhaseConfig first reads it.
+		return nil
+	}
 	if err != nil {
-		return err
+		log.WithError(err).Error("Failed to get source course phase config")
+		return fmt.Errorf("failed to get config of source phase %s: %w", sourceCoursePhaseID, err)
 	}
 
 	// Copying a disabled source must not hide grades a non-empty target already holds
@@ -85,7 +92,7 @@ func (s *CopyService) CopyPhase(ctx context.Context, sourceCoursePhaseID, target
 		hasData, err := qtx.PhaseHasAssessmentData(ctx, targetCoursePhaseID)
 		if err != nil {
 			log.WithError(err).Error("Failed to check target course phase for assessment data")
-			return err
+			return fmt.Errorf("failed to check target phase %s for assessment data: %w", targetCoursePhaseID, err)
 		}
 		if hasData.Bool {
 			return coursePhaseConfig.ErrCannotDisableAssessmentWithData
@@ -122,7 +129,7 @@ func (s *CopyService) CopyPhase(ctx context.Context, sourceCoursePhaseID, target
 	err = qtx.CreateOrUpdateCoursePhaseConfig(ctx, params)
 	if err != nil {
 		log.WithError(err).Error("Failed to create course phase config for target course phase")
-		return err
+		return fmt.Errorf("failed to create config of target phase %s: %w", targetCoursePhaseID, err)
 	}
 
 	if err := tx.Commit(ctx); err != nil {
@@ -130,29 +137,4 @@ func (s *CopyService) CopyPhase(ctx context.Context, sourceCoursePhaseID, target
 		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 	return nil
-}
-
-// getOrCreateDefaultCoursePhaseConfig applies the fallback of CoursePhaseConfigService.GetCoursePhaseConfig:
-// a phase whose config was never saved gets the default config, so an unconfigured source copies as defaults.
-func getOrCreateDefaultCoursePhaseConfig(ctx context.Context, qtx *db.Queries, coursePhaseID uuid.UUID) (db.CoursePhaseConfig, error) {
-	config, err := qtx.GetCoursePhaseConfig(ctx, coursePhaseID)
-	if err == nil {
-		return config, nil
-	}
-	if !errors.Is(err, pgx.ErrNoRows) {
-		log.WithError(err).Error("Failed to get source course phase config")
-		return db.CoursePhaseConfig{}, err
-	}
-
-	if err := qtx.CreateDefaultCoursePhaseConfig(ctx, coursePhaseID); err != nil {
-		log.WithError(err).Error("Failed to create default config for source course phase")
-		return db.CoursePhaseConfig{}, err
-	}
-
-	config, err = qtx.GetCoursePhaseConfig(ctx, coursePhaseID)
-	if err != nil {
-		log.WithError(err).Error("Failed to get default config for source course phase")
-		return db.CoursePhaseConfig{}, err
-	}
-	return config, nil
 }

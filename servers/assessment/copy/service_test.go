@@ -8,6 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	promptTypes "github.com/prompt-edu/prompt-sdk/promptTypes"
@@ -129,31 +130,18 @@ func (suite *CopyServiceTestSuite) TestHandlePhaseCopy_SameSourceAndTarget() {
 	assert.NoError(suite.T(), err, "Should not error when source and target are the same")
 }
 
-func (suite *CopyServiceTestSuite) TestHandlePhaseCopy_SourceWithoutConfigCopiesDefaults() {
+func (suite *CopyServiceTestSuite) TestHandlePhaseCopy_SourceWithoutConfigStaysReadOnly() {
 	sourceCoursePhaseID := uuid.New()
 	targetCoursePhaseID := uuid.New()
 
 	assert.NoError(suite.T(), suite.copyPhase(sourceCoursePhaseID, targetCoursePhaseID),
 		"Should copy a source phase whose config was never saved")
 
-	sourceConfig, err := suite.copyService.queries.GetCoursePhaseConfig(suite.suiteCtx, sourceCoursePhaseID)
-	assert.NoError(suite.T(), err, "Source should fall back to the default config")
+	_, err := suite.copyService.queries.GetCoursePhaseConfig(suite.suiteCtx, sourceCoursePhaseID)
+	assert.ErrorIs(suite.T(), err, pgx.ErrNoRows, "The copy should not write a config to the source")
 
-	targetConfig, err := suite.copyService.queries.GetCoursePhaseConfig(suite.suiteCtx, targetCoursePhaseID)
-	assert.NoError(suite.T(), err, "Target should receive a config")
-
-	assert.Equal(suite.T(), sourceConfig.AssessmentSchemaID, targetConfig.AssessmentSchemaID)
-	assert.Equal(suite.T(), sourceConfig.SelfEvaluationEnabled, targetConfig.SelfEvaluationEnabled)
-	assert.Equal(suite.T(), sourceConfig.SelfEvaluationSchema, targetConfig.SelfEvaluationSchema)
-	assert.Equal(suite.T(), sourceConfig.PeerEvaluationEnabled, targetConfig.PeerEvaluationEnabled)
-	assert.Equal(suite.T(), sourceConfig.PeerEvaluationSchema, targetConfig.PeerEvaluationSchema)
-	assert.Equal(suite.T(), sourceConfig.TutorEvaluationEnabled, targetConfig.TutorEvaluationEnabled)
-	assert.Equal(suite.T(), sourceConfig.TutorEvaluationSchema, targetConfig.TutorEvaluationSchema)
-	assert.Equal(suite.T(), sourceConfig.EvaluationResultsVisible, targetConfig.EvaluationResultsVisible)
-	assert.Equal(suite.T(), sourceConfig.GradeSuggestionVisible, targetConfig.GradeSuggestionVisible)
-	assert.Equal(suite.T(), sourceConfig.ActionItemsVisible, targetConfig.ActionItemsVisible)
-	assert.True(suite.T(), targetConfig.AssessmentEnabled, "Default config keeps assessment enabled")
-	assert.False(suite.T(), targetConfig.ResultsReleased)
+	_, err = suite.copyService.queries.GetCoursePhaseConfig(suite.suiteCtx, targetCoursePhaseID)
+	assert.ErrorIs(suite.T(), err, pgx.ErrNoRows, "The target should stay unconfigured like the source")
 }
 
 // seedCoursePhaseConfig writes a minimal config so a copy has something to read or overwrite.

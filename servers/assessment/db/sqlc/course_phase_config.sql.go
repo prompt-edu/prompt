@@ -62,7 +62,6 @@ func (q *Queries) CheckAssessmentSchemaUsageInOtherPhases(ctx context.Context, a
 const createDefaultCoursePhaseConfig = `-- name: CreateDefaultCoursePhaseConfig :exec
 INSERT INTO course_phase_config (course_phase_id)
 VALUES ($1)
-ON CONFLICT (course_phase_id) DO NOTHING
 `
 
 func (q *Queries) CreateDefaultCoursePhaseConfig(ctx context.Context, coursePhaseID uuid.UUID) error {

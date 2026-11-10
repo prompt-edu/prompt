@@ -22,6 +22,26 @@ func (suite *ApplicationAdminServiceTestSuite) TestApplicationForm_ProfilePictur
 		"pictures are hidden unless a lecturer turned it off")
 }
 
+func (suite *ApplicationAdminServiceTestSuite) TestApplicationForm_ProfilePicturesShownWhenHidingIsOff() {
+	conn := suite.applicationAdminService.conn
+	_, err := conn.Exec(suite.ctx,
+		`UPDATE course_phase SET restricted_data = restricted_data || '{"hideProfilePicturesUntilAccepted": false}'::jsonb WHERE id = $1`,
+		phaseForPictureRequirement)
+	require.NoError(suite.T(), err)
+	defer func() {
+		_, err := conn.Exec(suite.ctx,
+			`UPDATE course_phase SET restricted_data = restricted_data - 'hideProfilePicturesUntilAccepted' WHERE id = $1`,
+			phaseForPictureRequirement)
+		require.NoError(suite.T(), err)
+	}()
+
+	form, err := suite.applicationAdminService.GetApplicationFormWithDetails(suite.ctx, phaseForPictureRequirement)
+
+	require.NoError(suite.T(), err)
+	require.NotNil(suite.T(), form.ApplicationPhase.ProfilePicture)
+	assert.False(suite.T(), form.ApplicationPhase.ProfilePicture.HiddenUntilAccepted)
+}
+
 func (suite *ApplicationAdminServiceTestSuite) TestValidateProfilePictureRequirement() {
 	conn := suite.applicationAdminService.conn
 	_, err := conn.Exec(suite.ctx,

@@ -370,22 +370,10 @@ func (suite *ApplicationAdminRouterTestSuite) TestPostApplicationAuthenticatedEn
 }
 
 func (suite *ApplicationAdminRouterTestSuite) TestPostApplicationAuthenticatedEndpoint_RejectsMissingRequiredPicture() {
-	coursePhaseID := "4179d58a-d00d-4fa7-94a5-397bc69fab02"
-	conn := suite.applicationAdminService.conn
-	_, err := conn.Exec(suite.ctx,
-		`UPDATE course_phase SET restricted_data = restricted_data || '{"profilePictureRequirement": "required"}'::jsonb WHERE id = $1`,
-		coursePhaseID)
+	application := applicationDTO.PostApplication{Student: authApplicationWithEmail("existingstudent@example.com").Student}
+	jsonBody, err := json.Marshal(application)
 	require.NoError(suite.T(), err)
-	defer func() {
-		_, err := conn.Exec(suite.ctx,
-			`UPDATE course_phase SET restricted_data = restricted_data - 'profilePictureRequirement' WHERE id = $1`,
-			coursePhaseID)
-		require.NoError(suite.T(), err)
-	}()
-
-	jsonBody, err := json.Marshal(authApplicationWithEmail("existingstudent@example.com"))
-	require.NoError(suite.T(), err)
-	req := httptest.NewRequest(http.MethodPost, "/api/apply/authenticated/"+coursePhaseID, bytes.NewReader(jsonBody))
+	req := httptest.NewRequest(http.MethodPost, "/api/apply/authenticated/"+phaseWithRequiredPicture.String(), bytes.NewReader(jsonBody))
 	req.Header.Set("Content-Type", "application/json")
 	resp := httptest.NewRecorder()
 

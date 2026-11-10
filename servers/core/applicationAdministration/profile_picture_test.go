@@ -2,14 +2,16 @@ package applicationAdministration
 
 import (
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-// Open application phases seeded in database_dumps/application_administration.sql.
+// Seeded in database_dumps/application_administration.sql.
 var (
 	phaseWithoutPictureSettings = uuid.MustParse("4179d58a-d00d-4fa7-94a5-397bc69fab02")
-	phaseForPictureRequirement  = uuid.MustParse("d0000099-0000-0000-0000-000000000099")
+	phaseWithRequiredPicture    = uuid.MustParse("d0000093-0000-0000-0000-000000000093")
+	userWithPictureWithoutLogin = uuid.MustParse("bbbbbbbb-0000-0000-0000-000000000093")
 )
 
 func (suite *ApplicationAdminServiceTestSuite) TestApplicationForm_ProfilePictureDefaults() {
@@ -22,88 +24,40 @@ func (suite *ApplicationAdminServiceTestSuite) TestApplicationForm_ProfilePictur
 		"pictures are hidden unless a lecturer turned it off")
 }
 
-func (suite *ApplicationAdminServiceTestSuite) TestApplicationForm_ProfilePicturesShownWhenHidingIsOff() {
-	conn := suite.applicationAdminService.conn
-	_, err := conn.Exec(suite.ctx,
-		`UPDATE course_phase SET restricted_data = restricted_data || '{"hideProfilePicturesUntilAccepted": false}'::jsonb WHERE id = $1`,
-		phaseForPictureRequirement)
-	require.NoError(suite.T(), err)
-	defer func() {
-		_, err := conn.Exec(suite.ctx,
-			`UPDATE course_phase SET restricted_data = restricted_data - 'hideProfilePicturesUntilAccepted' WHERE id = $1`,
-			phaseForPictureRequirement)
-		require.NoError(suite.T(), err)
-	}()
-
-	form, err := suite.applicationAdminService.GetApplicationFormWithDetails(suite.ctx, phaseForPictureRequirement)
+func (suite *ApplicationAdminServiceTestSuite) TestApplicationForm_ProfilePictureSettings() {
+	form, err := suite.applicationAdminService.GetApplicationFormWithDetails(suite.ctx, phaseWithRequiredPicture)
 
 	require.NoError(suite.T(), err)
 	require.NotNil(suite.T(), form.ApplicationPhase.ProfilePicture)
+	assert.Equal(suite.T(), "required", form.ApplicationPhase.ProfilePicture.Requirement)
+	assert.Equal(suite.T(), "For the team board", form.ApplicationPhase.ProfilePicture.Explanation)
 	assert.False(suite.T(), form.ApplicationPhase.ProfilePicture.HiddenUntilAccepted)
 }
 
 func (suite *ApplicationAdminServiceTestSuite) TestValidateProfilePictureRequirement() {
-	conn := suite.applicationAdminService.conn
-	_, err := conn.Exec(suite.ctx,
-		`UPDATE course_phase SET restricted_data = restricted_data || '{"profilePictureRequirement": "required", "profilePictureExplanation": "For the team board"}'::jsonb WHERE id = $1`,
-		phaseForPictureRequirement)
-	require.NoError(suite.T(), err)
-	defer func() {
-		_, err := conn.Exec(suite.ctx,
-			`UPDATE course_phase SET restricted_data = restricted_data - 'profilePictureRequirement' - 'profilePictureExplanation' WHERE id = $1`,
-			phaseForPictureRequirement)
-		require.NoError(suite.T(), err)
-	}()
-
-	form, err := suite.applicationAdminService.GetApplicationFormWithDetails(suite.ctx, phaseForPictureRequirement)
-	require.NoError(suite.T(), err)
-	assert.Equal(suite.T(), "required", form.ApplicationPhase.ProfilePicture.Requirement)
-	assert.Equal(suite.T(), "For the team board", form.ApplicationPhase.ProfilePicture.Explanation)
-
 	applicantWithoutPicture := uuid.New()
-	err = suite.applicationAdminService.ValidateProfilePictureRequirement(suite.ctx, phaseForPictureRequirement, applicantWithoutPicture)
+
+	err := suite.applicationAdminService.ValidateProfilePictureRequirement(suite.ctx, phaseWithRequiredPicture, applicantWithoutPicture)
 	assert.ErrorIs(suite.T(), err, ErrProfilePictureRequired)
 
-	applicantWithPicture := uuid.New()
-	fileID := uuid.New()
-	_, err = conn.Exec(suite.ctx,
-		`INSERT INTO files (id, filename, original_filename, content_type, size_bytes, storage_key, uploaded_by_user_id)
-		 VALUES ($1, 'p.jpg', 'p.jpg', 'image/jpeg', 100, $2, $3)`,
-		fileID, "profile-picture/"+applicantWithPicture.String()+"/p.jpg", applicantWithPicture.String())
-	require.NoError(suite.T(), err)
-	_, err = conn.Exec(suite.ctx, `INSERT INTO profile_picture (user_id, file_id) VALUES ($1, $2)`, applicantWithPicture, fileID)
-	require.NoError(suite.T(), err)
+	assert.NoError(suite.T(), suite.applicationAdminService.ValidateProfilePictureRequirement(suite.ctx, phaseWithRequiredPicture, userWithPictureWithoutLogin))
 
-	assert.NoError(suite.T(), suite.applicationAdminService.ValidateProfilePictureRequirement(suite.ctx, phaseForPictureRequirement, applicantWithPicture))
-
-	// Without the requirement, nobody is held back
-	assert.NoError(suite.T(), suite.applicationAdminService.ValidateProfilePictureRequirement(suite.ctx, phaseWithoutPictureSettings, applicantWithoutPicture))
+	assert.NoError(suite.T(), suite.applicationAdminService.ValidateProfilePictureRequirement(suite.ctx, phaseWithoutPictureSettings, applicantWithoutPicture),
+		"without the requirement, nobody is held back")
 }
 
 func (suite *ApplicationAdminServiceTestSuite) TestSyncProfilePictureUniversityLogin() {
-	conn := suite.applicationAdminService.conn
-	userID, fileID := uuid.New(), uuid.New()
-	_, err := conn.Exec(suite.ctx,
-		`INSERT INTO files (id, filename, original_filename, content_type, size_bytes, storage_key, uploaded_by_user_id)
-		 VALUES ($1, 'p.jpg', 'p.jpg', 'image/jpeg', 100, $2, $3)`,
-		fileID, "profile-picture/"+userID.String()+"/p.jpg", userID.String())
-	require.NoError(suite.T(), err)
-	_, err = conn.Exec(suite.ctx, `INSERT INTO profile_picture (user_id, file_id) VALUES ($1, $2)`, userID, fileID)
-	require.NoError(suite.T(), err)
-
-	storedLogin := func() *string {
-		var login *string
-		require.NoError(suite.T(), conn.QueryRow(suite.ctx,
-			`SELECT university_login FROM profile_picture WHERE user_id = $1`, userID).Scan(&login))
-		return login
+	storedLogin := func() pgtype.Text {
+		picture, err := suite.applicationAdminService.queries.GetProfilePictureByUserID(suite.ctx, userWithPictureWithoutLogin)
+		require.NoError(suite.T(), err)
+		return picture.UniversityLogin
 	}
 
-	require.NoError(suite.T(), suite.applicationAdminService.SyncProfilePictureUniversityLogin(suite.ctx, userID, ""))
-	assert.Nil(suite.T(), storedLogin(), "an account without a login has nothing to link")
+	require.NoError(suite.T(), suite.applicationAdminService.SyncProfilePictureUniversityLogin(suite.ctx, userWithPictureWithoutLogin, ""))
+	assert.False(suite.T(), storedLogin().Valid, "an account without a login has nothing to link")
 
-	require.NoError(suite.T(), suite.applicationAdminService.SyncProfilePictureUniversityLogin(suite.ctx, userID, "ap10pli"))
-	require.NotNil(suite.T(), storedLogin())
-	assert.Equal(suite.T(), "ap10pli", *storedLogin())
+	require.NoError(suite.T(), suite.applicationAdminService.SyncProfilePictureUniversityLogin(suite.ctx, userWithPictureWithoutLogin, "ap10pli"))
+	assert.Equal(suite.T(), pgtype.Text{String: "ap10pli", Valid: true}, storedLogin())
 
 	assert.NoError(suite.T(), suite.applicationAdminService.SyncProfilePictureUniversityLogin(suite.ctx, uuid.New(), "ap11pli"),
 		"applicants without a picture are not an error")

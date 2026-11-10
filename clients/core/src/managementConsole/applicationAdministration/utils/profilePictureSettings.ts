@@ -1,3 +1,4 @@
+import type { ApplicationProfilePictureConfig } from '@core/interfaces/application/openApplicationDetails'
 import { PassStatus } from '@tumaet/prompt-shared-state'
 import type { ProfilePictureRequirement } from '@tumaet/prompt-ui-components'
 
@@ -28,6 +29,15 @@ export const parseProfilePictureSettings = (
     explanation: typeof explanation === 'string' ? explanation : '',
     hideUntilAccepted: restrictedData?.hideProfilePicturesUntilAccepted !== false,
   }
+}
+
+/** The profile picture section that the application preview shows, from the stored settings. */
+export const getPreviewProfilePicture = (
+  restrictedData: Record<string, unknown> | undefined,
+): ApplicationProfilePictureConfig => {
+  const { requirement, explanation, hideUntilAccepted } =
+    parseProfilePictureSettings(restrictedData)
+  return { requirement, explanation, hiddenUntilAccepted: hideUntilAccepted }
 }
 
 /** Moves an edited draft onto newly stored settings: edited fields stay, the others follow. */

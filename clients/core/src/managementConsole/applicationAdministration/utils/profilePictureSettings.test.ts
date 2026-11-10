@@ -2,6 +2,7 @@ import { PassStatus } from '@tumaet/prompt-shared-state'
 import { describe, expect, it } from 'vitest'
 import {
   getApplicantPictureHiddenReason,
+  getPreviewProfilePicture,
   HIDDEN_PICTURE_REASON,
   parseProfilePictureSettings,
   rebaseProfilePictureSettings,
@@ -38,6 +39,22 @@ describe('parseProfilePictureSettings', () => {
         hideProfilePicturesUntilAccepted: 'no',
       }),
     ).toEqual({ requirement: 'off', explanation: '', hideUntilAccepted: true })
+  })
+})
+
+describe('getPreviewProfilePicture', () => {
+  it('shows the stored settings in the form shape', () => {
+    expect(
+      getPreviewProfilePicture({
+        profilePictureRequirement: 'optional',
+        profilePictureExplanation: 'For the team board',
+        hideProfilePicturesUntilAccepted: false,
+      }),
+    ).toEqual({
+      requirement: 'optional',
+      explanation: 'For the team board',
+      hiddenUntilAccepted: false,
+    })
   })
 })
 

@@ -14,12 +14,14 @@ import {
 } from '@tumaet/prompt-ui-components'
 import { Eye } from 'lucide-react'
 import { useState } from 'react'
+import { ApplicationWelcomeText } from '../../components/ApplicationWelcomeText'
 import { ApplicationFormView } from '../ApplicationForm/ApplicationFormView'
 
 interface ApplicationPreviewProps {
   questionsText: ApplicationQuestionText[]
   questionsMultiSelect: ApplicationQuestionMultiSelect[]
   questionsFileUpload: ApplicationQuestionFileUpload[]
+  welcomeText?: string
   profilePicture?: ApplicationProfilePictureConfig
 }
 
@@ -27,6 +29,7 @@ export const ApplicationPreview = ({
   questionsText,
   questionsMultiSelect,
   questionsFileUpload,
+  welcomeText,
   profilePicture,
 }: ApplicationPreviewProps) => {
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -50,15 +53,18 @@ export const ApplicationPreview = ({
           <DialogTitle>Application Preview</DialogTitle>
         </DialogHeader>
         <ScrollArea>
-          <ApplicationFormView
-            questionsText={questionsText}
-            questionsMultiSelect={questionsMultiSelect}
-            questionsFileUpload={questionsFileUpload}
-            student={initialStudent}
-            profilePicture={profilePicture}
-            isPreview
-            onSubmit={() => {}}
-          />
+          <div className='space-y-6'>
+            <ApplicationWelcomeText welcomeText={welcomeText} />
+            <ApplicationFormView
+              questionsText={questionsText}
+              questionsMultiSelect={questionsMultiSelect}
+              questionsFileUpload={questionsFileUpload}
+              student={initialStudent}
+              profilePicture={profilePicture}
+              isPreview
+              onSubmit={() => {}}
+            />
+          </div>
         </ScrollArea>
       </DialogContent>
     </Dialog>

@@ -25,7 +25,7 @@ export const getGeneralSettingsValues = (data: ApplicationMetaData): GeneralSett
     : '00:00',
   endTime: data.applicationEndDate ? getTimeString(new Date(data.applicationEndDate)) : '23:59',
   externalStudentsAllowed: data.externalStudentsAllowed ?? false,
-  universityLoginAvailable: data.universityLoginAvailable ?? false,
+  universityLoginAvailable: data.universityLoginAvailable ?? true,
   autoAccept: data.autoAccept ?? false,
   mode: data.applicationMode === 'import' ? 'import' : 'apply',
 })

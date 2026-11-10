@@ -4,6 +4,7 @@ import {
   getApplicantPictureHiddenReason,
   HIDDEN_PICTURE_REASON,
   parseProfilePictureSettings,
+  rebaseProfilePictureSettings,
 } from './profilePictureSettings'
 
 describe('parseProfilePictureSettings', () => {
@@ -37,6 +38,40 @@ describe('parseProfilePictureSettings', () => {
         hideProfilePicturesUntilAccepted: 'no',
       }),
     ).toEqual({ requirement: 'off', explanation: '', hideUntilAccepted: true })
+  })
+})
+
+describe('rebaseProfilePictureSettings', () => {
+  const stored = { requirement: 'off', explanation: '', hideUntilAccepted: true } as const
+
+  it('follows the stored settings while nothing is edited', () => {
+    const refreshed = {
+      requirement: 'required',
+      explanation: 'For the team board',
+      hideUntilAccepted: false,
+    } as const
+    expect(rebaseProfilePictureSettings(stored, stored, refreshed)).toEqual(refreshed)
+  })
+
+  it('keeps edited fields when another setting of the phase is saved', () => {
+    const draft = { ...stored, requirement: 'optional', explanation: 'Draft' } as const
+    expect(rebaseProfilePictureSettings(draft, stored, stored)).toEqual(draft)
+  })
+
+  it('keeps an edit made while the previous one was being saved', () => {
+    const submitted = { ...stored, requirement: 'optional' } as const
+    const draft = { ...stored, requirement: 'required' } as const
+    expect(rebaseProfilePictureSettings(draft, stored, submitted)).toEqual(draft)
+  })
+
+  it('updates the fields that were not edited', () => {
+    const draft = { ...stored, requirement: 'optional' } as const
+    const refreshed = { ...stored, hideUntilAccepted: false } as const
+    expect(rebaseProfilePictureSettings(draft, stored, refreshed)).toEqual({
+      requirement: 'optional',
+      explanation: '',
+      hideUntilAccepted: false,
+    })
   })
 })
 

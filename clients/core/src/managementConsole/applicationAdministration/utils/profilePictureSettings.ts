@@ -30,6 +30,22 @@ export const parseProfilePictureSettings = (
   }
 }
 
+/** Moves an edited draft onto newly stored settings: edited fields stay, the others follow. */
+export const rebaseProfilePictureSettings = (
+  draft: ApplicationProfilePictureSettings,
+  previouslyStored: ApplicationProfilePictureSettings,
+  stored: ApplicationProfilePictureSettings,
+): ApplicationProfilePictureSettings => ({
+  requirement:
+    draft.requirement === previouslyStored.requirement ? stored.requirement : draft.requirement,
+  explanation:
+    draft.explanation === previouslyStored.explanation ? stored.explanation : draft.explanation,
+  hideUntilAccepted:
+    draft.hideUntilAccepted === previouslyStored.hideUntilAccepted
+      ? stored.hideUntilAccepted
+      : draft.hideUntilAccepted,
+})
+
 /** Why an applicant's picture is hidden in the review, or undefined when it may be shown. */
 export const getApplicantPictureHiddenReason = (
   hideUntilAccepted: boolean,

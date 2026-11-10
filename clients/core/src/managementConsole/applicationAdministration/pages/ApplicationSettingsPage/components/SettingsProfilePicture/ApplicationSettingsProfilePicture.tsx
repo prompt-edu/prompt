@@ -20,6 +20,7 @@ import type { ApplicationMetaData } from '../../../../interfaces/applicationMeta
 import {
   type ApplicationProfilePictureSettings,
   parseProfilePictureSettings,
+  rebaseProfilePictureSettings,
 } from '../../../../utils/profilePictureSettings'
 import { ShowProfilePicturesConfirmation } from './ShowProfilePicturesConfirmation'
 
@@ -51,14 +52,19 @@ export function ApplicationSettingsProfilePicture({
   const queryClient = useQueryClient()
   const { phaseId } = useParams<{ phaseId: string }>()
 
-  const [settings, setSettings] = useState(() => fromMetaData(initialData))
-  const [savedSettings, setSavedSettings] = useState(() => fromMetaData(initialData))
+  const [{ settings, savedSettings }, setState] = useState(() => {
+    const stored = fromMetaData(initialData)
+    return { settings: stored, savedSettings: stored }
+  })
   const [isShowConfirmationOpen, setShowConfirmationOpen] = useState(false)
 
   // The metadata is parsed asynchronously, so the first render can precede it.
   useEffect(() => {
-    setSettings(fromMetaData(initialData))
-    setSavedSettings(fromMetaData(initialData))
+    const stored = fromMetaData(initialData)
+    setState((current) => ({
+      settings: rebaseProfilePictureSettings(current.settings, current.savedSettings, stored),
+      savedSettings: stored,
+    }))
   }, [initialData])
 
   const hasChanges =
@@ -73,7 +79,6 @@ export function ApplicationSettingsProfilePicture({
   } = useMutation({
     mutationFn: (coursePhase: UpdateCoursePhase) => coreApi.coursePhases.update(coursePhase),
     onSuccess: () => {
-      setSavedSettings(settings)
       coreCache.coursePhaseChanged(queryClient, phaseId)
     },
   })
@@ -92,7 +97,7 @@ export function ApplicationSettingsProfilePicture({
   }
 
   const update = (changes: Partial<ApplicationProfilePictureSettings>) =>
-    setSettings((current) => ({ ...current, ...changes }))
+    setState((current) => ({ ...current, settings: { ...current.settings, ...changes } }))
 
   // Only switching off the saved hiding reveals pictures applicants were told are hidden
   const handleHideUntilAcceptedChange = (hideUntilAccepted: boolean) => {

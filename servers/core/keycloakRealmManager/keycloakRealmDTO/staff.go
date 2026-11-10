@@ -10,7 +10,7 @@ type StaffMember struct {
 	FirstName      string `json:"firstName"`
 	LastName       string `json:"lastName"`
 	// UniversityLogin is the user's university_login attribute, the login phases match tutors
-	// against. It is empty when the user has none or the lookup returned a brief representation.
+	// against. It is empty when the user has none.
 	UniversityLogin string `json:"universityLogin"`
 }
 

@@ -440,7 +440,9 @@ func (s *KeycloakRealmService) SearchKeycloakUsers(ctx context.Context, query st
 	// Fetch one more than the caller asked for so we can tell "exactly N matches"
 	// from "more than N matches" without an extra round-trip.
 	fetchMax := limit + 1
-	brief := true
+	// The full representation carries the user attributes, so the results include the
+	// university login like the staff lists do. The search returns at most limit + 1 users.
+	brief := false
 	users, err := s.client.GetUsers(ctx, token.AccessToken, s.Realm, gocloak.GetUsersParams{
 		Search:              &q,
 		Max:                 &fetchMax,

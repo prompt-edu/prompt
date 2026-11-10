@@ -13,11 +13,8 @@ import (
 
 const profilePictureRequired = "required"
 
-// ErrProfilePictureRequired marks an application submitted without the picture the phase requires.
 var ErrProfilePictureRequired = errors.New("this application requires a profile picture")
 
-// ValidateProfilePictureRequirement rejects a logged-in applicant without a profile picture when
-// the application requires one. The form checks this as well; this guards direct API calls.
 func (s *ApplicationService) ValidateProfilePictureRequirement(ctx context.Context, coursePhaseID uuid.UUID, userID uuid.UUID) error {
 	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
 	defer cancel()
@@ -44,8 +41,6 @@ func (s *ApplicationService) ValidateProfilePictureRequirement(ctx context.Conte
 	return nil
 }
 
-// SyncProfilePictureUniversityLogin links a picture uploaded before the account had a university
-// login to the applicant, so lookups by student find it.
 func (s *ApplicationService) SyncProfilePictureUniversityLogin(ctx context.Context, userID uuid.UUID, universityLogin string) error {
 	if universityLogin == "" {
 		return nil

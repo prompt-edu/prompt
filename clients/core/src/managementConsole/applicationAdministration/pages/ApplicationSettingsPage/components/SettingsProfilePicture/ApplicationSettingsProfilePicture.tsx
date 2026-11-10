@@ -58,7 +58,6 @@ export function ApplicationSettingsProfilePicture({
   })
   const [isShowConfirmationOpen, setShowConfirmationOpen] = useState(false)
 
-  // The metadata is parsed asynchronously, so the first render can precede it.
   useEffect(() => {
     const stored = fromMetaData(initialData)
     setState((current) => ({
@@ -99,7 +98,6 @@ export function ApplicationSettingsProfilePicture({
   const update = (changes: Partial<ApplicationProfilePictureSettings>) =>
     setState((current) => ({ ...current, settings: { ...current.settings, ...changes } }))
 
-  // Only switching off the saved hiding reveals pictures applicants were told are hidden
   const handleHideUntilAcceptedChange = (hideUntilAccepted: boolean) => {
     if (!hideUntilAccepted && savedSettings.hideUntilAccepted) {
       setShowConfirmationOpen(true)

@@ -7,7 +7,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// Seeded in database_dumps/application_administration.sql.
 var (
 	phaseWithoutPictureSettings = uuid.MustParse("4179d58a-d00d-4fa7-94a5-397bc69fab02")
 	phaseWithRequiredPicture    = uuid.MustParse("d0000093-0000-0000-0000-000000000093")

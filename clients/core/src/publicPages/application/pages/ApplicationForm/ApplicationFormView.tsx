@@ -41,9 +41,7 @@ interface ApplicationFormProps {
   allowEditUniversityData?: boolean
   applicationId?: string
   coursePhaseId?: string
-  /** Asks for the applicant's own picture; only for logged-in applicants and the preview. */
   profilePicture?: ApplicationProfilePictureConfig
-  /** A lecturer's preview: looks like the applicant's form but changes nothing. */
   isPreview?: boolean
   onSubmit: (
     student: Student,

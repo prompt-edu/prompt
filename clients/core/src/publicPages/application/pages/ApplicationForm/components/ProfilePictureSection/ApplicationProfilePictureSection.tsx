@@ -10,7 +10,6 @@ interface ApplicationProfilePictureSectionProps {
 
 const MISSING_PICTURE_ERROR = 'Please add a profile picture.'
 
-/** Asks a logged-in applicant for their profile picture as part of the application form. */
 export const ApplicationProfilePictureSection = forwardRef<
   ProfilePictureSectionRef,
   ApplicationProfilePictureSectionProps
@@ -19,7 +18,6 @@ export const ApplicationProfilePictureSection = forwardRef<
   const [error, setError] = useState<string | undefined>(undefined)
   const required = config.requirement === 'required'
 
-  // Adding a picture resolves the error right away, not only on the next submit
   useEffect(() => {
     if (ownPicture) setError(undefined)
   }, [ownPicture])
@@ -27,7 +25,6 @@ export const ApplicationProfilePictureSection = forwardRef<
   useImperativeHandle(ref, () => ({
     validate: async () => {
       if (!required || isInstructorView) return true
-      // The picture may have changed in another tab, so the current state decides
       const { data } = await refetch()
       const hasPicture = Boolean(data)
       setError(hasPicture ? undefined : MISSING_PICTURE_ERROR)

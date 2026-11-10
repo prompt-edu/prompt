@@ -38,7 +38,6 @@ func (suite *ProfilePictureServiceTestSuite) newRouter(authMiddleware, applicati
 	return router
 }
 
-// routerForUser authenticates every request as the given user, like core's Keycloak middleware.
 func (suite *ProfilePictureServiceTestSuite) routerForUser(userID string, universityLogin string) *gin.Engine {
 	identify := authenticateAs(userID, universityLogin)
 	return suite.newRouter(identify, identify)

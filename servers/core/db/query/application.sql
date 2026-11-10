@@ -132,7 +132,6 @@ SELECT
     -- deliberately public as well: the form asks for the picture and tells applicants who sees it.
     COALESCE(cp.restricted_data->>'profilePictureRequirement', 'off')::text AS profile_picture_requirement,
     COALESCE(cp.restricted_data->>'profilePictureExplanation', '')::text AS profile_picture_explanation,
-    -- hiding is on unless a lecturer turned it off
     (cp.restricted_data->'hideProfilePicturesUntilAccepted' IS DISTINCT FROM 'false'::jsonb)::boolean AS hide_profile_pictures_until_accepted
 FROM
     course_phase cp

@@ -13,10 +13,6 @@ const REQUIREMENTS: readonly ProfilePictureRequirement[] = ['off', 'optional', '
 export const HIDDEN_PICTURE_REASON =
   'Hidden until the applicant is accepted. You can change this in the application settings.'
 
-/**
- * Reads the profile picture settings from the application phase's restricted data. Pictures are
- * hidden unless a lecturer turned it off, which also covers phases created before the setting.
- */
 export const parseProfilePictureSettings = (
   restrictedData: Record<string, unknown> | undefined,
 ): ApplicationProfilePictureSettings => {
@@ -31,7 +27,6 @@ export const parseProfilePictureSettings = (
   }
 }
 
-/** The profile picture section that the application preview shows, from the stored settings. */
 export const getPreviewProfilePicture = (
   restrictedData: Record<string, unknown> | undefined,
 ): ApplicationProfilePictureConfig => {
@@ -40,7 +35,6 @@ export const getPreviewProfilePicture = (
   return { requirement, explanation, hiddenUntilAccepted: hideUntilAccepted }
 }
 
-/** Moves an edited draft onto newly stored settings: edited fields stay, the others follow. */
 export const rebaseProfilePictureSettings = (
   draft: ApplicationProfilePictureSettings,
   previouslyStored: ApplicationProfilePictureSettings,
@@ -56,7 +50,6 @@ export const rebaseProfilePictureSettings = (
       : draft.hideUntilAccepted,
 })
 
-/** Why an applicant's picture is hidden in the review, or undefined when it may be shown. */
 export const getApplicantPictureHiddenReason = (
   hideUntilAccepted: boolean,
   passStatus: PassStatus | undefined,

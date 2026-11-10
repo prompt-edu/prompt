@@ -74,7 +74,6 @@ func (suite *ApplicationAdminRouterTestSuite) SetupSuite() {
 	testMiddleware := func() gin.HandlerFunc {
 		mockAuth := sdkTestUtils.MockAuthMiddlewareWithEmail([]string{"PROMPT_Admin", "ios24245-iPraktikum-Lecturer"}, "existingstudent@example.com", "03711111", "ab12cde")
 		return func(c *gin.Context) {
-			// The real application middleware also sets the Keycloak user id
 			c.Set(keycloakTokenVerifier.CtxUserID, "5f7d6a3e-8e27-4c07-9a58-3c1f3c1e9b21")
 			mockAuth(c)
 		}

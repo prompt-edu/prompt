@@ -21,6 +21,7 @@ export const teamAllocationKeys = {
     // Self Team Allocation reads the same endpoint under the same literal, so the entry is shared
     studentsOfPhase: (phaseId: Id) => ['students', phaseId] as const,
     studentSearch: (searchString: string) => ['student-search', searchString] as const,
+    courseStaff: (courseId: Id) => ['team_allocation_course_staff', courseId] as const,
   },
   // Owned by @tumaet/prompt-shared-state: react-query is a Module Federation singleton, so this
   // entry is shared with core and must keep its literal

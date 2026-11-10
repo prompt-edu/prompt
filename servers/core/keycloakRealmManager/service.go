@@ -262,9 +262,12 @@ func (s *KeycloakRealmService) getCourseGroupMembers(ctx context.Context, access
 
 	first := 0
 	max := maxStaffMembers
+	// The full representation carries the user attributes, which hold the university login.
+	brief := false
 	members, err := s.client.GetGroupMembers(ctx, accessToken, s.Realm, *group.ID, gocloak.GetGroupsParams{
-		First: &first,
-		Max:   &max,
+		First:               &first,
+		Max:                 &max,
+		BriefRepresentation: &brief,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch members of %s group: %w", groupName, err)

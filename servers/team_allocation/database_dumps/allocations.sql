@@ -17,6 +17,11 @@ INSERT INTO allocations (id, course_participation_id, team_id, course_phase_id, 
 INSERT INTO tutor (course_phase_id, course_participation_id, first_name, last_name, team_id, university_login) VALUES
 ('4179d58a-d00d-4fa7-94a5-397bc69fab02', '99999999-9999-9999-9999-999999999994', 'Alice', 'Johnson', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'ab12cde');
 
+-- A project lead who leads Team Alpha and Team Gamma
+INSERT INTO tutor (course_phase_id, course_participation_id, first_name, last_name, team_id, university_login) VALUES
+('4179d58a-d00d-4fa7-94a5-397bc69fab02', '99999999-9999-9999-9999-9999999999c1', 'Paula', 'Lead', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'pl34ead'),
+('4179d58a-d00d-4fa7-94a5-397bc69fab02', '99999999-9999-9999-9999-9999999999c1', 'Paula', 'Lead', 'cccccccc-cccc-cccc-cccc-cccccccccccc', 'pl34ead');
+
 -- A second phase owns the write fixtures, so allocation writes cannot disturb the
 -- read assertions on the phase above regardless of test order.
 INSERT INTO team (id, name, course_phase_id) VALUES
@@ -30,6 +35,11 @@ INSERT INTO allocations (id, course_participation_id, team_id, course_phase_id, 
 -- Tutor scoped to Team Delta in the write-fixture phase
 INSERT INTO tutor (course_phase_id, course_participation_id, first_name, last_name, team_id, university_login) VALUES
 ('5179d58a-d00d-4fa7-94a5-397bc69fab03', '99999999-9999-9999-9999-999999999998', 'Dave', 'Delta', 'dddddddd-dddd-dddd-dddd-dddddddddddd', 'ab12cde');
+
+-- A project lead of both teams in the write-fixture phase
+INSERT INTO tutor (course_phase_id, course_participation_id, first_name, last_name, team_id, university_login) VALUES
+('5179d58a-d00d-4fa7-94a5-397bc69fab03', '99999999-9999-9999-9999-9999999999c1', 'Paula', 'Lead', 'dddddddd-dddd-dddd-dddd-dddddddddddd', 'pl34ead'),
+('5179d58a-d00d-4fa7-94a5-397bc69fab03', '99999999-9999-9999-9999-9999999999c1', 'Paula', 'Lead', 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee', 'pl34ead');
 
 -- A phase without tutors, where editors keep unscoped reads
 INSERT INTO team (id, name, course_phase_id) VALUES

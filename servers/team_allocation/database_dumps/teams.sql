@@ -53,6 +53,19 @@ VALUES ('4179d58a-d00d-4fa7-94a5-397bc69fab02',
         'Bob',
         'Williams',
         'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
-        NULL);
+        NULL),
+       -- A project lead who leads two teams of the phase.
+       ('4179d58a-d00d-4fa7-94a5-397bc69fab02',
+        '99999999-9999-9999-9999-999999999997',
+        'Paula',
+        'Lead',
+        'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+        'pl34ead'),
+       ('4179d58a-d00d-4fa7-94a5-397bc69fab02',
+        '99999999-9999-9999-9999-999999999997',
+        'Paula',
+        'Lead',
+        'cccccccc-cccc-cccc-cccc-cccccccccccc',
+        'pl34ead');
 
 COMMIT;

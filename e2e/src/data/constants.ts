@@ -132,18 +132,43 @@ export const ASSESSMENT_FIXTURE_PHASES = {
 }
 
 // Participants of ASSESSMENT_FIXTURE_PHASES.tutorScope. Its teams come from the
-// standalone Team Allocation phase b3000004, where course-editor tutors Team
-// Lovelace only and New Test user is unallocated.
+// standalone Team Allocation phase TEAM_ALLOCATION_TUTOR_SCOPE.phaseId, where
+// course-editor is a project lead of Team Lovelace and Team Turing (not Team
+// Hamilton) and New Test user is unallocated.
 export const TUTOR_SCOPE_PARTICIPANTS = {
   ownTeam: [
-    { name: 'Stan Stan', courseParticipationId: 'a0000001-0000-0000-0000-000000000001' },
-    { name: 'Selma Second', courseParticipationId: 'ca000008-0000-4000-8000-000000000008' },
+    {
+      name: 'Stan Stan',
+      courseParticipationId: 'a0000001-0000-0000-0000-000000000001',
+      team: 'Team Lovelace',
+    },
+    {
+      name: 'Selma Second',
+      courseParticipationId: 'ca000008-0000-4000-8000-000000000008',
+      team: 'Team Lovelace',
+    },
+    {
+      name: 'Niclas Heun',
+      courseParticipationId: 'a0000002-0000-0000-0000-000000000002',
+      team: 'Team Turing',
+    },
   ],
   hidden: [
-    { name: 'Niclas Heun', courseParticipationId: 'a0000002-0000-0000-0000-000000000002' },
     { name: 'Test Test', courseParticipationId: 'a0000004-0000-0000-0000-000000000004' },
     { name: 'New Test user', courseParticipationId: 'a0000006-0000-0000-0000-000000000006' },
   ],
+}
+
+// The standalone Team Allocation phase behind TUTOR_SCOPE_PARTICIPANTS. course-editor
+// leads two of its teams, under the tutor id ledTutorId; a coach tutors Team Lovelace.
+export const TEAM_ALLOCATION_TUTOR_SCOPE = {
+  phaseId: 'b3000004-0000-0000-0000-000000000004',
+  ledTutorId: 'a0000005-0000-0000-0000-000000000005',
+  teams: {
+    lovelace: { id: '3a000003-0000-0000-0000-000000000003', name: 'Team Lovelace' },
+    turing: { id: '3a000004-0000-0000-0000-000000000004', name: 'Team Turing' },
+    hamilton: { id: '3a000006-0000-0000-0000-000000000006', name: 'Team Hamilton' },
+  },
 }
 
 // Assessment phase on TestCourse with NO participants: requests by the e2e

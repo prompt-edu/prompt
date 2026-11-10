@@ -208,14 +208,6 @@ func TestAuditMiddlewareUsesDescribedLabels(t *testing.T) {
 			coursePhaseID: auditCoursePhaseID,
 		},
 		{
-			name:          "tutor reassignment",
-			method:        http.MethodPut,
-			url:           auditCoursePhaseRoute + "/team/tutors/ab12cde",
-			action:        "Updated a tutor's team",
-			actionKey:     "PUT " + auditCoursePhaseTemplate + "/team/tutors/:universityLogin",
-			coursePhaseID: auditCoursePhaseID,
-		},
-		{
 			name:          "skill creation",
 			method:        http.MethodPost,
 			url:           auditCoursePhaseRoute + "/skill",

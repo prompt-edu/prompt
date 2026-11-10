@@ -2,6 +2,7 @@ package privacy
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	sdkAuth "github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
@@ -32,7 +33,7 @@ func (s *TeamsPrivacyService) DataExportHandler(c *gin.Context, exp *utils.Expor
 		return s.queries.GetStudentSkillResponseByCourseParticipationIDs(c, subject.CourseParticipationIDs)
 	})
 	exp.AddJSON("Tutor Assignment", "tutor.json", func() (any, error) {
-		return s.queries.GetTutorByCourseParticipationIDs(c, subject.CourseParticipationIDs)
+		return s.queries.GetTutorByCourseParticipationIDs(c, tutorIDs(subject))
 	})
 	return nil
 }
@@ -54,9 +55,19 @@ func (s *TeamsPrivacyService) DataDeletionHandler(c *gin.Context, subject sdkAut
 	if err := qtx.DeleteStudentSkillResponseByCourseParticipationIDs(c, subject.CourseParticipationIDs); err != nil {
 		return err
 	}
-	if err := qtx.DeleteTutorByCourseParticipationIDs(c, subject.CourseParticipationIDs); err != nil {
+	if err := qtx.DeleteTutorByCourseParticipationIDs(c, tutorIDs(subject)); err != nil {
 		return err
 	}
 
 	return tx.Commit(c)
+}
+
+// tutorIDs lists the ids a tutor row of the subject can carry: a coach is stored under a course
+// participation, a course editor (a project lead, for example) under their Keycloak user id.
+func tutorIDs(subject sdkAuth.SubjectIdentifiers) []uuid.UUID {
+	ids := append([]uuid.UUID{}, subject.CourseParticipationIDs...)
+	if subject.UserID != uuid.Nil {
+		ids = append(ids, subject.UserID)
+	}
+	return ids
 }

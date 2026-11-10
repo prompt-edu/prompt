@@ -25,6 +25,9 @@ const (
 	scopedTutorLogin = "ab12cde"
 	teamAlphaID      = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
 	teamBetaID       = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
+	teamGammaID      = "cccccccc-cccc-cccc-cccc-cccccccccccc"
+	projectLeadLogin = "pl34ead"
+	projectLeadID    = "99999999-9999-9999-9999-999999999997"
 )
 
 // tutorAuthMiddleware mocks an authenticated CourseEditor (non-lecturer) so the tutor-scoping
@@ -322,32 +325,130 @@ func (suite *TeamRouterTestSuite) TestAddStudentNamesUsesPathCoursePhase() {
 	assert.Equal(suite.T(), "Renamed", allocation.StudentFirstName)
 }
 
-func (suite *TeamRouterTestSuite) TestImportTutorsDuplicateLogin() {
+func (suite *TeamRouterTestSuite) TestTutorOfSeveralTeamsSeesEachOfThem() {
 	coursePhaseID := "4179d58a-d00d-4fa7-94a5-397bc69fab02"
-	tutors := []teamDTO.Tutor{
-		{
-			CourseParticipationID: uuid.MustParse("99999999-9999-9999-9999-999999999995"),
-			FirstName:             "Dup",
-			LastName:              "One",
-			TeamID:                uuid.MustParse(teamAlphaID),
-			UniversityLogin:       "dp01lic",
-		},
-		{
-			CourseParticipationID: uuid.MustParse("99999999-9999-9999-9999-999999999996"),
-			FirstName:             "Dup",
-			LastName:              "Two",
-			TeamID:                uuid.MustParse(teamAlphaID),
-			UniversityLogin:       "dp01lic",
-		},
+	router := suite.routerAs(projectLeadLogin)
+	req, _ := http.NewRequest("GET", "/api/course_phase/"+coursePhaseID+"/team", nil)
+	resp := httptest.NewRecorder()
+
+	router.ServeHTTP(resp, req)
+
+	assert.Equal(suite.T(), http.StatusOK, resp.Code)
+	var response struct {
+		Teams []promptTypes.Team `json:"teams"`
 	}
+	assert.NoError(suite.T(), json.Unmarshal(resp.Body.Bytes(), &response))
+	teamIDs := make([]string, 0, len(response.Teams))
+	for _, team := range response.Teams {
+		teamIDs = append(teamIDs, team.ID.String())
+	}
+	assert.ElementsMatch(suite.T(), []string{teamAlphaID, teamGammaID}, teamIDs)
+
+	for teamID, expected := range map[string]int{teamAlphaID: http.StatusOK, teamGammaID: http.StatusOK, teamBetaID: http.StatusForbidden} {
+		req, _ := http.NewRequest("GET", "/api/course_phase/"+coursePhaseID+"/team/"+teamID, nil)
+		resp := httptest.NewRecorder()
+		router.ServeHTTP(resp, req)
+		assert.Equal(suite.T(), expected, resp.Code, "team %s", teamID)
+	}
+}
+
+func (suite *TeamRouterTestSuite) TestTeamsListATutorUnderEachTeamTheyLead() {
+	teams, err := suite.teamService.GetAllTeams(suite.suiteCtx, uuid.MustParse("4179d58a-d00d-4fa7-94a5-397bc69fab02"))
+	assert.NoError(suite.T(), err)
+
+	leadTeams := make([]string, 0)
+	for _, team := range teams {
+		for _, tutor := range team.Tutors {
+			if tutor.ID == uuid.MustParse(projectLeadID) {
+				leadTeams = append(leadTeams, team.ID.String())
+			}
+		}
+	}
+	assert.ElementsMatch(suite.T(), []string{teamAlphaID, teamGammaID}, leadTeams)
+}
+
+func (suite *TeamRouterTestSuite) postTutors(coursePhaseID string, tutors []teamDTO.Tutor) int {
 	body, _ := json.Marshal(tutors)
 	req, _ := http.NewRequest("POST", "/api/course_phase/"+coursePhaseID+"/team/tutors", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
 	resp := httptest.NewRecorder()
-
 	suite.router.ServeHTTP(resp, req)
+	return resp.Code
+}
 
-	assert.Equal(suite.T(), http.StatusConflict, resp.Code)
+func (suite *TeamRouterTestSuite) tutorTeams(coursePhaseID, tutorID string) []string {
+	rows, err := suite.teamService.queries.GetTutorsByCourseParticipationID(suite.suiteCtx, db.GetTutorsByCourseParticipationIDParams{
+		CourseParticipationID: uuid.MustParse(tutorID),
+		CoursePhaseID:         uuid.MustParse(coursePhaseID),
+	})
+	assert.NoError(suite.T(), err)
+	teamIDs := make([]string, 0, len(rows))
+	for _, row := range rows {
+		teamIDs = append(teamIDs, row.TeamID.String())
+	}
+	return teamIDs
+}
+
+func (suite *TeamRouterTestSuite) TestImportTutorsSetsExactlyTheListedTeams() {
+	coursePhaseID := "4179d58a-d00d-4fa7-94a5-397bc69fab02"
+	firstID := "99999999-9999-9999-9999-9999999999a1"
+	tutor := teamDTO.Tutor{
+		CourseParticipationID: uuid.MustParse(firstID),
+		FirstName:             "Ida",
+		LastName:              "Import",
+		UniversityLogin:       " IM01PRT ",
+		TeamIDs:               []uuid.UUID{uuid.MustParse(teamAlphaID), uuid.MustParse(teamGammaID), uuid.MustParse(teamGammaID)},
+	}
+
+	assert.Equal(suite.T(), http.StatusCreated, suite.postTutors(coursePhaseID, []teamDTO.Tutor{tutor}))
+	assert.ElementsMatch(suite.T(), []string{teamAlphaID, teamGammaID}, suite.tutorTeams(coursePhaseID, firstID))
+
+	// A re-import by the same login replaces the teams and keeps the id the tutor already has.
+	tutor.CourseParticipationID = uuid.MustParse("99999999-9999-9999-9999-9999999999a2")
+	tutor.TeamIDs = []uuid.UUID{uuid.MustParse(teamGammaID)}
+	assert.Equal(suite.T(), http.StatusCreated, suite.postTutors(coursePhaseID, []teamDTO.Tutor{tutor}))
+	assert.Equal(suite.T(), []string{teamGammaID}, suite.tutorTeams(coursePhaseID, firstID))
+	assert.Empty(suite.T(), suite.tutorTeams(coursePhaseID, tutor.CourseParticipationID.String()))
+
+	login, err := suite.teamService.queries.GetTutorsByCourseParticipationID(suite.suiteCtx, db.GetTutorsByCourseParticipationIDParams{
+		CourseParticipationID: uuid.MustParse(firstID),
+		CoursePhaseID:         uuid.MustParse(coursePhaseID),
+	})
+	assert.NoError(suite.T(), err)
+	assert.Equal(suite.T(), "im01prt", login[0].UniversityLogin.String, "the login is stored normalized")
+}
+
+func (suite *TeamRouterTestSuite) TestImportTutorsRejectsInvalidRequests() {
+	coursePhaseID := "4179d58a-d00d-4fa7-94a5-397bc69fab02"
+	valid := func(login string) teamDTO.Tutor {
+		return teamDTO.Tutor{
+			CourseParticipationID: uuid.New(),
+			FirstName:             "Val",
+			LastName:              "Id",
+			UniversityLogin:       login,
+			TeamIDs:               []uuid.UUID{uuid.MustParse(teamAlphaID)},
+		}
+	}
+
+	noLogin := valid("  ")
+	noTeams := valid("nt01eam")
+	noTeams.TeamIDs = nil
+	noID := valid("ni01did")
+	noID.CourseParticipationID = uuid.Nil
+	foreignTeam := valid("ft01eam")
+	foreignTeam.TeamIDs = []uuid.UUID{uuid.MustParse("dddddddd-dddd-dddd-dddd-dddddddddddd")}
+
+	for name, tutors := range map[string][]teamDTO.Tutor{
+		"missing login":         {noLogin},
+		"no team":               {noTeams},
+		"missing id":            {noID},
+		"team of another phase": {foreignTeam},
+		"login listed twice":    {valid("dp01lic"), valid("DP01LIC")},
+	} {
+		assert.Equal(suite.T(), http.StatusBadRequest, suite.postTutors(coursePhaseID, tutors), name)
+	}
+
+	assert.Empty(suite.T(), suite.tutorTeams(coursePhaseID, foreignTeam.CourseParticipationID.String()), "a refused import writes nothing")
 }
 
 func TestTeamRouterTestSuite(t *testing.T) {

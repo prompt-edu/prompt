@@ -29,8 +29,8 @@ async function participationIds(
 
 test.use({ role: 'course-editor' })
 
-test.describe('assessment: tutors only reach their own team', () => {
-  test('lists only the tutor team to the editor and everyone to the lecturer', async () => {
+test.describe('assessment: tutors only reach the teams they lead', () => {
+  test('lists only the tutor teams to the editor and everyone to the lecturer', async () => {
     expect(await participationIds('course-editor')).toEqual(
       ownTeam.map((p) => p.courseParticipationId).sort(),
     )
@@ -39,7 +39,7 @@ test.describe('assessment: tutors only reach their own team', () => {
     )
   })
 
-  test('rejects reads and writes outside the tutor team', async () => {
+  test('rejects reads and writes outside the tutor teams', async () => {
     const editor = await apiAsRole('course-editor')
     try {
       const assessmentOf = (id: string) =>
@@ -67,14 +67,14 @@ test.describe('assessment: tutors only reach their own team', () => {
     }
   })
 
-  test('shows only the tutor team on the participants page', async ({ page }) => {
+  test('shows only the tutor teams on the participants page', async ({ page }) => {
     const phase = new AssessmentPage(page)
     await phase.goto(SEEDED_COURSES.fullCourse.id, PHASE_ID, '/participants')
     await phase.expectParticipantsLoaded()
 
     for (const participant of ownTeam) {
       await expect(page.getByRole('row', { name: new RegExp(participant.name) })).toContainText(
-        'Team Lovelace',
+        participant.team,
       )
     }
     for (const participant of hidden) {

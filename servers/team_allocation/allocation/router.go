@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"slices"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -20,7 +21,7 @@ const maxAllocationBodyBytes = 4 << 10
 
 func RegisterRoutes(routerGroup *gin.RouterGroup, service *AllocationService, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
 	allocationRouter := routerGroup.Group("/allocation")
-	scopingMW := tutorscope.Middleware(tutorscope.NewPgxResolver(service.conn))
+	scopingMW := tutorscope.TeamsMiddleware(tutorscope.NewPgxTeamsResolver(service.conn))
 
 	allocationRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.CourseStudent), scopingMW, service.getAllAllocations)
 	allocationRouter.GET("/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.CourseStudent), scopingMW, service.getAllocationByCourseParticipationID)
@@ -53,8 +54,8 @@ func (s *AllocationService) getAllAllocations(c *gin.Context) {
 		return
 	}
 
-	if tutorTeamID, scoped := tutorscope.TeamID(c); scoped {
-		allocations = filterAllocationsByTeam(allocations, tutorTeamID)
+	if tutorTeamIDs, scoped := tutorscope.TeamIDs(c); scoped {
+		allocations = filterAllocationsByTeams(allocations, tutorTeamIDs)
 	}
 
 	c.JSON(http.StatusOK, allocations)
@@ -97,18 +98,18 @@ func (s *AllocationService) getAllocationByCourseParticipationID(c *gin.Context)
 		return
 	}
 
-	if tutorTeamID, scoped := tutorscope.TeamID(c); scoped && teamID != tutorTeamID {
-		c.JSON(http.StatusForbidden, gin.H{"error": "access restricted to assigned team"})
+	if tutorTeamIDs, scoped := tutorscope.TeamIDs(c); scoped && !slices.Contains(tutorTeamIDs, teamID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access restricted to assigned teams"})
 		return
 	}
 
 	c.JSON(http.StatusOK, allocationDTO.Allocation{TeamAllocation: teamID})
 }
 
-func filterAllocationsByTeam(allocations []allocationDTO.AllocationWithParticipation, teamID uuid.UUID) []allocationDTO.AllocationWithParticipation {
+func filterAllocationsByTeams(allocations []allocationDTO.AllocationWithParticipation, teamIDs []uuid.UUID) []allocationDTO.AllocationWithParticipation {
 	result := make([]allocationDTO.AllocationWithParticipation, 0)
 	for _, a := range allocations {
-		if a.TeamAllocation == teamID {
+		if slices.Contains(teamIDs, a.TeamAllocation) {
 			result = append(result, a)
 		}
 	}

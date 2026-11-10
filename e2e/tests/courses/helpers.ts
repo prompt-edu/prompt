@@ -128,6 +128,7 @@ export interface StaffMember {
   email: string
   firstName: string
   lastName: string
+  universityLogin: string
 }
 
 export interface CourseStaff {

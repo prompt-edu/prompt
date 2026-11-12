@@ -5,9 +5,15 @@ import {
   SEEDED_COURSES,
   TUTOR_SCOPE_PARTICIPANTS,
 } from '../../src/data/constants'
-import { apiAsRole, assessmentUrl } from './helpers'
+import { apiAsRole, assessmentUrl, putConfig } from './helpers'
 
 const PHASE_ID = ASSESSMENT_FIXTURE_PHASES.tutorScope
+// course-editor tutors Team Lovelace of this phase (seed/team_allocation.sql).
+const TUTOR = {
+  name: 'Eduard Eduard',
+  fileBaseName: 'Eduard_Eduard',
+  courseParticipationId: 'a0000005-0000-0000-0000-000000000005',
+}
 const OTHER_TUTOR_PHASE_ID = ASSESSMENT_FIXTURE_PHASES.otherTutor
 const { ownTeam, hidden } = TUTOR_SCOPE_PARTICIPANTS
 const everyone = [...ownTeam, ...hidden]
@@ -102,5 +108,46 @@ test.describe('assessment: tutors only reach their own team', () => {
     await phase.goto(SEEDED_COURSES.fullCourse.id, OTHER_TUTOR_PHASE_ID, '/participants')
     await phase.expectParticipantsLoaded()
     await expect(page.getByRole('row', { name: new RegExp(stan.name) })).toHaveCount(0)
+  })
+
+  test.describe('as the lecturer', () => {
+    test.use({ role: 'lecturer' })
+
+    test.beforeAll(async () => {
+      const lecturer = await apiAsRole('lecturer')
+      try {
+        await putConfig(lecturer, PHASE_ID, { tutorEvaluationEnabled: true })
+      } finally {
+        await lecturer.dispose()
+      }
+    })
+
+    test.afterAll(async () => {
+      const lecturer = await apiAsRole('lecturer')
+      try {
+        await putConfig(lecturer, PHASE_ID)
+      } finally {
+        await lecturer.dispose()
+      }
+    })
+
+    test('exports the selected tutor evaluations as zipped JSON and PDF', async ({ page }) => {
+      const phase = new AssessmentPage(page)
+      await phase.goto(SEEDED_COURSES.fullCourse.id, PHASE_ID, '/tutors')
+      await expect(page.getByRole('row', { name: new RegExp(TUTOR.name) })).toBeVisible({
+        timeout: 15_000,
+      })
+      await phase.selectRow(TUTOR.name)
+
+      const json = await phase.downloadBulkAction('Export JSON')
+      expect(json.name).toMatch(/^tutor_evaluations_json_\d{4}-\d{2}-\d{2}\.zip$/)
+      expect(json.bytes.includes(`${TUTOR.fileBaseName}.json`)).toBe(true)
+      expect(json.bytes.includes(TUTOR.courseParticipationId)).toBe(true)
+
+      const pdf = await phase.downloadBulkAction('Export PDF')
+      expect(pdf.name).toMatch(/^tutor_evaluations_pdf_\d{4}-\d{2}-\d{2}\.zip$/)
+      expect(pdf.bytes.includes(`${TUTOR.fileBaseName}.pdf`)).toBe(true)
+      expect(pdf.bytes.includes('%PDF-')).toBe(true)
+    })
   })
 })

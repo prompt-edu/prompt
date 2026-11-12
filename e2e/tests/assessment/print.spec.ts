@@ -30,6 +30,7 @@ const COMPETENCY_NAME = 'Print Competency'
 const SELF_COMPETENCY_NAME = 'I documented my work'
 const REMARKS = 'Consistent, well-documented contributions across the phase.'
 const STUDENT_NAME = `${SEEDED_PHASE_STUDENTS.student.firstName} ${SEEDED_PHASE_STUDENTS.student.lastName}`
+const ZIP_ENTRY_BASE_NAME = `${SEEDED_PHASE_STUDENTS.student.lastName}_${SEEDED_PHASE_STUDENTS.student.firstName}`
 
 const reset = async () => {
   await deleteOwnEvaluations(PHASE_ID)
@@ -133,6 +134,28 @@ test.describe('assessment: print report', () => {
     // report spans the page instead of being squeezed to the right half.
     await phase.expectPrintReportFillsPage()
     await expect(phase.printReport()).toContainText(STUDENT_NAME)
+  })
+
+  test('the participants table exports the selected assessments as zipped JSON and PDF', async ({
+    page,
+  }) => {
+    const phase = new AssessmentPage(page)
+    await phase.goto(SEEDED_COURSES.fullCourse.id, PHASE_ID, '/participants')
+    await phase.expectParticipantsLoaded()
+    await phase.selectRow(STUDENT_NAME)
+
+    // The zip stores its entries uncompressed, so names and JSON are readable bytes.
+    const json = await phase.downloadBulkAction('Export JSON')
+    expect(json.name).toMatch(/^assessments_json_\d{4}-\d{2}-\d{2}\.zip$/)
+    expect(json.bytes.subarray(0, 2).toString()).toBe('PK')
+    expect(json.bytes.includes(`${ZIP_ENTRY_BASE_NAME}.json`)).toBe(true)
+    expect(json.bytes.includes(FULL_COURSE_STUDENT.courseParticipationId)).toBe(true)
+    expect(json.bytes.includes(REMARKS)).toBe(true)
+
+    const pdf = await phase.downloadBulkAction('Export PDF')
+    expect(pdf.name).toMatch(/^assessments_pdf_\d{4}-\d{2}-\d{2}\.zip$/)
+    expect(pdf.bytes.includes(`${ZIP_ENTRY_BASE_NAME}.pdf`)).toBe(true)
+    expect(pdf.bytes.includes('%PDF-')).toBe(true)
   })
 
   test('the student results view shows a bottom-right print button that prints full width', async ({

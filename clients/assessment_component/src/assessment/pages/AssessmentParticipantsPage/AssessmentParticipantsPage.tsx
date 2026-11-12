@@ -10,7 +10,7 @@ import {
   useToast,
 } from '@tumaet/prompt-ui-components'
 import { isAxiosError } from 'axios'
-import { Lock, Unlock } from 'lucide-react'
+import { FileJson, FileText, Lock, Unlock } from 'lucide-react'
 import { useMemo, useRef } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { AssessmentType } from '../../interfaces/assessmentType'
@@ -18,6 +18,7 @@ import { AssessmentDiagram } from '../components/diagrams/AssessmentDiagram'
 import { GradeDistributionDiagram } from '../components/diagrams/GradeDistributionDiagram'
 import { ScoreLevelDistributionDiagram } from '../components/diagrams/ScoreLevelDistributionDiagram'
 import { useGetAllAssessmentCompletions } from '../hooks/useGetAllAssessmentCompletions'
+import { useGetAllCategoriesWithCompetencies } from '../hooks/useGetAllCategoriesWithCompetencies'
 import { useGetAllEvaluationCompletions } from '../hooks/useGetAllEvaluationCompletions'
 import { useGetAllScoreLevels } from '../hooks/useGetAllScoreLevels'
 import { useGetAllTeams } from '../hooks/useGetAllTeams'
@@ -41,6 +42,7 @@ import {
   summarizeMarkResult,
   summarizeUnmarkResult,
 } from './utils/completionActions'
+import { exportAssessmentsAsJson, exportAssessmentsAsPdf } from './utils/exportAssessments'
 
 const toParticipationIDs = (rows: ParticipantRow[]) => rows.map((row) => row.courseParticipationID)
 
@@ -70,6 +72,7 @@ export const AssessmentParticipantsPage = () => {
   const { data: participations } = useGetCoursePhaseParticipations()
   const { data: scoreLevels } = useGetAllScoreLevels({ enabled: assessmentEnabled })
   const { data: teams } = useGetAllTeams()
+  const { data: categories } = useGetAllCategoriesWithCompetencies({ enabled: assessmentEnabled })
 
   const assessmentCompletionsQuery = useGetAllAssessmentCompletions({ enabled: assessmentEnabled })
   const evaluationCompletionsQuery = useGetAllEvaluationCompletions()
@@ -143,10 +146,23 @@ export const AssessmentParticipantsPage = () => {
   const { mutateAsync: unmarkAsCompleted } = useUnmarkAssessmentsAsCompleted()
   const deadline = coursePhaseConfig?.deadline
   const isDeadlinePassed = deadline ? new Date() > new Date(deadline) : false
+  const includeFeedback =
+    !!coursePhaseConfig?.selfEvaluationEnabled || !!coursePhaseConfig?.peerEvaluationEnabled
 
   const extraActions: RowAction<ParticipantRow>[] = useMemo(() => {
-    if (!assessmentEnabled) {
+    if (!assessmentEnabled || !phaseId) {
       return []
+    }
+    const runExport = async (exportFiles: () => Promise<void>) => {
+      try {
+        await exportFiles()
+      } catch (error) {
+        toast({
+          title: 'Export failed',
+          description: serverErrorMessage(error),
+          variant: 'destructive',
+        })
+      }
     }
     return [
       {
@@ -194,8 +210,22 @@ export const AssessmentParticipantsPage = () => {
           }
         },
       },
+      {
+        label: 'Export JSON',
+        icon: <FileJson className='h-4 w-4' />,
+        onAction: (rows) => runExport(() => exportAssessmentsAsJson(phaseId, rows)),
+      },
+      {
+        label: 'Export PDF',
+        icon: <FileText className='h-4 w-4' />,
+        onAction: (rows) =>
+          runExport(() => exportAssessmentsAsPdf(phaseId, rows, categories, includeFeedback)),
+      },
     ]
   }, [
+    phaseId,
+    categories,
+    includeFeedback,
     assessmentEnabled,
     assessmentCompletions,
     isDeadlinePassed,

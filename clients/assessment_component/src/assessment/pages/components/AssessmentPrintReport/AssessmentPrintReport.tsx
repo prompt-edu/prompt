@@ -1,9 +1,13 @@
-import { getStudyDegreeString } from '@tumaet/prompt-shared-state'
+import { getStudyDegreeString, type Student } from '@tumaet/prompt-shared-state'
 import { getStudentName } from '@tumaet/prompt-ui-components'
 
 import type { ActionItem } from '../../../interfaces/actionItem'
+import type { Assessment } from '../../../interfaces/assessment'
+import type { AssessmentCompletion } from '../../../interfaces/assessmentCompletion'
 import type { CategoryWithCompetencies } from '../../../interfaces/category'
+import type { CategoryAssessment } from '../../../interfaces/categoryAssessment'
 import type { FeedbackItem } from '../../../interfaces/feedbackItem'
+import type { StudentScore } from '../../../interfaces/studentScore'
 import { useStudentAssessmentStore } from '../../../zustand/useStudentAssessmentStore'
 import { PrintReport } from '../PrintReport/PrintReport'
 import { ScoreChip } from '../PrintReport/ScoreChip'
@@ -14,11 +18,16 @@ interface AssessmentPrintReportProps {
   actionItems?: ActionItem[]
 }
 
-export const AssessmentPrintReport = ({
-  categories,
-  feedbackItems = [],
-  actionItems = [],
-}: AssessmentPrintReportProps) => {
+interface AssessmentReportProps extends AssessmentPrintReportProps {
+  student: Student
+  assessments: Assessment[]
+  categoryAssessments: CategoryAssessment[]
+  assessmentCompletion?: AssessmentCompletion
+  studentScore?: StudentScore
+  className?: string
+}
+
+export const AssessmentPrintReport = (props: AssessmentPrintReportProps) => {
   const {
     assessmentParticipation,
     assessments,
@@ -30,6 +39,29 @@ export const AssessmentPrintReport = ({
   const student = assessmentParticipation?.student
   if (!student) return null
 
+  return (
+    <AssessmentReport
+      {...props}
+      student={student}
+      assessments={assessments}
+      categoryAssessments={categoryAssessments}
+      assessmentCompletion={assessmentCompletion}
+      studentScore={studentScore}
+    />
+  )
+}
+
+export const AssessmentReport = ({
+  categories,
+  feedbackItems = [],
+  actionItems = [],
+  student,
+  assessments,
+  categoryAssessments,
+  assessmentCompletion,
+  studentScore,
+  className,
+}: AssessmentReportProps) => {
   const degree = student.studyDegree ? getStudyDegreeString(student.studyDegree) : 'N/A'
   const categoryComments = Object.fromEntries(
     categoryAssessments
@@ -39,6 +71,7 @@ export const AssessmentPrintReport = ({
 
   return (
     <PrintReport
+      className={className}
       title={getStudentName(student)}
       subtitle={`${student.studyProgram || 'N/A'} · ${degree} · Semester ${student.currentSemester || 'N/A'}`}
       meta={

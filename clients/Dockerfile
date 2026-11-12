@@ -5,7 +5,7 @@
 # `yarn install` only re-runs when a manifest or the lockfile changes. A source
 # edit then only invalidates the final `COPY . ./`.
 # Requires BuildKit (Docker 23+) for the cache mount below.
-FROM node:26.12.0 AS base
+FROM node:26.12.1 AS base
 
 # Node 25+ images no longer bundle Corepack, so install it from npm first.
 RUN npm install -g corepack@0.36.0 && corepack enable

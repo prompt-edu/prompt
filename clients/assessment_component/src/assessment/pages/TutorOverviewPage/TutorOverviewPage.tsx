@@ -73,7 +73,7 @@ export const TutorOverviewPage = (): ReactNode => {
       {
         label: 'Export JSON',
         icon: <FileJson className='h-4 w-4' />,
-        onAction: (rows) => runExport(() => exportTutorEvaluationsAsJson(phaseId, rows)),
+        onAction: (rows) => runExport(() => exportTutorEvaluationsAsJson(phaseId, rows, teams)),
       },
       {
         label: 'Export PDF',

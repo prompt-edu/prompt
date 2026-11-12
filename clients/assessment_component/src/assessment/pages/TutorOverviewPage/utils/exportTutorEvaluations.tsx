@@ -9,23 +9,29 @@ import {
   exportDate,
   personFileBaseName,
 } from '../../utils/bulkExport/zipFiles'
-import type { TutorRow } from '../../utils/getTutorRows'
+import { getTeamNamesOfTutor, type TutorRow } from '../../utils/getTutorRows'
 
-const fetchTutorEvaluations = (phaseId: string, tutors: TutorRow[]) =>
+// A tutor leading several teams has one row per team but gets one file with all their teams.
+const fetchTutorEvaluations = (phaseId: string, rows: TutorRow[], teams: Team[]) =>
   Promise.all(
-    tutors.map(async (tutor) => {
+    [...new Map(rows.map((row) => [row.tutorId, row])).values()].map(async (tutor) => {
       const [evaluations, feedbackItems] = await Promise.all([
         assessmentApi.evaluations.ofTutor(phaseId, tutor.tutorId),
         assessmentApi.feedbackItems.ofTutor(phaseId, tutor.tutorId),
       ])
-      return { tutor, evaluations, feedbackItems }
+      const teamNames = getTeamNamesOfTutor(teams, tutor.tutorId)
+      return { tutor, teamNames, evaluations, feedbackItems }
     }),
   )
 
-export const exportTutorEvaluationsAsJson = async (phaseId: string, tutors: TutorRow[]) => {
+export const exportTutorEvaluationsAsJson = async (
+  phaseId: string,
+  tutors: TutorRow[],
+  teams: Team[],
+) => {
   const exportedAt = new Date().toISOString()
-  const files = (await fetchTutorEvaluations(phaseId, tutors)).map(
-    ({ tutor, evaluations, feedbackItems }) => ({
+  const files = (await fetchTutorEvaluations(phaseId, tutors, teams)).map(
+    ({ tutor, teamNames, evaluations, feedbackItems }) => ({
       baseName: personFileBaseName(tutor),
       extension: 'json',
       content: JSON.stringify(
@@ -36,7 +42,7 @@ export const exportTutorEvaluationsAsJson = async (phaseId: string, tutors: Tuto
             courseParticipationID: tutor.tutorId,
             firstName: tutor.firstName,
             lastName: tutor.lastName,
-            teamName: tutor.teamName,
+            teamNames,
           },
           evaluations,
           feedbackItems,
@@ -57,15 +63,15 @@ export const exportTutorEvaluationsAsPdf = async (
 ) => {
   const [categories, tutorEvaluations] = await Promise.all([
     assessmentApi.categories.listWithCompetencies(phaseId, AssessmentType.TUTOR),
-    fetchTutorEvaluations(phaseId, tutors),
+    fetchTutorEvaluations(phaseId, tutors, teams),
   ])
   const files: ExportFile[] = []
-  for (const { tutor, evaluations, feedbackItems } of tutorEvaluations) {
+  for (const { tutor, teamNames, evaluations, feedbackItems } of tutorEvaluations) {
     const pdf = await renderReportToPdf(
       <TutorEvaluationReport
         className='block'
         tutor={tutor}
-        subtitle={tutor.teamName}
+        subtitle={teamNames.join(', ')}
         tutorTitle={tutorTitle}
         categories={categories}
         evaluations={evaluations}

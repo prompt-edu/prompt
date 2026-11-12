@@ -6,18 +6,19 @@ import {
   getStudentName,
   QueryGate,
 } from '@tumaet/prompt-ui-components'
-import { ChevronLeft, ChevronRight, Printer } from 'lucide-react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useMemo } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { AssessmentType } from '../../interfaces/assessmentType'
+import { DownloadPdfButton } from '../components/DownloadPdfButton'
 import { EvaluationHeader } from '../components/EvaluationHeader'
 import { FeedbackItemDisplayPanel } from '../components/FeedbackItemDisplayPanel/FeedbackItemDisplayPanel'
 import { useGetAllTeams } from '../hooks/useGetAllTeams'
 import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
 import { useGetEvaluationCategoriesWithCompetencies } from '../hooks/useGetEvaluationCategoriesWithCompetencies'
 import { getTutorLabel } from '../hooks/useTutorLabel'
+import { personFileBaseName } from '../utils/bulkExport/zipFiles'
 import { getTeamNamesOfTutor } from '../utils/getTutorRows'
-import { printPage } from '../utils/printPage'
 import { CategoryEvaluation } from './components/CategoryEvaluation'
 import { TutorEvaluationReport } from './components/TutorEvaluationReport'
 import { useGetEvaluationsForTutorInPhase } from './hooks/useGetEvaluationsForTutorInPhase'
@@ -153,10 +154,9 @@ export const TutorEvaluationResultsPage = () => {
 
               {tutorEvaluationCategories.length > 0 && (
                 <div className='flex justify-end pt-4'>
-                  <Button variant='outline' onClick={printPage} className='gap-2'>
-                    <Printer className='h-4 w-4' />
-                    PDF / Print
-                  </Button>
+                  <DownloadPdfButton
+                    fileName={`tutor_evaluation_${personFileBaseName(tutor)}.pdf`}
+                  />
                 </div>
               )}
             </div>

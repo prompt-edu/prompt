@@ -8,16 +8,18 @@ export const pageStarts = (
   contentHeight: number,
   pageHeight: number,
   blocks: Block[],
+  forcedBreaks: number[] = [],
 ): number[] => {
   const fitting = blocks.filter((block) => block.bottom - block.top <= pageHeight)
   const starts = [0]
   let start = 0
-  while (contentHeight - start > pageHeight) {
+  while (contentHeight - start > pageHeight || forcedBreaks.some((top) => top > start)) {
     const end = start + pageHeight
+    const forced = forcedBreaks.filter((top) => top > start && top <= end)
     const cutTops = fitting
       .filter((block) => block.top > start && block.top < end && block.bottom > end)
       .map((block) => block.top)
-    start = Math.min(end, ...cutTops)
+    start = forced.length > 0 ? Math.min(...forced) : Math.min(end, ...cutTops)
     starts.push(start)
   }
   return starts

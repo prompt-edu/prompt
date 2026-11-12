@@ -22,6 +22,14 @@ describe('pageStarts', () => {
     expect(pageStarts(1500, 1000, blocks)).toEqual([0, 700])
   })
 
+  it('starts a new page at a forced break even when the content would fit', () => {
+    expect(pageStarts(800, 1000, [], [500])).toEqual([0, 500])
+  })
+
+  it('places forced breaks before the regular page height', () => {
+    expect(pageStarts(2500, 1000, [], [300, 1800])).toEqual([0, 300, 1300, 1800])
+  })
+
   it('cuts through a block taller than a page', () => {
     expect(pageStarts(2500, 1000, [{ top: 100, bottom: 2400 }])).toEqual([0, 1000, 2000])
   })

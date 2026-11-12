@@ -1,5 +1,6 @@
 import type { ReactElement } from 'react'
 import { flushSync } from 'react-dom'
+import { triggerBlobDataDownload } from '../triggerBlobDataDownload'
 import { type Block, pageStarts } from './pageStarts'
 
 const MARGIN_MM = 15
@@ -33,24 +34,36 @@ const blocksOf = (container: HTMLElement): Block[] => {
   }))
 }
 
-export const renderReportToPdf = async (report: ReactElement): Promise<Blob> => {
-  const [{ createRoot }, { default: html2canvas }, { jsPDF }] = await Promise.all([
-    import('react-dom/client'),
+const forcedBreaksOf = (container: HTMLElement): number[] => {
+  const containerTop = container.getBoundingClientRect().top
+  return Array.from(
+    container.querySelectorAll('.break-before-page'),
+    (element) => element.getBoundingClientRect().top - containerTop,
+  )
+}
+
+// Captures page by page through a clipped window so no canvas exceeds browser size limits.
+const capturePdf = async (fill: (content: HTMLElement) => () => void): Promise<Blob> => {
+  const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
     import('html2canvas-pro'),
     import('jspdf'),
   ])
 
-  // Each page is captured through this clipped window, keeping every canvas below browser size limits.
   const container = document.createElement('div')
   container.style.cssText = `position:fixed;top:0;left:-10000px;width:${CONTENT_WIDTH_PX}px;overflow:hidden;background:#fff`
   const content = document.createElement('div')
   container.appendChild(content)
   document.body.appendChild(container)
-  const root = createRoot(content)
+  let clear = () => {}
   try {
-    flushSync(() => root.render(report))
+    clear = fill(content)
     const contentHeight = content.scrollHeight
-    const starts = pageStarts(contentHeight, PAGE_HEIGHT_PX, blocksOf(content))
+    const starts = pageStarts(
+      contentHeight,
+      PAGE_HEIGHT_PX,
+      blocksOf(content),
+      forcedBreaksOf(content),
+    )
 
     const pdf = new jsPDF({ unit: 'mm', format: 'a4' })
     for (const [index, start] of starts.entries()) {
@@ -70,7 +83,30 @@ export const renderReportToPdf = async (report: ReactElement): Promise<Blob> => 
     }
     return pdf.output('blob')
   } finally {
-    root.unmount()
+    clear()
     container.remove()
   }
+}
+
+export const renderReportToPdf = async (report: ReactElement): Promise<Blob> => {
+  const { createRoot } = await import('react-dom/client')
+  return capturePdf((content) => {
+    const root = createRoot(content)
+    flushSync(() => root.render(report))
+    return () => root.unmount()
+  })
+}
+
+// Exports the print reports mounted on the current page, the same content Ctrl+P prints.
+export const downloadPrintReportsPdf = async (fileName: string) => {
+  const pdf = await capturePdf((content) => {
+    for (const report of document.querySelectorAll('.print-report')) {
+      const copy = report.cloneNode(true) as HTMLElement
+      copy.classList.remove('hidden')
+      content.appendChild(copy)
+    }
+    if (!content.hasChildNodes()) throw new Error('This page has no report to export')
+    return () => {}
+  })
+  triggerBlobDataDownload(pdf, fileName, 'application/pdf')
 }

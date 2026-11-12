@@ -1,18 +1,17 @@
 import { useQuery } from '@tanstack/react-query'
 import {
-  Button,
   Card,
   CardContent,
   ErrorPage,
   getStudentName,
   QueryGate,
 } from '@tumaet/prompt-ui-components'
-import { Printer } from 'lucide-react'
 import { type ReactNode, useMemo } from 'react'
 import { useParams } from 'react-router-dom'
 import { AssessmentType } from '../../interfaces/assessmentType'
 import { assessmentApi } from '../../network/api'
 import { assessmentKeys } from '../../network/cache'
+import { DownloadPdfButton } from '../components/DownloadPdfButton'
 import { EvaluationHeader } from '../components/EvaluationHeader'
 import { FeedbackItemDisplayPanel } from '../components/FeedbackItemDisplayPanel/FeedbackItemDisplayPanel'
 import { PrintReport } from '../components/PrintReport/PrintReport'
@@ -21,8 +20,8 @@ import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
 import { useGetCoursePhaseParticipations } from '../hooks/useGetCoursePhaseParticipations'
 import { useGetEvaluationCategoriesWithCompetencies } from '../hooks/useGetEvaluationCategoriesWithCompetencies'
 import { CategoryEvaluation } from '../TutorEvaluationResultsPage/components/CategoryEvaluation'
+import { personFileBaseName } from '../utils/bulkExport/zipFiles'
 import { getTeamMemberName } from '../utils/getTeamMemberName'
-import { printPage } from '../utils/printPage'
 
 interface EvaluationParticipantResultsPageProps {
   assessmentType: AssessmentType.SELF | AssessmentType.PEER
@@ -184,10 +183,9 @@ export const EvaluationParticipantResultsPage = ({
 
               {categories.length > 0 && (
                 <div className='flex justify-end pt-4'>
-                  <Button variant='outline' onClick={printPage} className='gap-2'>
-                    <Printer className='h-4 w-4' />
-                    PDF / Print
-                  </Button>
+                  <DownloadPdfButton
+                    fileName={`${assessmentType}_evaluation_${personFileBaseName(participant.student)}.pdf`}
+                  />
                 </div>
               )}
             </div>

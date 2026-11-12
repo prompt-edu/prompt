@@ -6,21 +6,21 @@ import {
   getStudentName,
   QueryGate,
 } from '@tumaet/prompt-ui-components'
-import { ChevronLeft, ChevronRight, Printer } from 'lucide-react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useMemo } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { AssessmentType } from '../../interfaces/assessmentType'
+import { DownloadPdfButton } from '../components/DownloadPdfButton'
 import { EvaluationHeader } from '../components/EvaluationHeader'
 import { FeedbackItemDisplayPanel } from '../components/FeedbackItemDisplayPanel/FeedbackItemDisplayPanel'
-import { PrintReport } from '../components/PrintReport/PrintReport'
 import { useGetAllTeams } from '../hooks/useGetAllTeams'
 import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
 import { useGetEvaluationCategoriesWithCompetencies } from '../hooks/useGetEvaluationCategoriesWithCompetencies'
 import { getTutorLabel } from '../hooks/useTutorLabel'
-import { getTeamMemberName } from '../utils/getTeamMemberName'
+import { personFileBaseName } from '../utils/bulkExport/zipFiles'
 import { getTeamNamesOfTutor } from '../utils/getTutorRows'
-import { printPage } from '../utils/printPage'
 import { CategoryEvaluation } from './components/CategoryEvaluation'
+import { TutorEvaluationReport } from './components/TutorEvaluationReport'
 import { useGetEvaluationsForTutorInPhase } from './hooks/useGetEvaluationsForTutorInPhase'
 import { useGetFeedbackItemsForTutorInPhase } from './hooks/useGetFeedbackItemsForTutorInPhase'
 import { useTutorNavigation } from './hooks/useTutorNavigation'
@@ -69,21 +69,6 @@ export const TutorEvaluationResultsPage = () => {
   const negativeFeedbackItems = useMemo(() => {
     return feedbackItems.filter((item) => item.feedbackType === 'negative')
   }, [feedbackItems])
-
-  const reportScores = useMemo(
-    () =>
-      tutorEvaluations.map((evaluation) => ({
-        ...evaluation,
-        authorName: getTeamMemberName(teams, evaluation.authorCourseParticipationID),
-      })),
-    [teams, tutorEvaluations],
-  )
-
-  const evaluatorCount = useMemo(
-    () =>
-      new Set(tutorEvaluations.map((evaluation) => evaluation.authorCourseParticipationID)).size,
-    [tutorEvaluations],
-  )
 
   return (
     <QueryGate queries={[evaluationsQuery, feedbackItemsQuery]}>
@@ -169,27 +154,21 @@ export const TutorEvaluationResultsPage = () => {
 
               {tutorEvaluationCategories.length > 0 && (
                 <div className='flex justify-end pt-4'>
-                  <Button variant='outline' onClick={printPage} className='gap-2'>
-                    <Printer className='h-4 w-4' />
-                    PDF / Print
-                  </Button>
+                  <DownloadPdfButton
+                    fileName={`tutor_evaluation_${personFileBaseName(tutor)}.pdf`}
+                  />
                 </div>
               )}
             </div>
 
-            <PrintReport
-              title={`${tutorLabel.title} Evaluation Results for ${getStudentName(tutor)}`}
+            <TutorEvaluationReport
+              tutor={tutor}
               subtitle={tutor.teamNames.join(', ')}
-              meta={
-                evaluatorCount > 1 ? (
-                  <span>
-                    <strong>Evaluators:</strong> {evaluatorCount}
-                  </span>
-                ) : undefined
-              }
+              tutorTitle={tutorLabel.title}
               categories={tutorEvaluationCategories}
-              scores={reportScores}
+              evaluations={tutorEvaluations}
               feedbackItems={feedbackItems}
+              teams={teams}
             />
           </>
         )

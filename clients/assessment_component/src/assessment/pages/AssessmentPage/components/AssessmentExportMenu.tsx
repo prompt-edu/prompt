@@ -12,7 +12,7 @@ import { useParams } from 'react-router-dom'
 import type { AssessmentExportFormat } from '../../../network/api'
 import { assessmentApi } from '../../../network/api'
 
-import { printPage } from '../../utils/printPage'
+import { useDownloadReportPdf } from '../../hooks/useDownloadReportPdf'
 import { triggerTextDownload } from '../../utils/triggerTextDownload'
 
 interface ExportType {
@@ -40,6 +40,7 @@ export const AssessmentExportMenu = () => {
   }>()
   const { toast } = useToast()
   const [isExporting, setIsExporting] = useState(false)
+  const { downloadPdf, isDownloading } = useDownloadReportPdf()
 
   const handleExport = async (exportType: ExportType) => {
     if (!phaseId || !courseParticipationID) return
@@ -71,13 +72,15 @@ export const AssessmentExportMenu = () => {
     <div className='flex justify-end pt-4'>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant='outline' disabled={isExporting}>
+          <Button variant='outline' disabled={isExporting || isDownloading}>
             <Download className='h-4 w-4' />
             Export
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align='end'>
-          <DropdownMenuItem onSelect={printPage}>PDF / Print</DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => downloadPdf(`assessment_${courseParticipationID}.pdf`)}>
+            PDF
+          </DropdownMenuItem>
           {exportTypes.map((exportType) => (
             <DropdownMenuItem key={exportType.format} onClick={() => handleExport(exportType)}>
               {exportType.label}

@@ -30,6 +30,7 @@ const COMPETENCY_NAME = 'Print Competency'
 const SELF_COMPETENCY_NAME = 'I documented my work'
 const REMARKS = 'Consistent, well-documented contributions across the phase.'
 const STUDENT_NAME = `${SEEDED_PHASE_STUDENTS.student.firstName} ${SEEDED_PHASE_STUDENTS.student.lastName}`
+const ZIP_ENTRY_BASE_NAME = `${SEEDED_PHASE_STUDENTS.student.lastName}_${SEEDED_PHASE_STUDENTS.student.firstName}`
 
 const reset = async () => {
   await deleteOwnEvaluations(PHASE_ID)
@@ -120,14 +121,19 @@ test.describe('assessment: print report', () => {
     await reset()
   })
 
-  test('the lecturer grading view prints the report full width', async ({ page }) => {
+  test('the lecturer grading view downloads the report as PDF and prints it full width', async ({
+    page,
+  }) => {
     const phase = new AssessmentPage(page)
     await phase.goto(SEEDED_COURSES.fullCourse.id, PHASE_ID, '/participants')
     await phase.expectParticipantsLoaded()
     await phase.openParticipant(STUDENT_NAME)
 
-    // The export control (with the "PDF / Print" item) lives bottom-right.
-    await expect(page.getByRole('button', { name: 'Export' })).toBeVisible()
+    // The export control lives bottom-right.
+    await page.getByRole('button', { name: 'Export' }).click()
+    const pdf = await phase.download(page.getByRole('menuitem', { name: 'PDF', exact: true }))
+    expect(pdf.name).toBe(`assessment_${FULL_COURSE_STUDENT.courseParticipationId}.pdf`)
+    expect(pdf.bytes.subarray(0, 5).toString()).toBe('%PDF-')
 
     // The regression guard: under print media the sidebar is gone and the
     // report spans the page instead of being squeezed to the right half.
@@ -135,25 +141,40 @@ test.describe('assessment: print report', () => {
     await expect(phase.printReport()).toContainText(STUDENT_NAME)
   })
 
-  test('the student results view shows a bottom-right print button that prints full width', async ({
+  test('the participants table exports the selected assessments as zipped JSON and PDF', async ({
+    page,
+  }) => {
+    const phase = new AssessmentPage(page)
+    await phase.goto(SEEDED_COURSES.fullCourse.id, PHASE_ID, '/participants')
+    await phase.expectParticipantsLoaded()
+    await phase.selectRow(STUDENT_NAME)
+
+    // The zip stores its entries uncompressed, so names and JSON are readable bytes.
+    const json = await phase.downloadBulkAction('Export JSON')
+    expect(json.name).toMatch(/^assessments_json_\d{4}-\d{2}-\d{2}\.zip$/)
+    expect(json.bytes.subarray(0, 2).toString()).toBe('PK')
+    expect(json.bytes.includes(`${ZIP_ENTRY_BASE_NAME}.json`)).toBe(true)
+    expect(json.bytes.includes(FULL_COURSE_STUDENT.courseParticipationId)).toBe(true)
+    expect(json.bytes.includes(REMARKS)).toBe(true)
+
+    const pdf = await phase.downloadBulkAction('Export PDF')
+    expect(pdf.name).toMatch(/^assessments_pdf_\d{4}-\d{2}-\d{2}\.zip$/)
+    expect(pdf.bytes.includes(`${ZIP_ENTRY_BASE_NAME}.pdf`)).toBe(true)
+    expect(pdf.bytes.includes('%PDF-')).toBe(true)
+  })
+
+  test('the student results view shows a bottom-right download button and prints full width', async ({
     browser,
   }) => {
     const context = await browser.newContext({ storageState: authFile('student') })
     try {
       const studentPage = await context.newPage()
-      // window.print() opens an un-scriptable native dialog; stub it so the
-      // click is observable via a console message.
-      await studentPage.addInitScript(() => {
-        window.print = () => console.info('E2E_PRINT_INVOKED')
-      })
-
       const phase = new AssessmentPage(studentPage)
       await phase.gotoResults(SEEDED_COURSES.fullCourse.id, PHASE_ID)
       await expect(studentPage.getByText('Good - 1.7')).toBeVisible()
 
-      // The print button moved out of the top header to the bottom-right,
-      // matching the assessment page convention.
-      const printButton = studentPage.getByRole('button', { name: 'PDF / Print' })
+      // The download button sits bottom-right, matching the assessment page convention.
+      const printButton = studentPage.getByRole('button', { name: 'Download PDF' })
       await expect(printButton).toBeVisible()
       const heading = studentPage.getByRole('heading', { name: 'Assessment Results' })
       const buttonBox = await printButton.boundingBox()
@@ -164,13 +185,9 @@ test.describe('assessment: print report', () => {
       expect(buttonBox!.y, 'button below the results content').toBeGreaterThan(headingBox!.y)
       expect(buttonBox!.x, 'button right-aligned').toBeGreaterThan(viewport!.width / 2)
 
-      // Clicking it actually triggers printing (via printPage -> window.print).
-      const printInvoked = studentPage.waitForEvent('console', {
-        predicate: (message) => message.text().includes('E2E_PRINT_INVOKED'),
-        timeout: 5_000,
-      })
-      await printButton.click()
-      await printInvoked
+      const pdf = await phase.download(printButton)
+      expect(pdf.name).toBe('assessment_results.pdf')
+      expect(pdf.bytes.subarray(0, 5).toString()).toBe('%PDF-')
 
       await phase.expectPrintReportFillsPage()
     } finally {
@@ -188,7 +205,9 @@ test.describe('assessment: print report', () => {
     await expect(
       page.getByRole('heading', { name: `Self Evaluation Results for ${STUDENT_NAME}` }),
     ).toBeVisible({ timeout: 15_000 })
-    await expect(page.getByRole('button', { name: 'PDF / Print' })).toBeVisible()
+    const pdf = await phase.download(page.getByRole('button', { name: 'Download PDF' }))
+    expect(pdf.name).toBe(`self_evaluation_${ZIP_ENTRY_BASE_NAME}.pdf`)
+    expect(pdf.bytes.subarray(0, 5).toString()).toBe('%PDF-')
 
     // The report is a purpose-built twin, not the interactive tree: it carries
     // the rubric description instead of the five-option score selector.
@@ -197,39 +216,23 @@ test.describe('assessment: print report', () => {
     await expect(phase.printReport()).toContainText(SELF_COMPETENCY_NAME)
   })
 
-  test('the self evaluations overview bulk-prints one report per participant', async ({ page }) => {
-    // window.print() opens an un-scriptable native dialog; stub it so the click
-    // is observable via a console message.
-    await page.addInitScript(() => {
-      window.print = () => console.info('E2E_PRINT_INVOKED')
-    })
-
+  test('the self evaluations overview exports the selected reports as zipped PDFs', async ({
+    page,
+  }) => {
     const phase = new AssessmentPage(page)
     await phase.goto(SEEDED_COURSES.fullCourse.id, PHASE_ID, '/self-evaluations')
-    const printAll = page.getByRole('button', { name: 'PDF / Print All' })
-    await expect(printAll).toBeVisible({ timeout: 15_000 })
-
-    // The reports are mounted on demand, so nothing is in the DOM up front.
-    await expect(phase.printReport()).toHaveCount(0)
-
-    const printInvoked = page.waitForEvent('console', {
-      predicate: (message) => message.text().includes('E2E_PRINT_INVOKED'),
-      timeout: 10_000,
+    await expect(page.getByRole('row', { name: new RegExp(STUDENT_NAME) })).toBeVisible({
+      timeout: 15_000,
     })
-    await printAll.click()
-    await printInvoked
+    await phase.selectRow(STUDENT_NAME)
 
-    // Only Stan has a self evaluation in this fixture; participants without one
-    // are skipped rather than printed empty.
-    await expect(phase.printReport()).toHaveCount(1)
-    await expect(phase.printReport()).toContainText(STUDENT_NAME)
+    const zip = await phase.downloadBulkAction('Export PDF')
+    expect(zip.name).toMatch(/^self_evaluations_pdf_\d{4}-\d{2}-\d{2}\.zip$/)
+    expect(zip.bytes.includes(`${ZIP_ENTRY_BASE_NAME}.pdf`)).toBe(true)
+    expect(zip.bytes.includes('%PDF-')).toBe(true)
   })
 
   test('the schema details page exports the schema without results as PDF and JSON', async ({ page }) => {
-    await page.addInitScript(() => {
-      window.print = () => console.info('E2E_PRINT_INVOKED')
-    })
-
     const phase = new AssessmentPage(page)
     await phase.goto(SEEDED_COURSES.fullCourse.id, PHASE_ID, `/settings/schema/${schemaId}`)
     const exportButton = page.getByRole('button', { name: 'Export' })
@@ -240,13 +243,10 @@ test.describe('assessment: print report', () => {
     await page.getByRole('menuitem', { name: 'JSON' }).click()
     expect((await download).suggestedFilename()).toBe('e2e-print-rubric-template.json')
 
-    const printInvoked = page.waitForEvent('console', {
-      predicate: (message) => message.text().includes('E2E_PRINT_INVOKED'),
-      timeout: 5_000,
-    })
     await exportButton.click()
-    await page.getByRole('menuitem', { name: 'PDF / Print' }).click()
-    await printInvoked
+    const pdf = await phase.download(page.getByRole('menuitem', { name: 'PDF', exact: true }))
+    expect(pdf.name).toBe('e2e-print-rubric-template.pdf')
+    expect(pdf.bytes.subarray(0, 5).toString()).toBe('%PDF-')
 
     // The schema report lists every score level's guidance instead of a grade.
     await phase.expectPrintReportFillsPage()

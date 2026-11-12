@@ -33,26 +33,6 @@ const blocksOf = (container: HTMLElement): Block[] => {
   }))
 }
 
-const cropPage = (canvas: HTMLCanvasElement, startPx: number, heightPx: number) => {
-  const page = document.createElement('canvas')
-  page.width = canvas.width
-  page.height = Math.ceil(heightPx * SCALE)
-  page
-    .getContext('2d')
-    ?.drawImage(
-      canvas,
-      0,
-      startPx * SCALE,
-      canvas.width,
-      page.height,
-      0,
-      0,
-      page.width,
-      page.height,
-    )
-  return page
-}
-
 export const renderReportToPdf = async (report: ReactElement): Promise<Blob> => {
   const [{ createRoot }, { default: html2canvas }, { jsPDF }] = await Promise.all([
     import('react-dom/client'),
@@ -60,29 +40,34 @@ export const renderReportToPdf = async (report: ReactElement): Promise<Blob> => 
     import('jspdf'),
   ])
 
+  // Each page is captured through this clipped window, keeping every canvas below browser size limits.
   const container = document.createElement('div')
-  container.style.cssText = `position:fixed;top:0;left:-10000px;width:${CONTENT_WIDTH_PX}px;background:#fff`
+  container.style.cssText = `position:fixed;top:0;left:-10000px;width:${CONTENT_WIDTH_PX}px;overflow:hidden;background:#fff`
+  const content = document.createElement('div')
+  container.appendChild(content)
   document.body.appendChild(container)
-  const root = createRoot(container)
+  const root = createRoot(content)
   try {
     flushSync(() => root.render(report))
-    const contentHeight = container.scrollHeight
-    const starts = pageStarts(contentHeight, PAGE_HEIGHT_PX, blocksOf(container))
-    const canvas = await html2canvas(container, { scale: SCALE, backgroundColor: '#ffffff' })
+    const contentHeight = content.scrollHeight
+    const starts = pageStarts(contentHeight, PAGE_HEIGHT_PX, blocksOf(content))
 
     const pdf = new jsPDF({ unit: 'mm', format: 'a4' })
-    starts.forEach((start, index) => {
+    for (const [index, start] of starts.entries()) {
       const height = (starts[index + 1] ?? contentHeight) - start
+      container.style.height = `${height}px`
+      content.style.transform = `translateY(-${start}px)`
+      const page = await html2canvas(container, { scale: SCALE, backgroundColor: '#ffffff' })
       if (index > 0) pdf.addPage()
       pdf.addImage(
-        cropPage(canvas, start, height).toDataURL('image/jpeg', 0.92),
+        page.toDataURL('image/jpeg', 0.92),
         'JPEG',
         MARGIN_MM,
         MARGIN_MM,
         CONTENT_WIDTH_MM,
         height * MM_PER_PX,
       )
-    })
+    }
     return pdf.output('blob')
   } finally {
     root.unmount()

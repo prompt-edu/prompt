@@ -9,14 +9,28 @@ const CONTENT_WIDTH_PX = 680
 const MM_PER_PX = CONTENT_WIDTH_MM / CONTENT_WIDTH_PX
 const PAGE_HEIGHT_PX = CONTENT_HEIGHT_MM / MM_PER_PX
 const SCALE = 2
-const KEEP_TOGETHER = '.break-inside-avoid, h1, h2, h3, p, li'
+const KEEP_TOGETHER = '.break-inside-avoid, h1, h2, h3, li'
+
+const textLineRects = (container: HTMLElement): DOMRect[] => {
+  const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT)
+  const range = document.createRange()
+  const rects: DOMRect[] = []
+  while (walker.nextNode()) {
+    range.selectNodeContents(walker.currentNode)
+    rects.push(...Array.from(range.getClientRects()))
+  }
+  return rects
+}
 
 const blocksOf = (container: HTMLElement): Block[] => {
   const containerTop = container.getBoundingClientRect().top
-  return Array.from(container.querySelectorAll(KEEP_TOGETHER), (element) => {
-    const { top, bottom } = element.getBoundingClientRect()
-    return { top: top - containerTop, bottom: bottom - containerTop }
-  })
+  const elementRects = Array.from(container.querySelectorAll(KEEP_TOGETHER), (element) =>
+    element.getBoundingClientRect(),
+  )
+  return [...elementRects, ...textLineRects(container)].map(({ top, bottom }) => ({
+    top: top - containerTop,
+    bottom: bottom - containerTop,
+  }))
 }
 
 const cropPage = (canvas: HTMLCanvasElement, startPx: number, heightPx: number) => {

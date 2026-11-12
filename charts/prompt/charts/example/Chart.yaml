@@ -1,0 +1,5 @@
+apiVersion: v2
+name: example
+description: PROMPT example micro-frontend (client only).
+type: application
+version: 0.1.0

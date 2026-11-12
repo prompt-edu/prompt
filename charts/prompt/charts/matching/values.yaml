@@ -1,0 +1,9 @@
+# Overridden by the umbrella `matching:` block; defaults for standalone use.
+enabled: true
+client:
+  enabled: true
+  image: prompt-clients-matching-component
+  replicas: 1
+  port: 80
+  path: /matching
+  stripPrefix: true

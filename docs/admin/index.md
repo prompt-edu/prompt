@@ -9,5 +9,6 @@ Welcome to the Administrator Guide. This section contains instructions for deplo
 
 See the following pages:
 
-- [Production setup](productionSetup.md)
+- [Production setup](productionSetup.md) - Docker Compose deployment
+- [Kubernetes (Helm) deployment](kubernetes/index.md) - deploy on a Kubernetes cluster
 

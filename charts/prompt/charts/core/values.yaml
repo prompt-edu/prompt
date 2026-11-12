@@ -1,0 +1,17 @@
+# Overridden by the umbrella `core:` block; defaults for standalone use.
+enabled: true
+server:
+  enabled: true
+  image: prompt-server-core
+  replicas: 2
+  port: 8080
+  apiPath: /api
+  dbKey: core
+  rateLimited: true
+client:
+  enabled: true
+  image: prompt-clients-core
+  replicas: 1
+  port: 80
+  path: /
+  stripPrefix: false

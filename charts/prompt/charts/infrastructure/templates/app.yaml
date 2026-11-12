@@ -1,0 +1,35 @@
+{{/*
+Shared application config and secret, consumed by every component via envFrom.
+The ConfigMap body lives in prompt-common (prompt.appConfigData) so workloads can
+hash it; the Secret is assembled from a resolved copy of appSecrets.data.
+*/}}
+{{- $data := dict -}}
+{{- if not .Values.global.appSecrets.existingSecret -}}
+{{- $data = deepCopy .Values.global.appSecrets.data -}}
+{{- $_ := set $data "S3_SECRET_KEY" (required "global.appSecrets.data.S3_SECRET_KEY is required (or set global.appSecrets.existingSecret)" $data.S3_SECRET_KEY) -}}
+{{- if eq .Values.global.objectStorage.mode "external" -}}
+{{- $_ := set $data "S3_ACCESS_KEY" (required "global.appSecrets.data.S3_ACCESS_KEY is required when global.objectStorage.mode=external" $data.S3_ACCESS_KEY) -}}
+{{- end -}}
+{{- end -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "prompt.appConfigName" . }}
+  labels:
+    {{- include "prompt.labels" (dict "root" . "component" "app-config") | nindent 4 }}
+data:
+  {{- include "prompt.appConfigData" . | nindent 2 }}
+{{ if not .Values.global.appSecrets.existingSecret }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ include "prompt.appSecretName" . }}
+  labels:
+    {{- include "prompt.labels" (dict "root" . "component" "app-secrets") | nindent 4 }}
+type: Opaque
+stringData:
+  {{- range $k, $v := $data }}
+  {{ $k }}: {{ $v | quote }}
+  {{- end }}
+{{- end }}

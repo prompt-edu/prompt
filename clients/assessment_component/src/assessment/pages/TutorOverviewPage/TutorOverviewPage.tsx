@@ -15,7 +15,6 @@ import { useGetAllEvaluationCompletions } from '../hooks/useGetAllEvaluationComp
 import { useGetAllEvaluations } from '../hooks/useGetAllEvaluations'
 import { useGetAllTeams } from '../hooks/useGetAllTeams'
 import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
-import { useGetEvaluationCategoriesWithCompetencies } from '../hooks/useGetEvaluationCategoriesWithCompetencies'
 import { getTutorLabel } from '../hooks/useTutorLabel'
 import { getScoreLevelsFromEvaluations } from '../utils/getScoreLevelsFromEvaluations'
 import { getTutorRows, getUniqueTutorIds, type TutorRow } from '../utils/getTutorRows'
@@ -36,10 +35,6 @@ export const TutorOverviewPage = (): ReactNode => {
 
   const { data: evaluationCompletions } = useGetAllEvaluationCompletions()
   const tutorEvaluationEnabled = coursePhaseConfig?.tutorEvaluationEnabled ?? false
-  const { data: categories } = useGetEvaluationCategoriesWithCompetencies(
-    AssessmentType.TUTOR,
-    tutorEvaluationEnabled,
-  )
   const { toast } = useToast()
 
   const data: TutorRow[] = useMemo(() => getTutorRows(teams), [teams])
@@ -84,12 +79,10 @@ export const TutorOverviewPage = (): ReactNode => {
         label: 'Export PDF',
         icon: <FileText className='h-4 w-4' />,
         onAction: (rows) =>
-          runExport(() =>
-            exportTutorEvaluationsAsPdf(phaseId, rows, tutorLabel.title, categories, teams),
-          ),
+          runExport(() => exportTutorEvaluationsAsPdf(phaseId, rows, tutorLabel.title, teams)),
       },
     ]
-  }, [tutorEvaluationEnabled, phaseId, tutorLabel.title, categories, teams, toast])
+  }, [tutorEvaluationEnabled, phaseId, tutorLabel.title, teams, toast])
 
   const columns: PromptTableColumnDef<TutorRow>[] = useMemo(
     () => [

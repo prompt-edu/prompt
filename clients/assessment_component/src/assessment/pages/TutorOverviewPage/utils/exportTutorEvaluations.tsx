@@ -1,5 +1,5 @@
 import type { Team } from '@tumaet/prompt-shared-state'
-import type { CategoryWithCompetencies } from '../../../interfaces/category'
+import { AssessmentType } from '../../../interfaces/assessmentType'
 import { assessmentApi } from '../../../network/api'
 import { TutorEvaluationReport } from '../../TutorEvaluationResultsPage/components/TutorEvaluationReport'
 import { renderReportToPdf } from '../../utils/bulkExport/renderReportToPdf'
@@ -53,14 +53,14 @@ export const exportTutorEvaluationsAsPdf = async (
   phaseId: string,
   tutors: TutorRow[],
   tutorTitle: string,
-  categories: CategoryWithCompetencies[],
   teams: Team[],
 ) => {
+  const [categories, tutorEvaluations] = await Promise.all([
+    assessmentApi.categories.listWithCompetencies(phaseId, AssessmentType.TUTOR),
+    fetchTutorEvaluations(phaseId, tutors),
+  ])
   const files: ExportFile[] = []
-  for (const { tutor, evaluations, feedbackItems } of await fetchTutorEvaluations(
-    phaseId,
-    tutors,
-  )) {
+  for (const { tutor, evaluations, feedbackItems } of tutorEvaluations) {
     const pdf = await renderReportToPdf(
       <TutorEvaluationReport
         className='block'

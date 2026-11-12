@@ -18,7 +18,6 @@ import { AssessmentDiagram } from '../components/diagrams/AssessmentDiagram'
 import { GradeDistributionDiagram } from '../components/diagrams/GradeDistributionDiagram'
 import { ScoreLevelDistributionDiagram } from '../components/diagrams/ScoreLevelDistributionDiagram'
 import { useGetAllAssessmentCompletions } from '../hooks/useGetAllAssessmentCompletions'
-import { useGetAllCategoriesWithCompetencies } from '../hooks/useGetAllCategoriesWithCompetencies'
 import { useGetAllEvaluationCompletions } from '../hooks/useGetAllEvaluationCompletions'
 import { useGetAllScoreLevels } from '../hooks/useGetAllScoreLevels'
 import { useGetAllTeams } from '../hooks/useGetAllTeams'
@@ -72,7 +71,6 @@ export const AssessmentParticipantsPage = () => {
   const { data: participations } = useGetCoursePhaseParticipations()
   const { data: scoreLevels } = useGetAllScoreLevels({ enabled: assessmentEnabled })
   const { data: teams } = useGetAllTeams()
-  const { data: categories } = useGetAllCategoriesWithCompetencies({ enabled: assessmentEnabled })
 
   const assessmentCompletionsQuery = useGetAllAssessmentCompletions({ enabled: assessmentEnabled })
   const evaluationCompletionsQuery = useGetAllEvaluationCompletions()
@@ -218,13 +216,11 @@ export const AssessmentParticipantsPage = () => {
       {
         label: 'Export PDF',
         icon: <FileText className='h-4 w-4' />,
-        onAction: (rows) =>
-          runExport(() => exportAssessmentsAsPdf(phaseId, rows, categories, includeFeedback)),
+        onAction: (rows) => runExport(() => exportAssessmentsAsPdf(phaseId, rows, includeFeedback)),
       },
     ]
   }, [
     phaseId,
-    categories,
     includeFeedback,
     assessmentEnabled,
     assessmentCompletions,

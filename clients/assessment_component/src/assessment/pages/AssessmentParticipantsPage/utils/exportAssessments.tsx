@@ -1,5 +1,5 @@
 import type { ParticipantRow } from '@tumaet/prompt-ui-components'
-import type { CategoryWithCompetencies } from '../../../interfaces/category'
+import { AssessmentType } from '../../../interfaces/assessmentType'
 import { assessmentApi } from '../../../network/api'
 import { AssessmentReport } from '../../components/AssessmentPrintReport/AssessmentPrintReport'
 import { renderReportToPdf } from '../../utils/bulkExport/renderReportToPdf'
@@ -27,9 +27,12 @@ export const exportAssessmentsAsJson = async (phaseId: string, rows: Participant
 export const exportAssessmentsAsPdf = async (
   phaseId: string,
   rows: ParticipantRow[],
-  categories: CategoryWithCompetencies[],
   includeFeedback: boolean,
 ) => {
+  const categories = await assessmentApi.categories.listWithCompetencies(
+    phaseId,
+    AssessmentType.ASSESSMENT,
+  )
   const reports = await Promise.all(
     rows.map(async (row) => {
       const [exported, feedbackItems] = await Promise.all([

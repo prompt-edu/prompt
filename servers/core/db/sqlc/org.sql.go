@@ -175,6 +175,27 @@ func (q *Queries) LockOrgHierarchy(ctx context.Context) error {
 	return err
 }
 
+const stampOrgCreatedAt = `-- name: StampOrgCreatedAt :one
+UPDATE org SET created_at = clock_timestamp() WHERE id = $1 RETURNING id, parent_org_id, name, slug, school, university, website, contact_email, created_at
+`
+
+func (q *Queries) StampOrgCreatedAt(ctx context.Context, id uuid.UUID) (Org, error) {
+	row := q.db.QueryRow(ctx, stampOrgCreatedAt, id)
+	var i Org
+	err := row.Scan(
+		&i.ID,
+		&i.ParentOrgID,
+		&i.Name,
+		&i.Slug,
+		&i.School,
+		&i.University,
+		&i.Website,
+		&i.ContactEmail,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const updateOrg = `-- name: UpdateOrg :one
 UPDATE org
 SET name = $2, school = $3, university = $4, website = $5, contact_email = $6

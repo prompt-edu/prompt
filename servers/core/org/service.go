@@ -108,6 +108,16 @@ func (s *OrgService) CreateOrg(ctx context.Context, input orgDTO.CreateOrg) (org
 		return orgDTO.Org{}, fmt.Errorf("failed to create keycloak groups and roles: %w", err)
 	}
 
+	// The insert may have waited on the slug of an org whose deletion was still removing its roles
+	// from Keycloak, so the creation time is taken after provisioning, not at the transaction start:
+	// a token holding the old org's roles must predate it.
+	stamped, err := qtx.StampOrgCreatedAt(ctx, created.ID)
+	if err != nil {
+		s.cleanUpKeycloak(ctx, created.Slug)
+		return orgDTO.Org{}, fmt.Errorf("failed to stamp the org's creation time: %w", err)
+	}
+	created = stamped
+
 	if err := tx.Commit(ctx); err != nil {
 		return s.reconcileFailedCreateCommit(ctx, created, fmt.Errorf("failed to commit transaction: %w", err))
 	}

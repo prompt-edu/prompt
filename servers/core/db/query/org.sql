@@ -3,6 +3,9 @@ INSERT INTO org (id, parent_org_id, name, slug, school, university, website, con
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 RETURNING *;
 
+-- name: StampOrgCreatedAt :one
+UPDATE org SET created_at = clock_timestamp() WHERE id = $1 RETURNING *;
+
 -- name: GetOrgByID :one
 SELECT * FROM org WHERE id = $1;
 

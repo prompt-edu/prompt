@@ -28,11 +28,15 @@ type keycloakSpy struct {
 	deleteErr         error
 	existErr          error
 	deletedDespiteErr bool
+	onCreate          func(slug string)
 	onDelete          func(slug string)
 }
 
 func (k *keycloakSpy) create(_ context.Context, slug string) error {
 	k.created = append(k.created, slug)
+	if k.onCreate != nil {
+		k.onCreate(slug)
+	}
 	return k.createErr
 }
 
@@ -151,6 +155,22 @@ func (suite *OrgServiceTestSuite) TestCreateOrgStoresTrimmedInputAndProvisionsKe
 	stored, err := suite.service.GetOrg(suite.ctx, created.ID)
 	require.NoError(suite.T(), err)
 	assert.Equal(suite.T(), created, stored)
+}
+
+func (suite *OrgServiceTestSuite) TestCreateOrgTakesTheCreationTimeAfterProvisioningKeycloak() {
+	var provisionedAt time.Time
+	suite.keycloak.onCreate = func(string) {
+		err := suite.conn.QueryRow(suite.ctx, "SELECT clock_timestamp()").Scan(&provisionedAt)
+		require.NoError(suite.T(), err)
+	}
+
+	created, err := suite.service.CreateOrg(suite.ctx, orgDTO.CreateOrg{Name: "Stamped", Slug: "stamped"})
+	require.NoError(suite.T(), err)
+
+	assert.True(suite.T(), created.CreatedAt.After(provisionedAt), "created at %v, provisioned at %v", created.CreatedAt, provisionedAt)
+	stored, err := suite.service.GetOrg(suite.ctx, created.ID)
+	require.NoError(suite.T(), err)
+	assert.Equal(suite.T(), created.CreatedAt, stored.CreatedAt)
 }
 
 func (suite *OrgServiceTestSuite) TestCreateOrgStoresEmptyOptionalFieldsAsNull() {

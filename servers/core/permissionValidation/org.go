@@ -42,6 +42,7 @@ func (s *ValidationService) CheckOrgPermission(c *gin.Context, orgID uuid.UUID, 
 		return false, errors.New("invalid token issue time format in context")
 	}
 	// A token issued before the org existed holds the roles of a deleted org with the same slug. The
+	// creation time is taken once Keycloak is provisioned, after such an org's roles are gone. The
 	// issue time has whole seconds, so a token from the second the org was created is rejected too.
 	if !issuedAt.After(org.CreatedAt.Time) {
 		return false, nil

@@ -247,18 +247,23 @@ export class AssessmentPage {
       .click()
   }
 
-  // Runs a bulk action of the table toolbar and returns the downloaded file.
-  async downloadBulkAction(action: string): Promise<{ name: string; bytes: Buffer }> {
-    await this.page.getByRole('button', { name: 'Actions' }).click()
+  // Clicks the trigger and returns the file it downloads.
+  async download(trigger: Locator): Promise<{ name: string; bytes: Buffer }> {
     const [download] = await Promise.all([
       this.page.waitForEvent('download', { timeout: 30_000 }),
-      this.page.getByRole('menuitem', { name: action }).click(),
+      trigger.click(),
     ])
     const chunks: Buffer[] = []
     for await (const chunk of await download.createReadStream()) {
       chunks.push(Buffer.from(chunk))
     }
     return { name: download.suggestedFilename(), bytes: Buffer.concat(chunks) }
+  }
+
+  // Runs a bulk action of the table toolbar and returns the downloaded file.
+  async downloadBulkAction(action: string): Promise<{ name: string; bytes: Buffer }> {
+    await this.page.getByRole('button', { name: 'Actions' }).click()
+    return this.download(this.page.getByRole('menuitem', { name: action }))
   }
 
   async openParticipant(fullName: string) {

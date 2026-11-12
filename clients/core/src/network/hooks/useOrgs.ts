@@ -109,9 +109,9 @@ export const useDeleteOrg = () => {
 
   return useMutation({
     mutationFn: (orgId: string) => coreApi.orgs.remove(orgId),
-    onSuccess: () => {
+    onSuccess: (_data, orgId) => {
       toast({ title: 'Org deleted' })
-      coreCache.orgDeleted(queryClient)
+      coreCache.orgDeleted(queryClient, orgId)
     },
     onError: (error) => {
       toast({

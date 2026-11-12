@@ -26,6 +26,36 @@ const invalidate = (queryClient: QueryClient, keys: CacheKeys): void => {
 }
 
 /**
+ * Drops a query from the cache once no mounted component observes it.
+ *
+ * A query removed while a component still observes it is rebuilt empty on that component's next
+ * render and fetched again. The page that deleted an entity still renders until the navigation away
+ * commits, so removing the entity's query right away would refetch it into a 404.
+ */
+const removeOnceUnobserved = (queryClient: QueryClient, queryKey: readonly unknown[]): void => {
+  const queryCache = queryClient.getQueryCache()
+  const query = queryCache.find({ queryKey, exact: true })
+  if (!query) {
+    return
+  }
+  if (query.getObserversCount() === 0) {
+    queryCache.remove(query)
+    return
+  }
+  const unsubscribe = queryCache.subscribe((event) => {
+    if (event.query !== query) {
+      return
+    }
+    if (event.type === 'removed') {
+      unsubscribe()
+    } else if (event.type === 'observerRemoved' && query.getObserversCount() === 0) {
+      unsubscribe()
+      queryCache.remove(query)
+    }
+  })
+}
+
+/**
  * The writes core performs, and the caches each one makes stale.
  *
  * Hooks name the event; the fan-out lives here, so a new cache that depends on an existing write is
@@ -129,8 +159,11 @@ export const coreCache = {
 
   orgsChanged: (queryClient: QueryClient): void => invalidate(queryClient, [coreKeys.orgs.all()]),
 
-  orgDeleted: (queryClient: QueryClient): void => {
+  // The deleted org is removed rather than invalidated: a refetch would only 404, and a cached copy
+  // would render it again on browser Back until that refetch returns
+  orgDeleted: (queryClient: QueryClient, orgId: string): void => {
     queryClient.invalidateQueries({ queryKey: coreKeys.orgs.all(), exact: true })
+    removeOnceUnobserved(queryClient, coreKeys.orgs.byId(orgId))
   },
 
   privacyDeletionsChanged: (queryClient: QueryClient): void =>

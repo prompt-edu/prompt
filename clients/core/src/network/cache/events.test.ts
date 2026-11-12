@@ -1,4 +1,4 @@
-import { QueryClient } from '@tanstack/react-query'
+import { QueryClient, QueryObserver } from '@tanstack/react-query'
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import { coreCache } from './events'
@@ -351,14 +351,32 @@ describe('org events', () => {
     expect(isInvalidated(coreKeys.orgs.byId(OTHER_ORG))).toBe(true)
   })
 
-  it('invalidates only the org list on a delete, so the deleted org is never refetched into a 404', () => {
+  it('invalidates the org list and drops the deleted org on a delete, so it is never refetched into a 404', () => {
     seed(coreKeys.orgs.all(), coreKeys.orgs.byId(ORG), coreKeys.orgs.byId(OTHER_ORG))
 
-    coreCache.orgDeleted(queryClient)
+    coreCache.orgDeleted(queryClient, ORG)
 
     expect(isInvalidated(coreKeys.orgs.all())).toBe(true)
-    expect(isInvalidated(coreKeys.orgs.byId(ORG))).toBe(false)
+    expect(queryClient.getQueryState(coreKeys.orgs.byId(ORG))).toBeUndefined()
     expect(isInvalidated(coreKeys.orgs.byId(OTHER_ORG))).toBe(false)
+  })
+
+  it('keeps the deleted org while its page still observes it, so a re-render cannot refetch it', () => {
+    seed(coreKeys.orgs.byId(ORG))
+    const page = new QueryObserver(queryClient, {
+      queryKey: coreKeys.orgs.byId(ORG),
+      enabled: false,
+    })
+    const unmountPage = page.subscribe(() => {})
+
+    coreCache.orgDeleted(queryClient, ORG)
+
+    expect(queryClient.getQueryData(coreKeys.orgs.byId(ORG))).toBe('seeded')
+    expect(isInvalidated(coreKeys.orgs.byId(ORG))).toBe(false)
+
+    unmountPage()
+
+    expect(queryClient.getQueryState(coreKeys.orgs.byId(ORG))).toBeUndefined()
   })
 })
 

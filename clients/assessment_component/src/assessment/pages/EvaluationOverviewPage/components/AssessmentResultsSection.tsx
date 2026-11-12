@@ -1,7 +1,7 @@
 import { useCourseStore } from '@tumaet/prompt-shared-state'
 import { QueryGate } from '@tumaet/prompt-ui-components'
 import { Loader2 } from 'lucide-react'
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useParams } from 'react-router-dom'
 
 import { useStudentAssessmentStore } from '../../../zustand/useStudentAssessmentStore'
@@ -12,6 +12,7 @@ import { useGetAllCategoriesWithCompetencies } from '../../hooks/useGetAllCatego
 import { useGetAllTeams } from '../../hooks/useGetAllTeams'
 import { useGetCoursePhaseConfig } from '../../hooks/useGetCoursePhaseConfig'
 import { useGetMyParticipation } from '../../hooks/useGetMyParticipation'
+import { buildExampleAssessmentResults } from '../../utils/exampleResults'
 import { useGetMyAssessmentResults } from '../hooks/useGetMyAssessmentResults'
 
 const AssessmentResultsLoader = () => (
@@ -25,7 +26,7 @@ interface AssessmentResultsSectionProps {
 }
 
 export const AssessmentResultsSection = ({ onReadyChange }: AssessmentResultsSectionProps) => {
-  const { courseId } = useParams<{ courseId: string }>()
+  const { courseId, phaseId } = useParams<{ courseId: string; phaseId: string }>()
   const { isStudentOfCourse } = useCourseStore()
   const isStudent = isStudentOfCourse(courseId ?? '')
   const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
@@ -40,18 +41,27 @@ export const AssessmentResultsSection = ({ onReadyChange }: AssessmentResultsSec
   const { setStudentAssessment, setAssessmentParticipation } = useStudentAssessmentStore()
 
   const shouldFetch = isStudent && resultsReleased
-  const shouldFetchCategories = shouldFetch && gradingSheetVisible
+  const shouldFetchCategories = (shouldFetch || !isStudent) && gradingSheetVisible
   const resultsQuery = useGetMyAssessmentResults({ enabled: shouldFetch })
   const assessmentCategoriesQuery = useGetAllCategoriesWithCompetencies({
     enabled: shouldFetchCategories,
   })
 
-  const { data: results, isPending, isError } = resultsQuery
+  const { data: fetchedResults, isPending, isError } = resultsQuery
   const {
     data: assessmentCategories = [],
     isPending: isAssessmentCategoriesPending,
     isError: isAssessmentCategoriesError,
   } = assessmentCategoriesQuery
+
+  const exampleResults = useMemo(
+    () =>
+      !isStudent && coursePhaseConfig
+        ? buildExampleAssessmentResults(phaseId ?? '', assessmentCategories, coursePhaseConfig)
+        : undefined,
+    [isStudent, coursePhaseConfig, phaseId, assessmentCategories],
+  )
+  const results = isStudent ? fetchedResults : exampleResults
 
   useEffect(() => {
     if (!results) return
@@ -92,7 +102,7 @@ export const AssessmentResultsSection = ({ onReadyChange }: AssessmentResultsSec
     })
   }, [myParticipation, setAssessmentParticipation, teams])
 
-  if (!resultsReleased || !isStudent) return null
+  if (isStudent && !resultsReleased) return null
 
   return (
     <QueryGate

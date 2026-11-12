@@ -1,7 +1,16 @@
-import { Button, Card, CardContent, ManagementPageHeader } from '@tumaet/prompt-ui-components'
-import { ArrowLeft, Printer } from 'lucide-react'
+import { useCourseStore } from '@tumaet/prompt-shared-state'
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+  Button,
+  Card,
+  CardContent,
+  ManagementPageHeader,
+} from '@tumaet/prompt-ui-components'
+import { ArrowLeft, Info, Printer } from 'lucide-react'
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 
 import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
 import { printPage } from '../utils/printPage'
@@ -11,6 +20,9 @@ import { EvaluationResultsSection } from './components/EvaluationResultsSection'
 
 export const EvaluationResultsPage = () => {
   const navigate = useNavigate()
+  const { courseId } = useParams<{ courseId: string }>()
+  const { isStudentOfCourse } = useCourseStore()
+  const isStudent = isStudentOfCourse(courseId ?? '')
   const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
   const resultsReleased = coursePhaseConfig?.resultsReleased ?? false
   const assessmentEnabled = coursePhaseConfig?.assessmentEnabled ?? true
@@ -30,7 +42,19 @@ export const EvaluationResultsPage = () => {
         </ManagementPageHeader>
       </div>
 
-      {resultsReleased ? (
+      {!isStudent && (
+        <Alert className='mb-4 print:hidden'>
+          <Info className='h-4 w-4' />
+          <AlertTitle>Example data</AlertTitle>
+          <AlertDescription>
+            You are not a student of this course, so this page shows example results. Students see
+            their own results in this layout, limited to the sections enabled in the settings
+            {resultsReleased ? '.' : ', once you release the results.'}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {resultsReleased || !isStudent ? (
         assessmentEnabled ? (
           <AssessmentResultsSection onReadyChange={setReportReady} />
         ) : (

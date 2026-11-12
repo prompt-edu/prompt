@@ -10,6 +10,7 @@ import type { StudentEvaluationResults } from '../../../interfaces/evaluationRes
 import { ScoreChip } from '../../components/PrintReport/ScoreChip'
 import { useGetCoursePhaseConfig } from '../../hooks/useGetCoursePhaseConfig'
 import { useGetEvaluationCategoriesWithCompetencies } from '../../hooks/useGetEvaluationCategoriesWithCompetencies'
+import { buildExampleEvaluationResults } from '../../utils/exampleResults'
 import { getScoreLevelDescription } from '../../utils/getScoreLevelDescription'
 import { useGetMyEvaluationResults } from '../hooks/useGetMyEvaluationResults'
 import { EvaluationPrintReport, type EvaluationPrintSection } from './EvaluationPrintReport'
@@ -107,7 +108,7 @@ const ResultCategoryList = ({ categories }: { categories: EvaluationResultCatego
 )
 
 export const EvaluationResultsSection = ({ onReadyChange }: EvaluationResultsSectionProps) => {
-  const { courseId } = useParams<{ courseId: string }>()
+  const { courseId, phaseId } = useParams<{ courseId: string; phaseId: string }>()
   const { isStudentOfCourse } = useCourseStore()
   const isStudent = isStudentOfCourse(courseId ?? '')
 
@@ -120,16 +121,25 @@ export const EvaluationResultsSection = ({ onReadyChange }: EvaluationResultsSec
   const resultsQuery = useGetMyEvaluationResults({
     enabled: shouldFetch,
   })
-  const { data: results, isPending, isError } = resultsQuery
+  const { data: fetchedResults, isPending, isError } = resultsQuery
 
-  const { data: selfCategories } = useGetEvaluationCategoriesWithCompetencies(
+  const shouldFetchCategories = shouldFetch || !isStudent
+  const selfCategoriesQuery = useGetEvaluationCategoriesWithCompetencies(
     AssessmentType.SELF,
-    shouldFetch && selfEvaluationEnabled,
+    shouldFetchCategories && selfEvaluationEnabled,
   )
-  const { data: peerCategories } = useGetEvaluationCategoriesWithCompetencies(
+  const peerCategoriesQuery = useGetEvaluationCategoriesWithCompetencies(
     AssessmentType.PEER,
-    shouldFetch && peerEvaluationEnabled,
+    shouldFetchCategories && peerEvaluationEnabled,
   )
+  const selfCategories = selfCategoriesQuery.data
+  const peerCategories = peerCategoriesQuery.data
+
+  const exampleResults = useMemo(
+    () => buildExampleEvaluationResults(phaseId ?? '', selfCategories, peerCategories),
+    [phaseId, selfCategories, peerCategories],
+  )
+  const results = isStudent ? fetchedResults : exampleResults
 
   const selfLevels = useMemo(
     () => new Map((results?.selfResults ?? []).map((r) => [r.competencyID, r.scoreLevel])),
@@ -174,9 +184,12 @@ export const EvaluationResultsSection = ({ onReadyChange }: EvaluationResultsSec
     onReadyChange?.(isReportReady)
   }, [isReportReady, onReadyChange])
 
-  if (!resultsReleased || !isStudent) return null
+  if (isStudent && !resultsReleased) return null
   return (
-    <QueryGate queries={[resultsQuery]} loadingFallback={<EvaluationResultsLoader />}>
+    <QueryGate
+      queries={[resultsQuery, selfCategoriesQuery, peerCategoriesQuery]}
+      loadingFallback={<EvaluationResultsLoader />}
+    >
       {() => {
         if (!hasContent) {
           return (

@@ -12,9 +12,24 @@ export const MAX_WEBSITE_LENGTH = 2048
 export const MAX_CONTACT_EMAIL_LENGTH = 254
 
 const SLUG_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/
-const EMAIL_PATTERN = /^[^\s@<>]+@[^\s@<>]+$/
+
+// net/mail on the server reads both halves of a plain address as an RFC 5322 dot-atom: atoms of
+// visible characters other than the specials, joined by single dots
+const ATEXT = String.raw`[^\x00-\x20\x7f"(),.:;<>@\[\\\]]`
+const DOT_ATOM = String.raw`${ATEXT}+(?:\.${ATEXT}+)*`
+const EMAIL_PATTERN = new RegExp(`^${DOT_ATOM}@${DOT_ATOM}$`, 'u')
+
+// The authority as typed. The WHATWG parser behind toHttpUrl supplies a missing `//` and skips extra
+// slashes and backslashes (`https:aet.tum.de`, `https:///aet.tum.de`), where the server's Go parser
+// finds no host and rejects the URL.
+const WEBSITE_AUTHORITY_PATTERN = /^https?:\/\/([^/?#]+)/i
 
 const length = (value: string): number => [...value].length
+
+const isAbsoluteHttpUrl = (website: string): boolean => {
+  const authority = WEBSITE_AUTHORITY_PATTERN.exec(website)?.[1]
+  return authority !== undefined && !authority.includes('\\') && toHttpUrl(website) !== undefined
+}
 
 export const validateSlug = (slug: string): string | undefined => {
   if (slug === '') {
@@ -47,7 +62,7 @@ export const validateOrgDetails = (values: UpdateOrg): OrgFormErrors => {
   }
   if (length(values.website) > MAX_WEBSITE_LENGTH) {
     errors.website = `The website must be at most ${MAX_WEBSITE_LENGTH} characters.`
-  } else if (values.website !== '' && !toHttpUrl(values.website)) {
+  } else if (values.website !== '' && !isAbsoluteHttpUrl(values.website)) {
     errors.website = 'Enter an absolute http or https URL.'
   }
   if (length(values.contactEmail) > MAX_CONTACT_EMAIL_LENGTH) {

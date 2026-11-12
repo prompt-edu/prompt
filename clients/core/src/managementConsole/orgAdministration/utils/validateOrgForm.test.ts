@@ -74,26 +74,65 @@ describe('validateOrgDetails', () => {
     )
   })
 
-  it.each(['example.com', 'ftp://example.com', 'https://', '/relative', 'mailto:a@b.de'])(
-    'rejects the website %j',
+  it.each(['HTTPS://AET.cit.tum.de', 'http://localhost:3000/path?q=1', 'https://user@[::1]:8080'])(
+    'accepts the website %j',
     (website) => {
-      expect(validateOrgDetails({ ...details, website }).website).toBe(
-        'Enter an absolute http or https URL.',
-      )
+      expect(validateOrgDetails({ ...details, website }).website).toBeUndefined()
     },
   )
+
+  it.each([
+    'example.com',
+    'ftp://example.com',
+    'https://',
+    '/relative',
+    'mailto:a@b.de',
+    // The browser's URL parser fills in the host of these, the server's does not
+    'https:aet.tum.de',
+    'http:/example.com',
+    'https:///example.com',
+    'https:\\\\example.com',
+    'http://\\example.com',
+  ])('rejects the website %j', (website) => {
+    expect(validateOrgDetails({ ...details, website }).website).toBe(
+      'Enter an absolute http or https URL.',
+    )
+  })
 
   it('rejects an overlong website', () => {
     const website = `https://example.com/${'a'.repeat(MAX_WEBSITE_LENGTH)}`
     expect(validateOrgDetails({ ...details, website }).website).toContain('at most')
   })
 
-  it.each(['chair', 'chair@', '@example.com', 'Chair <chair@example.com>', 'a b@example.com'])(
-    'rejects the contact email %j',
-    (contactEmail) => {
-      expect(validateOrgDetails({ ...details, contactEmail }).contactEmail).toBeDefined()
-    },
-  )
+  it.each([
+    'first.last+tag@example.com',
+    "o'brien@example.com",
+    'chair@localhost',
+    'jürgen@tüm.de',
+    "!#$%&'*+-/=?^_`{|}~@example.com",
+  ])('accepts the contact email %j', (contactEmail) => {
+    expect(validateOrgDetails({ ...details, contactEmail }).contactEmail).toBeUndefined()
+  })
+
+  it.each([
+    'chair',
+    'chair@',
+    '@example.com',
+    'Chair <chair@example.com>',
+    'a b@example.com',
+    // Not a dot-atom, which is all the server accepts
+    'a..b@x.com',
+    '.a@x.com',
+    'a.@x.com',
+    'a,b@x.com',
+    'a@x..com',
+    'a@.x.com',
+    'a@b@x.com',
+    '"a"@x.com',
+    'a@x.com (chair)',
+  ])('rejects the contact email %j', (contactEmail) => {
+    expect(validateOrgDetails({ ...details, contactEmail }).contactEmail).toBeDefined()
+  })
 
   it('rejects an overlong contact email', () => {
     const contactEmail = `${'a'.repeat(MAX_CONTACT_EMAIL_LENGTH)}@example.com`

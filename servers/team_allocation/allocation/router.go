@@ -13,7 +13,6 @@ import (
 	"github.com/prompt-edu/prompt-sdk/tutorscope"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/team_allocation/allocation/allocationDTO"
-	log "github.com/sirupsen/logrus"
 )
 
 const maxAllocationBodyBytes = 4 << 10
@@ -24,8 +23,8 @@ func RegisterRoutes(routerGroup *gin.RouterGroup, service *AllocationService, au
 
 	allocationRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.CourseStudent), scopingMW, service.getAllAllocations)
 	allocationRouter.GET("/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.CourseStudent), scopingMW, service.getAllocationByCourseParticipationID)
-	allocationRouter.PUT("/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), scopingMW, service.updateAllocation)
-	allocationRouter.DELETE("/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), scopingMW, service.deleteAllocation)
+	allocationRouter.PUT("/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.updateAllocation)
+	allocationRouter.DELETE("/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.deleteAllocation)
 }
 
 // getAllAllocations godoc
@@ -117,7 +116,7 @@ func filterAllocationsByTeam(allocations []allocationDTO.AllocationWithParticipa
 
 // updateAllocation godoc
 // @Summary Assign a participant to a team
-// @Description Assign a course participation to a team. Lecturers and admins may write any team; a tutor may only write the team they are assigned to, and only for a participant who is unallocated or already in that team.
+// @Description Assign a course participation to a team. Only lecturers and admins may change allocations; tutors have read access only.
 // @Tags allocation
 // @Accept json
 // @Produce json
@@ -148,21 +147,10 @@ func (s *AllocationService) updateAllocation(c *gin.Context) {
 		return
 	}
 
-	access, allowed := authorizeWrite(c)
-	if !allowed {
-		return
-	}
-	if !access.AllowsTeam(request.TeamID) {
-		denyAllocationWrite(c)
-		return
-	}
-
-	err := s.UpsertAllocation(c, c.GetHeader("Authorization"), coursePhaseID, courseParticipationID, request.TeamID, access.Guard())
+	err := s.UpsertAllocation(c, c.GetHeader("Authorization"), coursePhaseID, courseParticipationID, request.TeamID)
 	switch {
 	case err == nil:
 		c.JSON(http.StatusOK, allocationDTO.Allocation{TeamAllocation: request.TeamID})
-	case errors.Is(err, tutorscope.ErrWriteDenied):
-		denyAllocationWrite(c)
 	case errors.Is(err, ErrParticipantNotInPhase), errors.Is(err, ErrInvalidTeamForPhase):
 		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 	case errors.Is(err, ErrParticipantLookup):
@@ -174,7 +162,7 @@ func (s *AllocationService) updateAllocation(c *gin.Context) {
 
 // deleteAllocation godoc
 // @Summary Remove a participant's team allocation
-// @Description Remove the team allocation of a course participation. Lecturers and admins may remove any; a tutor may only remove one from the team they are assigned to.
+// @Description Remove the team allocation of a course participation. Only lecturers and admins may change allocations; tutors have read access only.
 // @Tags allocation
 // @Produce json
 // @Param coursePhaseID path string true "Course Phase UUID"
@@ -193,20 +181,11 @@ func (s *AllocationService) deleteAllocation(c *gin.Context) {
 		return
 	}
 
-	access, allowed := authorizeWrite(c)
-	if !allowed {
-		return
-	}
-
-	err := s.DeleteAllocation(c, coursePhaseID, courseParticipationID, access.Guard())
+	err := s.DeleteAllocation(c, coursePhaseID, courseParticipationID)
 	switch {
 	case err == nil:
 		c.Status(http.StatusNoContent)
 	case errors.Is(err, ErrAllocationNotFound):
-		if s.isForeignTeamAllocation(c, coursePhaseID, courseParticipationID, access) {
-			denyAllocationWrite(c)
-			return
-		}
 		sdkUtils.HandleError(c, http.StatusNotFound, err)
 	default:
 		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
@@ -227,37 +206,6 @@ func parseAllocationParams(c *gin.Context) (coursePhaseID, courseParticipationID
 	}
 
 	return coursePhaseID, courseParticipationID, true
-}
-
-// authorizeWrite answers the request itself when the write is refused.
-func authorizeWrite(c *gin.Context) (tutorscope.Access, bool) {
-	access, err := tutorscope.AuthorizeWrite(c)
-	switch {
-	case err == nil:
-		return access, true
-	case errors.Is(err, tutorscope.ErrNotAuthenticated):
-		sdkUtils.HandleError(c, http.StatusUnauthorized, err)
-	case errors.Is(err, tutorscope.ErrWriteDenied):
-		denyAllocationWrite(c)
-	default:
-		log.Error("could not authorize the allocation write: ", err)
-		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
-	}
-	return tutorscope.Access{}, false
-}
-
-// isForeignTeamAllocation classifies a delete that affected no rows. It only picks
-// the status code, it never grants access: the scoped delete has already not happened.
-func (s *AllocationService) isForeignTeamAllocation(c *gin.Context, coursePhaseID, courseParticipationID uuid.UUID, access tutorscope.Access) bool {
-	if !access.Confined {
-		return false
-	}
-	_, err := s.GetAllocationByCourseParticipationID(c, courseParticipationID, coursePhaseID)
-	return err == nil
-}
-
-func denyAllocationWrite(c *gin.Context) {
-	c.JSON(http.StatusForbidden, gin.H{"error": tutorscope.ErrWriteDenied.Error()})
 }
 
 func bindAllocationJSON(c *gin.Context, target any) bool {

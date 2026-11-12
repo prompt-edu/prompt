@@ -704,26 +704,6 @@ services:
     networks:
       - prompt-network
 
-  client-example-component:
-    image: "ghcr.io/prompt-edu/prompt/prompt-clients-example-component:${EXAMPLE_IMAGE_TAG}"
-    container_name: prompt-client-example-component
-    environment:
-      - TZ=Europe/Berlin
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.example.rule=Host(`${CORE_HOST}`) && PathPrefix(`/example`)"
-      - "traefik.http.routers.example.entrypoints=websecure"
-      - "traefik.http.routers.example.tls.certresolver=letsencrypt"
-      - "traefik.http.middlewares.example-strip-prefix.stripPrefix.prefixes=/example"
-      - "traefik.http.routers.example.middlewares=example-strip-prefix,example-compress"
-      - "traefik.http.middlewares.example-compress.compress=true"
-    expose:
-      - "80"
-    depends_on:
-      - server-core
-    networks:
-      - prompt-network
-
   client-certificate-component:
     image: "ghcr.io/prompt-edu/prompt/prompt-clients-certificate-component:${CERTIFICATE_IMAGE_TAG}"
     container_name: prompt-client-certificate-component
@@ -829,7 +809,6 @@ services:
       - ASSESSMENT_HOST
       - TEAM_ALLOCATION_HOST
       - SELF_TEAM_ALLOCATION_HOST
-      - EXAMPLE_HOST
       - INTERVIEW_HOST
       - CERTIFICATE_HOST
       - PRESENTATION_HOST

@@ -1,0 +1,12 @@
+  client-{{kebab}}-component:
+    build:
+      context: ./clients/{{name}}_component
+      dockerfile: Dockerfile
+      args: *client-build-args
+      additional_contexts: *client-additional-contexts
+    container_name: prompt-client-{{kebab}}-component
+    ports:
+      - "{{client_port}}:80"
+    depends_on:
+      - clients-base
+

@@ -3,7 +3,6 @@ import {
   ASSESSMENT_API,
   BASE_URL,
   CERTIFICATE_API,
-  EXAMPLE_API,
   INFRASTRUCTURE_SETUP_API,
   INTERVIEW_API,
   PRESENTATION_API,
@@ -20,7 +19,6 @@ const EXPECTED_VERSION = 'local'
 const SERVICES: ReadonlyArray<{ name: string; api: string }> = [
   { name: 'self-team-allocation', api: SELF_TEAM_ALLOCATION_API },
   { name: 'assessment', api: ASSESSMENT_API },
-  { name: 'example-service', api: EXAMPLE_API },
   { name: 'interview', api: INTERVIEW_API },
   { name: 'certificate', api: CERTIFICATE_API },
   { name: 'presentation', api: PRESENTATION_API },
@@ -31,7 +29,6 @@ const SERVICES: ReadonlyArray<{ name: string; api: string }> = [
 const CLIENTS: ReadonlyArray<{ name: string; path: string }> = [
   { name: 'self_team_allocation_component', path: '/self-team-allocation' },
   { name: 'assessment_component', path: '/assessment' },
-  { name: 'example_component', path: '/example' },
   { name: 'matching_component', path: '/matching' },
   { name: 'interview_component', path: '/interview' },
   { name: 'certificate_component', path: '/certificate' },

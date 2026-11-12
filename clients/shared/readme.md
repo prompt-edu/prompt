@@ -13,5 +13,7 @@ Styling is not part of this scaffolding: `clients/core` builds the single Tailwi
 the whole shell and scans every component directory for it. Remotes ship no Tailwind build of their
 own. See the styling section of `.claude/rules/module-federation/remotes.md`.
 
-External phases live in their own repositories and cannot import from here; keep
-`template-repository/` in sync by hand.
+External phases live in their own repositories and cannot import from here.
+[prompt-example-phase](https://github.com/prompt-edu/prompt-example-phase) carries a copy in
+`client/shared/`; port changes there by hand. `make new-phase` drops that copy and points the new
+component at this directory.

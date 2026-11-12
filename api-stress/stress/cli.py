@@ -29,14 +29,13 @@ import httpx
 CORE_URL = "http://localhost:18089"
 KC_URL = "http://localhost:18081"
 
-# Same set the old run.sh preflight polled: the 7 phase/core servers plus the
+# Same set the old run.sh preflight polled: the 6 phase/core servers plus the
 # isolated Keycloak realm's discovery document.
 PREFLIGHT_URLS = [
     f"{CORE_URL}/api/hello",
     "http://localhost:18083/team-allocation/api/info",
     "http://localhost:18084/self-team-allocation/api/info",
     "http://localhost:18085/assessment/api/info",
-    "http://localhost:18086/example-service/api/info",
     "http://localhost:18087/interview/api/info",
     "http://localhost:18088/certificate/api/info",
     f"{KC_URL}/realms/prompt/.well-known/openid-configuration",

@@ -1,16 +1,16 @@
 .PHONY: help server servers client-core client-certificate client-ai client-presentation client-assessment \
 	client-interview client-matching clients db db-down \
 	server-core server-assessment server-interview \
-	server-team-allocation server-self-team-allocation server-example \
+	server-team-allocation server-self-team-allocation \
 	server-certificate server-presentation server-infrastructure-setup server-ai \
 	lint lint-clients lint-servers \
 	test test-clients test-core test-assessment test-interview \
-	test-team-allocation test-self-team-allocation test-example \
+	test-team-allocation test-self-team-allocation \
 	test-certificate test-presentation test-infrastructure-setup test-ai \
 	test-e2e test-e2e-shard test-e2e-ui test-e2e-down \
 	verify-up verify-down \
 	sqlc sqlc-core sqlc-assessment sqlc-interview \
-	sqlc-team-allocation sqlc-self-team-allocation sqlc-example \
+	sqlc-team-allocation sqlc-self-team-allocation \
 	sqlc-certificate sqlc-presentation sqlc-infrastructure-setup sqlc-ai \
 	swagger install-clients install-hooks setup-skills new-phase \
 	seed seed-check
@@ -45,7 +45,6 @@ servers: ## Start all servers (core + all microservices)
 	@$(MAKE) server-interview &
 	@$(MAKE) server-team-allocation &
 	@$(MAKE) server-self-team-allocation &
-	@$(MAKE) server-example &
 	@$(MAKE) server-certificate &
 	@$(MAKE) server-presentation &
 	@$(MAKE) server-infrastructure-setup &
@@ -67,9 +66,6 @@ server-team-allocation: ## Start team allocation server (port 8083)
 
 server-self-team-allocation: ## Start self team allocation server (port 8084)
 	cd servers/self_team_allocation && go run main.go
-
-server-example: ## Start example server (port 8086)
-	cd servers/example_server && go run main.go
 
 server-certificate: ## Start certificate server (port 8088)
 	cd servers/certificate && go run main.go
@@ -108,7 +104,7 @@ client-matching: ## Start only the matching client
 	cd clients/matching_component && yarn dev
 
 DB_SERVICES = db db-team-allocation db-assessment db-self-team-allocation \
-	db-example-server db-interview db-certificate db-presentation \
+	db-interview db-certificate db-presentation \
 	db-infrastructure-setup $(if $(AI_PROFILE),db-ai)
 
 db: ## Start every service database and Keycloak
@@ -139,7 +135,6 @@ lint-servers: ## Run go vet on all servers
 	cd servers/interview && go vet ./...
 	cd servers/team_allocation && go vet ./...
 	cd servers/self_team_allocation && go vet ./...
-	cd servers/example_server && go vet ./...
 	cd servers/certificate && go vet ./...
 	cd servers/presentation && go vet ./...
 	cd servers/infrastructure_setup && go vet ./...
@@ -147,7 +142,7 @@ lint-servers: ## Run go vet on all servers
 
 # ─── Testing ───────────────────────────────────────────────────────────────────
 
-test: test-clients test-core test-assessment test-interview test-team-allocation test-self-team-allocation test-example test-certificate test-presentation test-infrastructure-setup test-ai ## Run all client and server tests
+test: test-clients test-core test-assessment test-interview test-team-allocation test-self-team-allocation test-certificate test-presentation test-infrastructure-setup test-ai ## Run all client and server tests
 
 test-clients: ## Run all client unit tests
 	cd clients && yarn install && yarn test
@@ -166,9 +161,6 @@ test-team-allocation: ## Run team allocation server tests
 
 test-self-team-allocation: ## Run self team allocation server tests
 	cd servers/self_team_allocation && go test ./...
-
-test-example: ## Run example server tests
-	cd servers/example_server && go test ./...
 
 test-certificate: ## Run certificate server tests
 	cd servers/certificate && go test ./...
@@ -262,7 +254,7 @@ verify-down: ## Tear down the host-browser stack and remove volumes
 
 # ─── Code Generation ──────────────────────────────────────────────────────────
 
-sqlc: sqlc-core sqlc-assessment sqlc-interview sqlc-team-allocation sqlc-self-team-allocation sqlc-example sqlc-certificate sqlc-presentation sqlc-infrastructure-setup sqlc-ai ## Generate sqlc code for all servers
+sqlc: sqlc-core sqlc-assessment sqlc-interview sqlc-team-allocation sqlc-self-team-allocation sqlc-certificate sqlc-presentation sqlc-infrastructure-setup sqlc-ai ## Generate sqlc code for all servers
 
 sqlc-core: ## Generate sqlc code for core server
 	cd servers/core && sqlc generate
@@ -278,9 +270,6 @@ sqlc-team-allocation: ## Generate sqlc code for team allocation server
 
 sqlc-self-team-allocation: ## Generate sqlc code for self team allocation server
 	cd servers/self_team_allocation && sqlc generate
-
-sqlc-example: ## Generate sqlc code for example server
-	cd servers/example_server && sqlc generate
 
 sqlc-certificate: ## Generate sqlc code for certificate server
 	cd servers/certificate && sqlc generate

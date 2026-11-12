@@ -2,8 +2,8 @@
 
 Black-box e2e tests that boot the **core server + core client + Keycloak +
 Postgres + SeaweedFS** in Docker — plus the **self team allocation**,
-**assessment**, **example**, **interview**, **certificate**, and **team
-allocation phase modules** (Go service, own Postgres, Module Federation remote
+**assessment**, **interview**, **certificate**, and **team allocation
+phase modules** (Go service, own Postgres, Module Federation remote
 each) and the
 **matching module** (Module Federation remote only; its backend is core-hosted)
 — and drive them like a real user, with
@@ -174,11 +174,6 @@ docker-compose.e2e.yml
  │    │                      migrations also create the default schemas)
  │    ├── server-assessment  built from ../servers/assessment
  │    └── client-assessment  the Module Federation remote (nginx)
- ├── example phase module:
- │    ├── db-example      own ephemeral Postgres (empty; the server runs its
- │    │                   own migrations on startup)
- │    ├── server-example  built from ../servers/example_server
- │    └── client-example  the Module Federation remote (nginx)
  ├── matching module:
  │    └── client-matching    the Module Federation remote (nginx); no server or
  │                           DB — its backend is core-hosted (server-core)
@@ -252,8 +247,7 @@ course, resolving the type with
 `(SELECT id FROM course_phase_type WHERE name = '<Type>')`. Do **not** insert
 the `course_phase_type` row: core creates it at startup with a random UUID, and
 inserting it yourself makes core skip its provided/required DTO descriptors as
-well. The only exception is `example_component`, which core never creates, so
-`core.sql` inserts it. Then add a `course_phase_graph` edge. Careful: the graph
+well. Then add a `course_phase_graph` edge. Careful: the graph
 has UNIQUE constraints on both
 `from_` and `to_course_phase_id`, so phases form a **chain** — append your
 phase to the tail (currently the self team allocation phase), don't branch
@@ -428,10 +422,9 @@ as the negative fixture for the public apply endpoints.
 > `split_part(role, '-', N)`, so a hyphen in either would break course
 > visibility for non-admins.
 
-> Every phase type except `example_component` is created by core itself
+> Every phase type is created by core itself
 > (`servers/core/coursePhaseType/initializeTypes.go`) and therefore carries its
-> full provided/required DTO metadata. `core.sql` inserts `example_component`
-> because core never does. The fixture course does not wire an
+> full provided/required DTO metadata. The fixture course does not wire an
 > inter-phase data-dependency graph; the demo course (`iPraktikumDemo`) does.
 > The **`Matching`**, **`Interview`**,
 > **`Certificate`**, and **`Team Allocation`** remotes ARE served in the e2e

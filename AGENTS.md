@@ -23,7 +23,6 @@ the PROMPT 2.0 codebase. Language- and path-specific conventions live in `.claud
 clients/
   core/                    # Main React app shell (port 3000)
   *_component/             # Course phase micro-frontends:
-    - example_component (port 3001)
     - interview_component (port 3002)
     - matching_component (port 3003)
     - assessment_component (port 3007)
@@ -42,7 +41,6 @@ servers/
   team_allocation/         # Team matching (port 8083)
   self_team_allocation/    # Self-managed teams (port 8084)
   assessment/              # Rubric-based grading (port 8085)
-  example_server/          # Example phase service (port 8086)
   interview/               # Interview scheduling (port 8087)
   certificate/             # Certificate generation (port 8088)
   infrastructure_setup/    # External resource provisioning (port 8091)
@@ -144,11 +142,13 @@ Agent configuration is shared with the team and split by purpose:
 ## Creating New Course Phases
 
 A phase is a micro-frontend (`clients/<name>_component`) plus a Go service (`servers/<name>`), wired
-into Module Federation, the workspaces, and `docker-compose.yml`. **Scaffold with
-`make new-phase NAME=<name> CLIENT_PORT=<port> SERVER_PORT=<port>`** (the `new-course-phase` skill
-and `docs/contributor/new_course_phase.md` cover the remaining manual steps); the
+into Module Federation, the workspaces, and `docker-compose.yml`. Every phase starts from
+[prompt-edu/prompt-example-phase](https://github.com/prompt-edu/prompt-example-phase). **Scaffold
+with `make new-phase NAME=<name> CLIENT_PORT=<port> SERVER_PORT=<port>`**, which downloads that
+repository and wires the phase in (the `new-course-phase` skill and
+`docs/contributor/new_course_phase.md` cover the remaining manual steps); the
 `module-federation-remote` and `sqlc-migration` skills cover the sub-steps. External (out-of-repo)
-phases: see the external-phase section of the guide and `template-repository/`.
+phases use the same repository as a GitHub template: see the external-phase section of the guide.
 
 ## Testing
 

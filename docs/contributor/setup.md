@@ -144,7 +144,7 @@ AUDIT_RETENTION_DAYS=
 # Read by core: the shared secrets it accepts, one per reporting service.
 # Format: service1:key1,service2:key2 (two values per service allowed for rotation).
 # The service names are the ones the services report on their info endpoint:
-# assessment, certificate, example-service, interview, presentation,
+# assessment, certificate, interview, presentation,
 # self-team-allocation, team-allocation, intro-course.
 # Example: assessment:<key>,interview:<key>,team-allocation:<key>
 # Externally deployed phases (intro-course among them) have no container here.
@@ -158,11 +158,10 @@ AUDIT_INGEST_KEYS=
 AUDIT_INGEST_KEY=
 # Per-service ingest keys handed to the phase containers by Docker Compose.
 # Each value must also appear in AUDIT_INGEST_KEYS above, under that service's
-# reported name (for example AUDIT_INGEST_KEY_EXAMPLE_SERVER belongs to
-# example-service).
+# reported name (for example AUDIT_INGEST_KEY_TEAM_ALLOCATION belongs to
+# team-allocation).
 AUDIT_INGEST_KEY_ASSESSMENT=
 AUDIT_INGEST_KEY_CERTIFICATE=
-AUDIT_INGEST_KEY_EXAMPLE_SERVER=
 AUDIT_INGEST_KEY_INTERVIEW=
 AUDIT_INGEST_KEY_PRESENTATION=
 AUDIT_INGEST_KEY_SELF_TEAM_ALLOCATION=
@@ -243,17 +242,6 @@ DB_INFRASTRUCTURE_SETUP_PASSWORD=prompt-postgres
 ENCRYPTION_KEY=bG9jYWwtZGV2LWtleS1ub3QtYS1yZWFsLXNlY3JldCE=
 
 # ============================================================================
-# EXAMPLE SERVER DATABASE CONFIGURATION
-# ============================================================================
-# Database for example server functionality
-
-DB_EXAMPLE_NAME=prompt
-DB_EXAMPLE_PASSWORD=prompt-postgres
-DB_EXAMPLE_USER=prompt-postgres
-DB_HOST_EXAMPLE_SERVER=db-example-server
-DB_PORT_EXAMPLE_SERVER=5432
-
-# ============================================================================
 # INTERVIEW DATABASE CONFIGURATION
 # ============================================================================
 # Database for interview scheduling functionality
@@ -332,7 +320,6 @@ SERVER_PRESENTATION_IMAGE_TAG=main
 SERVER_INFRASTRUCTURE_SETUP_IMAGE_TAG=main
 
 CORE_IMAGE_TAG=main
-EXAMPLE_IMAGE_TAG=main
 INTERVIEW_IMAGE_TAG=main
 MATCHING_IMAGE_TAG=main
 ASSESSMENT_IMAGE_TAG=main
@@ -362,7 +349,6 @@ DEVOPS_CHALLENGE_HOST=http://localhost:9010
 TEAM_ALLOCATION_HOST=http://localhost:8083
 SELF_TEAM_ALLOCATION_HOST=http://localhost:8084
 ASSESSMENT_HOST=http://localhost:8085
-EXAMPLE_HOST=http://localhost:8086
 INTERVIEW_HOST=http://localhost:8087
 CERTIFICATE_HOST=http://localhost:8088
 PRESENTATION_HOST=http://localhost:8089
@@ -397,7 +383,6 @@ SENTRY_DSN_ASSESSMENT=
 SENTRY_DSN_CERTIFICATE=
 SENTRY_DSN_CLIENT=
 SENTRY_DSN_CORE=
-SENTRY_DSN_EXAMPLE_SERVER=
 SENTRY_DSN_INFRASTRUCTURE_SETUP=
 SENTRY_DSN_INTERVIEW=
 SENTRY_DSN_PRESENTATION=
@@ -479,9 +464,6 @@ DB_PORT_ASSESSMENT=5435
 # Certificate
 DB_HOST_CERTIFICATE=localhost
 DB_PORT_CERTIFICATE=5439
-# Example
-DB_HOST_EXAMPLE_SERVER=localhost
-DB_PORT_EXAMPLE_SERVER=5437
 # Interview
 DB_HOST_INTERVIEW=localhost
 DB_PORT_INTERVIEW=5438
@@ -532,7 +514,7 @@ make db
 
 Each service uses a **separate** PostgreSQL database, and `make db` starts all of them together with Keycloak on port `8081` (Keycloak brings up its own database container as a dependency). Stop them again with `make db-down`.
 
-The host ports are `5432` (core), `5434` (team allocation), `5435` (assessment), `5436` (self team allocation), `5437` (example), `5438` (interview), `5439` (certificate), `5440` (presentation), and `5441` (infrastructure setup) — the same values `.env.dev` already points at.
+The host ports are `5432` (core), `5434` (team allocation), `5435` (assessment), `5436` (self team allocation), `5438` (interview), `5439` (certificate), `5440` (presentation), and `5441` (infrastructure setup) — the same values `.env.dev` already points at.
 
 File uploads (application documents, certificates, presentation materials) are stored through the SeaweedFS S3 gateway. It is **required** — start it before the servers in step 5:
 
@@ -577,7 +559,7 @@ make server
 
 The target loads `.env` and `.env.dev`, downloads Go dependencies on demand, and applies pending migrations on startup. Watch the log output: failures to reach PostgreSQL or Keycloak show up right there.
 
-Phase services have their own targets — `make server-assessment`, `make server-interview`, `make server-team-allocation`, `make server-self-team-allocation`, `make server-example`, `make server-certificate`, `make server-presentation`, `make server-infrastructure-setup` — and `make servers` starts the core server together with all of them.
+Phase services have their own targets — `make server-assessment`, `make server-interview`, `make server-team-allocation`, `make server-self-team-allocation`, `make server-certificate`, `make server-presentation`, `make server-infrastructure-setup` — and `make servers` starts the core server together with all of them.
 
 ### 6. Start the Clients
 
@@ -592,7 +574,6 @@ This installs the workspace dependencies (`yarn install`) and starts every micro
 | Microfrontend | Port |
 | --- | --- |
 | `core` | 3000 |
-| `example_component` | 3001 |
 | `interview_component` | 3002 |
 | `matching_component` | 3003 |
 | `assessment_component` | 3007 |
@@ -602,7 +583,7 @@ This installs the workspace dependencies (`yarn install`) and starts every micro
 | `presentation_component` | 3011 |
 | `infrastructure_setup_component` | 3012 |
 
-To run only a subset, use one of the per-client targets — `make client-core`, `make client-assessment`, `make client-certificate`, `make client-interview`, `make client-matching`, `make client-presentation`. The remaining components (example, team allocation, self team allocation, infrastructure setup) have no target; run `yarn dev` inside the corresponding folder:
+To run only a subset, use one of the per-client targets — `make client-core`, `make client-assessment`, `make client-certificate`, `make client-interview`, `make client-matching`, `make client-presentation`. The remaining components (team allocation, self team allocation, infrastructure setup) have no target; run `yarn dev` inside the corresponding folder:
 
 ```bash
 cd clients/core && yarn dev

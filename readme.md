@@ -322,7 +322,6 @@ hooks for a single commit, use `git commit --no-verify`.
 | Team Allocation Server           | 8083 |
 | Self Team Allocation Server      | 8084 |
 | Assessment Server                | 8085 |
-| Example Server                   | 8086 |
 | Certificate Server               | 8088 |
 | Presentation Server              | 8089 |
 | Infrastructure Setup Server      | 8091 |

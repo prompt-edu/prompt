@@ -1,11 +1,5 @@
 export const REMOTES = [
   {
-    name: 'example_component',
-    phaseTypeName: 'example_component',
-    devPort: 3001,
-    prodPath: '/example',
-  },
-  {
     name: 'interview_component',
     phaseTypeName: 'Interview',
     devPort: 3002,

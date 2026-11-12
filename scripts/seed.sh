@@ -7,7 +7,7 @@
 # e2e `seed` container, whose only shell is busybox ash.
 set -eu
 
-SERVICES="core interview team_allocation self_team_allocation assessment certificate presentation example_server"
+SERVICES="core interview team_allocation self_team_allocation assessment certificate presentation"
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SEED_MIGRATIONS_ROOT="${SEED_MIGRATIONS_ROOT:-$REPO_ROOT/servers}"
@@ -37,7 +37,6 @@ default_port() {
         team_allocation) echo 5434 ;;
         assessment) echo 5435 ;;
         self_team_allocation) echo 5436 ;;
-        example_server) echo 5437 ;;
         interview) echo 5438 ;;
         certificate) echo 5439 ;;
         presentation) echo 5440 ;;

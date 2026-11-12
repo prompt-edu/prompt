@@ -21,14 +21,6 @@ services:
     build:
       cache_from:
         - type=gha,scope=e2e-client-self-team-allocation
-  server-example:
-    build:
-      cache_from:
-        - type=gha,scope=e2e-server-example
-  client-example:
-    build:
-      cache_from:
-        - type=gha,scope=e2e-client-example
   server-assessment:
     build:
       cache_from:

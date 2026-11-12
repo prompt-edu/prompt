@@ -12,7 +12,6 @@ import {
   CERTIFICATE_API,
   INFRASTRUCTURE_SETUP_API,
   CORE_API_URL,
-  EXAMPLE_API,
   INTERVIEW_API,
   PRESENTATION_API,
   SELF_TEAM_ALLOCATION_API,
@@ -95,7 +94,6 @@ export default async function globalSetup(_config: FullConfig) {
     'self-team-allocation',
   )
   await waitForServiceInfo(`${BASE_URL}${ASSESSMENT_API}/info`, 'assessment')
-  await waitForServiceInfo(`${BASE_URL}${EXAMPLE_API}/info`, 'example-service')
   await waitForServiceInfo(`${BASE_URL}${INTERVIEW_API}/info`, 'interview')
   await waitForServiceInfo(`${BASE_URL}${CERTIFICATE_API}/info`, 'certificate')
   await waitForServiceInfo(`${BASE_URL}${PRESENTATION_API}/info`, 'presentation')

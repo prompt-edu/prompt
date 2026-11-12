@@ -1,0 +1,32 @@
+  server-{{kebab}}:
+    build:
+      context: ./servers/{{name}}
+      dockerfile: ../Dockerfile
+    container_name: prompt-server-{{kebab}}
+    depends_on:
+      db-{{kebab}}-server:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    ports:
+      - "{{server_port}}:8080"
+    extra_hosts:
+      - "localhost:host-gateway"
+    environment:
+      - CORE_HOST
+      - SERVER_CORE_HOST
+      - SERVER_ADDRESS
+      - SERVER_IMAGE_TAG=local
+      - AUDIT_ENABLED
+      - AUDIT_INGEST_KEY=${AUDIT_INGEST_KEY_{{upper}}_SERVER:-}
+      - DB_HOST_{{upper}}_SERVER
+      - DB_PORT_{{upper}}_SERVER
+      - DB_NAME=${DB_{{upper}}_NAME}
+      - DB_USER=${DB_{{upper}}_USER}
+      - DB_PASSWORD=${DB_{{upper}}_PASSWORD}
+      - KEYCLOAK_HOST
+      - KEYCLOAK_REALM_NAME
+      - DEBUG
+      - SENTRY_DSN_{{upper}}_SERVER
+      - SENTRY_ENABLED
+

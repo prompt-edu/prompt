@@ -116,6 +116,7 @@ export const EvaluationOverviewPage = () => {
         <EvaluationInfoHeader
           allEvaluationsCompleted={allEvaluationsCompleted}
           resultsLink={`${path}/results`}
+          isStudent={isStudent}
         />
 
         {selfEvaluationStarted && (

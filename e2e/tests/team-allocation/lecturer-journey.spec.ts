@@ -38,6 +38,7 @@ test.describe('team allocation: lecturer journey', () => {
     // Set up teams through the settings UI.
     await phase.goto(SEEDED_COURSES.fullCourse.id, PHASE_ID, '/settings')
     await phase.expectSettingsLoaded()
+    await phase.expectPreviousPhaseDataCheck()
     await phase.createTeam(TEAM_NAME)
 
     // Run the allocation: TEASE is external, so publish the computed assignment
@@ -59,10 +60,12 @@ test.describe('team allocation: lecturer journey', () => {
     await phase.goto(SEEDED_COURSES.fullCourse.id, PHASE_ID, '/allocations')
     await phase.expectAllocationsLoaded()
     await phase.expectAllocatedMember(TEAM_NAME, `${stan.firstName} ${stan.lastName}`)
+    await phase.expectLaunchDialogChecksData()
 
-    // ...and the participants table shows Stan's allocated team.
+    // ...and the participants table shows Stan's allocated team and the survey status.
     await phase.goto(SEEDED_COURSES.fullCourse.id, PHASE_ID, '/participants')
     await phase.expectParticipantAllocatedTeam(stan.lastName, TEAM_NAME)
+    await phase.expectParticipantSurveyColumn()
 
     // ...and the allocation is readable through the API.
     const api = await apiContextFor('course-lecturer')

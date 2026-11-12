@@ -35,12 +35,6 @@ const capitalizeFirstLetter = (string: string) => {
   return string.charAt(0).toUpperCase() + string.slice(1)
 }
 
-const SEGMENT_LABELS: Record<string, string> = {
-  'tease-config': 'TEASE Configuration',
-}
-
-const segmentLabel = (segment: string) => SEGMENT_LABELS[segment] ?? capitalizeFirstLetter(segment)
-
 export const Breadcrumbs: React.FC = () => {
   const location = useLocation()
   const navigate = useNavigate()
@@ -122,7 +116,7 @@ export const Breadcrumbs: React.FC = () => {
               // we assume that longer items are courseParticipationIDs or student ids
               if (segment.length < 20) {
                 breadcrumbs.push({
-                  title: segmentLabel(segment),
+                  title: capitalizeFirstLetter(segment),
                   path: `/management/course/${courseId}/${phaseId}/${pathSegments.slice(4, index + 5).join('/')}`,
                 })
               } else {

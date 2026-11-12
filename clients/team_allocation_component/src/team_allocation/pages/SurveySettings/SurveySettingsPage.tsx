@@ -10,6 +10,7 @@ import {
 import { Loader2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
+import { useCanReadTeaseStudents } from '../../hooks/useCanReadTeaseStudents'
 import type { Skill } from '../../interfaces/skill'
 import type { SurveyTimeframe } from '../../interfaces/timeframe'
 import { teamAllocationKeys } from '../../network/cache'
@@ -17,6 +18,7 @@ import { getAllSkills } from '../../network/queries/getAllSkills'
 import { getAllTeams } from '../../network/queries/getAllTeams'
 import { getConfig } from '../../network/queries/getConfig'
 import { getSurveyTimeframe } from '../../network/queries/getSurveyTimeframe'
+import { PreviousPhaseDataCheck } from './components/PreviousPhaseData/PreviousPhaseDataCheck'
 import { SkillSettings } from './components/SkillSettings'
 import { SurveyLinkCard } from './components/SurveyLinkCard'
 import { SurveyTimeframeSettings } from './components/SurveyTimeframeSettings'
@@ -24,6 +26,7 @@ import { TeamSettings } from './components/TeamSettings'
 
 export const SurveySettingsPage = () => {
   const { phaseId } = useParams<{ phaseId: string }>()
+  const canReadTeaseStudents = useCanReadTeaseStudents()
 
   const skillsQuery = useQuery<Skill[]>({
     queryKey: teamAllocationKeys.skills(phaseId),
@@ -100,7 +103,7 @@ export const SurveySettingsPage = () => {
           <ErrorPage description='Could not fetch the survey settings' />
         ) : (
           <>
-            <ManagementPageHeader>Survey Settings</ManagementPageHeader>
+            <ManagementPageHeader>Settings</ManagementPageHeader>
             <MissingSettings elements={missingConfigs} />
             <SurveyLinkCard />
             {/* 1. Set the survey timeframe, skills and teams for this phase. */}
@@ -109,6 +112,7 @@ export const SurveySettingsPage = () => {
             <TeamSettings teams={fetchedTeams} />
             {/* 3. Set up the skills */}
             <SkillSettings skills={fetchedSkills} />
+            {canReadTeaseStudents && <PreviousPhaseDataCheck />}
           </>
         )
       }

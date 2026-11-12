@@ -24,8 +24,35 @@ export class TeamAllocationPage {
 
   async expectSettingsLoaded() {
     await expect(
-      this.page.getByRole('heading', { level: 1, name: 'Survey Settings' }),
+      this.page.getByRole('heading', { level: 1, name: 'Settings', exact: true }),
     ).toBeVisible({ timeout: 15_000 })
+  }
+
+  async expectPreviousPhaseDataCheck() {
+    await expect(this.page.getByText('Previous Phase Data', { exact: true })).toBeVisible({
+      timeout: 15_000,
+    })
+    await expect(this.page.getByText(/of \d+ checks complete/)).toBeVisible({ timeout: 15_000 })
+  }
+
+  async expectLaunchDialogChecksData() {
+    await this.page.getByRole('button', { name: 'Launch Tease to Matchmake' }).click()
+    const dialog = this.page.getByRole('dialog', { name: 'Launch TEASE' })
+    await expect(dialog).toBeVisible()
+    const launch = dialog.getByRole('link', { name: /^Launch TEASE/ })
+    await expect(launch).toHaveAttribute('target', '_blank')
+    await expect(launch).toHaveAttribute('href', /\/tease\?coursePhaseId=/)
+    await expect(dialog.getByText('Checking the student data...')).toBeHidden({ timeout: 15_000 })
+    await dialog.getByRole('button', { name: 'Cancel' }).click()
+    await expect(dialog).toBeHidden()
+  }
+
+  async expectParticipantSurveyColumn() {
+    const table = this.page.locator('#table-view')
+    await expect(table.getByRole('columnheader', { name: 'Survey' })).toBeVisible({
+      timeout: 15_000,
+    })
+    await expect(table.getByText(/^(Submitted|Not submitted)$/).first()).toBeVisible()
   }
 
   async createTeam(name: string) {

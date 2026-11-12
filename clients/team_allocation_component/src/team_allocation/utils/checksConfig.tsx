@@ -1,5 +1,5 @@
 import { Languages, Laptop, MessageSquare, Star } from 'lucide-react'
-import type { StudentCheck } from '../../../interfaces/studentCheck'
+import type { StudentCheck } from '../interfaces/studentCheck'
 
 export const checksConfig: StudentCheck[] = [
   // Devices

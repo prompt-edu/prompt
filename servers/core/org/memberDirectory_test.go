@@ -63,11 +63,19 @@ func (d *fakeMemberDirectory) FindUserByUniversityLogin(_ context.Context, unive
 	return d.users[index], nil
 }
 
+// knows reports whether the user exists; like Keycloak, the writes fail for any other user.
+func (d *fakeMemberDirectory) knows(userID string) bool {
+	return slices.ContainsFunc(d.users, func(user keycloakRealmDTO.StaffMember) bool { return user.KeycloakUserID == userID })
+}
+
 func (d *fakeMemberDirectory) SetOrgMemberRole(_ context.Context, slug, userID, orgRole string) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	if d.err != nil {
 		return d.err
+	}
+	if !d.knows(userID) {
+		return keycloakRealmManager.ErrUserNotFound
 	}
 	if d.roles[slug] == nil {
 		d.roles[slug] = map[string]string{}
@@ -82,7 +90,7 @@ func (d *fakeMemberDirectory) RemoveOrgMember(_ context.Context, slug, userID st
 	if d.err != nil {
 		return d.err
 	}
-	if !slices.ContainsFunc(d.users, func(user keycloakRealmDTO.StaffMember) bool { return user.KeycloakUserID == userID }) {
+	if !d.knows(userID) {
 		return keycloakRealmManager.ErrUserNotFound
 	}
 	delete(d.roles[slug], userID)

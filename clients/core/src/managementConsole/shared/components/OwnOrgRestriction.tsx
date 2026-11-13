@@ -20,10 +20,10 @@ export const OwnOrgRestriction = ({ children }: OwnOrgRestrictionProps) => {
   const { orgId } = useParams<{ orgId: string }>()
   const { permissions } = useAuthStore()
   const { logout } = useKeycloak()
-  const holdsOrgRoles = hasAnyOrgRole(permissions)
-  const ownOrgsQuery = useOwnOrgs({ enabled: holdsOrgRoles })
+  const ownOrgsQuery = useOwnOrgs()
 
-  if (!holdsOrgRoles) {
+  // Without org roles the list is never requested, so there is nothing to wait for
+  if (!hasAnyOrgRole(permissions)) {
     return <UnauthorizedPage onLogout={logout} />
   }
 

@@ -54,6 +54,12 @@ type SetOrgMember struct {
 	Role            string `json:"role" validate:"required" enums:"Admin,Member"`
 }
 
+// UpdateOrgMemberRole gives the user in the URL an org role, adding them to the org if they are not
+// a member yet.
+type UpdateOrgMemberRole struct {
+	Role string `json:"role" validate:"required" enums:"Admin,Member"`
+}
+
 type UpdateOrgParent struct {
 	ParentOrgID *uuid.UUID `json:"parentOrgID" validate:"required" extensions:"x-nullable"`
 }

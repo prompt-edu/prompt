@@ -49,9 +49,13 @@ type orgMembers = map[string][]string
 // OrgMemberDirectory reads and changes the membership of orgs, which lives in Keycloak only.
 type OrgMemberDirectory interface {
 	GetOrgMembers(ctx context.Context, slug string) ([]keycloakRealmDTO.OrgMember, error)
-	FindUserByUniversityLogin(ctx context.Context, universityLogin string) (keycloakRealmDTO.StaffMember, error)
 	SetOrgMemberRole(ctx context.Context, slug, userID, orgRole string) error
 	RemoveOrgMember(ctx context.Context, slug, userID string) error
+}
+
+// UserDirectory finds the Keycloak user a university login names.
+type UserDirectory interface {
+	FindUserByUniversityLogin(ctx context.Context, universityLogin string) (keycloakRealmDTO.StaffMember, error)
 }
 
 type OrgService struct {
@@ -62,6 +66,7 @@ type OrgService struct {
 	orgGroupsOrRolesExist   func(ctx context.Context, slug string) (bool, error)
 	addOrgMembers           func(ctx context.Context, slug string, members orgMembers) error
 	members                 OrgMemberDirectory
+	users                   UserDirectory
 }
 
 func NewOrgService(queries db.Queries, conn *pgxpool.Pool,
@@ -69,7 +74,8 @@ func NewOrgService(queries db.Queries, conn *pgxpool.Pool,
 	deleteOrgGroupsAndRoles func(ctx context.Context, slug string) (orgMembers, error),
 	orgGroupsOrRolesExist func(ctx context.Context, slug string) (bool, error),
 	addOrgMembers func(ctx context.Context, slug string, members orgMembers) error,
-	members OrgMemberDirectory) *OrgService {
+	members OrgMemberDirectory,
+	users UserDirectory) *OrgService {
 	return &OrgService{
 		queries:                 queries,
 		conn:                    conn,
@@ -78,6 +84,7 @@ func NewOrgService(queries db.Queries, conn *pgxpool.Pool,
 		addOrgMembers:           addOrgMembers,
 		orgGroupsOrRolesExist:   orgGroupsOrRolesExist,
 		members:                 members,
+		users:                   users,
 	}
 }
 
@@ -116,9 +123,10 @@ func (s *OrgService) GetOwnOrgs(ctx context.Context, userRoles map[string]bool, 
 	if len(roleBySlug) == 0 {
 		return ownOrgs, nil
 	}
-	orgs, err := s.queries.GetOrgsBySlugs(ctx, slices.Collect(maps.Keys(roleBySlug)))
+	slugs := slices.Collect(maps.Keys(roleBySlug))
+	orgs, err := s.queries.GetOrgsBySlugs(ctx, slugs)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get the orgs with the slugs %v: %w", slugs, err)
 	}
 	for _, org := range orgs {
 		if permissionValidation.TokenPostdatesOrg(tokenIssuedAt, org.CreatedAt.Time) {
@@ -144,8 +152,7 @@ func (s *OrgService) GetOrgMembers(ctx context.Context, orgID uuid.UUID) ([]keyc
 }
 
 // SetOrgMember gives the user with the university login the org role, adding them to the org if
-// they are not a member yet. Nobody changes their own membership, so an Org Admin cannot lock
-// themselves out of the org.
+// they are not a member yet. Nobody changes their own membership, see setOrgMemberRole.
 func (s *OrgService) SetOrgMember(ctx context.Context, orgID uuid.UUID, input orgDTO.SetOrgMember, callerUserID string) (orgDTO.Org, keycloakRealmDTO.OrgMember, error) {
 	org, err := s.GetOrg(ctx, orgID)
 	if err != nil {
@@ -154,20 +161,47 @@ func (s *OrgService) SetOrgMember(ctx context.Context, orgID uuid.UUID, input or
 
 	keycloakCtx, cancel := context.WithTimeout(ctx, keycloakTimeout)
 	defer cancel()
-	user, err := s.members.FindUserByUniversityLogin(keycloakCtx, strings.TrimSpace(input.UniversityLogin))
+	login := strings.TrimSpace(input.UniversityLogin)
+	user, err := s.users.FindUserByUniversityLogin(keycloakCtx, login)
 	if err != nil {
+		return orgDTO.Org{}, keycloakRealmDTO.OrgMember{}, fmt.Errorf("failed to find the user with the university login %s: %w", login, err)
+	}
+	if err := s.setOrgMemberRole(keycloakCtx, org, user.KeycloakUserID, input.Role, callerUserID); err != nil {
 		return orgDTO.Org{}, keycloakRealmDTO.OrgMember{}, err
-	}
-	if user.KeycloakUserID == callerUserID {
-		return orgDTO.Org{}, keycloakRealmDTO.OrgMember{}, ErrOwnMembership
-	}
-	if err := s.members.SetOrgMemberRole(keycloakCtx, org.Slug, user.KeycloakUserID, input.Role); err != nil {
-		return orgDTO.Org{}, keycloakRealmDTO.OrgMember{}, fmt.Errorf("failed to set the org role of user %s: %w", user.KeycloakUserID, err)
 	}
 	return org, keycloakRealmDTO.OrgMember{StaffMember: user, Role: input.Role}, nil
 }
 
-// RemoveOrgMember takes the user out of the org. Nobody removes themselves, see SetOrgMember.
+// UpdateOrgMemberRole gives the user with the Keycloak ID the org role, adding them to the org if
+// they are not a member yet. It addresses a listed member exactly, where a university login may
+// name another user. Nobody changes their own membership, see setOrgMemberRole.
+func (s *OrgService) UpdateOrgMemberRole(ctx context.Context, orgID uuid.UUID, userID, orgRole, callerUserID string) (orgDTO.Org, error) {
+	org, err := s.GetOrg(ctx, orgID)
+	if err != nil {
+		return orgDTO.Org{}, err
+	}
+
+	keycloakCtx, cancel := context.WithTimeout(ctx, keycloakTimeout)
+	defer cancel()
+	if err := s.setOrgMemberRole(keycloakCtx, org, userID, orgRole, callerUserID); err != nil {
+		return orgDTO.Org{}, err
+	}
+	return org, nil
+}
+
+// setOrgMemberRole gives the user the org role. Nobody changes their own membership, so an Org Admin
+// cannot lock themselves out of the org.
+func (s *OrgService) setOrgMemberRole(ctx context.Context, org orgDTO.Org, userID, orgRole, callerUserID string) error {
+	if userID == callerUserID {
+		return ErrOwnMembership
+	}
+	if err := s.members.SetOrgMemberRole(ctx, org.Slug, userID, orgRole); err != nil {
+		return fmt.Errorf("failed to set the org role of user %s: %w", userID, err)
+	}
+	return nil
+}
+
+// RemoveOrgMember takes the user out of the org. Nobody removes themselves, see setOrgMemberRole.
 func (s *OrgService) RemoveOrgMember(ctx context.Context, orgID uuid.UUID, userID, callerUserID string) (orgDTO.Org, error) {
 	org, err := s.GetOrg(ctx, orgID)
 	if err != nil {

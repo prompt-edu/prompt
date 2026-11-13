@@ -35,6 +35,14 @@ export const SEEDED_ORG = {
   id: '7a000001-0000-0000-0000-000000000001',
   name: 'Demo Chair',
   slug: 'demo-chair',
+  // The details seed/core.sql gives the org, for tests that change and restore them
+  details: {
+    name: 'Demo Chair',
+    school: 'School of Computation, Information and Technology',
+    university: 'Technical University of Munich',
+    website: 'https://aet.cit.tum.de',
+    contactEmail: 'demo-chair@example.com',
+  },
 }
 
 // Total non-template courses present in the seed: the four fixture courses below,

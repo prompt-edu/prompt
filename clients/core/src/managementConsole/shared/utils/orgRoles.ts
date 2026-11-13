@@ -31,3 +31,7 @@ export const parseOrgRole = (permission: string): ParsedOrgRole | undefined => {
 
 export const hasAnyOrgRole = (permissions: string[]): boolean =>
   permissions.some((permission) => parseOrgRole(permission) !== undefined)
+
+// The org roles among the token's roles, sorted, so the same roles always give the same list
+export const orgRolesOf = (permissions: string[]): string[] =>
+  permissions.filter((permission) => parseOrgRole(permission) !== undefined).sort()

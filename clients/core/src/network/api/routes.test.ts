@@ -625,6 +625,13 @@ const ROUTES: Route[] = [
     data: BODY,
   },
   {
+    name: 'orgs.setMemberRole',
+    run: () => coreApi.orgs.setMemberRole(ORG, 'user-1', body()),
+    method: 'put',
+    url: `${orgsPath}/${ORG}/members/user-1`,
+    data: BODY,
+  },
+  {
     name: 'orgs.removeMember',
     run: () => coreApi.orgs.removeMember(ORG, 'user-1'),
     method: 'delete',

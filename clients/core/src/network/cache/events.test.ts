@@ -13,6 +13,8 @@ const CAMPAIGN = 'campaign-1'
 const STUDENT = 'student-1'
 const ORG = 'org-1'
 const OTHER_ORG = 'org-2'
+const OWN_ORG_ROLES = ['org-ase-Admin']
+const OTHER_OWN_ORG_ROLES = ['org-ase-Member']
 
 let queryClient: QueryClient
 
@@ -344,7 +346,7 @@ describe('org events', () => {
   it('invalidates the org list and every org on a change', () => {
     seed(
       coreKeys.orgs.all(),
-      coreKeys.orgs.own(),
+      coreKeys.orgs.own(OWN_ORG_ROLES),
       coreKeys.orgs.byId(ORG),
       coreKeys.orgs.byId(OTHER_ORG),
       coreKeys.orgs.members(ORG),
@@ -353,7 +355,7 @@ describe('org events', () => {
     coreCache.orgsChanged(queryClient)
 
     expect(isInvalidated(coreKeys.orgs.all())).toBe(true)
-    expect(isInvalidated(coreKeys.orgs.own())).toBe(true)
+    expect(isInvalidated(coreKeys.orgs.own(OWN_ORG_ROLES))).toBe(true)
     expect(isInvalidated(coreKeys.orgs.byId(ORG))).toBe(true)
     expect(isInvalidated(coreKeys.orgs.byId(OTHER_ORG))).toBe(true)
     expect(isInvalidated(coreKeys.orgs.members(ORG))).toBe(true)
@@ -362,7 +364,8 @@ describe('org events', () => {
   it('invalidates the org lists and drops the deleted org on a delete, so it is never refetched into a 404', () => {
     seed(
       coreKeys.orgs.all(),
-      coreKeys.orgs.own(),
+      coreKeys.orgs.own(OWN_ORG_ROLES),
+      coreKeys.orgs.own(OTHER_OWN_ORG_ROLES),
       coreKeys.orgs.byId(ORG),
       coreKeys.orgs.byId(OTHER_ORG),
       coreKeys.orgs.members(ORG),
@@ -372,7 +375,8 @@ describe('org events', () => {
     coreCache.orgDeleted(queryClient, ORG)
 
     expect(isInvalidated(coreKeys.orgs.all())).toBe(true)
-    expect(isInvalidated(coreKeys.orgs.own())).toBe(true)
+    expect(isInvalidated(coreKeys.orgs.own(OWN_ORG_ROLES))).toBe(true)
+    expect(isInvalidated(coreKeys.orgs.own(OTHER_OWN_ORG_ROLES))).toBe(true)
     expect(queryClient.getQueryState(coreKeys.orgs.byId(ORG))).toBeUndefined()
     expect(queryClient.getQueryState(coreKeys.orgs.members(ORG))).toBeUndefined()
     expect(isInvalidated(coreKeys.orgs.byId(OTHER_ORG))).toBe(false)
@@ -382,7 +386,7 @@ describe('org events', () => {
   it('invalidates only the members of the changed org on a membership change', () => {
     seed(
       coreKeys.orgs.all(),
-      coreKeys.orgs.own(),
+      coreKeys.orgs.own(OWN_ORG_ROLES),
       coreKeys.orgs.byId(ORG),
       coreKeys.orgs.members(ORG),
       coreKeys.orgs.members(OTHER_ORG),
@@ -393,7 +397,7 @@ describe('org events', () => {
     expect(isInvalidated(coreKeys.orgs.members(ORG))).toBe(true)
     expect(isInvalidated(coreKeys.orgs.members(OTHER_ORG))).toBe(false)
     expect(isInvalidated(coreKeys.orgs.byId(ORG))).toBe(false)
-    expect(isInvalidated(coreKeys.orgs.own())).toBe(false)
+    expect(isInvalidated(coreKeys.orgs.own(OWN_ORG_ROLES))).toBe(false)
     expect(isInvalidated(coreKeys.orgs.all())).toBe(false)
   })
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { hasAnyOrgRole, parseOrgRole } from './orgRoles'
+import { hasAnyOrgRole, orgRolesOf, parseOrgRole } from './orgRoles'
 
 describe('parseOrgRole', () => {
   it.each([
@@ -47,5 +47,20 @@ describe('hasAnyOrgRole', () => {
   it('ignores roles that only look like org roles', () => {
     expect(hasAnyOrgRole(['PROMPT_Admin', 'org-ios-cg-Admin', 'org-ios-Lecturer'])).toBe(false)
     expect(hasAnyOrgRole([])).toBe(false)
+  })
+})
+
+describe('orgRolesOf', () => {
+  it('keeps the org roles, sorted, whatever order the token lists them in', () => {
+    expect(
+      orgRolesOf(['org-lab-Member', 'PROMPT_Lecturer', 'org-ase-Admin', 'org-ios-cg-Admin']),
+    ).toEqual(['org-ase-Admin', 'org-lab-Member'])
+    expect(orgRolesOf(['org-ase-Admin', 'org-lab-Member'])).toEqual(
+      orgRolesOf(['org-lab-Member', 'org-ase-Admin']),
+    )
+  })
+
+  it('is empty without org roles', () => {
+    expect(orgRolesOf(['PROMPT_Admin', 'ws25-ase-Lecturer'])).toEqual([])
   })
 })

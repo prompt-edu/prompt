@@ -43,6 +43,7 @@ func setupOrgRouter(router *gin.RouterGroup, s *OrgService, authMiddleware func(
 
 	org.GET("/:orgID/members", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.OrgAdmin), s.getOrgMembers)
 	org.PUT("/:orgID/members", audit.Describe("Set the role of an org member"), permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.OrgAdmin), s.setOrgMember)
+	org.PUT("/:orgID/members/:userID", audit.Describe("Changed the role of an org member"), permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.OrgAdmin), s.updateOrgMemberRole)
 	org.DELETE("/:orgID/members/:userID", audit.Describe("Removed an org member"), permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.OrgAdmin), s.removeOrgMember)
 }
 
@@ -151,6 +152,55 @@ func (s *OrgService) setOrgMember(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, member)
 }
 
+// updateOrgMemberRole godoc
+// @Summary Change the role of an org member
+// @Description Give the user with the Keycloak ID the Admin or Member role of the org, adding them to the org if they are not a member yet. A user holds one org role at a time. Callers cannot change their own membership.
+// @Tags orgs
+// @Accept json
+// @Param orgID path string true "Org UUID"
+// @Param userID path string true "Keycloak user ID"
+// @Param role body orgDTO.UpdateOrgMemberRole true "Org role"
+// @Success 204
+// @Failure 400 {object} utils.ErrorResponse
+// @Failure 401 {object} utils.ErrorResponse
+// @Failure 404 {object} utils.ErrorResponse
+// @Failure 500 {object} utils.ErrorResponse
+// @Security BearerAuth
+// @Router /orgs/{orgID}/members/{userID} [put]
+func (s *OrgService) updateOrgMemberRole(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("orgID"))
+	if err != nil {
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
+		return
+	}
+	userID, ok := memberID(c)
+	if !ok {
+		return
+	}
+
+	var input orgDTO.UpdateOrgMemberRole
+	if err := c.ShouldBindJSON(&input); err != nil {
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
+		return
+	}
+	if err := validateOrgRole(input.Role); err != nil {
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
+		return
+	}
+	callerUserID, ok := callerID(c)
+	if !ok {
+		return
+	}
+
+	org, err := s.UpdateOrgMemberRole(c, id, userID, input.Role, callerUserID)
+	if err != nil {
+		handleServiceError(c, err, "failed to change the org member's role")
+		return
+	}
+	recordOrgMemberAudit(c, org, userID, input.Role)
+	c.Status(http.StatusNoContent)
+}
+
 // removeOrgMember godoc
 // @Summary Remove a member from an org
 // @Description Take the user out of the org's Admin and Member groups. Removing a user who is not a member changes nothing. Callers cannot remove themselves.
@@ -170,7 +220,10 @@ func (s *OrgService) removeOrgMember(c *gin.Context) {
 		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
-	userID := c.Param("userID")
+	userID, ok := memberID(c)
+	if !ok {
+		return
+	}
 	callerUserID, ok := callerID(c)
 	if !ok {
 		return
@@ -183,6 +236,18 @@ func (s *OrgService) removeOrgMember(c *gin.Context) {
 	}
 	recordOrgMemberAudit(c, org, userID, "")
 	c.Status(http.StatusNoContent)
+}
+
+// memberID returns the Keycloak user ID in the URL in its canonical form, or refuses the request.
+// Keycloak user IDs are UUIDs, so only a well-formed one is passed on to Keycloak. The canonical
+// form also keeps the own-membership guard from missing an uppercase spelling of the caller's ID.
+func memberID(c *gin.Context) (string, bool) {
+	userID, err := uuid.Parse(c.Param("userID"))
+	if err != nil {
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
+		return "", false
+	}
+	return userID.String(), true
 }
 
 // callerID returns the caller's Keycloak user ID. Without it, the own-membership guard would not

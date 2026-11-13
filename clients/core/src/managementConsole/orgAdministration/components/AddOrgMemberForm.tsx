@@ -25,7 +25,11 @@ export const AddOrgMemberForm = ({ disabled, onAdd }: AddOrgMemberFormProps) => 
       onSubmit={(event) => {
         event.preventDefault()
         if (canAdd) {
-          onAdd({ universityLogin: login, role }, () => setUniversityLogin(''))
+          // Back to Member after each add, so an Admin grant is never carried over to the next user
+          onAdd({ universityLogin: login, role }, () => {
+            setUniversityLogin('')
+            setRole('Member')
+          })
         }
       }}
     >

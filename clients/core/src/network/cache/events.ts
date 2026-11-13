@@ -163,7 +163,7 @@ export const coreCache = {
   // would render it again on browser Back until that refetch returns
   orgDeleted: (queryClient: QueryClient, orgId: string): void => {
     queryClient.invalidateQueries({ queryKey: coreKeys.orgs.all(), exact: true })
-    queryClient.invalidateQueries({ queryKey: coreKeys.orgs.own(), exact: true })
+    invalidate(queryClient, [coreKeys.orgs.own()])
     removeOnceUnobserved(queryClient, coreKeys.orgs.byId(orgId))
     removeOnceUnobserved(queryClient, coreKeys.orgs.members(orgId))
   },

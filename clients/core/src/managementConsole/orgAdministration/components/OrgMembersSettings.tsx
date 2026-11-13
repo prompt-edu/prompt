@@ -1,6 +1,11 @@
 import type { Org, OrgMember } from '@core/interfaces/org'
 import { staffMemberFullName } from '@core/managementConsole/courseUserManagement/interfaces/StaffMember'
-import { useOrgMembers, useRemoveOrgMember, useSetOrgMember } from '@core/network/hooks/useOrgs'
+import {
+  useOrgMembers,
+  useRemoveOrgMember,
+  useSetOrgMember,
+  useSetOrgMemberRole,
+} from '@core/network/hooks/useOrgs'
 import { useAuthStore } from '@tumaet/prompt-shared-state'
 import {
   Button,
@@ -23,7 +28,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@tumaet/prompt-ui-components'
-import { Trash2 } from 'lucide-react'
+import { Loader2, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { AddOrgMemberForm } from './AddOrgMemberForm'
 import { OrgRoleSelect } from './OrgRoleSelect'
@@ -32,17 +37,19 @@ interface OrgMembersSettingsProps {
   org: Org
 }
 
-// The server resolves a login through the university_login attribute, then through the username
+// The login column shows the university_login attribute, or the username of users without it, as
+// the server matches an added login against both. Role changes address the user by Keycloak ID.
 const loginOf = (member: OrgMember): string => member.universityLogin || member.username
 
 export const OrgMembersSettings = ({ org }: OrgMembersSettingsProps) => {
   const membersQuery = useOrgMembers(org.id)
   const setMember = useSetOrgMember(org.id)
+  const setMemberRole = useSetOrgMemberRole(org.id)
   const removeMember = useRemoveOrgMember(org.id)
   const { user } = useAuthStore()
   const [pendingRemoval, setPendingRemoval] = useState<OrgMember | null>(null)
 
-  const isBusy = setMember.isPending || removeMember.isPending
+  const isBusy = setMember.isPending || setMemberRole.isPending || removeMember.isPending
   // Case-insensitive: the token may carry a display-case username while Keycloak stores it
   // lowercase. The server guards against own-membership changes by the token's user ID.
   const isSelf = (member: OrgMember): boolean =>
@@ -62,7 +69,22 @@ export const OrgMembersSettings = ({ org }: OrgMembersSettingsProps) => {
           disabled={isBusy}
           onAdd={(member, onAdded) => setMember.mutate(member, { onSuccess: onAdded })}
         />
-        <QueryGate queries={[membersQuery]}>
+        <QueryGate
+          queries={[membersQuery]}
+          loadingFallback={
+            <div className='flex justify-center py-6'>
+              <Loader2 className='h-5 w-5 animate-spin text-muted-foreground' />
+            </div>
+          }
+          errorFallback={({ refetch }) => (
+            <div className='flex flex-col items-center gap-2 py-6 text-center text-sm'>
+              <p className='text-destructive'>The members could not be loaded.</p>
+              <Button variant='outline' size='sm' onClick={() => refetch()}>
+                Retry
+              </Button>
+            </div>
+          )}
+        >
           {() => {
             const members = membersQuery.data ?? []
             if (members.length === 0) {
@@ -117,9 +139,7 @@ export const OrgMembersSettings = ({ org }: OrgMembersSettingsProps) => {
                             value={member.role}
                             ariaLabel={`Role of ${member.username}`}
                             disabled={self || isBusy}
-                            onChange={(role) =>
-                              setMember.mutate({ universityLogin: loginOf(member), role })
-                            }
+                            onChange={(role) => setMemberRole.mutate({ member, role })}
                           />
                         </TableCell>
                         <TableCell className='text-right'>

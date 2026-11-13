@@ -1812,6 +1812,16 @@ definitions:
     required:
     - name
     type: object
+  orgDTO.UpdateOrgMemberRole:
+    properties:
+      role:
+        enum:
+        - Admin
+        - Member
+        type: string
+    required:
+    - role
+    type: object
   orgDTO.UpdateOrgParent:
     properties:
       parentOrgID:
@@ -5826,6 +5836,53 @@ paths:
       security:
       - BearerAuth: []
       summary: Remove a member from an org
+      tags:
+      - orgs
+    put:
+      consumes:
+      - application/json
+      description: Give the user with the Keycloak ID the Admin or Member role of
+        the org, adding them to the org if they are not a member yet. A user holds
+        one org role at a time. Callers cannot change their own membership.
+      parameters:
+      - description: Org UUID
+        in: path
+        name: orgID
+        required: true
+        type: string
+      - description: Keycloak user ID
+        in: path
+        name: userID
+        required: true
+        type: string
+      - description: Org role
+        in: body
+        name: role
+        required: true
+        schema:
+          $ref: '#/definitions/orgDTO.UpdateOrgMemberRole'
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Change the role of an org member
       tags:
       - orgs
   /orgs/{orgID}/parent:

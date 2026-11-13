@@ -1,8 +1,7 @@
 import { ShowForRole } from '@core/managementConsole/shared/components/ShowForRole'
-import { hasAnyOrgRole } from '@core/managementConsole/shared/utils/orgRoles'
 import { useAuditLogEnabled } from '@core/network/hooks/useAuditLogStatus'
 import { useOwnOrgs } from '@core/network/hooks/useOrgs'
-import { Role, useAuthStore } from '@tumaet/prompt-shared-state'
+import { Role } from '@tumaet/prompt-shared-state'
 import { SidebarGroup, SidebarGroupContent, SidebarMenu } from '@tumaet/prompt-ui-components'
 import {
   Activity,
@@ -22,8 +21,7 @@ import { InsideSidebarMenuItem } from './components/InsideSidebarMenuItem'
 
 export const InsideGeneralSidebar = () => {
   const auditLogEnabled = useAuditLogEnabled()
-  const { permissions } = useAuthStore()
-  const { data: ownOrgs = [] } = useOwnOrgs({ enabled: hasAnyOrgRole(permissions) })
+  const { data: ownOrgs = [] } = useOwnOrgs()
 
   return (
     <SidebarMenu>

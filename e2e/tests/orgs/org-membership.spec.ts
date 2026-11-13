@@ -43,6 +43,13 @@ const removeAddedUser = () =>
     }
   })
 
+// Through the API, so the seeded details come back even when the page that changed them broke
+const restoreSeededDetails = () =>
+  asRole('admin', async (admin) => {
+    const res = await admin.put(`/api/orgs/${SEEDED_ORG.id}`, { data: SEEDED_ORG.details })
+    expect(res.ok()).toBe(true)
+  })
+
 const openOwnOrgFromSidebar = async (page: Page) => {
   await page.goto('/management/courses')
   await expect(page.getByText('My Org', { exact: true })).toBeVisible({ timeout: 15_000 })
@@ -64,15 +71,16 @@ test.describe('org membership', () => {
       await expect(page.getByText('Danger Zone')).toBeHidden()
       await expect(page.getByRole('combobox', { name: 'Parent Org' })).toBeHidden()
 
+      // A value no earlier run left behind, so Save is enabled even after a failed restore
+      const newSchool = `School of E2E Testing ${Date.now()}`
       const school = detail.field('School (optional)')
-      const seededSchool = await school.inputValue()
       try {
-        await detail.saveDetails({ 'School (optional)': 'School of E2E Testing' })
+        await detail.saveDetails({ 'School (optional)': newSchool })
         await page.reload()
         await detail.expectLoaded(SEEDED_ORG.name)
-        await expect(school).toHaveValue('School of E2E Testing')
+        await expect(school).toHaveValue(newSchool)
       } finally {
-        await detail.saveDetails({ 'School (optional)': seededSchool })
+        await restoreSeededDetails()
       }
     })
 
@@ -169,6 +177,16 @@ test.describe('org membership', () => {
         )
         expect(listed.map((m) => m.role)).toEqual(['Admin'])
 
+        // A listed member's role changes by their Keycloak ID
+        const demoted = await orgAdmin.put(`${MEMBERS_PATH}/${member.keycloakUserID}`, {
+          data: { role: 'Member' },
+        })
+        expect(demoted.status()).toBe(204)
+        const relisted = (await membersAs('org-admin')).filter(
+          (m) => m.universityLogin === ADDED_USER.universityLogin,
+        )
+        expect(relisted.map((m) => m.role)).toEqual(['Member'])
+
         const removed = await orgAdmin.delete(`${MEMBERS_PATH}/${member.keycloakUserID}`)
         expect(removed.status()).toBe(204)
         const remaining = await membersAs('org-admin')
@@ -195,10 +213,25 @@ test.describe('org membership', () => {
         const demoted = await orgAdmin.put(MEMBERS_PATH, {
           data: { universityLogin: self?.universityLogin, role: 'Member' },
         })
+        const demotedByID = await orgAdmin.put(`${MEMBERS_PATH}/${self?.keycloakUserID}`, {
+          data: { role: 'Member' },
+        })
         const left = await orgAdmin.delete(`${MEMBERS_PATH}/${self?.keycloakUserID}`)
 
         expect(demoted.status()).toBe(400)
+        expect(demotedByID.status()).toBe(400)
         expect(left.status()).toBe(400)
+      })
+    })
+
+    test('a member id that is not a UUID is rejected', async () => {
+      await asRole('org-admin', async (orgAdmin) => {
+        for (const userID of ['not-a-uuid', '00000000-0000-0000-0000-00000000000x']) {
+          const removed = await orgAdmin.delete(`${MEMBERS_PATH}/${userID}`)
+          const promoted = await orgAdmin.put(`${MEMBERS_PATH}/${userID}`, { data: { role: 'Admin' } })
+          expect(removed.status(), userID).toBe(400)
+          expect(promoted.status(), userID).toBe(400)
+        }
       })
     })
 

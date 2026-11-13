@@ -47,7 +47,11 @@ func validateSetOrgMember(input orgDTO.SetOrgMember) error {
 	if strings.ContainsFunc(login, func(r rune) bool { return unicode.IsSpace(r) || unicode.IsControl(r) || r == ':' }) {
 		return errors.New("university login must not contain spaces or colons")
 	}
-	if input.Role != permissionValidation.OrgAdmin && input.Role != permissionValidation.OrgMember {
+	return validateOrgRole(input.Role)
+}
+
+func validateOrgRole(role string) error {
+	if role != permissionValidation.OrgAdmin && role != permissionValidation.OrgMember {
 		return errors.New("role must be Admin or Member")
 	}
 	return nil

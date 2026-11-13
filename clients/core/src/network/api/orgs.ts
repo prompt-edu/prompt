@@ -5,6 +5,7 @@ import type {
   OwnOrg,
   SetOrgMember,
   UpdateOrg,
+  UpdateOrgMemberRole,
   UpdateOrgParent,
 } from '@core/interfaces/org'
 import { API_PREFIX, coreRequest } from '../client'
@@ -32,6 +33,12 @@ export const orgs = {
 
   setMember: (orgID: string, member: SetOrgMember): Promise<OrgMember> =>
     coreRequest.put(`${ofOrg(orgID)}/members`, member),
+
+  setMemberRole: (
+    orgID: string,
+    keycloakUserID: string,
+    role: UpdateOrgMemberRole,
+  ): Promise<void> => coreRequest.put(`${ofOrg(orgID)}/members/${keycloakUserID}`, role),
 
   removeMember: (orgID: string, keycloakUserID: string): Promise<void> =>
     coreRequest.del(`${ofOrg(orgID)}/members/${keycloakUserID}`),

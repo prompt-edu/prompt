@@ -7,6 +7,7 @@ import { OrgDangerZone } from '../components/OrgDangerZone'
 import { OrgDetailsSettings } from '../components/OrgDetailsSettings'
 import { OrgHierarchySettings } from '../components/OrgHierarchySettings'
 import { OrgMembersSettings } from '../components/OrgMembersSettings'
+import { isOrgId } from '../utils/isOrgId'
 
 // Who looks at the org: a PROMPT admin from the admin console, or a member of the org from its own
 // entry. Nesting grants nothing, so the hierarchy and the deletion stay with PROMPT admins.
@@ -41,7 +42,8 @@ export const OrgDetailPage = ({ viewer }: OrgDetailPageProps) => {
   const { orgId } = useParams<{ orgId: string }>()
   const orgQuery = useOrg(orgId)
 
-  if (isNotFoundError(orgQuery.error)) {
+  // useOrg requests nothing for an id that is not one
+  if (!isOrgId(orgId) || isNotFoundError(orgQuery.error)) {
     return <EmptyPage message='Org not found' />
   }
 
@@ -63,7 +65,7 @@ export const OrgDetailPage = ({ viewer }: OrgDetailPageProps) => {
               org={org}
               readOnly={viewer === 'Member'}
             />
-            {viewer !== 'Member' && <OrgMembersSettings org={org} />}
+            {viewer !== 'Member' && <OrgMembersSettings key={`members-${org.id}`} org={org} />}
             {viewer === 'PROMPT_Admin' && <PromptAdminOrgSettings org={org} />}
           </div>
         )

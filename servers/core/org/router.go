@@ -45,6 +45,7 @@ func setupOrgRouter(router *gin.RouterGroup, s *OrgService, authMiddleware func(
 // @Produce json
 // @Success 200 {array} orgDTO.Org
 // @Failure 500 {object} utils.ErrorResponse
+// @Security BearerAuth
 // @Router /orgs/ [get]
 func (s *OrgService) getAllOrgs(c *gin.Context) {
 	orgs, err := s.GetAllOrgs(c)
@@ -66,6 +67,7 @@ func (s *OrgService) getAllOrgs(c *gin.Context) {
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 404 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
+// @Security BearerAuth
 // @Router /orgs/{orgID} [get]
 func (s *OrgService) getOrg(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("orgID"))
@@ -93,6 +95,7 @@ func (s *OrgService) getOrg(c *gin.Context) {
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 409 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
+// @Security BearerAuth
 // @Router /orgs/ [post]
 func (s *OrgService) createOrg(c *gin.Context) {
 	var input orgDTO.CreateOrg
@@ -126,6 +129,7 @@ func (s *OrgService) createOrg(c *gin.Context) {
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 404 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
+// @Security BearerAuth
 // @Router /orgs/{orgID} [put]
 func (s *OrgService) updateOrg(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("orgID"))
@@ -165,6 +169,7 @@ func (s *OrgService) updateOrg(c *gin.Context) {
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 404 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
+// @Security BearerAuth
 // @Router /orgs/{orgID}/parent [put]
 func (s *OrgService) updateOrgParent(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("orgID"))
@@ -198,6 +203,7 @@ func (s *OrgService) updateOrgParent(c *gin.Context) {
 // @Failure 404 {object} utils.ErrorResponse
 // @Failure 409 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
+// @Security BearerAuth
 // @Router /orgs/{orgID} [delete]
 func (s *OrgService) deleteOrg(c *gin.Context) {
 	id, err := uuid.Parse(c.Param("orgID"))

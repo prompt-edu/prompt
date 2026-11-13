@@ -5486,6 +5486,8 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
       summary: Get all orgs
       tags:
       - orgs
@@ -5520,6 +5522,8 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
       summary: Create an org
       tags:
       - orgs
@@ -5552,6 +5556,8 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
       summary: Delete an org
       tags:
       - orgs
@@ -5582,6 +5588,8 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
       summary: Get an org
       tags:
       - orgs
@@ -5621,6 +5629,8 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
       summary: Update an org
       tags:
       - orgs
@@ -5661,6 +5671,8 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
       summary: Move an org
       tags:
       - orgs
@@ -6531,4 +6543,10 @@ paths:
       summary: Get the number of students per study program
       tags:
       - studyPrograms
+securityDefinitions:
+  BearerAuth:
+    description: The Keycloak access token, prefixed with "Bearer ".
+    in: header
+    name: Authorization
+    type: apiKey
 swagger: "2.0"

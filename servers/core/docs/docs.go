@@ -4892,6 +4892,11 @@ const docTemplate = `{
         },
         "/orgs/": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Get every org as a flat list; the hierarchy is given by parentOrgID",
                 "produces": [
                     "application/json"
@@ -4919,6 +4924,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Create an org, optionally under a parent org, and provision its Keycloak groups and roles",
                 "consumes": [
                     "application/json"
@@ -4971,6 +4981,11 @@ const docTemplate = `{
         },
         "/orgs/{orgID}": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Get an org by ID",
                 "produces": [
                     "application/json"
@@ -5016,6 +5031,11 @@ const docTemplate = `{
                 }
             },
             "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Replace the name and the optional fields of an org; an empty optional field clears it. The slug and the parent org cannot be changed here.",
                 "consumes": [
                     "application/json"
@@ -5073,6 +5093,11 @@ const docTemplate = `{
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Delete an org without child orgs or courses, together with its Keycloak groups and roles",
                 "tags": [
                     "orgs"
@@ -5120,6 +5145,11 @@ const docTemplate = `{
         },
         "/orgs/{orgID}/parent": {
             "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Place an org under another org, or at the top level when parentOrgID is null. An org cannot be placed under itself or one of its descendants.",
                 "consumes": [
                     "application/json"
@@ -9839,6 +9869,14 @@ const docTemplate = `{
                     "example": "Something went wrong"
                 }
             }
+        }
+    },
+    "securityDefinitions": {
+        "BearerAuth": {
+            "description": "The Keycloak access token, prefixed with \"Bearer \".",
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
         }
     },
     "externalDocs": {

@@ -140,6 +140,11 @@ func initMailing(router *gin.RouterGroup, queries db.Queries, authMiddleware fun
 // @host      localhost:8080
 // @BasePath  /api/
 
+// @securityDefinitions.apikey  BearerAuth
+// @in                          header
+// @name                        Authorization
+// @description                 The Keycloak access token, prefixed with "Bearer ".
+
 // @externalDocs.description  PROMPT Documentation
 // @externalDocs.url          https://prompt-edu.github.io/prompt/
 func main() {

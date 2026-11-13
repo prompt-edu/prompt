@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Reads e2e/shards.json: check | matrix | paths <name> | names.
+// Reads e2e/shards.json: check | matrix | paths <name> | ai-enabled <name> | names.
 
 import { readFileSync, readdirSync } from 'node:fs'
 import path from 'node:path'
@@ -83,11 +83,12 @@ function matrix() {
     name: shard.name,
     paths: shard.paths.join(' '),
     cacheWriter: Boolean(shard.cacheWriter),
+    aiEnabled: Boolean(shard.aiEnabled),
   }))
   console.log(JSON.stringify({ include }))
 }
 
-function paths(name) {
+function findShard(name) {
   const shard = loadShards().find((candidate) => candidate.name === name)
   if (!shard) {
     console.error(
@@ -97,7 +98,15 @@ function paths(name) {
     )
     process.exit(1)
   }
-  console.log(shard.paths.join(' '))
+  return shard
+}
+
+function paths(name) {
+  console.log(findShard(name).paths.join(' '))
+}
+
+function aiEnabled(name) {
+  console.log(Boolean(findShard(name).aiEnabled))
 }
 
 const [command, argument] = process.argv.slice(2)
@@ -112,6 +121,9 @@ switch (command) {
   case 'paths':
     paths(argument)
     break
+  case 'ai-enabled':
+    aiEnabled(argument)
+    break
   case 'names':
     console.log(
       loadShards()
@@ -120,6 +132,6 @@ switch (command) {
     )
     break
   default:
-    console.error('Usage: node scripts/shards.mjs <check|matrix|paths <name>|names>')
+    console.error('Usage: node scripts/shards.mjs <check|matrix|paths <name>|ai-enabled <name>|names>')
     process.exit(2)
 }

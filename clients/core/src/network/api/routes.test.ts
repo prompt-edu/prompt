@@ -4,6 +4,7 @@ import type { CoursePhaseType } from '@core/managementConsole/pages/SystemStatus
 import { axiosInstance, notAuthenticatedAxiosInstance } from '@tumaet/prompt-shared-state'
 import axios, { type AxiosResponse, type InternalAxiosRequestConfig } from 'axios'
 import { afterEach, beforeEach, describe, expect, it, type MockInstance, vi } from 'vitest'
+import { aiAxiosInstance } from '../client'
 import { coreApi } from './index'
 
 const CORE = 'http://core.test'
@@ -12,6 +13,7 @@ const PHASE = 'phase-1'
 const PARTICIPATION = 'participation-1'
 const STUDENT = 'student-1'
 const CAMPAIGN = 'campaign-1'
+const ORG = 'org-1'
 
 const BODY = { marker: 'body' }
 const body = <T>() => BODY as unknown as T
@@ -42,7 +44,7 @@ const serializedCopy = { ...copyCourse, startDate: '2026-09-01', endDate: '2026-
 
 const service = { id: 'assessment', baseUrl: 'http://assessment.test' } as CoursePhaseType
 
-type Instance = 'core' | 'public' | 'raw'
+type Instance = 'core' | 'public' | 'raw' | 'ai'
 
 interface Route {
   name: string
@@ -58,13 +60,20 @@ const coursesPath = `${CORE}/api/courses`
 const notesPath = `${CORE}/api/instructor-notes`
 const keycloakPath = `${CORE}/api/keycloak`
 const campaignsPath = `${coursesPath}/${COURSE}/mail-campaigns`
-const ownProfilePicturePath = `${CORE}/api/profile-pictures/me`
 const privacyPath = `${CORE}/api/privacy`
 const studentsPath = `${CORE}/api/students`
 const announcementsPath = `${CORE}/api/announcements`
+const orgsPath = `${CORE}/api/orgs`
 const studyProgramsPath = `${CORE}/api/study-programs`
 
 const ROUTES: Route[] = [
+  {
+    name: 'ai.info',
+    run: () => coreApi.ai.info(),
+    method: 'get',
+    url: 'http://ai.test/ai/api/info',
+    instance: 'ai',
+  },
   {
     name: 'announcements.active',
     run: () => coreApi.announcements.active(),
@@ -558,6 +567,46 @@ const ROUTES: Route[] = [
   },
 
   {
+    name: 'orgs.list',
+    run: () => coreApi.orgs.list(),
+    method: 'get',
+    url: `${orgsPath}/`,
+  },
+  {
+    name: 'orgs.get',
+    run: () => coreApi.orgs.get(ORG),
+    method: 'get',
+    url: `${orgsPath}/${ORG}`,
+  },
+  {
+    name: 'orgs.create',
+    run: () => coreApi.orgs.create(body()),
+    method: 'post',
+    url: `${orgsPath}/`,
+    data: BODY,
+  },
+  {
+    name: 'orgs.update',
+    run: () => coreApi.orgs.update(ORG, body()),
+    method: 'put',
+    url: `${orgsPath}/${ORG}`,
+    data: BODY,
+  },
+  {
+    name: 'orgs.updateParent',
+    run: () => coreApi.orgs.updateParent(ORG, { parentOrgID: null }),
+    method: 'put',
+    url: `${orgsPath}/${ORG}/parent`,
+    data: { parentOrgID: null },
+  },
+  {
+    name: 'orgs.remove',
+    run: () => coreApi.orgs.remove(ORG),
+    method: 'delete',
+    url: `${orgsPath}/${ORG}`,
+  },
+
+  {
     name: 'privacy.requestExport',
     run: () => coreApi.privacy.requestExport(),
     method: 'post',
@@ -637,32 +686,6 @@ const ROUTES: Route[] = [
     method: 'post',
     url: `${privacyPath}/admin/data-deletions/status`,
     data: { ids: ['request-1'] },
-  },
-
-  {
-    name: 'profilePictures.own',
-    run: () => coreApi.profilePictures.own(),
-    method: 'get',
-    url: ownProfilePicturePath,
-  },
-  {
-    name: 'profilePictures.presignUpload',
-    run: () => coreApi.profilePictures.presignUpload(),
-    method: 'post',
-    url: `${ownProfilePicturePath}/presign`,
-  },
-  {
-    name: 'profilePictures.completeUpload',
-    run: () => coreApi.profilePictures.completeUpload('profile-picture/user-1/picture.jpg'),
-    method: 'post',
-    url: `${ownProfilePicturePath}/complete`,
-    data: { storageKey: 'profile-picture/user-1/picture.jpg' },
-  },
-  {
-    name: 'profilePictures.removeOwn',
-    run: () => coreApi.profilePictures.removeOwn(),
-    method: 'delete',
-    url: ownProfilePicturePath,
   },
 
   {
@@ -752,6 +775,7 @@ const INSTANCES = {
   core: axiosInstance,
   public: notAuthenticatedAxiosInstance,
   raw: axios,
+  ai: aiAxiosInstance,
 } as const
 
 let captured: InternalAxiosRequestConfig[]
@@ -860,14 +884,6 @@ describe('coreApi routes', () => {
 
     await expect(coreApi.courses.list()).resolves.toEqual([])
     await expect(coreApi.courses.listOwnIDs()).resolves.toEqual([])
-
-    expect(coreFailureLogs()).toHaveLength(0)
-  })
-
-  it('answers null without logging when the user has no profile picture', async () => {
-    axiosInstance.defaults.adapter = rejectingAdapter(404)
-
-    await expect(coreApi.profilePictures.own()).resolves.toBeNull()
 
     expect(coreFailureLogs()).toHaveLength(0)
   })

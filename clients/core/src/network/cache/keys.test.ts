@@ -145,6 +145,11 @@ describe('coreKeys', () => {
     expect(coreKeys.studyPrograms.studentCounts()).toEqual(['studyPrograms', 'studentCounts'])
   })
 
+  it('puts each org under the org list, so one invalidation reaches both', () => {
+    expect(coreKeys.orgs.all()).toEqual(['orgs'])
+    expect(coreKeys.orgs.byId('org-1')).toEqual(['orgs', 'org-1'])
+  })
+
   it('builds the privacy keys, with the resource folded into the second element', () => {
     expect(coreKeys.privacy.latest('data-export')).toEqual(['privacy', 'data-export-latest'])
     expect(coreKeys.privacy.create('data-export')).toEqual(['privacy', 'data-export-create'])
@@ -155,11 +160,6 @@ describe('coreKeys', () => {
     ])
     expect(coreKeys.privacy.admin.exports()).toEqual(['privacy', 'admin', 'exports'])
     expect(coreKeys.privacy.admin.deletions()).toEqual(['privacy', 'admin', 'deletions'])
-  })
-
-  it('keeps the own profile picture outside the looked-up pictures owned by the lib', () => {
-    expect(coreKeys.profilePictures.own()).toEqual(['ownProfilePicture'])
-    expect(coreKeys.profilePictures.lookedUp()).toEqual(['profilePicture'])
   })
 
   it('names each service info cache in one element, so core is not their prefix', () => {

@@ -22,6 +22,7 @@ The following accounts are included in `keycloakConfig.json` to facilitate testi
 - **Adding Users:** Go to `Users` -> `Add user`. Required fields: Username, Email, First/Last Name.
 - **Assigning Roles:** Go to `Users` -> pick user -> go to `Role Mapping` tab and `Assign role`.
 - **Editing `keycloakConfig.json` by hand:** every client role a user or group references must also be declared under `roles.client`. Keycloak creates undeclared roles implicitly, and since 26.6 two users referencing the same undeclared role abort the import with a duplicate-resource error on a fresh database.
+- **Port placeholders in `keycloakConfig.json`:** the `prompt-client` and `prompt-server` URLs read `http://localhost:${PROMPT_PORT_3000:3000}` and similar. Keycloak fills these from its environment when it imports the realm and falls back to the value after the colon, so the main checkout gets `localhost:3000`, and a worktree's stack gets its own shifted ports (see "Run Several Stacks Side by Side" in the [Setup Guide](./setup.md)). Keep that form when you edit those URLs.
 
 ## 4. Manual Client Mapper Configuration
 If you need to manually add mappers for `prompt-server`:

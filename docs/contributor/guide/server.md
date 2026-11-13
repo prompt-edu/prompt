@@ -94,16 +94,29 @@ The project uses several standard dependencies across services:
 **Example from assessment server:**
 
 ```go
-// In assessment main.go
+// In assessment main.go: Bootstrap runs Sentry, migrations, the DB pool, CORS, audit, Keycloak,
+// the /info endpoint and graceful shutdown, then calls back for the service's own routes.
 func main() {
-    // ... database setup ...
+    err := promptSDK.Bootstrap(promptSDK.ServiceOptions{
+        ServiceName:    "assessment",
+        BasePath:       "/assessment/api",
+        DBEnvPrefix:    "ASSESSMENT",
+        DefaultDBPort:  "5435",
+        SentryDSNEnv:   "SENTRY_DSN_ASSESSMENT",
+        DefaultAddress: "localhost:8085",
+        Capabilities:   map[string]bool{promptTypes.CapabilityPhaseCopy: true},
+        RegisterRoutes: registerRoutes,
+    })
+    if err != nil {
+        log.Fatalf("Assessment server stopped: %v", err)
+    }
+}
 
-    router := gin.Default()
-    router.Use(promptSDK.CORSMiddleware(coreHost))
-    api := router.Group("assessment/api/course_phase/:coursePhaseID")
-
+func registerRoutes(api, coursePhaseApi *gin.RouterGroup, conn *pgxpool.Pool) error {
+    query := db.New(conn)
     // Use SDK authentication middleware in router setup
-    assessments.InitAssessmentModule(api, *query, conn)
+    assessments.RegisterRoutes(coursePhaseApi, assessments.NewAssessmentService(*query, conn /* ... */), promptSDK.AuthenticationMiddleware)
+    return nil
 }
 
 // In assessment router.go

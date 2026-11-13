@@ -24,6 +24,7 @@ import { useGetEvaluationCategoriesWithCompetencies } from '../hooks/useGetEvalu
 import { getTutorLabel } from '../hooks/useTutorLabel'
 import { getScoreLevelsFromEvaluations } from '../utils/getScoreLevelsFromEvaluations'
 import { getTeamMemberName } from '../utils/getTeamMemberName'
+import { getTeamNamesOfTutor } from '../utils/getTutorRows'
 import { printPage } from '../utils/printPage'
 import { CategoryEvaluation } from './components/CategoryEvaluation'
 import { useGetEvaluationsForTutorInPhase } from './hooks/useGetEvaluationsForTutorInPhase'
@@ -52,20 +53,18 @@ export const TutorEvaluationResultsPage = () => {
   const tutorEvaluations = evaluationsQuery.data ?? []
   const feedbackItems = feedbackItemsQuery.data ?? []
 
+  // A tutor who leads several teams is listed under each of them.
   const tutor = useMemo(() => {
-    for (const team of teams) {
-      const foundTutor = team.tutors.find((t) => t.id === tutorId)
-      if (foundTutor) {
-        return {
-          id: foundTutor.id,
-          firstName: foundTutor.firstName,
-          lastName: foundTutor.lastName,
-          teamName: team.name,
-          teamId: team.id,
-        }
-      }
+    const foundTutor = teams
+      .flatMap((team) => team.tutors)
+      .find((teamTutor) => teamTutor.id === tutorId)
+    if (!foundTutor) return null
+    return {
+      id: foundTutor.id,
+      firstName: foundTutor.firstName,
+      lastName: foundTutor.lastName,
+      teamNames: getTeamNamesOfTutor(teams, tutorId ?? ''),
     }
-    return null
   }, [teams, tutorId])
 
   const positiveFeedbackItems = useMemo(() => {
@@ -102,7 +101,11 @@ export const TutorEvaluationResultsPage = () => {
         const pageTitle = `${tutorLabel.title} Evaluation Results`
         const badges = (
           <>
-            <Badge variant='outline'>{tutor.teamName}</Badge>
+            {tutor.teamNames.map((teamName) => (
+              <Badge key={teamName} variant='outline'>
+                {teamName}
+              </Badge>
+            ))}
             <ScoreBadges
               score={getScoreLevelsFromEvaluations(tutorEvaluations, AssessmentType.TUTOR)[0]}
             />
@@ -115,7 +118,7 @@ export const TutorEvaluationResultsPage = () => {
               <StickyHeader
                 floating
                 expandedContent={
-                  // Tutors have no participation in this phase, so only name and team.
+                  // Tutors have no participation in this phase, so only name and teams.
                   <Card>
                     <CardHeader className='flex-row flex-wrap items-center gap-2 space-y-0'>
                       <ProfilePicture
@@ -196,7 +199,7 @@ export const TutorEvaluationResultsPage = () => {
 
             <PrintReport
               title={`${pageTitle} for ${tutorName}`}
-              subtitle={tutor.teamName}
+              subtitle={tutor.teamNames.join(', ')}
               meta={
                 evaluatorCount > 1 ? (
                   <span>

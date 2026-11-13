@@ -14,6 +14,9 @@ import { CourseOverview } from './managementConsole/courseOverview/CourseOvervie
 import { CourseSettingsPage } from './managementConsole/courseSettings/CourseSettingsPage'
 import { CourseUserManagementPage } from './managementConsole/courseUserManagement/pages/CourseUserManagementPage'
 import { ManagementRoot } from './managementConsole/ManagementConsole'
+import { OrgDetailPage } from './managementConsole/orgAdministration/pages/OrgDetailPage'
+import { OrgsOverviewPage } from './managementConsole/orgAdministration/pages/OrgsOverviewPage'
+import { AIRoutes } from './managementConsole/PhaseMapping/ExternalRoutes/AIRoutes'
 import { ExampleRoutes } from './managementConsole/PhaseMapping/ExternalRoutes/ExampleRoutes'
 import { PhaseRouterMapping } from './managementConsole/PhaseMapping/PhaseRouterMapping'
 import { ActiveCoursesPage } from './managementConsole/pages/ActiveCoursesPage'
@@ -190,6 +193,26 @@ export const App = () => {
               }
             />
             <Route
+              path='/management/admin/orgs'
+              element={
+                <ManagementRoot>
+                  <PermissionRestriction requiredPermissions={[Role.PROMPT_ADMIN]}>
+                    <OrgsOverviewPage />
+                  </PermissionRestriction>
+                </ManagementRoot>
+              }
+            />
+            <Route
+              path='/management/admin/orgs/:orgId'
+              element={
+                <ManagementRoot>
+                  <PermissionRestriction requiredPermissions={[Role.PROMPT_ADMIN]}>
+                    <OrgDetailPage />
+                  </PermissionRestriction>
+                </ManagementRoot>
+              }
+            />
+            <Route
               path='/management/admin/audit-log'
               element={
                 <ManagementRoot>
@@ -302,6 +325,16 @@ export const App = () => {
               element={
                 <ManagementRoot>
                   <PhaseRouterMapping />
+                </ManagementRoot>
+              }
+            />
+            <Route
+              path='/management/course/:courseId/ai/*'
+              element={
+                <ManagementRoot>
+                  <Suspense fallback={<div>Fallback</div>}>
+                    <AIRoutes />
+                  </Suspense>
                 </ManagementRoot>
               }
             />

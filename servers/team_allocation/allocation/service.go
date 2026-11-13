@@ -8,9 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/prompt-edu/prompt-sdk/tutorscope"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/team_allocation/allocation/allocationDTO"
 	"github.com/prompt-edu/prompt/servers/team_allocation/coreRequests"
@@ -81,9 +79,8 @@ func (s *AllocationService) GetAllocationByCourseParticipationID(ctx context.Con
 	return allocation.TeamID, nil
 }
 
-// UpsertAllocation assigns a participant to a team. expectedTeamID scopes the
-// write to a source team; an unset value writes unconditionally.
-func (s *AllocationService) UpsertAllocation(ctx context.Context, authHeader string, coursePhaseID, courseParticipationID, teamID uuid.UUID, expectedTeamID pgtype.UUID) error {
+// UpsertAllocation assigns a participant to a team.
+func (s *AllocationService) UpsertAllocation(ctx context.Context, authHeader string, coursePhaseID, courseParticipationID, teamID uuid.UUID) error {
 	participants, err := s.resolveParticipants(authHeader, coursePhaseID)
 	if err != nil {
 		log.Error("could not fetch course phase participants from core: ", err)
@@ -106,14 +103,13 @@ func (s *AllocationService) UpsertAllocation(ctx context.Context, authHeader str
 		return fmt.Errorf("could not verify the team of the course phase: %w", err)
 	}
 
-	rows, err := s.queries.UpsertAllocationForParticipant(ctx, db.UpsertAllocationForParticipantParams{
+	err = s.queries.UpsertAllocationForParticipant(ctx, db.UpsertAllocationForParticipantParams{
 		ID:                    uuid.New(),
 		CourseParticipationID: courseParticipationID,
 		TeamID:                teamID,
 		CoursePhaseID:         coursePhaseID,
 		StudentFirstName:      participant.FirstName,
 		StudentLastName:       participant.LastName,
-		ExpectedTeamID:        expectedTeamID,
 	})
 	if err != nil {
 		var pgErr *pgconn.PgError
@@ -123,19 +119,14 @@ func (s *AllocationService) UpsertAllocation(ctx context.Context, authHeader str
 		log.Error("could not store the allocation: ", err)
 		return fmt.Errorf("could not store the allocation: %w", err)
 	}
-	if rows == 0 {
-		return tutorscope.ErrWriteDenied
-	}
 	return nil
 }
 
-// DeleteAllocation removes a participant's allocation. expectedTeamID scopes the
-// delete to a source team; an unset value deletes unconditionally.
-func (s *AllocationService) DeleteAllocation(ctx context.Context, coursePhaseID, courseParticipationID uuid.UUID, expectedTeamID pgtype.UUID) error {
+// DeleteAllocation removes a participant's allocation.
+func (s *AllocationService) DeleteAllocation(ctx context.Context, coursePhaseID, courseParticipationID uuid.UUID) error {
 	rows, err := s.queries.DeleteAllocationForParticipant(ctx, db.DeleteAllocationForParticipantParams{
 		CourseParticipationID: courseParticipationID,
 		CoursePhaseID:         coursePhaseID,
-		ExpectedTeamID:        expectedTeamID,
 	})
 	if err != nil {
 		log.Error("could not delete the allocation: ", err)

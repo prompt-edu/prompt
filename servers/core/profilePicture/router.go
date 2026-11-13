@@ -9,7 +9,10 @@ import (
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/core/profilePicture/profilePictureDTO"
 	"github.com/prompt-edu/prompt/servers/core/utils"
+	log "github.com/sirupsen/logrus"
 )
+
+var errInternal = errors.New("internal server error")
 
 // RegisterRoutes mounts the profile picture endpoints. Every logged-in user may read every
 // picture; uploading and deleting only ever touch the caller's own picture.
@@ -37,7 +40,7 @@ func RegisterRoutes(routerGroup *gin.RouterGroup, service *ProfilePictureService
 func (s *ProfilePictureService) lookupProfilePictures(c *gin.Context) {
 	var req profilePictureDTO.LookupRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
@@ -62,7 +65,7 @@ func (s *ProfilePictureService) lookupProfilePictures(c *gin.Context) {
 func (s *ProfilePictureService) getOwnProfilePicture(c *gin.Context) {
 	userID, err := utils.GetUserUUIDFromContext(c)
 	if err != nil {
-		handleError(c, http.StatusUnauthorized, err)
+		sdkUtils.HandleError(c, http.StatusUnauthorized, err)
 		return
 	}
 
@@ -86,7 +89,7 @@ func (s *ProfilePictureService) getOwnProfilePicture(c *gin.Context) {
 func (s *ProfilePictureService) presignProfilePictureUpload(c *gin.Context) {
 	userID, err := utils.GetUserUUIDFromContext(c)
 	if err != nil {
-		handleError(c, http.StatusUnauthorized, err)
+		sdkUtils.HandleError(c, http.StatusUnauthorized, err)
 		return
 	}
 
@@ -114,13 +117,13 @@ func (s *ProfilePictureService) presignProfilePictureUpload(c *gin.Context) {
 func (s *ProfilePictureService) completeProfilePictureUpload(c *gin.Context) {
 	userID, err := utils.GetUserUUIDFromContext(c)
 	if err != nil {
-		handleError(c, http.StatusUnauthorized, err)
+		sdkUtils.HandleError(c, http.StatusUnauthorized, err)
 		return
 	}
 
 	var req profilePictureDTO.CompleteUpload
 	if err := c.ShouldBindJSON(&req); err != nil {
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
 
@@ -148,7 +151,7 @@ func (s *ProfilePictureService) completeProfilePictureUpload(c *gin.Context) {
 func (s *ProfilePictureService) deleteOwnProfilePicture(c *gin.Context) {
 	userID, err := utils.GetUserUUIDFromContext(c)
 	if err != nil {
-		handleError(c, http.StatusUnauthorized, err)
+		sdkUtils.HandleError(c, http.StatusUnauthorized, err)
 		return
 	}
 
@@ -162,16 +165,11 @@ func (s *ProfilePictureService) deleteOwnProfilePicture(c *gin.Context) {
 func handleServiceError(c *gin.Context, err error) {
 	switch {
 	case errors.Is(err, ErrInvalidInput):
-		handleError(c, http.StatusBadRequest, err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 	case errors.Is(err, ErrNotFound):
-		handleError(c, http.StatusNotFound, err)
+		sdkUtils.HandleError(c, http.StatusNotFound, err)
 	default:
-		handleError(c, http.StatusInternalServerError, err)
+		log.Error("profile picture request failed: ", err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, errInternal)
 	}
-}
-
-func handleError(c *gin.Context, statusCode int, err error) {
-	c.JSON(statusCode, sdkUtils.ErrorResponse{
-		Error: err.Error(),
-	})
 }

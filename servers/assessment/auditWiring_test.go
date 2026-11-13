@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"sync"
@@ -18,22 +19,9 @@ import (
 	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt-sdk/promptTypes"
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
-	"github.com/prompt-edu/prompt/servers/assessment/assessmentSchemas"
-	"github.com/prompt-edu/prompt/servers/assessment/assessments"
-	"github.com/prompt-edu/prompt/servers/assessment/assessments/actionItem"
-	"github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentCompletion"
-	"github.com/prompt-edu/prompt/servers/assessment/assessments/categoryAssessment"
-	"github.com/prompt-edu/prompt/servers/assessment/assessments/scoreLevel"
-	"github.com/prompt-edu/prompt/servers/assessment/categories"
-	"github.com/prompt-edu/prompt/servers/assessment/competencies"
+	"github.com/prompt-edu/prompt/servers/assessment/bodyLimit"
 	"github.com/prompt-edu/prompt/servers/assessment/copy"
-	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
-	"github.com/prompt-edu/prompt/servers/assessment/evaluations"
-	"github.com/prompt-edu/prompt/servers/assessment/evaluations/evaluationCompletion"
-	"github.com/prompt-edu/prompt/servers/assessment/evaluations/feedbackItem"
-	"github.com/prompt-edu/prompt/servers/assessment/privacy"
-	"github.com/prompt-edu/prompt/servers/assessment/schemaModification"
 	"github.com/stretchr/testify/require"
 )
 
@@ -102,65 +90,19 @@ func passThroughAuthMiddleware(_ ...string) gin.HandlerFunc {
 	return func(c *gin.Context) { c.Next() }
 }
 
-// auditRouter rebuilds main.go's group layout, with the audit middleware attached to the
-// api group before the course phase subgroup exists, because gin snapshots the handler
-// chain when a subgroup is created. The actor middleware stands in for a token that
-// authenticates but lacks the role the route requires, which is the denial the audit
+// newServiceRouter builds the router groups the way promptSDK.Bootstrap does, with the test sink
+// in place of core's, and registers main.go's routes on them. The actor middleware stands in for a
+// token that authenticates but lacks the role the route requires, which is the denial the audit
 // middleware is meant to capture.
-func auditRouter(sink audit.Sink, authMiddleware func(allowedRoles ...string) gin.HandlerFunc, copyService *copy.CopyService) *gin.Engine {
+func newServiceRouter(t *testing.T, sink audit.Sink) (*gin.Engine, *gin.RouterGroup, *gin.RouterGroup) {
+	t.Helper()
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
-
+	router.Use(audit.Middleware(sink), auditActorMiddleware())
 	api := router.Group("/assessment/api")
-	api.Use(audit.Middleware(sink))
-	api.Use(auditActorMiddleware())
 	coursePhaseApi := api.Group("/course_phase/:coursePhaseID")
-
-	queries := db.New(nil)
-	var conn *pgxpool.Pool
-
-	assessmentSchemaService := assessmentSchemas.NewAssessmentSchemaService(*queries, conn)
-	coursePhaseConfigService := coursePhaseConfig.NewCoursePhaseConfigService(*queries, conn, assessmentSchemaService)
-	schemaModificationService := schemaModification.NewSchemaModificationService(assessmentSchemaService, coursePhaseConfigService, *queries)
-
-	competencyService := competencies.NewCompetencyService(*queries, conn, assessmentSchemaService, schemaModificationService)
-	categoryService := categories.NewCategoryService(*queries, conn, assessmentSchemaService, schemaModificationService, coursePhaseConfigService)
-
-	evaluationCompletionService := evaluationCompletion.NewEvaluationCompletionService(*queries, conn, coursePhaseConfig.GetTeamsForCoursePhase, coursePhaseConfigService)
-	evaluationService := evaluations.NewEvaluationService(*queries, conn, evaluationCompletionService, coursePhaseConfigService)
-	feedbackItemService := feedbackItem.NewFeedbackItemService(*queries, conn, evaluationCompletionService)
-
-	assessmentCompletionService := assessmentCompletion.NewAssessmentCompletionService(*queries, conn, coursePhaseConfigService)
-	categoryAssessmentService := categoryAssessment.NewCategoryAssessmentService(*queries, conn, assessmentCompletionService)
-	actionItemService := actionItem.NewActionItemService(*queries, assessmentCompletionService, coursePhaseConfigService)
-	scoreLevelService := scoreLevel.NewScoreLevelService(*queries)
-	assessmentService := assessments.NewAssessmentService(*queries, conn, assessmentCompletionService, categoryAssessmentService, actionItemService, scoreLevelService, evaluationService, coursePhaseConfigService)
-
-	competencies.RegisterRoutes(coursePhaseApi, competencyService, authMiddleware)
-	categories.RegisterRoutes(coursePhaseApi, categoryService, authMiddleware)
-
-	coursePhaseConfig.RegisterRoutes(coursePhaseApi, coursePhaseConfigService, authMiddleware)
-	assessmentSchemas.RegisterRoutes(coursePhaseApi, assessmentSchemaService, authMiddleware)
-
-	assessments.RegisterRoutes(coursePhaseApi, assessmentService, coursePhaseConfigService, authMiddleware)
-	assessmentCompletion.RegisterRoutes(coursePhaseApi, assessmentCompletionService, coursePhaseConfigService, authMiddleware)
-	categoryAssessment.RegisterRoutes(coursePhaseApi, categoryAssessmentService, coursePhaseConfigService, authMiddleware)
-	actionItem.RegisterRoutes(coursePhaseApi, actionItemService, coursePhaseConfigService, authMiddleware)
-	scoreLevel.RegisterRoutes(coursePhaseApi, scoreLevelService, authMiddleware)
-	evaluations.RegisterRoutes(coursePhaseApi, evaluationService, authMiddleware)
-	evaluationCompletion.RegisterRoutes(coursePhaseApi, evaluationCompletionService, authMiddleware)
-	feedbackItem.RegisterRoutes(coursePhaseApi, feedbackItemService, authMiddleware)
-
-	copy.RegisterRoutes(api.Group("", audit.Describe(copy.AuditCopyAction)), copyService)
-	privacy.RegisterRoutes(api, privacy.NewPrivacyService(*queries, conn))
-
-	return router
-}
-
-func auditRouterWithoutDatabase(sink audit.Sink, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) *gin.Engine {
-	queries := db.New(nil)
-	var conn *pgxpool.Pool
-	return auditRouter(sink, authMiddleware, copy.NewCopyService(*queries, conn))
+	require.NoError(t, registerRoutes(api, coursePhaseApi, nil))
+	return router, api, coursePhaseApi
 }
 
 type auditRouteCase struct {
@@ -175,7 +117,7 @@ func requireDeniedEvent(t *testing.T, tc auditRouteCase) {
 	t.Helper()
 
 	sink := &recordingSink{}
-	router := auditRouterWithoutDatabase(sink, promptSDK.AuthenticationMiddleware)
+	router, _, _ := newServiceRouter(t, sink)
 
 	resp := httptest.NewRecorder()
 	router.ServeHTTP(resp, httptest.NewRequest(tc.method, tc.path, nil))
@@ -358,7 +300,7 @@ func TestAuditMiddlewareUsesDerivedLabels(t *testing.T) {
 
 func TestAuditMiddlewareIgnoresReads(t *testing.T) {
 	sink := &recordingSink{}
-	router := auditRouterWithoutDatabase(sink, promptSDK.AuthenticationMiddleware)
+	router, _, _ := newServiceRouter(t, sink)
 
 	resp := httptest.NewRecorder()
 	router.ServeHTTP(resp, httptest.NewRequest(http.MethodGet, auditCoursePhaseRoute+"/config", nil))
@@ -447,7 +389,7 @@ func TestAuditMiddlewareSkipsTheAutosaveRoutes(t *testing.T) {
 	for _, path := range []string{"/student-assessment", "/evaluation"} {
 		t.Run(path, func(t *testing.T) {
 			sink := &recordingSink{}
-			router := auditRouterWithoutDatabase(sink, promptSDK.AuthenticationMiddleware)
+			router, _, _ := newServiceRouter(t, sink)
 
 			resp := httptest.NewRecorder()
 			router.ServeHTTP(resp, httptest.NewRequest(http.MethodPost, auditCoursePhaseRoute+path, nil))
@@ -455,5 +397,24 @@ func TestAuditMiddlewareSkipsTheAutosaveRoutes(t *testing.T) {
 			time.Sleep(300 * time.Millisecond)
 			require.Empty(t, sink.snapshot())
 		})
+	}
+}
+
+// Bootstrap creates the course phase group before registerRoutes runs, so the body cap has to be
+// registered on both groups to reach every route.
+func TestBodyCapCoversBothGroups(t *testing.T) {
+	router, api, coursePhaseApi := newServiceRouter(t, &recordingSink{})
+	readBody := func(c *gin.Context) {
+		if _, err := io.ReadAll(c.Request.Body); err != nil {
+			c.AbortWithStatus(http.StatusBadRequest)
+		}
+	}
+	api.POST("/body-cap-probe", readBody)
+	coursePhaseApi.POST("/body-cap-probe", readBody)
+
+	for _, path := range []string{"/assessment/api/body-cap-probe", "/assessment/api/course_phase/" + auditCoursePhaseID + "/body-cap-probe"} {
+		resp := httptest.NewRecorder()
+		router.ServeHTTP(resp, httptest.NewRequest(http.MethodPost, path, bytes.NewReader(make([]byte, bodyLimit.DefaultMaxBytes+1))))
+		require.Equal(t, http.StatusRequestEntityTooLarge, resp.Code, path)
 	}
 }

@@ -11,8 +11,9 @@ the Go services validate tokens through `prompt-sdk`.
 - Copy templates: `.env.template` → `.env`, `.env.dev.template` → `.env.dev`.
 - `.env` holds Docker-hostname values (service-to-service inside compose); `.env.dev` holds the
   localhost overrides for running a server on the host. Both are loaded by the Makefile (`.env`
-  first, then `.env.dev` overrides). Never commit `.env*` (gitignored); they are copied into
-  worktrees via `.worktreeinclude`.
+  first, then `.env.dev` overrides). Never commit `.env*` (gitignored). Worktrees that Claude Code
+  creates get copies through `.worktreeinclude`; a plain `git worktree add` copies nothing, and the
+  Makefile then reads the main checkout's files.
 - Key vars: `KEYCLOAK_HOST`, `KEYCLOAK_REALM_NAME`, `CORE_HOST` (frontend URL for CORS),
   `SERVER_CORE_HOST` (inter-service base URL).
 
@@ -21,6 +22,11 @@ the Go services validate tokens through `prompt-sdk`.
 - `make db` starts Postgres + Keycloak (detached); `make db-down` stops them.
 - The realm is imported from `keycloakConfig.json` at the repo root on first start. If roles/clients
   look wrong, stop, remove the `keycloak_postgres_data/` volume, and re-import.
+- In a linked worktree `make db` starts that worktree's own stack: Keycloak on `8081 + 100n`
+  (`make stack` prints it), a realm imported for the stack's client port, and the realm's
+  placeholder `prompt-server` secret, which the Makefile hands to the servers. No secret to
+  regenerate there; `make stack-down` resets it. See "Run Several Stacks Side by Side" in
+  `docs/contributor/setup.md`.
 
 ## Common failures
 

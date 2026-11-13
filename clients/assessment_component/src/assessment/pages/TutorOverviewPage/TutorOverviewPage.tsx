@@ -16,13 +16,7 @@ import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
 import { getTutorLabel } from '../hooks/useTutorLabel'
 import type { TutorDetailLocationState } from '../TutorEvaluationResultsPage/hooks/useTutorNavigation'
 import { getScoreLevelsFromEvaluations } from '../utils/getScoreLevelsFromEvaluations'
-
-interface TutorRow {
-  id: string
-  firstName: string
-  lastName: string
-  teamName: string
-}
+import { getTutorRows, getUniqueTutorIds, type TutorRow } from '../utils/getTutorRows'
 
 export const TutorOverviewPage = (): ReactNode => {
   const { phaseId } = useParams<{ phaseId: string }>()
@@ -36,21 +30,10 @@ export const TutorOverviewPage = (): ReactNode => {
 
   const { data: evaluationCompletions } = useGetAllEvaluationCompletions()
 
-  const data: TutorRow[] = useMemo(() => {
-    return teams.flatMap((team) =>
-      team.tutors
-        .filter((tutor) => tutor.id)
-        .map((tutor) => ({
-          id: tutor.id!,
-          firstName: tutor.firstName,
-          lastName: tutor.lastName,
-          teamName: team.name,
-        })),
-    )
-  }, [teams])
+  const data: TutorRow[] = useMemo(() => getTutorRows(teams), [teams])
 
   const tutorParticipations = useMemo(
-    () => data.map((tutor) => ({ courseParticipationID: tutor.id })),
+    () => getUniqueTutorIds(data).map((tutorId) => ({ courseParticipationID: tutorId })),
     [data],
   )
 
@@ -78,7 +61,7 @@ export const TutorOverviewPage = (): ReactNode => {
         accessorKey: 'teamName',
         header: 'Team',
       },
-      ...createScoreColumns<TutorRow>(tutorScoreLevels),
+      ...createScoreColumns<TutorRow>(tutorScoreLevels, (row) => row.tutorId),
     ],
     [tutorScoreLevels],
   )
@@ -113,9 +96,10 @@ export const TutorOverviewPage = (): ReactNode => {
         columns={columns}
         onRowClick={(row, orderedRows) => {
           if (coursePhaseConfig?.tutorEvaluationEnabled) {
-            navigate(`${path}/${row.id}`, {
+            navigate(`${path}/${row.tutorId}`, {
               state: {
-                orderedTutorIds: orderedRows.map((orderedRow) => orderedRow.id),
+                // A tutor of several teams has one row per team but one results page.
+                orderedTutorIds: getUniqueTutorIds(orderedRows),
               } satisfies TutorDetailLocationState,
             })
           }

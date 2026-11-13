@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useParams } from 'react-router-dom'
 import { useParseApplicationMetaData } from '../../hooks/useParseApplicationMetaData'
 import type { ApplicationMetaData } from '../../interfaces/applicationMetaData'
 import { getIsApplicationConfigured } from '../../utils/getApplicationIsConfigured'
@@ -15,6 +16,7 @@ import { ApplicationSettingsWelcomeText } from './components/SettingsWelcomeText
 
 export const ApplicationConfiguration = () => {
   const [applicationMetaData, setApplicationMetaData] = useState<ApplicationMetaData | null>(null)
+  const { phaseId } = useParams<{ phaseId: string }>()
   const { coursePhase } = useApplicationStore()
 
   useParseApplicationMetaData(coursePhase, setApplicationMetaData)
@@ -41,7 +43,7 @@ export const ApplicationConfiguration = () => {
       {applicationMetaData && <ApplicationGeneralSettings initialData={applicationMetaData} />}
       {applicationMetaData && <ApplicationSettingsWelcomeText initialData={applicationMetaData} />}
       {applicationMetaData && (
-        <ApplicationSettingsProfilePicture initialData={applicationMetaData} />
+        <ApplicationSettingsProfilePicture key={phaseId} initialData={applicationMetaData} />
       )}
       {applicationMetaData && <ApplicationSettingsCustomScores initialData={applicationMetaData} />}
       <ApplicationMailingSettings />

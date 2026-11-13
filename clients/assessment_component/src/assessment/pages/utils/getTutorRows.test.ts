@@ -27,6 +27,13 @@ describe('getTutorRows', () => {
     expect(getUniqueTutorIds(getTutorRows(teams))).toEqual(['coach', 'lead'])
   })
 
+  it('keeps the table order, with a tutor of several teams at their first row', () => {
+    // The tutor table sorted by team, descending: Team B, then Team A.
+    const sortedRows = [...getTutorRows(teams)].reverse()
+
+    expect(getUniqueTutorIds(sortedRows)).toEqual(['lead', 'coach'])
+  })
+
   it('lists every team a tutor leads', () => {
     expect(getTeamNamesOfTutor(teams, 'lead')).toEqual(['Team A', 'Team B'])
     expect(getTeamNamesOfTutor(teams, 'coach')).toEqual(['Team A'])

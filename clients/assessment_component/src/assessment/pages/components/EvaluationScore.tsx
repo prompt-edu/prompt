@@ -11,26 +11,29 @@ export const ScoreBadges = ({ score }: { score: ScoreLevelWithParticipation | un
   </>
 )
 
-/** Score Level and Grade columns for a table whose row `id` is the evaluated person's id. */
+/**
+ * Score Level and Grade columns. `getPersonId` returns the evaluated person's id of a row,
+ * by default the row `id`.
+ */
 export const createScoreColumns = <T extends { id: string }>(
   scores: ScoreLevelWithParticipation[],
+  getPersonId: (row: T) => string = (row) => row.id,
 ): PromptTableColumnDef<T>[] => {
   const scoreById = new Map(scores.map((score) => [score.courseParticipationID, score]))
+  const getScore = (row: T) => scoreById.get(getPersonId(row))
   return [
     {
       id: 'scoreLevel',
       header: 'Score Level',
-      accessorFn: (row) => scoreById.get(row.id)?.scoreNumeric,
-      cell: ({ row }) => (
-        <StudentScoreBadge scoreLevel={scoreById.get(row.original.id)?.scoreLevel} />
-      ),
+      accessorFn: (row) => getScore(row)?.scoreNumeric,
+      cell: ({ row }) => <StudentScoreBadge scoreLevel={getScore(row.original)?.scoreLevel} />,
     },
     {
       id: 'grade',
       header: 'Grade',
-      accessorFn: (row) => scoreById.get(row.id)?.scoreNumeric,
+      accessorFn: (row) => getScore(row)?.scoreNumeric,
       cell: ({ row }) => (
-        <GradeSuggestionBadge gradeSuggestion={scoreById.get(row.original.id)?.scoreNumeric} />
+        <GradeSuggestionBadge gradeSuggestion={getScore(row.original)?.scoreNumeric} />
       ),
     },
   ]

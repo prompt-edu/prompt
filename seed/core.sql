@@ -47,7 +47,10 @@ DECLARE
         'e1000003-0000-0000-0000-000000000003',
         'e1000004-0000-0000-0000-000000000004',
         'e1000005-0000-0000-0000-000000000005',
-        'e1000006-0000-0000-0000-000000000006'
+        'e1000006-0000-0000-0000-000000000006',
+        'e1000007-0000-0000-0000-000000000007',
+        'e1000008-0000-0000-0000-000000000008',
+        'e1000009-0000-0000-0000-000000000009'
     ];
     seeded_courses uuid[] := ARRAY[
         'd7307be2-d3dc-496e-86f0-643bff6cc1c8',
@@ -116,7 +119,10 @@ DELETE FROM student WHERE id IN (
     'e1000003-0000-0000-0000-000000000003',
     'e1000004-0000-0000-0000-000000000004',
     'e1000005-0000-0000-0000-000000000005',
-    'e1000006-0000-0000-0000-000000000006'
+    'e1000006-0000-0000-0000-000000000006',
+    'e1000007-0000-0000-0000-000000000007',
+    'e1000008-0000-0000-0000-000000000008',
+    'e1000009-0000-0000-0000-000000000009'
 );
 
 -- The one phase type nothing owns: core creates the other eight at startup and
@@ -562,7 +568,10 @@ INSERT INTO student (id, first_name, last_name, email, matriculation_number, uni
            ('e1000003-0000-0000-0000-000000000003', 'Carla', 'Chen', 'carla.chen@example.com', '01000003', 'ca03tum', true, 'female', 'CN', 'Information Systems', 'master', 1),
            ('e1000004-0000-0000-0000-000000000004', 'David', 'Doerr', 'david.doerr@example.com', '01000004', 'da04tum', true, 'male', 'AT', 'Informatics', 'bachelor', 5),
            ('e1000005-0000-0000-0000-000000000005', 'Elif', 'Erdem', 'elif.erdem@example.com', '01000005', 'el05tum', true, 'female', 'TR', 'Games Engineering', 'master', 2),
-           ('e1000006-0000-0000-0000-000000000006', 'Felix', 'Faber', 'felix.faber@example.com', '01000006', 'fe06tum', true, 'male', 'DE', 'Informatics', 'bachelor', 6);
+           ('e1000006-0000-0000-0000-000000000006', 'Felix', 'Faber', 'felix.faber@example.com', '01000006', 'fe06tum', true, 'male', 'DE', 'Informatics', 'bachelor', 6),
+           ('e1000007-0000-0000-0000-000000000007', 'Greta', 'Graf', 'greta.graf@example.com', '01000007', 'gr07tum', true, 'female', 'DE', 'Informatics', 'master', 4),
+           ('e1000008-0000-0000-0000-000000000008', 'Hannes', 'Huber', 'hannes.huber@example.com', '01000008', 'ha08tum', true, 'male', 'AT', 'Informatics', 'master', 3),
+           ('e1000009-0000-0000-0000-000000000009', 'Ida', 'Imhof', 'ida.imhof@example.com', '01000009', 'id09tum', true, 'female', 'CH', 'Information Systems', 'master', 4);
 
 INSERT INTO course (id, name, start_date, end_date, semester_tag, course_type, ects, restricted_data, student_readable_data, template, short_description, long_description, archived, archived_on)
     VALUES ('c0000002-0000-0000-0000-000000000002', 'iPraktikumDemo', '2026-04-01', '2026-09-30', 'ios2526', 'practical course', 10,
@@ -607,7 +616,9 @@ INSERT INTO course_phase_graph (from_course_phase_id, to_course_phase_id)
 
 -- Stan and Selma are the Keycloak `student` / `student2` users, so a local login
 -- lands on a fully populated course. cd000007 and cd000008 are the two applicants
--- who do not make it past the application phase.
+-- who do not make it past the application phase. cd000009 to cd000011 are the
+-- tutors: course participants without phase participations, whom team allocation
+-- assigns to the teams and the students evaluate in the assessment phase.
 INSERT INTO course_participation (id, course_id, student_id)
     VALUES ('cd000001-0000-0000-0000-000000000001', 'c0000002-0000-0000-0000-000000000002', 'e0000005-0000-0000-0000-000000000005'),
            ('cd000002-0000-0000-0000-000000000002', 'c0000002-0000-0000-0000-000000000002', 'a5000007-0000-4000-8000-000000000007'),
@@ -616,7 +627,10 @@ INSERT INTO course_participation (id, course_id, student_id)
            ('cd000005-0000-0000-0000-000000000005', 'c0000002-0000-0000-0000-000000000002', 'e1000003-0000-0000-0000-000000000003'),
            ('cd000006-0000-0000-0000-000000000006', 'c0000002-0000-0000-0000-000000000002', 'e1000004-0000-0000-0000-000000000004'),
            ('cd000007-0000-0000-0000-000000000007', 'c0000002-0000-0000-0000-000000000002', 'e1000005-0000-0000-0000-000000000005'),
-           ('cd000008-0000-0000-0000-000000000008', 'c0000002-0000-0000-0000-000000000002', 'e1000006-0000-0000-0000-000000000006');
+           ('cd000008-0000-0000-0000-000000000008', 'c0000002-0000-0000-0000-000000000002', 'e1000006-0000-0000-0000-000000000006'),
+           ('cd000009-0000-0000-0000-000000000009', 'c0000002-0000-0000-0000-000000000002', 'e1000007-0000-0000-0000-000000000007'),
+           ('cd000010-0000-0000-0000-000000000010', 'c0000002-0000-0000-0000-000000000002', 'e1000008-0000-0000-0000-000000000008'),
+           ('cd000011-0000-0000-0000-000000000011', 'c0000002-0000-0000-0000-000000000002', 'e1000009-0000-0000-0000-000000000009');
 
 -- The funnel: eight applicants, six of whom pass into the rest of the course.
 INSERT INTO course_phase_participation (course_participation_id, course_phase_id, restricted_data, student_readable_data, pass_status)
@@ -640,7 +654,7 @@ INSERT INTO course_phase_participation (course_participation_id, course_phase_id
            ('cd000005-0000-0000-0000-000000000005', 'f0000002-0000-0000-0000-000000000002', '{}', '{}', 'passed'),
            ('cd000006-0000-0000-0000-000000000006', 'f0000002-0000-0000-0000-000000000002', '{}', '{}', 'passed');
 
--- Every later phase carries the same six participants.
+-- Every later phase carries the same six participants; the tutors take part in none.
 INSERT INTO course_phase_participation (course_participation_id, course_phase_id, restricted_data, student_readable_data, pass_status)
 SELECT cp.id, phase.id, '{}', '{}', 'passed'::pass_status
 FROM course_participation cp
@@ -652,7 +666,9 @@ CROSS JOIN (VALUES ('f0000003-0000-0000-0000-000000000003'::uuid),
                    ('f0000008-0000-0000-0000-000000000008'::uuid),
                    ('f0000009-0000-0000-0000-000000000009'::uuid)) AS phase(id)
 WHERE cp.course_id = 'c0000002-0000-0000-0000-000000000002'
-  AND cp.id NOT IN ('cd000007-0000-0000-0000-000000000007', 'cd000008-0000-0000-0000-000000000008');
+  AND cp.id NOT IN ('cd000007-0000-0000-0000-000000000007', 'cd000008-0000-0000-0000-000000000008',
+                    'cd000009-0000-0000-0000-000000000009', 'cd000010-0000-0000-0000-000000000010',
+                    'cd000011-0000-0000-0000-000000000011');
 
 -- ─── Application form and answers ───────────────────────────────────────────
 

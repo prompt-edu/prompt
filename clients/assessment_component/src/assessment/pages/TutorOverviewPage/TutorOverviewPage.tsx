@@ -8,11 +8,13 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { AssessmentType } from '../../interfaces/assessmentType'
 import { AssessmentDiagram } from '../components/diagrams/AssessmentDiagram'
 import { ScoreLevelDistributionDiagram } from '../components/diagrams/ScoreLevelDistributionDiagram'
+import { createScoreColumns } from '../components/EvaluationScore'
 import { useGetAllEvaluationCompletions } from '../hooks/useGetAllEvaluationCompletions'
 import { useGetAllEvaluations } from '../hooks/useGetAllEvaluations'
 import { useGetAllTeams } from '../hooks/useGetAllTeams'
 import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
 import { getTutorLabel } from '../hooks/useTutorLabel'
+import type { TutorDetailLocationState } from '../TutorEvaluationResultsPage/hooks/useTutorNavigation'
 import { getScoreLevelsFromEvaluations } from '../utils/getScoreLevelsFromEvaluations'
 import { getTutorRows, getUniqueTutorIds, type TutorRow } from '../utils/getTutorRows'
 
@@ -59,8 +61,9 @@ export const TutorOverviewPage = (): ReactNode => {
         accessorKey: 'teamName',
         header: 'Team',
       },
+      ...createScoreColumns<TutorRow>(tutorScoreLevels, (row) => row.tutorId),
     ],
-    [],
+    [tutorScoreLevels],
   )
 
   return (
@@ -91,9 +94,14 @@ export const TutorOverviewPage = (): ReactNode => {
       <PromptTable<TutorRow>
         data={data}
         columns={columns}
-        onRowClick={(row) => {
+        onRowClick={(row, orderedRows) => {
           if (coursePhaseConfig?.tutorEvaluationEnabled) {
-            navigate(`${path}/${row.tutorId}`)
+            navigate(`${path}/${row.tutorId}`, {
+              state: {
+                // A tutor of several teams has one row per team but one results page.
+                orderedTutorIds: getUniqueTutorIds(orderedRows),
+              } satisfies TutorDetailLocationState,
+            })
           }
         }}
       />

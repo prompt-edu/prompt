@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"sync"
@@ -18,16 +19,9 @@ import (
 	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt-sdk/promptTypes"
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
-	"github.com/prompt-edu/prompt/servers/team_allocation/allocation"
-	"github.com/prompt-edu/prompt/servers/team_allocation/config"
+	"github.com/prompt-edu/prompt/servers/team_allocation/bodyLimit"
 	"github.com/prompt-edu/prompt/servers/team_allocation/copy"
-	"github.com/prompt-edu/prompt/servers/team_allocation/coursePhaseDeletion"
 	db "github.com/prompt-edu/prompt/servers/team_allocation/db/sqlc"
-	"github.com/prompt-edu/prompt/servers/team_allocation/privacy"
-	"github.com/prompt-edu/prompt/servers/team_allocation/skills"
-	"github.com/prompt-edu/prompt/servers/team_allocation/survey"
-	teams "github.com/prompt-edu/prompt/servers/team_allocation/team"
-	"github.com/prompt-edu/prompt/servers/team_allocation/tease"
 	"github.com/stretchr/testify/require"
 )
 
@@ -97,49 +91,19 @@ func passThroughAuthMiddleware(_ ...string) gin.HandlerFunc {
 	return func(c *gin.Context) { c.Next() }
 }
 
-// auditRouter rebuilds main.go's group layout, with the audit middleware attached to the
-// api group before the course phase subgroup exists, because gin snapshots the handler
-// chain when a subgroup is created. The actor middleware stands in for a token that
-// authenticates but lacks the role the route requires, which is the denial the audit
+// newServiceRouter builds the router groups the way promptSDK.Bootstrap does, with the test sink
+// in place of core's, and registers main.go's routes on them. The actor middleware stands in for a
+// token that authenticates but lacks the role the route requires, which is the denial the audit
 // middleware is meant to capture.
-func auditRouter(sink audit.Sink, authMiddleware func(allowedRoles ...string) gin.HandlerFunc, conn *pgxpool.Pool, copyService *copy.CopyService) *gin.Engine {
+func newServiceRouter(t *testing.T, sink audit.Sink) (*gin.Engine, *gin.RouterGroup, *gin.RouterGroup) {
+	t.Helper()
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
-
+	router.Use(audit.Middleware(sink), auditActorMiddleware())
 	api := router.Group("/team-allocation/api")
-	api.Use(audit.Middleware(sink))
-	api.Use(auditActorMiddleware())
 	coursePhaseApi := api.Group("/course_phase/:coursePhaseID")
-
-	queries := db.New(nil)
-	skillsService := skills.NewSkillsService(*queries, conn)
-	teamsService := teams.NewTeamsService(*queries, conn)
-	surveyService := survey.NewSurveyService(*queries, conn)
-	allocationService := allocation.NewAllocationService(*queries, conn)
-	teaseService := tease.NewTeaseService(*queries, conn)
-	configService := config.NewConfigService(*queries, surveyService)
-	privacyService := privacy.NewTeamsPrivacyService(*queries, conn)
-	coursePhaseDeletionService := coursePhaseDeletion.NewCoursePhaseDeletionService(*queries, conn)
-
-	skills.RegisterRoutes(coursePhaseApi, skillsService, authMiddleware)
-	teams.RegisterRoutes(coursePhaseApi, teamsService, authMiddleware)
-	survey.RegisterRoutes(coursePhaseApi, surveyService, authMiddleware)
-	allocation.RegisterRoutes(coursePhaseApi, allocationService, authMiddleware)
-
-	tease.RegisterRoutes(api, teaseService, authMiddleware)
-	copy.RegisterRoutes(api, copyService)
-
-	config.RegisterRoutes(coursePhaseApi, configService)
-
-	privacy.RegisterRoutes(api, privacyService)
-	coursePhaseDeletion.RegisterRoutes(coursePhaseApi, coursePhaseDeletionService)
-
-	return router
-}
-
-func auditRouterWithoutDatabase(t *testing.T, sink audit.Sink, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) *gin.Engine {
-	conn := undialedPool(t)
-	return auditRouter(sink, authMiddleware, conn, copy.NewCopyService(*db.New(nil), conn))
+	require.NoError(t, registerRoutes(api, coursePhaseApi, undialedPool(t)))
+	return router, api, coursePhaseApi
 }
 
 // undialedPool satisfies constructors that reject a nil pool; denied requests never reach it.
@@ -164,7 +128,7 @@ func requireDeniedEvent(t *testing.T, tc auditRouteCase) {
 	t.Helper()
 
 	sink := &recordingSink{}
-	router := auditRouterWithoutDatabase(t, sink, promptSDK.AuthenticationMiddleware)
+	router, _, _ := newServiceRouter(t, sink)
 
 	resp := httptest.NewRecorder()
 	router.ServeHTTP(resp, httptest.NewRequest(tc.method, tc.url, nil))
@@ -347,7 +311,7 @@ func TestAuditMiddlewareUsesDerivedLabels(t *testing.T) {
 
 func TestAuditMiddlewareIgnoresReads(t *testing.T) {
 	sink := &recordingSink{}
-	router := auditRouterWithoutDatabase(t, sink, promptSDK.AuthenticationMiddleware)
+	router, _, _ := newServiceRouter(t, sink)
 
 	resp := httptest.NewRecorder()
 	router.ServeHTTP(resp, httptest.NewRequest(http.MethodGet, auditCoursePhaseRoute+"/team", nil))
@@ -425,4 +389,23 @@ func TestHandlePhaseCopyRecordsScopedEvent(t *testing.T) {
 	require.Equal(t, auditCoursePhaseID, events[0].CoursePhaseID)
 	require.Equal(t, auditSourceCoursePhaseID, events[0].Metadata["sourceCoursePhaseID"])
 	require.Equal(t, auditActorID, events[0].ActorID)
+}
+
+// Bootstrap creates the course phase group before registerRoutes runs, so the body cap has to be
+// registered on both groups to reach every route.
+func TestBodyCapCoversBothGroups(t *testing.T) {
+	router, api, coursePhaseApi := newServiceRouter(t, &recordingSink{})
+	readBody := func(c *gin.Context) {
+		if _, err := io.ReadAll(c.Request.Body); err != nil {
+			c.AbortWithStatus(http.StatusBadRequest)
+		}
+	}
+	api.POST("/body-cap-probe", readBody)
+	coursePhaseApi.POST("/body-cap-probe", readBody)
+
+	for _, path := range []string{"/team-allocation/api/body-cap-probe", "/team-allocation/api/course_phase/" + auditCoursePhaseID + "/body-cap-probe"} {
+		resp := httptest.NewRecorder()
+		router.ServeHTTP(resp, httptest.NewRequest(http.MethodPost, path, bytes.NewReader(make([]byte, bodyLimit.DefaultMaxBytes+1))))
+		require.Equal(t, http.StatusRequestEntityTooLarge, resp.Code, path)
+	}
 }

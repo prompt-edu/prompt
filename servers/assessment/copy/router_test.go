@@ -11,6 +11,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	promptTypes "github.com/prompt-edu/prompt-sdk/promptTypes"
@@ -141,12 +142,12 @@ func (suite *CopyRouterTestSuite) TestCopyEndpoint_SameSourceAndTarget() {
 	assert.Equal(suite.T(), http.StatusOK, resp.Code, "Should succeed when source and target are the same")
 }
 
-func (suite *CopyRouterTestSuite) TestCopyEndpoint_NonExistentSource() {
-	nonExistentSourceID := uuid.New()
+func (suite *CopyRouterTestSuite) TestCopyEndpoint_SourceWithoutConfig() {
+	unconfiguredSourceID := uuid.New()
 	targetCoursePhaseID := uuid.New()
 
 	copyReq := promptTypes.PhaseCopyRequest{
-		SourceCoursePhaseID: nonExistentSourceID,
+		SourceCoursePhaseID: unconfiguredSourceID,
 		TargetCoursePhaseID: targetCoursePhaseID,
 	}
 	body, _ := json.Marshal(copyReq)
@@ -156,7 +157,12 @@ func (suite *CopyRouterTestSuite) TestCopyEndpoint_NonExistentSource() {
 
 	suite.router.ServeHTTP(resp, req)
 
-	assert.Equal(suite.T(), http.StatusInternalServerError, resp.Code, "Should fail when source doesn't exist")
+	assert.Equal(suite.T(), http.StatusOK, resp.Code, "Should copy a source phase whose config was never saved")
+
+	_, err := suite.copyService.queries.GetCoursePhaseConfig(suite.suiteCtx, unconfiguredSourceID)
+	assert.ErrorIs(suite.T(), err, pgx.ErrNoRows, "The copy should not write a config to the source")
+	_, err = suite.copyService.queries.GetCoursePhaseConfig(suite.suiteCtx, targetCoursePhaseID)
+	assert.ErrorIs(suite.T(), err, pgx.ErrNoRows, "The target should stay unconfigured like the source")
 }
 
 func TestRegisterRoutesRequiresAuthentication(t *testing.T) {

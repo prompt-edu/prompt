@@ -5,6 +5,7 @@ import { SidebarGroup, SidebarGroupContent, SidebarMenu } from '@tumaet/prompt-u
 import {
   Activity,
   Archive,
+  Building2,
   File,
   FileText,
   GraduationCap,
@@ -85,6 +86,11 @@ export const InsideGeneralSidebar = () => {
                 icon={<GraduationCap />}
                 goToPath={'/management/admin/study-programs'}
                 title='Study Programs'
+              />
+              <InsideSidebarMenuItem
+                icon={<Building2 />}
+                goToPath={'/management/admin/orgs'}
+                title='Orgs'
               />
               {auditLogEnabled && (
                 <InsideSidebarMenuItem

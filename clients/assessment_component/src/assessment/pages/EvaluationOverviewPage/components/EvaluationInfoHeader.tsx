@@ -9,11 +9,13 @@ import { getTutorLabel } from '../../hooks/useTutorLabel'
 interface EvaluationInfoHeaderProps {
   allEvaluationsCompleted: boolean
   resultsLink?: string
+  isStudent: boolean
 }
 
 export const EvaluationInfoHeader = ({
   allEvaluationsCompleted,
   resultsLink,
+  isStudent,
 }: EvaluationInfoHeaderProps) => {
   const navigate = useNavigate()
   const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
@@ -93,21 +95,7 @@ export const EvaluationInfoHeader = ({
                     : 'Instructions'}
             </h2>
             {resultsReleased ? (
-              <>
-                <p className='text-sm text-muted-foreground'>{getResultsAvailableText()}</p>
-                {resultsLink && (
-                  <div className='mt-3'>
-                    <Button
-                      variant='outline'
-                      onClick={() => navigate(resultsLink)}
-                      className='gap-2'
-                    >
-                      Go to your results
-                      <ArrowRight className='h-4 w-4' />
-                    </Button>
-                  </div>
-                )}
-              </>
+              <p className='text-sm text-muted-foreground'>{getResultsAvailableText()}</p>
             ) : allEvaluationsCompleted ? (
               <p className='text-sm text-muted-foreground'>
                 Congratulations! You have successfully completed all required evaluations. Your
@@ -150,6 +138,14 @@ export const EvaluationInfoHeader = ({
                 <p className='text-sm text-muted-foreground'>
                   Please complete your assigned evaluations before the specified deadlines.
                 </p>
+              </div>
+            )}
+            {resultsLink && (resultsReleased || !isStudent) && (
+              <div className='mt-3'>
+                <Button variant='outline' onClick={() => navigate(resultsLink)} className='gap-2'>
+                  {isStudent ? 'Go to your results' : 'Preview student results'}
+                  <ArrowRight className='h-4 w-4' />
+                </Button>
               </div>
             )}
           </div>

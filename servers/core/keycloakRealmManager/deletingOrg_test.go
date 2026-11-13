@@ -24,6 +24,7 @@ type fakeKeycloak struct {
 	mu              sync.Mutex
 	groupIDs        map[string]string   // group path → group ID
 	members         map[string][]string // group ID → user IDs
+	loginFails      bool
 	membersFail     bool
 	usersFailingAdd map[string]bool
 	deleted         []string
@@ -37,6 +38,10 @@ func (f *fakeKeycloak) start(t *testing.T) *KeycloakRealmService {
 	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /realms/prompt/protocol/openid-connect/token", func(w http.ResponseWriter, _ *http.Request) {
+		if f.loginFails {
+			http.Error(w, `{"error":"invalid_client"}`, http.StatusUnauthorized)
+			return
+		}
 		writeJSON(w, map[string]any{"access_token": "token", "expires_in": 60})
 	})
 	mux.HandleFunc("GET /admin/realms/prompt/group-by-path/{path...}", func(w http.ResponseWriter, r *http.Request) {
@@ -147,4 +152,20 @@ func TestAddOrgMembersReAddsEveryUserAndReportsTheOnesItCouldNot(t *testing.T) {
 	assert.NotContains(t, err.Error(), "member-1")
 	_, added := keycloak.writes()
 	assert.Equal(t, []string{"admin-1 -> admin-group", "member-1 -> member-group", "member-2 -> member-group"}, added)
+}
+
+func TestAddOrgMembersNamesEveryMemberWhenTheLoginFails(t *testing.T) {
+	keycloak := &fakeKeycloak{groupIDs: orgGroupIDs(), loginFails: true}
+
+	err := keycloak.start(t).AddOrgMembers(context.Background(), "lab", map[string][]string{
+		permissionValidation.OrgAdmin:  {"admin-1"},
+		permissionValidation.OrgMember: {"member-1", "member-2"},
+	})
+
+	require.Error(t, err)
+	for _, userID := range []string{"admin-1", "member-1", "member-2"} {
+		assert.Contains(t, err.Error(), userID)
+	}
+	_, added := keycloak.writes()
+	assert.Empty(t, added)
 }

@@ -96,7 +96,7 @@ func (s *KeycloakRealmService) AddOrgMembers(ctx context.Context, slug string, m
 	}
 	token, err := s.LoginClient(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to log in to re-add the org's members %v: %w", members, err)
 	}
 
 	var errs []error

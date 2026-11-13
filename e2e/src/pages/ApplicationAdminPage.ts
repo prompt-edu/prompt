@@ -2,6 +2,8 @@ import { Page, Locator, expect } from '@playwright/test'
 
 export type ApplicationStatusBadge = 'Not Assessed' | 'Accepted' | 'Rejected'
 
+const HIDDEN_PICTURE_MARKER = /Hidden until the applicant is accepted/
+
 // The lecturer-facing admin surfaces of an Application phase under
 // /management/course/:courseId/:phaseId: the overview diagrams, the
 // participants table (+ per-application Accept/Reject details), the questions
@@ -33,6 +35,29 @@ export class ApplicationAdminPage {
 
   async expectParticipantListed(email: string, name: string) {
     await expect(this.applicantRow(email)).toContainText(name)
+  }
+
+  // A hidden picture renders as the same neutral marker for every applicant, so
+  // the marker is the only observable difference to a visible picture.
+  async expectPictureHiddenInList(email: string) {
+    await expect(
+      this.applicantRow(email).getByRole('img', { name: HIDDEN_PICTURE_MARKER }),
+    ).toBeVisible()
+  }
+
+  async expectPictureShownInList(email: string) {
+    await expect(this.applicantRow(email)).toBeVisible()
+    await expect(
+      this.applicantRow(email).getByRole('img', { name: HIDDEN_PICTURE_MARKER }),
+    ).toHaveCount(0)
+  }
+
+  async expectPictureHiddenOnApplication() {
+    await expect(this.page.getByRole('img', { name: HIDDEN_PICTURE_MARKER })).toBeVisible()
+  }
+
+  async expectPictureShownOnApplication() {
+    await expect(this.page.getByRole('img', { name: HIDDEN_PICTURE_MARKER })).toHaveCount(0)
   }
 
   async gotoQuestions(courseId: string, phaseId: string) {

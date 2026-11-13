@@ -12,20 +12,20 @@ import (
 
 type Org struct {
 	ID           uuid.UUID   `json:"id"`
-	ParentOrgID  *uuid.UUID  `json:"parentOrgID"`
+	ParentOrgID  *uuid.UUID  `json:"parentOrgID" extensions:"x-nullable"`
 	Name         string      `json:"name"`
 	Slug         string      `json:"slug"`
-	School       pgtype.Text `json:"school" swaggertype:"string"`
-	University   pgtype.Text `json:"university" swaggertype:"string"`
-	Website      pgtype.Text `json:"website" swaggertype:"string"`
-	ContactEmail pgtype.Text `json:"contactEmail" swaggertype:"string"`
+	School       pgtype.Text `json:"school" swaggertype:"string" extensions:"x-nullable"`
+	University   pgtype.Text `json:"university" swaggertype:"string" extensions:"x-nullable"`
+	Website      pgtype.Text `json:"website" swaggertype:"string" extensions:"x-nullable"`
+	ContactEmail pgtype.Text `json:"contactEmail" swaggertype:"string" extensions:"x-nullable"`
 	CreatedAt    time.Time   `json:"createdAt"`
 }
 
 type CreateOrg struct {
-	ParentOrgID  *uuid.UUID `json:"parentOrgID"`
-	Name         string     `json:"name"`
-	Slug         string     `json:"slug"`
+	ParentOrgID  *uuid.UUID `json:"parentOrgID" extensions:"x-nullable"`
+	Name         string     `json:"name" validate:"required"`
+	Slug         string     `json:"slug" validate:"required"`
 	School       string     `json:"school"`
 	University   string     `json:"university"`
 	Website      string     `json:"website"`
@@ -33,7 +33,7 @@ type CreateOrg struct {
 }
 
 type UpdateOrg struct {
-	Name         string `json:"name"`
+	Name         string `json:"name" validate:"required"`
 	School       string `json:"school"`
 	University   string `json:"university"`
 	Website      string `json:"website"`

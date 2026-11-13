@@ -9013,6 +9013,10 @@ const docTemplate = `{
         },
         "orgDTO.CreateOrg": {
             "type": "object",
+            "required": [
+                "name",
+                "slug"
+            ],
             "properties": {
                 "contactEmail": {
                     "type": "string"
@@ -9021,7 +9025,8 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "parentOrgID": {
-                    "type": "string"
+                    "type": "string",
+                    "x-nullable": true
                 },
                 "school": {
                     "type": "string"
@@ -9041,7 +9046,8 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "contactEmail": {
-                    "type": "string"
+                    "type": "string",
+                    "x-nullable": true
                 },
                 "createdAt": {
                     "type": "string"
@@ -9053,24 +9059,31 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "parentOrgID": {
-                    "type": "string"
+                    "type": "string",
+                    "x-nullable": true
                 },
                 "school": {
-                    "type": "string"
+                    "type": "string",
+                    "x-nullable": true
                 },
                 "slug": {
                     "type": "string"
                 },
                 "university": {
-                    "type": "string"
+                    "type": "string",
+                    "x-nullable": true
                 },
                 "website": {
-                    "type": "string"
+                    "type": "string",
+                    "x-nullable": true
                 }
             }
         },
         "orgDTO.UpdateOrg": {
             "type": "object",
+            "required": [
+                "name"
+            ],
             "properties": {
                 "contactEmail": {
                     "type": "string"

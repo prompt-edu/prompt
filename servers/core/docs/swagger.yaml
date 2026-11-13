@@ -1689,6 +1689,7 @@ definitions:
         type: string
       parentOrgID:
         type: string
+        x-nullable: true
       school:
         type: string
       slug:
@@ -1697,11 +1698,15 @@ definitions:
         type: string
       website:
         type: string
+    required:
+    - name
+    - slug
     type: object
   orgDTO.Org:
     properties:
       contactEmail:
         type: string
+        x-nullable: true
       createdAt:
         type: string
       id:
@@ -1710,14 +1715,18 @@ definitions:
         type: string
       parentOrgID:
         type: string
+        x-nullable: true
       school:
         type: string
+        x-nullable: true
       slug:
         type: string
       university:
         type: string
+        x-nullable: true
       website:
         type: string
+        x-nullable: true
     type: object
   orgDTO.UpdateOrg:
     properties:
@@ -1731,6 +1740,8 @@ definitions:
         type: string
       website:
         type: string
+    required:
+    - name
     type: object
   orgDTO.UpdateOrgParent:
     properties:

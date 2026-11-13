@@ -66,6 +66,19 @@ an explicit `.playwright-mcp/<name>` or the file lands in the working tree, wher
 `git status` catches it. Always report what you observed, and show a screenshot of the
 changed surface.
 
+A visible change that will ship in a PR gets its PR screenshots now, from a seeded verify
+stack only: the repo is public and uploaded images stay readable for good. Take each
+changed state at desktop width, and pages students open on their phones also at 390×844
+(`browser_resize`), once on `origin/main` and once on the branch, saved as
+`.playwright-mcp/pr-screenshots/<branch>/<NN>-<state>-<desktop|phone>-before.png` and
+`-after.png` (`mkdir -p` the folder first). The PR sets each
+pair side by side, so both sides need the same seed, viewport and steps. The before side
+runs from a detached worktree, which gets its own stack and ports next to this one:
+`git worktree add --detach .claude/worktrees/before-<branch> origin/main`, `make verify-up`
+there, the same steps against its client port, then `make verify-down` and
+`git worktree remove` it. A state only one side has gets only that shot. The `open-pr`
+skill uploads them.
+
 ## 3. Exercising real write paths
 
 A lecturer token drives any core API directly from the host, which beats hand-editing the

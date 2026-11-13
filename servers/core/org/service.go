@@ -36,26 +36,32 @@ var (
 	ErrOrgCycle          = errors.New("an org cannot be placed under itself or one of its descendants")
 	ErrOrgHasChildOrgs   = errors.New("the org still has child orgs")
 	ErrOrgHasCourses     = errors.New("the org still has courses")
-	ErrOrgMembersRemoved = errors.New("the org was not deleted, but its Keycloak groups were recreated without members: re-add its Admins and Members, or delete the org again")
+	ErrOrgMembersRemoved = errors.New("the org was not deleted, but not all of its members could be re-added to its Keycloak groups: the server log names them; re-add them, or delete the org again")
 )
+
+// orgMembers maps an org role to the Keycloak IDs of the users in its group.
+type orgMembers = map[string][]string
 
 type OrgService struct {
 	queries                 db.Queries
 	conn                    *pgxpool.Pool
 	createOrgGroupsAndRoles func(ctx context.Context, slug string) error
-	deleteOrgGroupsAndRoles func(ctx context.Context, slug string) error
+	deleteOrgGroupsAndRoles func(ctx context.Context, slug string) (orgMembers, error)
 	orgGroupsOrRolesExist   func(ctx context.Context, slug string) (bool, error)
+	addOrgMembers           func(ctx context.Context, slug string, members orgMembers) error
 }
 
 func NewOrgService(queries db.Queries, conn *pgxpool.Pool,
 	createOrgGroupsAndRoles func(ctx context.Context, slug string) error,
-	deleteOrgGroupsAndRoles func(ctx context.Context, slug string) error,
-	orgGroupsOrRolesExist func(ctx context.Context, slug string) (bool, error)) *OrgService {
+	deleteOrgGroupsAndRoles func(ctx context.Context, slug string) (orgMembers, error),
+	orgGroupsOrRolesExist func(ctx context.Context, slug string) (bool, error),
+	addOrgMembers func(ctx context.Context, slug string, members orgMembers) error) *OrgService {
 	return &OrgService{
 		queries:                 queries,
 		conn:                    conn,
 		createOrgGroupsAndRoles: createOrgGroupsAndRoles,
 		deleteOrgGroupsAndRoles: deleteOrgGroupsAndRoles,
+		addOrgMembers:           addOrgMembers,
 		orgGroupsOrRolesExist:   orgGroupsOrRolesExist,
 	}
 }
@@ -142,7 +148,7 @@ func (s *OrgService) reconcileFailedCreateCommit(ctx context.Context, created db
 func (s *OrgService) cleanUpKeycloak(ctx context.Context, slug string) {
 	cleanupCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), keycloakTimeout)
 	defer cancel()
-	if err := s.deleteOrgGroupsAndRoles(cleanupCtx, slug); err != nil {
+	if _, err := s.deleteOrgGroupsAndRoles(cleanupCtx, slug); err != nil {
 		log.Error("failed to clean up keycloak groups and roles of org ", slug, ": ", err)
 	}
 }
@@ -224,19 +230,20 @@ func (s *OrgService) DeleteOrg(ctx context.Context, id uuid.UUID) (string, error
 
 	keycloakCtx, cancel := context.WithTimeout(ctx, keycloakTimeout)
 	defer cancel()
-	if err := s.deleteOrgGroupsAndRoles(keycloakCtx, slug); err != nil {
-		if err := s.reconcileFailedKeycloakDelete(ctx, slug, fmt.Errorf("failed to delete keycloak groups and roles: %w", err)); err != nil {
+	members, err := s.deleteOrgGroupsAndRoles(keycloakCtx, slug)
+	if err != nil {
+		if err := s.reconcileFailedKeycloakDelete(ctx, slug, members, fmt.Errorf("failed to delete keycloak groups and roles: %w", err)); err != nil {
 			return "", err
 		}
 	}
 
 	if err := tx.Commit(ctx); err != nil {
-		return s.reconcileFailedDeleteCommit(ctx, id, slug, fmt.Errorf("failed to commit transaction: %w", err))
+		return s.reconcileFailedDeleteCommit(ctx, id, slug, members, fmt.Errorf("failed to commit transaction: %w", err))
 	}
 	return slug, nil
 }
 
-func (s *OrgService) reconcileFailedKeycloakDelete(ctx context.Context, slug string, deleteErr error) error {
+func (s *OrgService) reconcileFailedKeycloakDelete(ctx context.Context, slug string, members orgMembers, deleteErr error) error {
 	checkCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), keycloakTimeout)
 	defer cancel()
 	exist, err := s.orgGroupsOrRolesExist(checkCtx, slug)
@@ -247,13 +254,13 @@ func (s *OrgService) reconcileFailedKeycloakDelete(ctx context.Context, slug str
 		log.Warn("keycloak deleted the groups and roles of org ", slug, " despite an error: ", deleteErr)
 		return nil
 	}
-	if err := s.restoreKeycloak(ctx, slug); err != nil {
-		return errors.Join(deleteErr, fmt.Errorf("failed to restore keycloak groups and roles: %w", err))
+	if err := s.restoreKeycloak(ctx, slug, members); err != nil {
+		return errors.Join(deleteErr, err)
 	}
 	return deleteErr
 }
 
-func (s *OrgService) reconcileFailedDeleteCommit(ctx context.Context, id uuid.UUID, slug string, commitErr error) (string, error) {
+func (s *OrgService) reconcileFailedDeleteCommit(ctx context.Context, id uuid.UUID, slug string, members orgMembers, commitErr error) (string, error) {
 	checkCtx, cancel := db.GetTimeoutContext(context.WithoutCancel(ctx))
 	defer cancel()
 	_, err := s.queries.GetOrgByID(checkCtx, id)
@@ -263,16 +270,24 @@ func (s *OrgService) reconcileFailedDeleteCommit(ctx context.Context, id uuid.UU
 	if err != nil {
 		return "", errors.Join(commitErr, fmt.Errorf("failed to check whether the org was deleted: %w", err))
 	}
-	if err := s.restoreKeycloak(ctx, slug); err != nil {
-		return "", errors.Join(commitErr, fmt.Errorf("failed to restore keycloak groups and roles: %w", err))
+	if err := s.restoreKeycloak(ctx, slug, members); err != nil {
+		return "", errors.Join(commitErr, err)
 	}
-	return "", errors.Join(ErrOrgMembersRemoved, commitErr)
+	return "", commitErr
 }
 
-func (s *OrgService) restoreKeycloak(ctx context.Context, slug string) error {
+// restoreKeycloak recreates the org's groups and roles and puts its members back. When only the
+// members fail, the groups are back, so that error carries ErrOrgMembersRemoved.
+func (s *OrgService) restoreKeycloak(ctx context.Context, slug string, members orgMembers) error {
 	restoreCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), keycloakTimeout)
 	defer cancel()
-	return s.createOrgGroupsAndRoles(restoreCtx, slug)
+	if err := s.createOrgGroupsAndRoles(restoreCtx, slug); err != nil {
+		return fmt.Errorf("failed to restore keycloak groups and roles: %w", err)
+	}
+	if err := s.addOrgMembers(restoreCtx, slug, members); err != nil {
+		return errors.Join(ErrOrgMembersRemoved, fmt.Errorf("failed to re-add the org's members: %w", err))
+	}
+	return nil
 }
 
 func optionalText(value string) pgtype.Text {

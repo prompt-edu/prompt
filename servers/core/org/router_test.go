@@ -44,8 +44,10 @@ func (suite *OrgRouterTestSuite) SetupSuite() {
 	}
 	suite.cleanup = cleanup
 	noKeycloak := func(context.Context, string) error { return nil }
+	noKeycloakDelete := func(context.Context, string) (orgMembers, error) { return nil, nil }
 	noKeycloakArtifacts := func(context.Context, string) (bool, error) { return false, nil }
-	suite.service = NewOrgService(*testDB.Queries, testDB.Conn, noKeycloak, noKeycloak, noKeycloakArtifacts)
+	noKeycloakMembers := func(context.Context, string, orgMembers) error { return nil }
+	suite.service = NewOrgService(*testDB.Queries, testDB.Conn, noKeycloak, noKeycloakDelete, noKeycloakArtifacts, noKeycloakMembers)
 	suite.validationService = permissionValidation.NewValidationService(*testDB.Queries)
 
 	suite.org = suite.createOrg("ase", nil)

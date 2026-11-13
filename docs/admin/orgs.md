@@ -54,7 +54,7 @@ for now: the Admins and Members of a parent org get no rights on its child orgs.
 A failed delete shows an error and keeps the org. In most cases its Keycloak groups and members are
 unchanged, so you can simply delete it again.
 
-If the error says that the Keycloak groups were recreated without members, Keycloak had already
-removed the org's groups before the delete failed. PROMPT restored the groups and roles so the org
-stays usable, but its members are gone. Either delete the org again, or keep it and re-add its
-members to the `/Orgs/<slug>/Admin` and `/Orgs/<slug>/Member` groups in Keycloak.
+If Keycloak had already removed the org's groups when the delete failed, PROMPT recreates the groups
+and roles and puts the org's Admins and Members back. Only when a member cannot be re-added does the
+error say so, and the server log names the users who are missing. Either delete the org again, or
+keep it and re-add them to the `/Orgs/<slug>/Admin` and `/Orgs/<slug>/Member` groups in Keycloak.

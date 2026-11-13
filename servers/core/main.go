@@ -264,7 +264,7 @@ func main() {
 	announcement.RegisterRoutes(api, announcementService, tokenVerifier.KeycloakMiddleware)
 	studyProgramService := studyProgram.NewStudyProgramService(*query, conn)
 	studyProgram.RegisterRoutes(api, studyProgramService, tokenVerifier.KeycloakMiddleware)
-	orgService := org.NewOrgService(*query, conn, keycloakRealmService.CreateOrgGroupsAndRoles, keycloakRealmService.DeleteOrgGroupsAndRoles, keycloakRealmService.OrgGroupsOrRolesExist)
+	orgService := org.NewOrgService(*query, conn, keycloakRealmService.CreateOrgGroupsAndRoles, keycloakRealmService.DeleteOrgGroupsAndRoles, keycloakRealmService.OrgGroupsOrRolesExist, keycloakRealmService.AddOrgMembers)
 	org.RegisterRoutes(api, orgService, tokenVerifier.KeycloakMiddleware, validationService.CheckOrgPermission)
 
 	exportStorage, err := privacyexport.NewExportStorageFromEnv()

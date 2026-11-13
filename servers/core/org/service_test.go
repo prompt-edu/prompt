@@ -16,6 +16,7 @@ import (
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/core/org/orgDTO"
+	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -24,9 +25,12 @@ import (
 type keycloakSpy struct {
 	created           []string
 	deleted           []string
+	added             []orgMembers
+	members           orgMembers
 	createErr         error
 	deleteErr         error
 	existErr          error
+	addErr            error
 	deletedDespiteErr bool
 	onCreate          func(slug string)
 	onDelete          func(slug string)
@@ -40,16 +44,21 @@ func (k *keycloakSpy) create(_ context.Context, slug string) error {
 	return k.createErr
 }
 
-func (k *keycloakSpy) delete(_ context.Context, slug string) error {
+func (k *keycloakSpy) delete(_ context.Context, slug string) (orgMembers, error) {
 	k.deleted = append(k.deleted, slug)
 	if k.onDelete != nil {
 		k.onDelete(slug)
 	}
-	return k.deleteErr
+	return k.members, k.deleteErr
 }
 
 func (k *keycloakSpy) exist(_ context.Context, _ string) (bool, error) {
 	return !k.deletedDespiteErr, k.existErr
+}
+
+func (k *keycloakSpy) add(_ context.Context, _ string, members orgMembers) error {
+	k.added = append(k.added, members)
+	return k.addErr
 }
 
 type OrgServiceTestSuite struct {
@@ -70,7 +79,7 @@ func (suite *OrgServiceTestSuite) SetupSuite() {
 	suite.cleanup = cleanup
 	suite.conn = testDB.Conn
 	suite.keycloak = &keycloakSpy{}
-	suite.service = NewOrgService(*testDB.Queries, testDB.Conn, suite.keycloak.create, suite.keycloak.delete, suite.keycloak.exist)
+	suite.service = NewOrgService(*testDB.Queries, testDB.Conn, suite.keycloak.create, suite.keycloak.delete, suite.keycloak.exist, suite.keycloak.add)
 }
 
 func (suite *OrgServiceTestSuite) TearDownSuite() {
@@ -520,17 +529,33 @@ func (suite *OrgServiceTestSuite) TestDeleteOrgKeepsTheOrgWithoutRestoringWhenTh
 	assert.Equal(suite.T(), []string{"check-fails"}, suite.keycloak.created, "nothing is restored")
 }
 
-func (suite *OrgServiceTestSuite) TestDeleteOrgRestoresKeycloakWhenTheCommitFails() {
+func (suite *OrgServiceTestSuite) TestDeleteOrgRestoresKeycloakAndItsMembersWhenTheCommitFails() {
 	org := suite.createOrg("delete-commit-fails", nil)
 	suite.failCommitOn("DELETE", "OLD", "delete-commit-fails")
+	suite.keycloak.members = orgMembers{permissionValidation.OrgAdmin: {"admin-1"}, permissionValidation.OrgMember: {"member-1", "member-2"}}
+
+	_, err := suite.service.DeleteOrg(suite.ctx, org.ID)
+
+	assert.ErrorContains(suite.T(), err, "commit rejected")
+	assert.NotErrorIs(suite.T(), err, ErrOrgMembersRemoved, "every member is back")
+	assert.Equal(suite.T(), 1, suite.countOrgs("delete-commit-fails"))
+	assert.Equal(suite.T(), []string{"delete-commit-fails"}, suite.keycloak.deleted)
+	assert.Equal(suite.T(), []string{"delete-commit-fails", "delete-commit-fails"}, suite.keycloak.created, "the failed commit is followed by a restore")
+	assert.Equal(suite.T(), []orgMembers{suite.keycloak.members}, suite.keycloak.added, "the members read before the deletion are re-added")
+}
+
+func (suite *OrgServiceTestSuite) TestDeleteOrgReportsMembersThatCouldNotBeReAdded() {
+	org := suite.createOrg("re-add-fails", nil)
+	suite.failCommitOn("DELETE", "OLD", "re-add-fails")
+	suite.keycloak.members = orgMembers{permissionValidation.OrgAdmin: {"admin-1"}}
+	suite.keycloak.addErr = errors.New("failed to re-add user admin-1")
 
 	_, err := suite.service.DeleteOrg(suite.ctx, org.ID)
 
 	assert.ErrorContains(suite.T(), err, "commit rejected")
 	assert.ErrorIs(suite.T(), err, ErrOrgMembersRemoved)
-	assert.Equal(suite.T(), 1, suite.countOrgs("delete-commit-fails"))
-	assert.Equal(suite.T(), []string{"delete-commit-fails"}, suite.keycloak.deleted)
-	assert.Equal(suite.T(), []string{"delete-commit-fails", "delete-commit-fails"}, suite.keycloak.created, "the failed commit is followed by a restore")
+	assert.ErrorIs(suite.T(), err, suite.keycloak.addErr)
+	assert.Equal(suite.T(), 1, suite.countOrgs("re-add-fails"))
 }
 
 func (suite *OrgServiceTestSuite) TestDeleteOrgNotFound() {

@@ -6706,15 +6706,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"example_component@workspace:example_component":
-  version: 0.0.0-use.local
-  resolution: "example_component@workspace:example_component"
-  dependencies:
-    "@rspack/cli": "npm:^2.2.9"
-    "@rspack/core": "npm:^2.2.9"
-  languageName: unknown
-  linkType: soft
-
 "execa@npm:10.0.1":
   version: 10.0.1
   resolution: "execa@npm:10.0.1"

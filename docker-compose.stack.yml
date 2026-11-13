@@ -24,9 +24,6 @@ services:
   db-assessment:
     volumes:
       - postgres_assessment_data:/var/lib/postgresql/data
-  db-example-server:
-    volumes:
-      - postgres_example_server_data:/var/lib/postgresql/data
   db-interview:
     volumes:
       - postgres_interview_data:/var/lib/postgresql/data
@@ -71,7 +68,6 @@ volumes:
   postgres_data:
   postgres_team_allocation_data:
   postgres_assessment_data:
-  postgres_example_server_data:
   postgres_interview_data:
   postgres_self_team_allocation_data:
   postgres_certificate_data:

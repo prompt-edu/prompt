@@ -108,10 +108,6 @@ services:
         condition: service_started
       client-assessment:
         condition: service_started
-      server-example:
-        condition: service_started
-      client-example:
-        condition: service_started
       client-matching:
         condition: service_started
       server-interview:
@@ -150,7 +146,6 @@ services:
       - TEAM_ALLOCATION_HOST
       - SELF_TEAM_ALLOCATION_HOST
       - ASSESSMENT_HOST
-      - EXAMPLE_HOST
       - INTERVIEW_HOST
       - CERTIFICATE_HOST
       - PRESENTATION_HOST
@@ -248,82 +243,8 @@ services:
       timeout: 5s
       retries: 10
 
-  # ── Example phase module (server + MF remote + own DB) ───────────────────
-  # Minimal placeholder phase; wired in as the canonical "new phase" example.
-  # Follows the blueprint in e2e/README.md ("Phase modules in the e2e stack").
-  server-example:
-    build:
-      context: ./servers/example_server
-      dockerfile: ../Dockerfile
-    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-e2e-server-example
-    depends_on:
-      db-example:
-        condition: service_healthy
-      keycloak:
-        condition: service_healthy
-    # No host port: reached only through the client-core nginx proxy.
-    environment:
-      - CORE_HOST
-      - SERVER_CORE_HOST
-      - SERVER_ADDRESS
-      - SERVER_IMAGE_TAG=local
-      - SSL_MODE
-      # The service reads generic DB_USER/DB_PASSWORD/DB_NAME but
-      # service-specific host/port vars.
-      - DB_USER=${DB_EXAMPLE_USER}
-      - DB_PASSWORD=${DB_EXAMPLE_PASSWORD}
-      - DB_NAME=${DB_EXAMPLE_NAME}
-      - DB_HOST_EXAMPLE_SERVER=${DB_EXAMPLE_HOST}
-      - DB_PORT_EXAMPLE_SERVER=${DB_EXAMPLE_PORT}
-      - KEYCLOAK_HOST
-      - KEYCLOAK_REALM_NAME
-      - DEBUG
-      # Audit key provisioned so this phase reports to core once it wires a sink.
-      - AUDIT_ENABLED=true
-      - AUDIT_INGEST_KEY=${AUDIT_INGEST_KEY_EXAMPLE_SERVER}
-    # Distroless image (no shell/wget), so no container healthcheck.
-    # Readiness is polled by the runner's global-setup via
-    # /example-service/api/info through the client-core proxy.
-
-  client-example:
-    build:
-      context: ./clients/example_component
-      dockerfile: Dockerfile
-      args: *client-build-args
-      additional_contexts: *client-additional-contexts
-    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-e2e-client-example
-    depends_on:
-      - clients-base
-    # No host port: the remote is served through the client-core nginx proxy
-    # at /example/ (prefix stripped, like Traefik in prod).
-    healthcheck:
-      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:80/ || exit 1"]
-      interval: 5s
-      timeout: 5s
-      retries: 20
-      start_period: 10s
-
-  db-example:
-    image: "postgres:15.19-alpine"
-    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-e2e-db-example
-    environment:
-      - POSTGRES_USER=${DB_EXAMPLE_USER}
-      - POSTGRES_PASSWORD=${DB_EXAMPLE_PASSWORD}
-      - POSTGRES_DB=${DB_EXAMPLE_NAME}
-      - TZ=Europe/Berlin
-    # No init seed: the shared seed under seed/ is data only, so it is applied
-    # by the `seed` service below, once this phase server has migrated the
-    # database.
-    healthcheck:
-      test:
-        ["CMD-SHELL", "pg_isready -d ${DB_EXAMPLE_NAME} -U ${DB_EXAMPLE_USER}"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-
   # ── Assessment phase module (server + MF remote + own DB) ────────────────
-  # Second phase module in the e2e stack, following the blueprint in
-  # e2e/README.md ("Phase modules in the e2e stack").
+  # Follows the blueprint in e2e/README.md ("Phase modules in the e2e stack").
   server-assessment:
     build:
       context: ./servers/assessment
@@ -1081,8 +1002,6 @@ services:
         condition: service_started
       server-self-team-allocation:
         condition: service_started
-      server-example:
-        condition: service_started
       server-assessment:
         condition: service_started
       server-interview:
@@ -1138,11 +1057,6 @@ services:
       - SEED_PRESENTATION_NAME=${DB_PRESENTATION_NAME}
       - SEED_PRESENTATION_USER=${DB_PRESENTATION_USER}
       - SEED_PRESENTATION_PASSWORD=${DB_PRESENTATION_PASSWORD}
-      - SEED_EXAMPLE_SERVER_HOST=db-example
-      - SEED_EXAMPLE_SERVER_PORT=5432
-      - SEED_EXAMPLE_SERVER_NAME=${DB_EXAMPLE_NAME}
-      - SEED_EXAMPLE_SERVER_USER=${DB_EXAMPLE_USER}
-      - SEED_EXAMPLE_SERVER_PASSWORD=${DB_EXAMPLE_PASSWORD}
 
   e2e-runner:
     build:
@@ -1164,11 +1078,6 @@ services:
         condition: service_healthy
       server-assessment:
         # distroless; global-setup polls /assessment/api/info.
-        condition: service_started
-      client-example:
-        condition: service_healthy
-      server-example:
-        # distroless; global-setup polls /example-service/api/info.
         condition: service_started
       client-matching:
         condition: service_healthy

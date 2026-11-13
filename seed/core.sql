@@ -119,19 +119,6 @@ DELETE FROM student WHERE id IN (
     'e1000006-0000-0000-0000-000000000006'
 );
 
--- The one phase type nothing owns: core creates the other eight at startup and
--- the example server never registers itself, so the seed has to create it for
--- the phases below to resolve it by name. Nothing reconciles the row
--- afterwards, which makes `base_url` seed-owned configuration: it is right
--- wherever core fronts the phase services (Docker, production), and wrong for a
--- host-run example server, which core would otherwise address as
--- http://localhost:8086/example-service/api. The id stays random like every
--- core-created type - no seed file references it.
-INSERT INTO course_phase_type (id, name, initial_phase, base_url, description)
-    VALUES (gen_random_uuid(), 'example_component', false,
-            '{CORE_HOST}/example-service/api', 'Example phase')
-    ON CONFLICT (name) DO NOTHING;
-
 -- ─── E2E fixtures ───────────────────────────────────────────────────────────
 --
 -- Courses, students and phases the Playwright suite asserts against by pinned
@@ -297,15 +284,6 @@ INSERT INTO course_phase (id, course_id, name, restricted_data, is_initial_phase
     VALUES ('b3000005-0000-0000-0000-000000000005', 'c0000001-0000-0000-0000-000000000001', 'Team Allocation Other Tutor', '{}', false, (SELECT id FROM course_phase_type WHERE name = 'Team Allocation'), '{}');
 INSERT INTO course_phase (id, course_id, name, restricted_data, is_initial_phase, course_phase_type_id, student_readable_data)
     VALUES ('d0000019-0000-0000-0000-000000000019', 'c0000001-0000-0000-0000-000000000001', 'Assessment Other Tutor', '{}', false, (SELECT id FROM course_phase_type WHERE name = 'Assessment'), '{}');
--- Standalone Example phases (no graph edges, route by URL). The example phase is
--- a minimal placeholder module, so it needs no participants or config:
--- d000000f = MF smoke + lecturer-info API auth on iPraktikumFull,
--- d0000010 = TestCourse negative-auth fixture (course-lecturer of iPraktikumFull
--- is not a lecturer of TestCourse, so its info endpoint must reject them).
-INSERT INTO course_phase (id, course_id, name, restricted_data, is_initial_phase, course_phase_type_id, student_readable_data)
-    VALUES ('d000000f-0000-0000-0000-00000000000f', 'c0000001-0000-0000-0000-000000000001', 'Example', '{}', false, (SELECT id FROM course_phase_type WHERE name = 'example_component'), '{}');
-INSERT INTO course_phase (id, course_id, name, restricted_data, is_initial_phase, course_phase_type_id, student_readable_data)
-    VALUES ('d0000010-0000-0000-0000-000000000010', 'be780b32-a678-4b79-ae1c-80071771d254', 'Example', '{}', false, (SELECT id FROM course_phase_type WHERE name = 'example_component'), '{}');
 -- Standalone Matching phase (no graph edge) owned by the matching lecturer
 -- re-import spec, so its pass_status mutation never collides with the graph
 -- Matching phase (d0000003) used by the smoke / student / API specs.
@@ -552,9 +530,9 @@ INSERT INTO application_question_file_upload (id, course_phase_id, title, descri
 --
 -- The graph is a strict chain: course_phase_graph is UNIQUE on both endpoints.
 -- Team Allocation and Self Team Allocation are mutually exclusive alternatives
--- in a real course, so Self Team Allocation and the developer-only Example
--- phase sit off the graph. They carry full data but are not part of the
--- sequential student flow.
+-- in a real course, so Self Team Allocation sits off
+-- the graph. It carries full data but is not part of the sequential student
+-- flow.
 
 INSERT INTO student (id, first_name, last_name, email, matriculation_number, university_login, has_university_account, gender, nationality, study_program, study_degree, current_semester)
     VALUES ('e1000001-0000-0000-0000-000000000001', 'Alice', 'Anderson', 'alice.anderson@example.com', '01000001', 'al01tum', true, 'female', 'DE', 'Informatics', 'master', 2),
@@ -569,7 +547,7 @@ INSERT INTO course (id, name, start_date, end_date, semester_tag, course_type, e
             '{"icon": "graduation-cap", "bg-color": "bg-amber-100"}',
             '{"icon": "graduation-cap", "bg-color": "bg-amber-100"}',
             false, 'The seeded demo course',
-            'A complete course with data in every phase: application, interview, matching, team allocation, assessment, presentation and certificate, plus an off-graph self team allocation and example phase.',
+            'A complete course with data in every phase: application, interview, matching, team allocation, assessment, presentation and certificate, plus an off-graph self team allocation.',
             false, NULL);
 
 -- The chain. Each phase carries the settings its module reads out of
@@ -593,9 +571,7 @@ INSERT INTO course_phase (id, course_id, name, restricted_data, is_initial_phase
            ('f0000007-0000-0000-0000-000000000007', 'c0000002-0000-0000-0000-000000000002', 'Certificate',
             '{}', false, (SELECT id FROM course_phase_type WHERE name = 'Certificate'), '{}'),
            ('f0000008-0000-0000-0000-000000000008', 'c0000002-0000-0000-0000-000000000002', 'Self Team Allocation',
-            '{}', false, (SELECT id FROM course_phase_type WHERE name = 'Self Team Allocation'), '{}'),
-           ('f0000009-0000-0000-0000-000000000009', 'c0000002-0000-0000-0000-000000000002', 'Example',
-            '{}', false, (SELECT id FROM course_phase_type WHERE name = 'example_component'), '{}');
+            '{}', false, (SELECT id FROM course_phase_type WHERE name = 'Self Team Allocation'), '{}');
 
 INSERT INTO course_phase_graph (from_course_phase_id, to_course_phase_id)
     VALUES ('f0000001-0000-0000-0000-000000000001', 'f0000002-0000-0000-0000-000000000002'),
@@ -649,8 +625,7 @@ CROSS JOIN (VALUES ('f0000003-0000-0000-0000-000000000003'::uuid),
                    ('f0000005-0000-0000-0000-000000000005'::uuid),
                    ('f0000006-0000-0000-0000-000000000006'::uuid),
                    ('f0000007-0000-0000-0000-000000000007'::uuid),
-                   ('f0000008-0000-0000-0000-000000000008'::uuid),
-                   ('f0000009-0000-0000-0000-000000000009'::uuid)) AS phase(id)
+                   ('f0000008-0000-0000-0000-000000000008'::uuid)) AS phase(id)
 WHERE cp.course_id = 'c0000002-0000-0000-0000-000000000002'
   AND cp.id NOT IN ('cd000007-0000-0000-0000-000000000007', 'cd000008-0000-0000-0000-000000000008');
 

@@ -30,7 +30,6 @@ jobs:
           - presentation
           - self_team_allocation
           - team_allocation
-          - example_server
     defaults:
       run:
         working-directory: servers/${{ matrix.module }}

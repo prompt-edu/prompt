@@ -27,7 +27,6 @@ COPY package.json yarn.lock .yarnrc.yml ./
 COPY core/package.json                           core/package.json
 COPY interview_component/package.json            interview_component/package.json
 COPY matching_component/package.json             matching_component/package.json
-COPY example_component/package.json              example_component/package.json
 COPY assessment_component/package.json           assessment_component/package.json
 COPY team_allocation_component/package.json      team_allocation_component/package.json
 COPY self_team_allocation_component/package.json self_team_allocation_component/package.json

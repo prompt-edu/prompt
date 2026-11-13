@@ -222,39 +222,6 @@ services:
       - SENTRY_DSN_INFRASTRUCTURE_SETUP
       - SENTRY_ENABLED
 
-  # Example server (example service)
-  server-example:
-    build:
-      context: ./servers/example_server
-      dockerfile: ../Dockerfile
-    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-server-example
-    depends_on:
-      db-example-server:
-        condition: service_healthy
-      keycloak:
-        condition: service_healthy
-    ports:
-      - "${PROMPT_PORT_8086:-8086}:8080"
-    extra_hosts:
-      - "localhost:host-gateway"
-    environment:
-      - CORE_HOST
-      - SERVER_CORE_HOST
-      - SERVER_ADDRESS
-      - SERVER_IMAGE_TAG=local
-      - AUDIT_ENABLED
-      - AUDIT_INGEST_KEY=${AUDIT_INGEST_KEY_EXAMPLE_SERVER:-}
-      - DB_HOST_EXAMPLE_SERVER
-      - DB_PORT_EXAMPLE_SERVER
-      - DB_NAME=${DB_EXAMPLE_NAME}
-      - DB_USER=${DB_EXAMPLE_USER}
-      - DB_PASSWORD=${DB_EXAMPLE_PASSWORD}
-      - KEYCLOAK_HOST
-      - KEYCLOAK_REALM_NAME
-      - DEBUG
-      - SENTRY_DSN_EXAMPLE_SERVER
-      - SENTRY_ENABLED
-
   server-interview:
     build:
       context: ./servers/interview
@@ -384,7 +351,6 @@ services:
       - TEAM_ALLOCATION_HOST
       - SELF_TEAM_ALLOCATION_HOST
       - ASSESSMENT_HOST
-      - EXAMPLE_HOST
       - INTERVIEW_HOST
       - CERTIFICATE_HOST
       - PRESENTATION_HOST
@@ -400,18 +366,6 @@ services:
       - SENTRY_DSN_CLIENT
     ports:
       - "${PROMPT_PORT_3000:-3000}:80"
-    depends_on:
-      - clients-base
-
-  client-example-component:
-    build:
-      context: ./clients/example_component
-      dockerfile: Dockerfile
-      args: *client-build-args
-      additional_contexts: *client-additional-contexts
-    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-client-example-component
-    ports:
-      - "${PROMPT_PORT_3001:-3001}:80"
     depends_on:
       - clients-base
 
@@ -592,28 +546,6 @@ services:
       retries: 5
     ports:
       - "${PROMPT_PORT_5435:-5435}:5432"
-
-  # Database for the example server
-  db-example-server:
-    image: "postgres:15.19-alpine"
-    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-db-example-server
-    environment:
-      - POSTGRES_USER=${DB_EXAMPLE_USER:-prompt-postgres}
-      - POSTGRES_PASSWORD=${DB_EXAMPLE_PASSWORD:-prompt-postgres}
-      - POSTGRES_DB=${DB_EXAMPLE_NAME:-prompt}
-      - TZ=Europe/Berlin
-    volumes:
-      - ./postgres_example_server_data:/var/lib/postgresql/data
-    healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "pg_isready -d ${DB_EXAMPLE_NAME:-prompt} -U ${DB_EXAMPLE_USER:-prompt-postgres}",
-        ]
-      timeout: 5s
-      retries: 5
-    ports:
-      - "${PROMPT_PORT_5437:-5437}:5432"
 
   db-interview:
     image: "postgres:15.19-alpine"
@@ -960,8 +892,3 @@ services:
       - SEED_PRESENTATION_NAME=${DB_PRESENTATION_NAME}
       - SEED_PRESENTATION_USER=${DB_PRESENTATION_USER}
       - SEED_PRESENTATION_PASSWORD=${DB_PRESENTATION_PASSWORD}
-      - SEED_EXAMPLE_SERVER_HOST=db-example-server
-      - SEED_EXAMPLE_SERVER_PORT=5432
-      - SEED_EXAMPLE_SERVER_NAME=${DB_EXAMPLE_NAME:-prompt}
-      - SEED_EXAMPLE_SERVER_USER=${DB_EXAMPLE_USER:-prompt-postgres}
-      - SEED_EXAMPLE_SERVER_PASSWORD=${DB_EXAMPLE_PASSWORD:-prompt-postgres}

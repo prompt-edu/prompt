@@ -31,6 +31,7 @@ import (
 	"github.com/prompt-edu/prompt/servers/core/keycloakRealmManager"
 	"github.com/prompt-edu/prompt/servers/core/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt/servers/core/mailing"
+	"github.com/prompt-edu/prompt/servers/core/org"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 	"github.com/prompt-edu/prompt/servers/core/privacy"
 	"github.com/prompt-edu/prompt/servers/core/privacy/service"
@@ -138,6 +139,11 @@ func initMailing(router *gin.RouterGroup, queries db.Queries, authMiddleware fun
 
 // @host      localhost:8080
 // @BasePath  /api/
+
+// @securityDefinitions.apikey  BearerAuth
+// @in                          header
+// @name                        Authorization
+// @description                 The Keycloak access token, prefixed with "Bearer ".
 
 // @externalDocs.description  PROMPT Documentation
 // @externalDocs.url          https://prompt-edu.github.io/prompt/
@@ -258,6 +264,8 @@ func main() {
 	announcement.RegisterRoutes(api, announcementService, tokenVerifier.KeycloakMiddleware)
 	studyProgramService := studyProgram.NewStudyProgramService(*query, conn)
 	studyProgram.RegisterRoutes(api, studyProgramService, tokenVerifier.KeycloakMiddleware)
+	orgService := org.NewOrgService(*query, conn, keycloakRealmService.CreateOrgGroupsAndRoles, keycloakRealmService.DeleteOrgGroupsAndRoles, keycloakRealmService.OrgGroupsOrRolesExist, keycloakRealmService.AddOrgMembers)
+	org.RegisterRoutes(api, orgService, tokenVerifier.KeycloakMiddleware, validationService.CheckOrgPermission)
 
 	exportStorage, err := privacyexport.NewExportStorageFromEnv()
 	if err != nil {

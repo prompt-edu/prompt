@@ -1,6 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
 import { type Team, useGetCoursePhaseParticipants } from '@tumaet/prompt-shared-state'
 import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+  Button,
   CoursePhaseParticipationsTable,
   ErrorPage,
   type ExtraParticipantColumn,
@@ -9,6 +13,7 @@ import {
   QueryGate,
   type TableFilter,
 } from '@tumaet/prompt-ui-components'
+import { AlertCircle } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useCanReadTeaseStudents } from '../../hooks/useCanReadTeaseStudents'
@@ -170,42 +175,58 @@ export const TeamAllocationParticipantsPage = () => {
 
   if (!phaseId) return <ErrorPage description='Invalid course phase ID' />
 
+  const renderTable = (retrySurveyData?: () => void) => (
+    <div id='table-view' className='relative flex flex-col'>
+      <ManagementPageHeader>Team Allocation Participants</ManagementPageHeader>
+      <p className='text-sm text-muted-foreground mb-4'>
+        {teaseStudents
+          ? 'This table shows all participants, their survey status and their allocated teams. Click on a participant to see their survey answers.'
+          : 'This table shows all participants and their allocated teams.'}
+      </p>
+      {retrySurveyData && (
+        <Alert variant='destructive' className='mb-4'>
+          <AlertCircle className='h-4 w-4' />
+          <AlertTitle>Could not fetch the survey data</AlertTitle>
+          <AlertDescription className='flex flex-col items-start gap-2'>
+            The survey status and the survey answers may be missing or out of date.
+            <Button variant='outline' size='sm' onClick={retrySurveyData}>
+              Retry
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+      <div className='w-full'>
+        <CoursePhaseParticipationsTable
+          phaseId={phaseId}
+          participants={coursePhaseParticipations?.participations ?? []}
+          extraColumns={extraColumns}
+          extraFilters={extraFilters}
+          onClickRowAction={teaseStudents ? openStudentDetail : undefined}
+        />
+      </div>
+      <StudentDetailDialog
+        student={selectedStudent}
+        open={selectedStudent !== null}
+        onOpenChange={(open) => {
+          if (!open) setSelectedStudent(null)
+        }}
+      />
+    </div>
+  )
+
   return (
     <QueryGate
-      queries={[
-        participationsQuery,
-        teamsQuery,
-        teamAllocationsQuery,
-        ...(canReadTeaseStudents ? [teaseStudentsQuery] : []),
-      ]}
+      queries={[participationsQuery, teamsQuery, teamAllocationsQuery]}
       errorFallback={({ refetch }) => (
         <ErrorPage onRetry={refetch} description='Could not fetch participants or teams' />
       )}
     >
-      <div id='table-view' className='relative flex flex-col'>
-        <ManagementPageHeader>Team Allocation Participants</ManagementPageHeader>
-        <p className='text-sm text-muted-foreground mb-4'>
-          {teaseStudents
-            ? 'This table shows all participants, their survey status and their allocated teams. Click on a participant to see their survey answers.'
-            : 'This table shows all participants and their allocated teams.'}
-        </p>
-        <div className='w-full'>
-          <CoursePhaseParticipationsTable
-            phaseId={phaseId}
-            participants={coursePhaseParticipations?.participations ?? []}
-            extraColumns={extraColumns}
-            extraFilters={extraFilters}
-            onClickRowAction={teaseStudents ? openStudentDetail : undefined}
-          />
-        </div>
-        <StudentDetailDialog
-          student={selectedStudent}
-          open={selectedStudent !== null}
-          onOpenChange={(open) => {
-            if (!open) setSelectedStudent(null)
-          }}
-        />
-      </div>
+      <QueryGate
+        queries={[teaseStudentsQuery]}
+        errorFallback={({ refetch }) => renderTable(refetch)}
+      >
+        {() => renderTable()}
+      </QueryGate>
     </QueryGate>
   )
 }

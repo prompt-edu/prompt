@@ -97,25 +97,27 @@ export const SurveySettingsPage = () => {
   }, [fetchedConfig])
 
   return (
-    <QueryGate queries={[skillsQuery, teamsQuery, surveyTimeframeQuery, configQuery]}>
-      {() =>
-        !fetchedSurveyTimeframe || !fetchedTeams || !fetchedSkills ? (
-          <ErrorPage description='Could not fetch the survey settings' />
-        ) : (
-          <>
-            <ManagementPageHeader>Settings</ManagementPageHeader>
-            <MissingSettings elements={missingConfigs} />
-            <SurveyLinkCard />
-            {/* 1. Set the survey timeframe, skills and teams for this phase. */}
-            <SurveyTimeframeSettings surveyTimeframe={fetchedSurveyTimeframe} />
-            {/* 2. Set up the teams */}
-            <TeamSettings teams={fetchedTeams} />
-            {/* 3. Set up the skills */}
-            <SkillSettings skills={fetchedSkills} />
-            {canReadTeaseStudents && <PreviousPhaseDataCheck />}
-          </>
-        )
-      }
-    </QueryGate>
+    <>
+      <QueryGate queries={[skillsQuery, teamsQuery, surveyTimeframeQuery, configQuery]}>
+        {() =>
+          !fetchedSurveyTimeframe || !fetchedTeams || !fetchedSkills ? (
+            <ErrorPage description='Could not fetch the survey settings' />
+          ) : (
+            <>
+              <ManagementPageHeader>Settings</ManagementPageHeader>
+              <MissingSettings elements={missingConfigs} />
+              <SurveyLinkCard />
+              {/* 1. Set the survey timeframe, skills and teams for this phase. */}
+              <SurveyTimeframeSettings surveyTimeframe={fetchedSurveyTimeframe} />
+              {/* 2. Set up the teams */}
+              <TeamSettings teams={fetchedTeams} />
+              {/* 3. Set up the skills */}
+              <SkillSettings skills={fetchedSkills} />
+            </>
+          )
+        }
+      </QueryGate>
+      {canReadTeaseStudents && <PreviousPhaseDataCheck />}
+    </>
   )
 }

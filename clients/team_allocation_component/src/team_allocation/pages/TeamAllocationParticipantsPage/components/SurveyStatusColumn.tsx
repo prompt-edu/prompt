@@ -26,8 +26,8 @@ export const createSurveyStatusColumn = (
         <div
           className={
             submitted
-              ? 'bg-green-100 text-green-700 p-1 rounded-full'
-              : 'bg-red-100 text-red-700 p-1 rounded-full'
+              ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 p-1 rounded-full'
+              : 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300 p-1 rounded-full'
           }
         >
           {submitted ? <Check className='h-4 w-4' /> : <X className='h-4 w-4' />}

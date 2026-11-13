@@ -9,7 +9,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@tumaet/prompt-ui-components'
-import { AlertCircle, ArrowRight, CheckCircle2, Loader2 } from 'lucide-react'
+import { AlertCircle, ArrowRight, CheckCircle2, Loader2, Users } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import type { TeaseStudent } from '../../../interfaces/tease/student'
@@ -34,6 +34,7 @@ export const LaunchTeaseDialog = () => {
   )
 
   const phasePath = `/management/course/${courseId ?? ''}/${phaseId ?? ''}`
+  const hasStudents = warnings !== null && warnings.totalStudents > 0
   const hasWarnings =
     warnings !== null &&
     (warnings.incompleteChecks.length > 0 || warnings.studentsWithoutSurvey > 0)
@@ -63,21 +64,28 @@ export const LaunchTeaseDialog = () => {
         )}
 
         {studentsQuery.isError && (
-          <div className='flex items-start gap-2 text-sm text-amber-700'>
+          <div className='flex items-start gap-2 text-sm text-amber-700 dark:text-amber-300'>
             <AlertCircle className='h-4 w-4 mt-0.5 shrink-0' />
             <p>Could not check the student data. You can still launch TEASE.</p>
           </div>
         )}
 
-        {warnings !== null && !hasWarnings && (
-          <div className='flex items-start gap-2 text-sm text-green-700'>
+        {warnings !== null && !hasStudents && (
+          <div className='flex items-start gap-2 text-sm text-muted-foreground'>
+            <Users className='h-4 w-4 mt-0.5 shrink-0' />
+            <p>There are no students in this phase yet.</p>
+          </div>
+        )}
+
+        {hasStudents && !hasWarnings && (
+          <div className='flex items-start gap-2 text-sm text-green-700 dark:text-green-300'>
             <CheckCircle2 className='h-4 w-4 mt-0.5 shrink-0' />
             <p>All student data is complete.</p>
           </div>
         )}
 
         {warnings !== null && warnings.incompleteChecks.length > 0 && (
-          <div className='flex items-start gap-2 text-sm text-amber-700'>
+          <div className='flex items-start gap-2 text-sm text-amber-700 dark:text-amber-300'>
             <AlertCircle className='h-4 w-4 mt-0.5 shrink-0' />
             <p>
               Data from previous phases is missing: {warnings.incompleteChecks.join(', ')}.{' '}
@@ -89,7 +97,7 @@ export const LaunchTeaseDialog = () => {
         )}
 
         {warnings !== null && warnings.studentsWithoutSurvey > 0 && (
-          <div className='flex items-start gap-2 text-sm text-amber-700'>
+          <div className='flex items-start gap-2 text-sm text-amber-700 dark:text-amber-300'>
             <AlertCircle className='h-4 w-4 mt-0.5 shrink-0' />
             <p>
               {warnings.studentsWithoutSurvey} of {warnings.totalStudents} students have not

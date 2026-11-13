@@ -4164,7 +4164,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tailwindcss/postcss@npm:^4.3.4":
+"@tailwindcss/postcss@npm:^4.3.5":
   version: 4.3.5
   resolution: "@tailwindcss/postcss@npm:4.3.5"
   dependencies:
@@ -7322,11 +7322,11 @@ __metadata:
   languageName: node
   linkType: hard
 
-"framer-motion@npm:14.13.0":
-  version: 14.13.0
-  resolution: "framer-motion@npm:14.13.0"
+"framer-motion@npm:14.14.0":
+  version: 14.14.0
+  resolution: "framer-motion@npm:14.14.0"
   dependencies:
-    motion-dom: "npm:14.13.0"
+    motion-dom: "npm:14.14.0"
     motion-utils: "npm:14.7.0"
     tslib: "npm:^2.4.0"
   peerDependencies:
@@ -7340,7 +7340,7 @@ __metadata:
       optional: true
     remix:
       optional: true
-  checksum: 10c0/16206b6084477ac4dc7f9d6c364838e70ff0d3bd7fb295b27e3f4452d2cd46c277ae8688e8917fd5bbd4be4f8826e1a8d3888cacfb99f57caa47c794f0276270
+  checksum: 10c0/405c7ac033bcc308a2444f54526cfc100b2a4373db66ec6d0da5b97c799802490c72a4623d1929a52642470ce6b5c451a1f15806d8bb8c9498a2e5b3d88825e3
   languageName: node
   linkType: hard
 
@@ -8648,12 +8648,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"motion-dom@npm:14.13.0":
-  version: 14.13.0
-  resolution: "motion-dom@npm:14.13.0"
+"motion-dom@npm:14.14.0":
+  version: 14.14.0
+  resolution: "motion-dom@npm:14.14.0"
   dependencies:
     motion-utils: "npm:14.7.0"
-  checksum: 10c0/63f1ff713ce47d7abb76ca2899d59f4b679a7a2319b1c38862081d37216d6efc41e324f78fbc7166f8d07a10ed65b6ae442c5165979e5143ec2829eddc4d50fa
+  checksum: 10c0/8a320425f280d2b413bc4da3b161da30d192180e5b367c4379e17eccdb6070089c71ab794267f073ff4dbeea31b75dfdbfd45d44d9888865fc0b0d22d3ec13c5
   languageName: node
   linkType: hard
 
@@ -8664,11 +8664,11 @@ __metadata:
   languageName: node
   linkType: hard
 
-"motion@npm:^14.10.0":
-  version: 14.13.0
-  resolution: "motion@npm:14.13.0"
+"motion@npm:^14.10.1":
+  version: 14.14.0
+  resolution: "motion@npm:14.14.0"
   dependencies:
-    framer-motion: "npm:14.13.0"
+    framer-motion: "npm:14.14.0"
     tslib: "npm:^2.4.0"
   peerDependencies:
     react: ^18.0.0 || ^19.0.0
@@ -8681,7 +8681,7 @@ __metadata:
       optional: true
     remix:
       optional: true
-  checksum: 10c0/57ecc76a1fcc4f187276ffef410163028d97dd5bc6a38bf6a53d02229978e328d050f51b22486d18c609bd3b2b15b375f5d9aa0fe0065d750d978f6435496577
+  checksum: 10c0/1edade40f79b69a1ad187e2023b869a49575c92f25a30cd3781d574e484aea077e0d239cb2243b4b2b72421b13f430f7491ce8d2782a30158b8378308d090322
   languageName: node
   linkType: hard
 
@@ -9990,7 +9990,7 @@ __metadata:
     "@rspack/cli": "npm:^2.3.1"
     "@rspack/core": "npm:^2.3.1"
     "@rspack/dev-server": "npm:^2.2.2"
-    "@tailwindcss/postcss": "npm:^4.3.4"
+    "@tailwindcss/postcss": "npm:^4.3.5"
     "@tanstack/react-query": "npm:^5.106.1"
     "@tanstack/react-table": "npm:^9.3.1"
     "@tiptap/core": "npm:^3.33.0"
@@ -10029,7 +10029,7 @@ __metadata:
     lerna: "npm:^10.1.1"
     lowlight: "npm:^3.3.0"
     lucide-react: "npm:^1.70.0"
-    motion: "npm:^14.10.0"
+    motion: "npm:^14.10.1"
     postcss: "npm:^8.5.32"
     postcss-loader: "npm:8.2.1"
     react: "npm:^19.3.1"
@@ -10042,7 +10042,7 @@ __metadata:
     sonner: "npm:^2.0.8"
     style-loader: "npm:^4.0.0"
     tailwind-merge: "npm:^3.7.0"
-    tailwindcss: "npm:^4.3.4"
+    tailwindcss: "npm:^4.3.5"
     tailwindcss-animate: "npm:^1.0.7"
     ts-node: "npm:^10.9.2"
     ts-node-register: "npm:^1.0.0"
@@ -10052,7 +10052,7 @@ __metadata:
     vitest: "npm:^5.1.0"
     webpack-bundle-analyzer: "npm:^5.4.2"
     zod: "npm:^4.6.7"
-    zustand: "npm:^5.0.16"
+    zustand: "npm:^5.1.0"
   languageName: unknown
   linkType: soft
 
@@ -11147,7 +11147,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tailwindcss@npm:4.3.5, tailwindcss@npm:^4.3.4":
+"tailwindcss@npm:4.3.5, tailwindcss@npm:^4.3.5":
   version: 4.3.5
   resolution: "tailwindcss@npm:4.3.5"
   checksum: 10c0/a02a1759cc3aaad5d9b5da7919bc2d5570432960e0f933be752185ced814fc8a193885effd9628bc3067c81552c13293e469b8e46e5a43b148dbfc97f00b5994
@@ -12118,9 +12118,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"zustand@npm:^5.0.16":
-  version: 5.0.16
-  resolution: "zustand@npm:5.0.16"
+"zustand@npm:^5.1.0":
+  version: 5.1.0
+  resolution: "zustand@npm:5.1.0"
   peerDependencies:
     "@types/react": ">=18.0.0"
     immer: ">=9.0.6"
@@ -12135,6 +12135,6 @@ __metadata:
       optional: true
     use-sync-external-store:
       optional: true
-  checksum: 10c0/af77e7a2ecaaddb61d74cc795ee1c1c6e59590130cea6ec461fca1c729e9a1f493946a768761be4042813546bf2cce1dfd25950fcd22ef2829eb395a29ceca63
+  checksum: 10c0/cde7f90e7eb1b8340046aafae12e73b027cb6ef05bdc7e5bc124c6928af50eacbbdaf09ad3c50123de309d4edadbb57dade5b979c089e5a9910ccaecb78405b0
   languageName: node
   linkType: hard

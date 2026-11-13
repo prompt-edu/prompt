@@ -2,9 +2,7 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"os"
-	"os/exec"
 	"strings"
 	"time"
 
@@ -33,6 +31,7 @@ import (
 	"github.com/prompt-edu/prompt/servers/core/keycloakRealmManager"
 	"github.com/prompt-edu/prompt/servers/core/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt/servers/core/mailing"
+	"github.com/prompt-edu/prompt/servers/core/org"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 	"github.com/prompt-edu/prompt/servers/core/privacy"
 	"github.com/prompt-edu/prompt/servers/core/privacy/service"
@@ -44,35 +43,6 @@ import (
 	"github.com/prompt-edu/prompt/servers/core/studyProgram"
 	log "github.com/sirupsen/logrus"
 )
-
-var dbUser string = sdkUtils.GetEnv("DB_USER", "prompt-postgres")
-var dbPassword string = sdkUtils.GetEnv("DB_PASSWORD", "prompt-postgres")
-var dbHost string = sdkUtils.GetEnv("DB_HOST", "localhost")
-var dbPort string = sdkUtils.GetEnv("DB_PORT", "5432")
-var dbName string = sdkUtils.GetEnv("DB_NAME", "prompt")
-var sslMode string = sdkUtils.GetEnv("SSL_MODE", "disable")
-var timeZone string = sdkUtils.GetEnv("DB_TIMEZONE", "Europe/Berlin") // Add a timezone parameter
-
-func getDatabaseURL() string {
-	return fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s&TimeZone=%s", dbUser, dbPassword, dbHost, dbPort, dbName, sslMode, timeZone)
-}
-
-func sanitizeDatabaseURL(input string) string {
-	if dbPassword == "" {
-		return input
-	}
-	return strings.ReplaceAll(input, dbPassword, "***")
-}
-
-func runMigrations(databaseURL string) {
-	cmd := exec.Command("migrate", "-path", "./db/migration", "-database", databaseURL, "up")
-	output, err := cmd.CombinedOutput()
-	sanitized := sanitizeDatabaseURL(string(output))
-	if err != nil {
-		log.Fatalf("Failed to run migrations: %v\n%s", err, sanitized)
-	}
-	fmt.Print(sanitized)
-}
 
 const (
 	uploadReaperInterval  = 15 * time.Minute
@@ -170,6 +140,11 @@ func initMailing(router *gin.RouterGroup, queries db.Queries, authMiddleware fun
 // @host      localhost:8080
 // @BasePath  /api/
 
+// @securityDefinitions.apikey  BearerAuth
+// @in                          header
+// @name                        Authorization
+// @description                 The Keycloak access token, prefixed with "Bearer ".
+
 // @externalDocs.description  PROMPT Documentation
 // @externalDocs.url          https://prompt-edu.github.io/prompt/
 func main() {
@@ -186,11 +161,12 @@ func main() {
 	}
 
 	// establish database connection
-	databaseURL := getDatabaseURL()
-	log.Debugf("Connecting to database at host=%s port=%s db=%s user=%s sslmode=%s", dbHost, dbPort, dbName, dbUser, sslMode)
+	databaseURL := sdkUtils.GetDatabaseURL()
 
 	// run migrations
-	runMigrations(databaseURL)
+	if err := sdkUtils.RunMigrations(databaseURL, "./db/migration"); err != nil {
+		log.Fatalf("Failed to run migrations: %v", err)
+	}
 
 	// establish db connection
 	conn, err := pgxpool.New(context.Background(), databaseURL)
@@ -288,6 +264,8 @@ func main() {
 	announcement.RegisterRoutes(api, announcementService, tokenVerifier.KeycloakMiddleware)
 	studyProgramService := studyProgram.NewStudyProgramService(*query, conn)
 	studyProgram.RegisterRoutes(api, studyProgramService, tokenVerifier.KeycloakMiddleware)
+	orgService := org.NewOrgService(*query, conn, keycloakRealmService.CreateOrgGroupsAndRoles, keycloakRealmService.DeleteOrgGroupsAndRoles, keycloakRealmService.OrgGroupsOrRolesExist, keycloakRealmService.AddOrgMembers)
+	org.RegisterRoutes(api, orgService, tokenVerifier.KeycloakMiddleware, validationService.CheckOrgPermission)
 
 	exportStorage, err := privacyexport.NewExportStorageFromEnv()
 	if err != nil {

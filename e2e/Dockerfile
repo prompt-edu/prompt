@@ -1,6 +1,6 @@
 # Playwright runner image. The tag MUST match @playwright/test in package.json
 # so the bundled browsers line up with the test runner.
-FROM mcr.microsoft.com/playwright:v1.64.1-jammy
+FROM mcr.microsoft.com/playwright:v1.65.0-jammy
 
 WORKDIR /work
 

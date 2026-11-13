@@ -69,6 +69,13 @@ make db
 # Stop every service database and Keycloak
 make db-down
 
+# Start the SeaweedFS S3 storage the core and presentation servers need
+make s3
+
+# Show this checkout's stack number and ports; remove a worktree's stack
+make stack
+make stack-down
+
 # Load the demo course into every service database (start the servers first)
 make seed
 
@@ -100,6 +107,23 @@ make setup-skills
 
 `make help` lists every target, including the per-service `server-*`, `client-*`, `test-*`, and
 `sqlc-*` ones.
+
+**Parallel stacks:** every git worktree runs its own stack (databases, Keycloak, servers, clients,
+e2e/verify stack). The main checkout is stack 0 with the ports listed above; a linked worktree gets its own
+stack number `n` on first use and every host port shifts by `n * 100`. Run `make stack` in a
+worktree for its ports, and `make stack-down` before removing it. Details: "Run Several Stacks Side
+by Side" in `docs/contributor/setup.md`.
+
+- In a worktree, use the ports `make stack` prints, never the ones above.
+- Use `make` targets. A bare `docker compose` runs with stack 0's names and ports. A stack's
+  containers are named `prompt-<n>-*`.
+- `make servers` and `make clients` run in the background, so Ctrl-C doesn't stop them. `make stop`
+  does. `make db-down` stops them too, then the databases, and keeps the data. `make stack-down`
+  deletes the stack's data and frees its number.
+- A worktree without its own `.env` or `.env.dev` reads the main checkout's. If a database exits,
+  compare them with the templates.
+- There are only 7 stack numbers. `PROMPT_STACK=<n>` refuses a number another worktree holds; only
+  add `PROMPT_STACK_FORCE=1` when you mean to work on that worktree's stack.
 
 **Environment Setup:** Copy `.env.template` to `.env` and `.env.dev.template` to `.env.dev`. The `.env.dev` file contains localhost overrides for local development (vs Docker hostnames in `.env`). Each microservice has separate DB configuration (e.g., `DB_CORE_*`, `DB_TEAM_ALLOCATION_*`). For auth/Keycloak setup and common failures, use the `keycloak-local-setup` skill.
 
@@ -138,6 +162,13 @@ Agent configuration is shared with the team and split by purpose:
     `react-performance`, `docker-patterns`.
 - **Subagents** — focused reviewers in `.claude/agents/`: `go-service-reviewer`,
   `frontend-reviewer`, `migration-auditor`.
+- **MCP servers** in `.mcp.json`, registered for Claude Code in this project. Codex does not read
+  `.mcp.json`: add the same servers to your own Codex `config.toml` to use them there.
+  - `playwright` drives a real browser for the `verify` skill.
+  - `outline` connects to the team's Outline wiki (<https://outline.aet.cit.tum.de>). It signs in
+    with your own Outline account through OAuth, so run `/mcp` in Claude Code once to authenticate.
+    The instance is shared with other teams: keep every read and write inside the `Prompt`
+    collection.
 
 ## Creating New Course Phases
 
@@ -163,7 +194,8 @@ and are documented in `e2e/README.md`. Details: `.claude/rules/common/testing.md
 
 To observe a change in a real browser rather than through tests, use the `verify` skill:
 `make verify-up` boots the same seeded stack in host-browser mode (client
-<http://localhost:4000>), which is then driven with the Playwright MCP browser.
+<http://localhost:4000>, shifted by `n * 100` in a worktree's stack `n`), which is then driven
+with the Playwright MCP browser.
 
 ## Definition of Done
 
@@ -193,7 +225,8 @@ make test-e2e-down                     # stop the stack and remove volumes
 - Boots core server + client + Keycloak + Postgres + SeaweedFS via `docker-compose.e2e.yml`
 - Uses the seeded Keycloak users and the shared DB seed (`seed/`, see `make seed`)
 - Runs on non-default host ports (client 4000 / API 18090 / Keycloak 18081), so
-  it coexists with a running dev stack
+  it coexists with a running dev stack. A worktree's stack `n` shifts them by `n * 100`
+  and names its containers `prompt-<n>-e2e-*`, so worktrees can run shards in parallel
 
 ## UI Guidelines
 

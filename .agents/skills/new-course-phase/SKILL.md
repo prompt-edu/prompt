@@ -32,7 +32,8 @@ Afterwards, complete the steps the generator prints:
 
 1. **Course phase type** — add an `init<Name>()` in
    `servers/core/coursePhaseType/initializeTypes.go` (name key `<name>_component`, `BaseUrl`
-   `{CORE_HOST}/<name>/api` in prod / `http://localhost:<port>/<name>/api` in dev, required
+   `{CORE_HOST}/<name>/api` in prod / `devServiceURL(<port>, "/<name>/api")` in dev, never a
+   literal `http://localhost:<port>`, so parallel stacks reach their own server; required
    inputs / provided outputs).
 2. **Schema + logic** — migrations in `db/migration/` as `0001_<desc>.up.sql`, queries in
    `db/query/*.sql`, then `make sqlc-<name>` (use the `sqlc-migration` skill). Business logic in

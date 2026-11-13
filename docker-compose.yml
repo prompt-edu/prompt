@@ -11,7 +11,7 @@ services:
     build:
       context: ./servers/core
       dockerfile: ../Dockerfile
-    container_name: prompt-server-core
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-server-core
     depends_on:
       db:
         condition: service_healthy
@@ -20,7 +20,7 @@ services:
       seaweedfs-s3:
         condition: service_healthy
     ports:
-      - "8080:8080"
+      - "${PROMPT_PORT_8080:-8080}:8080"
     extra_hosts:
       - "localhost:host-gateway"
     environment:
@@ -68,14 +68,14 @@ services:
     build:
       context: ./servers/team_allocation
       dockerfile: ../Dockerfile
-    container_name: prompt-server-team-allocation
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-server-team-allocation
     depends_on:
       db-team-allocation:
         condition: service_healthy
       keycloak:
         condition: service_healthy
     ports:
-      - "8083:8080"
+      - "${PROMPT_PORT_8083:-8083}:8080"
     extra_hosts:
       - "localhost:host-gateway"
     environment:
@@ -99,14 +99,14 @@ services:
     build:
       context: ./servers/self_team_allocation
       dockerfile: ../Dockerfile
-    container_name: prompt-server-self-team-allocation
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-server-self-team-allocation
     depends_on:
       db-self-team-allocation:
         condition: service_healthy
       keycloak:
         condition: service_healthy
     ports:
-      - "8084:8080"
+      - "${PROMPT_PORT_8084:-8084}:8080"
     extra_hosts:
       - "localhost:host-gateway"
     environment:
@@ -130,14 +130,14 @@ services:
     build:
       context: ./servers/assessment
       dockerfile: ../Dockerfile
-    container_name: prompt-server-assessment
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-server-assessment
     depends_on:
       db-assessment:
         condition: service_healthy
       keycloak:
         condition: service_healthy
     ports:
-      - "8085:8080"
+      - "${PROMPT_PORT_8085:-8085}:8080"
     extra_hosts:
       - "localhost:host-gateway"
     environment:
@@ -161,14 +161,14 @@ services:
     build:
       context: ./servers/certificate
       dockerfile: Dockerfile
-    container_name: prompt-server-certificate
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-server-certificate
     depends_on:
       db-certificate:
         condition: service_healthy
       keycloak:
         condition: service_healthy
     ports:
-      - "8088:8080"
+      - "${PROMPT_PORT_8088:-8088}:8080"
     extra_hosts:
       - "localhost:host-gateway"
     environment:
@@ -193,14 +193,14 @@ services:
     build:
       context: ./servers/infrastructure_setup
       dockerfile: ../Dockerfile
-    container_name: prompt-server-infrastructure-setup
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-server-infrastructure-setup
     depends_on:
       db-infrastructure-setup:
         condition: service_healthy
       keycloak:
         condition: service_healthy
     ports:
-      - "8091:8080"
+      - "${PROMPT_PORT_8091:-8091}:8080"
     extra_hosts:
       - "localhost:host-gateway"
     environment:
@@ -226,14 +226,14 @@ services:
     build:
       context: ./servers/interview
       dockerfile: ../Dockerfile
-    container_name: prompt-server-interview
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-server-interview
     depends_on:
       db-interview:
         condition: service_healthy
       keycloak:
         condition: service_healthy
     ports:
-      - "8087:8080"
+      - "${PROMPT_PORT_8087:-8087}:8080"
     extra_hosts:
       - "localhost:host-gateway"
     environment:
@@ -258,7 +258,7 @@ services:
     build:
       context: ./servers/presentation
       dockerfile: ../Dockerfile
-    container_name: prompt-server-presentation
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-server-presentation
     depends_on:
       db-presentation:
         condition: service_healthy
@@ -267,7 +267,7 @@ services:
       seaweedfs-s3:
         condition: service_healthy
     ports:
-      - "8089:8080"
+      - "${PROMPT_PORT_8089:-8089}:8080"
     extra_hosts:
       - "localhost:host-gateway"
     environment:
@@ -304,7 +304,7 @@ services:
     build:
       context: ./servers/ai
       dockerfile: ../Dockerfile
-    container_name: prompt-server-ai
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-server-ai
     profiles: [ai]
     depends_on:
       db-ai:
@@ -312,7 +312,7 @@ services:
       keycloak:
         condition: service_healthy
     ports:
-      - "8092:8080"
+      - "${PROMPT_PORT_8092:-8092}:8080"
     extra_hosts:
       - "localhost:host-gateway"
     environment:
@@ -342,7 +342,7 @@ services:
       dockerfile: Dockerfile
       args: *client-build-args
       additional_contexts: *client-additional-contexts
-    container_name: prompt-client-core
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-client-core
     environment:
       - ENVIRONMENT
       - CORE_HOST=${CORE_API_HOST}
@@ -365,7 +365,7 @@ services:
       - SERVER_CORE_IMAGE_TAG
       - SENTRY_DSN_CLIENT
     ports:
-      - "3000:80"
+      - "${PROMPT_PORT_3000:-3000}:80"
     depends_on:
       - clients-base
 
@@ -375,9 +375,9 @@ services:
       dockerfile: Dockerfile
       args: *client-build-args
       additional_contexts: *client-additional-contexts
-    container_name: prompt-client-assessment-component
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-client-assessment-component
     ports:
-      - "3002:80"
+      - "${PROMPT_PORT_3002:-3002}:80"
     depends_on:
       - clients-base
 
@@ -387,9 +387,9 @@ services:
       dockerfile: Dockerfile
       args: *client-build-args
       additional_contexts: *client-additional-contexts
-    container_name: prompt-client-interview-component
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-client-interview-component
     ports:
-      - "3005:80"
+      - "${PROMPT_PORT_3005:-3005}:80"
     depends_on:
       - clients-base
 
@@ -399,9 +399,9 @@ services:
       dockerfile: Dockerfile
       args: *client-build-args
       additional_contexts: *client-additional-contexts
-    container_name: prompt-client-matching-component
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-client-matching-component
     ports:
-      - "3006:80"
+      - "${PROMPT_PORT_3006:-3006}:80"
     depends_on:
       - clients-base
 
@@ -411,9 +411,9 @@ services:
       dockerfile: Dockerfile
       args: *client-build-args
       additional_contexts: *client-additional-contexts
-    container_name: prompt-client-team-allocation-component
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-client-team-allocation-component
     ports:
-      - "3007:80"
+      - "${PROMPT_PORT_3007:-3007}:80"
     depends_on:
       - clients-base
 
@@ -423,9 +423,9 @@ services:
       dockerfile: Dockerfile
       args: *client-build-args
       additional_contexts: *client-additional-contexts
-    container_name: prompt-client-self-team-allocation-component
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-client-self-team-allocation-component
     ports:
-      - "3008:80"
+      - "${PROMPT_PORT_3008:-3008}:80"
     depends_on:
       - clients-base
 
@@ -435,9 +435,9 @@ services:
       dockerfile: Dockerfile
       args: *client-build-args
       additional_contexts: *client-additional-contexts
-    container_name: prompt-client-certificate-component
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-client-certificate-component
     ports:
-      - "3009:80"
+      - "${PROMPT_PORT_3009:-3009}:80"
     depends_on:
       - clients-base
 
@@ -448,10 +448,10 @@ services:
       dockerfile: Dockerfile
       args: *client-build-args
       additional_contexts: *client-additional-contexts
-    container_name: prompt-client-ai-component
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-client-ai-component
     profiles: [ai]
     ports:
-      - "3013:80"
+      - "${PROMPT_PORT_3013:-3013}:80"
     depends_on:
       - clients-base
 
@@ -461,9 +461,9 @@ services:
       dockerfile: Dockerfile
       args: *client-build-args
       additional_contexts: *client-additional-contexts
-    container_name: prompt-client-presentation-component
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-client-presentation-component
     ports:
-      - "3011:80"
+      - "${PROMPT_PORT_3011:-3011}:80"
     depends_on:
       - clients-base
 
@@ -473,9 +473,9 @@ services:
       dockerfile: Dockerfile
       args: *client-build-args
       additional_contexts: *client-additional-contexts
-    container_name: prompt-client-infrastructure-setup-component
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-client-infrastructure-setup-component
     ports:
-      - "3012:80"
+      - "${PROMPT_PORT_3012:-3012}:80"
     depends_on:
       - clients-base
 
@@ -487,7 +487,7 @@ services:
 
   db:
     image: "postgres:15.19-alpine"
-    container_name: prompt-db
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-db
     environment:
       - POSTGRES_USER=${DB_CORE_USER}
       - POSTGRES_PASSWORD=${DB_CORE_PASSWORD}
@@ -501,11 +501,11 @@ services:
       timeout: 5s
       retries: 5
     ports:
-      - "5432:5432"
+      - "${PROMPT_PORT_5432:-5432}:5432"
 
   db-team-allocation:
     image: "postgres:15.19-alpine"
-    container_name: prompt-db-team-allocation
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-db-team-allocation
     environment:
       - POSTGRES_USER=${DB_TEAM_ALLOCATION_USER}
       - POSTGRES_PASSWORD=${DB_TEAM_ALLOCATION_PASSWORD}
@@ -523,11 +523,11 @@ services:
       timeout: 5s
       retries: 5
     ports:
-      - "5434:5432"
+      - "${PROMPT_PORT_5434:-5434}:5432"
 
   db-assessment:
     image: "postgres:15.19-alpine"
-    container_name: prompt-db-assessment
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-db-assessment
     environment:
       - POSTGRES_USER=${DB_ASSESSMENT_USER}
       - POSTGRES_PASSWORD=${DB_ASSESSMENT_PASSWORD}
@@ -545,11 +545,11 @@ services:
       timeout: 5s
       retries: 5
     ports:
-      - "5435:5432"
+      - "${PROMPT_PORT_5435:-5435}:5432"
 
   db-interview:
     image: "postgres:15.19-alpine"
-    container_name: prompt-db-interview
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-db-interview
     environment:
       - POSTGRES_USER=${DB_INTERVIEW_USER:-prompt-postgres}
       - POSTGRES_PASSWORD=${DB_INTERVIEW_PASSWORD:-prompt-postgres}
@@ -566,11 +566,11 @@ services:
       timeout: 5s
       retries: 5
     ports:
-      - "5438:5432"
+      - "${PROMPT_PORT_5438:-5438}:5432"
 
   db-self-team-allocation:
     image: "postgres:15.19-alpine"
-    container_name: prompt-db-self-team-allocation
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-db-self-team-allocation
     environment:
       - POSTGRES_USER=${DB_SELF_TEAM_ALLOCATION_USER}
       - POSTGRES_PASSWORD=${DB_SELF_TEAM_ALLOCATION_PASSWORD}
@@ -588,11 +588,11 @@ services:
       timeout: 5s
       retries: 5
     ports:
-      - "5436:5432"
+      - "${PROMPT_PORT_5436:-5436}:5432"
 
   db-certificate:
     image: "postgres:15.19-alpine"
-    container_name: prompt-db-certificate
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-db-certificate
     environment:
       - POSTGRES_USER=${DB_CERTIFICATE_USER}
       - POSTGRES_PASSWORD=${DB_CERTIFICATE_PASSWORD}
@@ -610,11 +610,11 @@ services:
       timeout: 5s
       retries: 5
     ports:
-      - "5439:5432"
+      - "${PROMPT_PORT_5439:-5439}:5432"
 
   db-presentation:
     image: "postgres:15.19-alpine"
-    container_name: prompt-db-presentation
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-db-presentation
     environment:
       - POSTGRES_USER=${DB_PRESENTATION_USER}
       - POSTGRES_PASSWORD=${DB_PRESENTATION_PASSWORD}
@@ -632,11 +632,11 @@ services:
       timeout: 5s
       retries: 5
     ports:
-      - "5440:5432"
+      - "${PROMPT_PORT_5440:-5440}:5432"
 
   db-infrastructure-setup:
     image: "postgres:15.19-alpine"
-    container_name: prompt-db-infrastructure-setup
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-db-infrastructure-setup
     environment:
       - POSTGRES_USER=${DB_INFRASTRUCTURE_SETUP_USER}
       - POSTGRES_PASSWORD=${DB_INFRASTRUCTURE_SETUP_PASSWORD}
@@ -654,11 +654,11 @@ services:
       timeout: 5s
       retries: 5
     ports:
-      - "5441:5432"
+      - "${PROMPT_PORT_5441:-5441}:5432"
 
   db-ai:
     image: "postgres:15.19-alpine"
-    container_name: prompt-db-ai
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-db-ai
     profiles: [ai]
     environment:
       - POSTGRES_USER=${DB_AI_USER}
@@ -673,11 +673,11 @@ services:
       timeout: 5s
       retries: 5
     ports:
-      - "5442:5432"
+      - "${PROMPT_PORT_5442:-5442}:5432"
 
   keycloak-db:
     image: "postgres:15.19-alpine"
-    container_name: prompt-keycloak-db
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-keycloak-db
     environment:
       - POSTGRES_USER=${KEYCLOAK_DB_USER}
       - POSTGRES_PASSWORD=${KEYCLOAK_DB_PASSWORD}
@@ -695,11 +695,11 @@ services:
       timeout: 5s
       retries: 5
     ports:
-      - "5431:5432"
+      - "${PROMPT_PORT_5431:-5431}:5432"
 
   keycloak:
     image: quay.io/keycloak/keycloak:26.6.3
-    container_name: prompt-keycloak
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-keycloak
     command:
       - start-dev
       - --import-realm
@@ -715,7 +715,7 @@ services:
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
       KC_IMPORT_REALM: /opt/keycloak/data/import/realm.json
       KC_HOSTNAME: "localhost"
-      KC_HOSTNAME_PORT: "8081"
+      KC_HOSTNAME_PORT: "${PROMPT_PORT_8081:-8081}"
       KC_HOSTNAME_STRICT: "false"
       KC_HOSTNAME_STRICT_HTTPS: "false"
       KC_HTTP_ENABLED: "true"
@@ -724,8 +724,8 @@ services:
         condition: service_healthy
     restart: unless-stopped
     ports:
-      - "8081:8080"
-      - "9000:9000"
+      - "${PROMPT_PORT_8081:-8081}:8080"
+      - "${PROMPT_PORT_9000:-9000}:9000"
     volumes:
       - ./keycloakConfig.json:/opt/keycloak/data/import/realm.json:ro
     healthcheck:
@@ -738,10 +738,10 @@ services:
   # SeaweedFS Master Server
   seaweedfs-master:
     image: chrislusf/seaweedfs:latest
-    container_name: prompt-seaweedfs-master
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-seaweedfs-master
     ports:
-      - "9333:9333"   # Master API
-      - "19333:19333" # Master gRPC
+      - "${PROMPT_PORT_9333:-9333}:9333"   # Master API
+      - "${PROMPT_PORT_19333:-19333}:19333" # Master gRPC
     command: "master -ip=seaweedfs-master -ip.bind=0.0.0.0"
     volumes:
       - ./seaweedfs_master_data:/data
@@ -755,10 +755,10 @@ services:
   # SeaweedFS Volume Server
   seaweedfs-volume:
     image: chrislusf/seaweedfs:latest
-    container_name: prompt-seaweedfs-volume
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-seaweedfs-volume
     ports:
-      - "8333:8080"   # Volume API
-      - "18080:18080" # Volume gRPC
+      - "${PROMPT_PORT_8333:-8333}:8080"   # Volume API
+      - "${PROMPT_PORT_18080:-18080}:18080" # Volume gRPC
     command: "volume -mserver=seaweedfs-master:9333 -ip=seaweedfs-volume -ip.bind=0.0.0.0 -port=8080"
     volumes:
       - ./seaweedfs_volume_data:/data
@@ -775,9 +775,9 @@ services:
   # SeaweedFS S3 Gateway
   seaweedfs-s3:
     image: chrislusf/seaweedfs:latest
-    container_name: prompt-seaweedfs-s3
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-seaweedfs-s3
     ports:
-      - "8334:8333"   # S3 API
+      - "${PROMPT_PORT_8334:-8334}:8333"   # S3 API
     entrypoint:
       - /bin/sh
       - -ec
@@ -822,9 +822,9 @@ services:
   # SeaweedFS Filer (required for S3)
   seaweedfs-filer:
     image: chrislusf/seaweedfs:latest
-    container_name: prompt-seaweedfs-filer
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-seaweedfs-filer
     ports:
-      - "8888:8888"   # Filer API
+      - "${PROMPT_PORT_8888:-8888}:8888"   # Filer API
     command: "filer -master=seaweedfs-master:9333 -ip=seaweedfs-filer -ip.bind=0.0.0.0"
     volumes:
       - ./seaweedfs_filer_data:/data

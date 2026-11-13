@@ -10,8 +10,8 @@
 #
 # Clones https://github.com/prompt-edu/prompt-example-phase, renames every identifier with
 # its init.sh, converts it to the workspace layout of this repository, and registers the
-# phase in the workspaces, core client, docker-compose, env templates, Makefile, and CI
-# matrices. Prints the remaining manual steps at the end.
+# phase in the workspaces, core client, docker-compose (plus its stack overlay), env
+# templates, Makefile, and CI matrices. Prints the remaining manual steps at the end.
 # Full documentation: docs/contributor/new_course_phase.md
 #
 # Environment:
@@ -60,16 +60,18 @@ SERVER_DIR="servers/${NAME}"
 
 grep -q "devPort: ${CLIENT_PORT}," clients/core/remotes.config.mjs \
   && die "client port ${CLIENT_PORT} is already used by another remote"
-grep -q "\"${CLIENT_PORT}:80\"" docker-compose.yml \
+# Host ports in docker-compose.yml read "${PROMPT_PORT_<port>:-<port>}:<container port>"
+# so a parallel stack can shift them (docs/contributor/setup.md).
+grep -qF ":-${CLIENT_PORT}}:80\"" docker-compose.yml \
   && die "client port ${CLIENT_PORT} is already used in docker-compose.yml"
-grep -q "\"${SERVER_PORT}:8080\"" docker-compose.yml \
+grep -qF ":-${SERVER_PORT}}:8080\"" docker-compose.yml \
   && die "server port ${SERVER_PORT} is already used in docker-compose.yml"
 
 if [[ -z "$DB_PORT" ]]; then
-  DB_PORT="$(grep -o '"54[0-9][0-9]:5432"' docker-compose.yml | tr -d '"' | cut -d: -f1 | sort -n | tail -1)"
+  DB_PORT="$(grep -oE ':-54[0-9]{2}\}:5432"' docker-compose.yml | grep -oE '54[0-9]{2}' | sort -n | tail -1)"
   DB_PORT=$((DB_PORT + 1))
 fi
-grep -q "\"${DB_PORT}:5432\"" docker-compose.yml \
+grep -qF ":-${DB_PORT}}:5432\"" docker-compose.yml \
   && die "db port ${DB_PORT} is already used in docker-compose.yml"
 
 json_value() { KEY="$2" perl -ne 'print $1 and exit if /"\Q$ENV{KEY}\E": "([^"]+)"/' "$1"; }
@@ -187,11 +189,17 @@ insert_after clients/core/public/env.template.js \
   "  ${UPPER}_HOST: '\$${UPPER}_HOST',"
 
 # ------------------------------------------------------------ 6. docker-compose
-echo "-> docker-compose.yml"
+echo "-> docker-compose.yml, docker-compose.stack.yml"
 insert_template_before docker-compose.yml '^  client-core:$' compose.server.yml.tmpl
 insert_template_before docker-compose.yml '^  clients-base:$' compose.client.yml.tmpl
 insert_template_before docker-compose.yml '^  keycloak-db:$' compose.db.yml.tmpl
 insert_after docker-compose.yml '^      - CORE_HOST=\$\{CORE_API_HOST\}$' "      - ${UPPER}_HOST"
+# A parallel stack keeps the new database in a named volume, like the others.
+insert_after docker-compose.stack.yml '^      - postgres_data:/var/lib/postgresql/data$' \
+  "  db-${KEBAB}-server:
+    volumes:
+      - postgres_${NAME}_data:/var/lib/postgresql/data"
+insert_after docker-compose.stack.yml '^  postgres_data:$' "  postgres_${NAME}_data:"
 
 # ------------------------------------------------------------- 7. env templates
 echo "-> env templates"
@@ -223,15 +231,19 @@ perl -pi -e "s/\bserver-core\b/server-core server-${KEBAB}/ if \$. < 20" Makefil
 perl -pi -e "s/\btest-core\b/test-core test-${KEBAB}/ if \$. < 20" Makefile
 perl -pi -e "s/\bsqlc-core\b/sqlc-core sqlc-${KEBAB}/ if \$. < 20" Makefile
 insert_after Makefile '^\t@\$\(MAKE\) server-core &$' "	@\$(MAKE) server-${KEBAB} &"
+# The host-run server reaches its database on the port of this stack.
+insert_after Makefile '^export DB_CORE_PORT := ' \
+  "export DB_PORT_${UPPER}_SERVER := \$(PROMPT_PORT_${DB_PORT})"
 insert_after Makefile '^\tcd servers/core && go vet' "	cd servers/${NAME} && go vet ./..."
 perl -pi -e "s/^(test: test-clients test-core)/\$1 test-${KEBAB}/" Makefile
 perl -pi -e "s/^(sqlc: sqlc-core)/\$1 sqlc-${KEBAB}/" Makefile
+# make db starts the databases listed here, in every stack.
 perl -pi -e "s/^(DB_SERVICES = db )/\$1db-${KEBAB}-server /" Makefile
 grep -q "^test: .*test-${KEBAB}" Makefile || die "test-${KEBAB} not added to the test target"
 grep -q "^sqlc: .*sqlc-${KEBAB}" Makefile || die "sqlc-${KEBAB} not added to the sqlc target"
 grep -q "^DB_SERVICES = .*db-${KEBAB}-server" Makefile || die "db-${KEBAB}-server not added to DB_SERVICES"
-printf '\nserver-%s: ## Start %s server (port %s)\n\tcd servers/%s && go run main.go\n' \
-  "$KEBAB" "$NAME" "$SERVER_PORT" "$NAME" >> Makefile
+printf '\nserver-%s: ## Start %s server (port %s)\n\t$(call run-server,%s,$(PROMPT_PORT_%s))\n' \
+  "$KEBAB" "$NAME" "$SERVER_PORT" "$NAME" "$SERVER_PORT" >> Makefile
 printf '\ntest-%s: ## Run %s server tests\n\tcd servers/%s && go test ./...\n' \
   "$KEBAB" "$NAME" "$NAME" >> Makefile
 printf '\nsqlc-%s: ## Generate sqlc code for %s server\n\tcd servers/%s && sqlc generate\n' \
@@ -264,7 +276,8 @@ Done. Phase '${NAME}' scaffolded and registered.
 
 Remaining manual steps (see docs/contributor/new_course_phase.md):
   1. Course phase type: add init${PASCAL}() in
-     servers/core/coursePhaseType/initializeTypes.go (name key: '${NAME}_component').
+     servers/core/coursePhaseType/initializeTypes.go (name key: '${NAME}_component',
+     dev BaseUrl: devServiceURL(${SERVER_PORT}, "/${KEBAB}-service/api")).
   2. Deployment: docker-compose.prod.yml service + traefik labels, and the
      build-and-push-clients.yml (pass MF_BUILD_VERSION like the other remotes) /
      deploy-docker.yml / dev.yml / prod.yml wiring.
@@ -273,5 +286,5 @@ Remaining manual steps (see docs/contributor/new_course_phase.md):
   3. Optional: add ${UPPER}_HOST to the EnvType in @tumaet/prompt-shared-state.
   4. Implement your schema (db/migration, db/query, 'make sqlc-${KEBAB}') and logic.
 
-Try it: make db && make server-${KEBAB}   and   cd clients && yarn dev
+Try it: make db && make server-${KEBAB}   and   make clients
 EOF

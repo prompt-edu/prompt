@@ -112,6 +112,14 @@ export const TEAM_ALLOCATION_STUDENT_PHASE_ID = 'b3000003-0000-0000-0000-0000000
 // students must be rejected (negative auth fixture).
 export const TEAM_ALLOCATION_FOREIGN_PHASE_ID = 'b3000002-0000-0000-0000-000000000002'
 
+// Standalone Team Allocation phase on fullCourse where course-editor tutors
+// Team Lovelace (Stan + Selma) and Team Turing holds Niclas + Test Test. It
+// feeds ASSESSMENT_FIXTURE_PHASES.tutorScope, so specs must not change it.
+export const TEAM_ALLOCATION_TUTOR_SCOPE = {
+  phaseId: 'b3000004-0000-0000-0000-000000000004',
+  ownTeamId: '3a000003-0000-0000-0000-000000000003',
+}
+
 // Standalone Assessment phases on fullCourse (no graph edges, so they are not
 // in the course sidebar — navigate by URL). One phase per spec file, so release
 // state and schema locking never leak between parallel Playwright files:

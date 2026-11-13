@@ -171,8 +171,8 @@ needed.
 
 Core seeds phase types at startup in `servers/core/coursePhaseType/initializeTypes.go`. Add an
 `init<Name>()` following the existing pattern: name (must match the mapping keys from 2.3),
-`BaseUrl` (`{CORE_HOST}/<name>/api` in production, `http://localhost:<port>/<name>/api` in dev),
-description, and the phase's required inputs / provided outputs. For a purely private deployment
+`BaseUrl` (`{CORE_HOST}/<name>/api` in production, `devServiceURL(<port>, "/<name>/api")` in
+dev, which shifts the port to the stack a worktree runs in), description, and the phase's required inputs / provided outputs. For a purely private deployment
 you can instead insert the row into `course_phase_type` manually, but the initializer is the
 supported path.
 

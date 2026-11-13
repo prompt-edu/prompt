@@ -4,9 +4,9 @@
       dockerfile: Dockerfile
       args: *client-build-args
       additional_contexts: *client-additional-contexts
-    container_name: prompt-client-{{kebab}}-component
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-client-{{kebab}}-component
     ports:
-      - "{{client_port}}:80"
+      - "${PROMPT_PORT_{{client_port}}:-{{client_port}}}:80"
     depends_on:
       - clients-base
 

@@ -8619,6 +8619,10 @@ const docTemplate = `{
                 "lastName": {
                     "type": "string"
                 },
+                "universityLogin": {
+                    "description": "UniversityLogin is the user's university_login attribute, the login phases match tutors\nagainst. It is empty when the user has none.",
+                    "type": "string"
+                },
                 "username": {
                     "type": "string"
                 }

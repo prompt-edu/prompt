@@ -2,14 +2,14 @@
     build:
       context: ./servers/{{name}}
       dockerfile: ../Dockerfile
-    container_name: prompt-server-{{kebab}}
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-server-{{kebab}}
     depends_on:
       db-{{kebab}}-server:
         condition: service_healthy
       keycloak:
         condition: service_healthy
     ports:
-      - "{{server_port}}:8080"
+      - "${PROMPT_PORT_{{server_port}}:-{{server_port}}}:8080"
     extra_hosts:
       - "localhost:host-gateway"
     environment:

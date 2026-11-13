@@ -1,6 +1,6 @@
   db-{{kebab}}-server:
     image: "postgres:15.19-alpine"
-    container_name: prompt-db-{{kebab}}-server
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-db-{{kebab}}-server
     environment:
       - POSTGRES_USER=${DB_{{upper}}_USER:-prompt-postgres}
       - POSTGRES_PASSWORD=${DB_{{upper}}_PASSWORD:-prompt-postgres}
@@ -17,5 +17,5 @@
       timeout: 5s
       retries: 5
     ports:
-      - "{{db_port}}:5432"
+      - "${PROMPT_PORT_{{db_port}}:-{{db_port}}}:5432"
 

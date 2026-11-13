@@ -85,6 +85,15 @@ func CheckAccessControlByRole(allowedRoles ...string) gin.HandlerFunc {
 						break
 					}
 				}
+			case OrgAdmin, OrgMember:
+				// The user holds this role in some org. Never a suffix match: a custom-group role can
+				// end in "-Admin" or "-Member", see ParseOrgRole.
+				for userRole, held := range userRoles {
+					if _, orgRole, ok := ParseOrgRole(userRole); held && ok && orgRole == allowedRole {
+						roleAllowed = true
+						break
+					}
+				}
 			default:
 				log.Debug("Role unknown: ", allowedRole)
 

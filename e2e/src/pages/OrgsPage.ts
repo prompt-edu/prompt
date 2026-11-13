@@ -1,5 +1,7 @@
 import { type Locator, type Page, expect } from '@playwright/test'
 
+const MEMBERS_URL = /\/api\/orgs\/[^/]+\/members(\/[^/]+)?$/
+
 export interface NewOrg {
   name: string
   slug?: string
@@ -71,12 +73,62 @@ export class OrgDetailPage {
     await this.clickAndAwaitPut(/\/api\/orgs\/[^/]+\/parent$/, 'Move')
   }
 
+  membersHeading(): Locator {
+    return this.page.getByText('Members', { exact: true })
+  }
+
+  memberRow(universityLogin: string): Locator {
+    return this.page
+      .locator('table tbody tr')
+      .filter({ has: this.page.getByRole('cell', { name: universityLogin, exact: true }) })
+  }
+
+  memberRoleSelect(username: string): Locator {
+    return this.page.getByRole('combobox', { name: `Role of ${username}` })
+  }
+
+  removeMemberButton(username: string): Locator {
+    return this.page.getByRole('button', { name: `Remove ${username} from the org` })
+  }
+
+  async addMember(universityLogin: string, role: 'Admin' | 'Member') {
+    await this.page.getByLabel('Add a member').fill(universityLogin)
+    await this.page.getByRole('combobox', { name: 'Role of the new member' }).click()
+    await this.page.getByRole('option', { name: role, exact: true }).click()
+    await this.clickAndAwaitPut(MEMBERS_URL, 'Add')
+  }
+
+  async setMemberRole(username: string, role: 'Admin' | 'Member') {
+    await this.memberRoleSelect(username).click()
+    await this.awaitMembersWrite('PUT', () =>
+      this.page.getByRole('option', { name: role, exact: true }).click(),
+    )
+  }
+
+  async removeMember(username: string) {
+    await this.removeMemberButton(username).click()
+    await this.awaitMembersWrite('DELETE', () =>
+      this.page.getByRole('alertdialog').getByRole('button', { name: 'Delete' }).click(),
+    )
+  }
+
   private async clickAndAwaitPut(url: RegExp, button: string) {
     const [response] = await Promise.all([
       this.page.waitForResponse(
         (res) => res.request().method() === 'PUT' && url.test(new URL(res.url()).pathname),
       ),
       this.page.getByRole('button', { name: button, exact: true }).click(),
+    ])
+    expect(response.ok()).toBe(true)
+  }
+
+  private async awaitMembersWrite(method: 'PUT' | 'DELETE', action: () => Promise<void>) {
+    const [response] = await Promise.all([
+      this.page.waitForResponse(
+        (res) =>
+          res.request().method() === method && MEMBERS_URL.test(new URL(res.url()).pathname),
+      ),
+      action(),
     ])
     expect(response.ok()).toBe(true)
   }

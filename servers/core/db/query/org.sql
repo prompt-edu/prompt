@@ -12,6 +12,9 @@ SELECT * FROM org WHERE id = $1;
 -- name: GetOrgIDBySlug :one
 SELECT id FROM org WHERE slug = $1;
 
+-- name: GetOrgsBySlugs :many
+SELECT * FROM org WHERE slug = ANY(sqlc.arg(slugs)::text[]) ORDER BY name ASC, slug ASC;
+
 -- name: GetAllOrgs :many
 SELECT * FROM org ORDER BY name ASC, slug ASC;
 

@@ -33,18 +33,11 @@ func (s *ValidationService) CheckOrgPermission(c *gin.Context, orgID uuid.UUID, 
 		return false, err
 	}
 
-	issuedAtVal, exists := c.Get(keycloakTokenVerifier.CtxTokenIssuedAt)
-	if !exists {
-		return false, errors.New("token issue time not found in context")
+	issuedAt, err := TokenIssuedAt(c)
+	if err != nil {
+		return false, err
 	}
-	issuedAt, ok := issuedAtVal.(time.Time)
-	if !ok {
-		return false, errors.New("invalid token issue time format in context")
-	}
-	// A token issued before the org existed holds the roles of a deleted org with the same slug. The
-	// creation time is taken once Keycloak is provisioned, after such an org's roles are gone. The
-	// issue time has whole seconds, so a token from the second the org was created is rejected too.
-	if !issuedAt.After(org.CreatedAt.Time) {
+	if !TokenPostdatesOrg(issuedAt, org.CreatedAt.Time) {
 		return false, nil
 	}
 
@@ -54,4 +47,25 @@ func (s *ValidationService) CheckOrgPermission(c *gin.Context, orgID uuid.UUID, 
 		}
 	}
 	return false, nil
+}
+
+// TokenIssuedAt returns the issue time of the caller's token, which the auth middleware stores.
+func TokenIssuedAt(c *gin.Context) (time.Time, error) {
+	issuedAtVal, exists := c.Get(keycloakTokenVerifier.CtxTokenIssuedAt)
+	if !exists {
+		return time.Time{}, errors.New("token issue time not found in context")
+	}
+	issuedAt, ok := issuedAtVal.(time.Time)
+	if !ok {
+		return time.Time{}, errors.New("invalid token issue time format in context")
+	}
+	return issuedAt, nil
+}
+
+// TokenPostdatesOrg reports whether a token's org roles may count for the org. A token issued
+// before the org existed holds the roles of a deleted org with the same slug. The creation time is
+// taken once Keycloak is provisioned, after such an org's roles are gone. The issue time has whole
+// seconds, so a token from the second the org was created is rejected too.
+func TokenPostdatesOrg(issuedAt, orgCreatedAt time.Time) bool {
+	return issuedAt.After(orgCreatedAt)
 }

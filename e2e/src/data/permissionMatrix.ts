@@ -13,16 +13,22 @@ import {
   SELF_TEAM_ALLOCATION_PHASE_ID,
   FULL_COURSE_PHASES,
   SEEDED_STUDENT,
+  SEEDED_ORG,
 } from './constants'
 
-// The five task roles (student2 is an extra journey user, not part of the matrix).
+// The task roles (student2 is an extra journey user, not part of the matrix). The
+// org roles hold nothing but their role in SEEDED_ORG.
 export const MATRIX_ROLES: Role[] = [
   'admin',
   'lecturer',
   'course-lecturer',
   'course-editor',
   'student',
+  'org-admin',
+  'org-member',
 ]
+
+const ORG_ROLES: Role[] = ['org-admin', 'org-member']
 
 // Course that holds every course-scoped role in the seed, so allowed cases resolve.
 export const PRIMARY_COURSE = SEEDED_COURSES.fullCourse
@@ -41,6 +47,8 @@ export interface Surface {
     // (e.g. a section header) so the surface still proves its own content rendered
     assertText?: string
     allowed: Role[]
+    // roles the browser case is not generated for, with the reason; the API case still runs
+    notProbed?: { roles: Role[]; reason: string }
   }
   api?: {
     method?: 'GET' | 'PUT' // default GET
@@ -55,14 +63,16 @@ export interface Surface {
 export const SURFACES: Surface[] = [
   {
     name: 'courses list',
+    // The management console loads the list for every user, so org roles open it too;
+    // it holds no course for them.
     browser: {
       path: () => '/management/courses',
       heading: 'Courses',
-      allowed: ['admin', 'lecturer', 'course-lecturer', 'course-editor', 'student'],
+      allowed: ['admin', 'lecturer', 'course-lecturer', 'course-editor', 'student', ...ORG_ROLES],
     },
     api: {
       path: () => '/api/courses/',
-      allowed: ['admin', 'lecturer', 'course-lecturer', 'course-editor', 'student'],
+      allowed: ['admin', 'lecturer', 'course-lecturer', 'course-editor', 'student', ...ORG_ROLES],
     },
   },
   {
@@ -114,6 +124,37 @@ export const SURFACES: Surface[] = [
     },
   },
   {
+    // The admin console's page of one org, with its hierarchy and deletion.
+    name: 'org administration',
+    browser: {
+      path: () => `/management/admin/orgs/${SEEDED_ORG.id}`,
+      heading: SEEDED_ORG.name,
+      assertText: 'Danger Zone',
+      allowed: ['admin'],
+    },
+  },
+  {
+    // The org's own page behind the "My Org" sidebar entry. PROMPT admins hold no org
+    // role and use the admin console's page instead; nesting grants nothing.
+    name: 'own org',
+    browser: {
+      path: () => `/management/org/${SEEDED_ORG.id}`,
+      heading: SEEDED_ORG.name,
+      allowed: ORG_ROLES,
+    },
+    api: {
+      path: () => `/api/orgs/${SEEDED_ORG.id}`,
+      allowed: ['admin', ...ORG_ROLES],
+    },
+  },
+  {
+    name: 'org members',
+    api: {
+      path: () => `/api/orgs/${SEEDED_ORG.id}/members`,
+      allowed: ['admin', 'org-admin'],
+    },
+  },
+  {
     name: 'course settings',
     browser: {
       path: (courseId) => `/management/course/${courseId}/settings`,
@@ -151,6 +192,10 @@ export const SURFACES: Surface[] = [
       heading: 'Application Settings',
       assertText: 'E-Mail Settings',
       allowed: ['admin', 'lecturer', 'course-lecturer'],
+      notProbed: {
+        roles: ORG_ROLES,
+        reason: 'they see no course, so the phase route stops at "Phase not found" before its guard',
+      },
     },
     api: {
       // A malformed body proves auth passed (400 after BindJSON) without sending

@@ -16,6 +16,7 @@ import { OrgDetailsFields } from './OrgDetailsFields'
 
 interface OrgDetailsSettingsProps {
   org: Org
+  readOnly?: boolean
 }
 
 const toDetails = (org: Org): UpdateOrg => ({
@@ -26,7 +27,7 @@ const toDetails = (org: Org): UpdateOrg => ({
   contactEmail: org.contactEmail ?? '',
 })
 
-export const OrgDetailsSettings = ({ org }: OrgDetailsSettingsProps) => {
+export const OrgDetailsSettings = ({ org, readOnly = false }: OrgDetailsSettingsProps) => {
   const updateOrg = useUpdateOrg()
   const [details, setDetails] = useState(() => toDetails(org))
 
@@ -43,7 +44,9 @@ export const OrgDetailsSettings = ({ org }: OrgDetailsSettingsProps) => {
       <CardHeader>
         <CardTitle>Details</CardTitle>
         <CardDescription>
-          The org&apos;s name and contact information. Leaving an optional field empty clears it.
+          {readOnly
+            ? "The org's name and contact information. Admins of the org can change them."
+            : "The org's name and contact information. Leaving an optional field empty clears it."}
         </CardDescription>
       </CardHeader>
       <CardContent className='flex flex-col gap-4'>
@@ -59,17 +62,19 @@ export const OrgDetailsSettings = ({ org }: OrgDetailsSettingsProps) => {
           idPrefix='org'
           values={details}
           errors={errors}
-          disabled={updateOrg.isPending}
+          disabled={readOnly || updateOrg.isPending}
           onChange={setDetails}
         />
-        <div className='flex justify-end'>
-          <Button
-            disabled={!canSave}
-            onClick={() => updateOrg.mutate({ orgId: org.id, org: values })}
-          >
-            Save
-          </Button>
-        </div>
+        {!readOnly && (
+          <div className='flex justify-end'>
+            <Button
+              disabled={!canSave}
+              onClick={() => updateOrg.mutate({ orgId: org.id, org: values })}
+            >
+              Save
+            </Button>
+          </div>
+        )}
       </CardContent>
     </Card>
   )

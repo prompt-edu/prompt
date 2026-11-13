@@ -316,6 +316,8 @@ whose username == password:
 | `course-editor` | `course-editor`     | `PROMPT_Course_Editor`  |
 | `student`       | `student`           | `PROMPT_Student` + `ios2425-iPraktikum-Student` |
 | `student2`      | `student2`          | `PROMPT_Student` + `ios2425-iPraktikum-Student` |
+| `org-admin`     | `org-admin`         | `org-demo-chair-Admin` (group `/Orgs/demo-chair/Admin`) |
+| `org-member`    | `org-member`        | `org-demo-chair-Member` (group `/Orgs/demo-chair/Member`) |
 
 The `ios2425-iPraktikum-*` roles are **course-scoped** roles
 (`<semesterTag>-<courseName>-<Role>`) for the seeded iPraktikum course — PROMPT

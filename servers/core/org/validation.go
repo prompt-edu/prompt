@@ -5,25 +5,23 @@ import (
 	"fmt"
 	"net/mail"
 	"net/url"
-	"regexp"
-	"slices"
 	"strings"
+	"unicode"
 	"unicode/utf8"
 
 	"github.com/prompt-edu/prompt/servers/core/org/orgDTO"
+	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 )
 
 const (
-	minSlugLength         = 2
-	maxSlugLength         = 50
 	maxNameLength         = 255
 	maxSchoolLength       = 255
 	maxUniversityLength   = 255
 	maxWebsiteLength      = 2048
 	maxContactEmailLength = 254
+	// Keycloak caps usernames and attribute values at 255 characters.
+	maxUniversityLoginLength = 255
 )
-
-var slugPattern = regexp.MustCompile(`^[a-z0-9]+(-[a-z0-9]+)*$`)
 
 func validateCreateOrg(input orgDTO.CreateOrg) error {
 	if err := validateSlug(input.Slug); err != nil {
@@ -36,21 +34,27 @@ func validateUpdateOrg(input orgDTO.UpdateOrg) error {
 	return validateOrgDetails(input.Name, input.School, input.University, input.Website, input.ContactEmail)
 }
 
-func validateSlug(slug string) error {
-	slug = strings.TrimSpace(slug)
-	if slug == "" {
-		return errors.New("slug is required")
+// validateSetOrgMember also keeps the university login usable as a Keycloak attribute query
+// ("university_login:<login>"), which spaces and colons would break.
+func validateSetOrgMember(input orgDTO.SetOrgMember) error {
+	login := strings.TrimSpace(input.UniversityLogin)
+	if login == "" {
+		return errors.New("university login is required")
 	}
-	if !slugPattern.MatchString(slug) {
-		return errors.New("slug may only contain lowercase letters and digits, separated by single hyphens")
+	if utf8.RuneCountInString(login) > maxUniversityLoginLength {
+		return fmt.Errorf("university login must be at most %d characters", maxUniversityLoginLength)
 	}
-	if len(slug) < minSlugLength || len(slug) > maxSlugLength {
-		return fmt.Errorf("slug must be between %d and %d characters", minSlugLength, maxSlugLength)
+	if strings.ContainsFunc(login, func(r rune) bool { return unicode.IsSpace(r) || unicode.IsControl(r) || r == ':' }) {
+		return errors.New("university login must not contain spaces or colons")
 	}
-	if slices.Contains(strings.Split(slug, "-"), "cg") {
-		return errors.New(`slug must not contain a "cg" segment`)
+	if input.Role != permissionValidation.OrgAdmin && input.Role != permissionValidation.OrgMember {
+		return errors.New("role must be Admin or Member")
 	}
 	return nil
+}
+
+func validateSlug(slug string) error {
+	return permissionValidation.ValidateOrgSlug(strings.TrimSpace(slug))
 }
 
 func validateOrgDetails(name, school, university, website, contactEmail string) error {

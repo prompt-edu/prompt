@@ -1,4 +1,9 @@
-import type { CreateOrg, UpdateOrg } from '@core/interfaces/org'
+import {
+  type CreateOrg,
+  ORG_ROLE_LABELS,
+  type SetOrgMember,
+  type UpdateOrg,
+} from '@core/interfaces/org'
 import { coreApi } from '@core/network/api'
 import { coreCache, coreKeys } from '@core/network/cache'
 import { serverErrorMessage } from '@core/network/serverErrorMessage'
@@ -30,6 +35,65 @@ export const useOrgs = () => {
   return useQuery({
     queryKey: coreKeys.orgs.all(),
     queryFn: coreApi.orgs.list,
+  })
+}
+
+// The orgs whose roles the caller's token holds. Callers without org roles can skip the request.
+export const useOwnOrgs = ({ enabled = true }: { enabled?: boolean } = {}) => {
+  return useQuery({
+    queryKey: coreKeys.orgs.own(),
+    queryFn: coreApi.orgs.own,
+    enabled,
+  })
+}
+
+export const useOrgMembers = (orgId: string) => {
+  return useQuery({
+    queryKey: coreKeys.orgs.members(orgId),
+    queryFn: () => coreApi.orgs.members(orgId),
+  })
+}
+
+export const useSetOrgMember = (orgId: string) => {
+  const { toast } = useToast()
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (member: SetOrgMember) => coreApi.orgs.setMember(orgId, member),
+    onSuccess: (member) => {
+      toast({
+        title: 'Member saved',
+        description: `${member.username} is now an org ${ORG_ROLE_LABELS[member.role]}.`,
+      })
+      coreCache.orgMembersChanged(queryClient, orgId)
+    },
+    onError: (error) => {
+      toast({
+        title: 'Failed to save the member',
+        description: serverErrorMessage(error),
+        variant: 'destructive',
+      })
+    },
+  })
+}
+
+export const useRemoveOrgMember = (orgId: string) => {
+  const { toast } = useToast()
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (keycloakUserID: string) => coreApi.orgs.removeMember(orgId, keycloakUserID),
+    onSuccess: () => {
+      toast({ title: 'Member removed' })
+      coreCache.orgMembersChanged(queryClient, orgId)
+    },
+    onError: (error) => {
+      toast({
+        title: 'Failed to remove the member',
+        description: serverErrorMessage(error),
+        variant: 'destructive',
+      })
+    },
   })
 }
 

@@ -1,6 +1,8 @@
 import { ShowForRole } from '@core/managementConsole/shared/components/ShowForRole'
+import { hasAnyOrgRole } from '@core/managementConsole/shared/utils/orgRoles'
 import { useAuditLogEnabled } from '@core/network/hooks/useAuditLogStatus'
-import { Role } from '@tumaet/prompt-shared-state'
+import { useOwnOrgs } from '@core/network/hooks/useOrgs'
+import { Role, useAuthStore } from '@tumaet/prompt-shared-state'
 import { SidebarGroup, SidebarGroupContent, SidebarMenu } from '@tumaet/prompt-ui-components'
 import {
   Activity,
@@ -20,6 +22,8 @@ import { InsideSidebarMenuItem } from './components/InsideSidebarMenuItem'
 
 export const InsideGeneralSidebar = () => {
   const auditLogEnabled = useAuditLogEnabled()
+  const { permissions } = useAuthStore()
+  const { data: ownOrgs = [] } = useOwnOrgs({ enabled: hasAnyOrgRole(permissions) })
 
   return (
     <SidebarMenu>
@@ -49,6 +53,18 @@ export const InsideGeneralSidebar = () => {
               />
             </ShowForRole>
           </InsideSidebarVisualGroup>
+          {ownOrgs.length > 0 && (
+            <InsideSidebarVisualGroup title={ownOrgs.length === 1 ? 'My Org' : 'My Orgs'}>
+              {ownOrgs.map((org) => (
+                <InsideSidebarMenuItem
+                  key={org.id}
+                  icon={<Building2 />}
+                  goToPath={`/management/org/${org.id}`}
+                  title={org.name}
+                />
+              ))}
+            </InsideSidebarVisualGroup>
+          )}
           <ShowForRole roles={[Role.PROMPT_LECTURER, Role.PROMPT_ADMIN]}>
             <InsideSidebarVisualGroup title='Students'>
               <InsideSidebarMenuItem

@@ -605,6 +605,31 @@ const ROUTES: Route[] = [
     method: 'delete',
     url: `${orgsPath}/${ORG}`,
   },
+  {
+    name: 'orgs.own',
+    run: () => coreApi.orgs.own(),
+    method: 'get',
+    url: `${orgsPath}/self`,
+  },
+  {
+    name: 'orgs.members',
+    run: () => coreApi.orgs.members(ORG),
+    method: 'get',
+    url: `${orgsPath}/${ORG}/members`,
+  },
+  {
+    name: 'orgs.setMember',
+    run: () => coreApi.orgs.setMember(ORG, body()),
+    method: 'put',
+    url: `${orgsPath}/${ORG}/members`,
+    data: BODY,
+  },
+  {
+    name: 'orgs.removeMember',
+    run: () => coreApi.orgs.removeMember(ORG, 'user-1'),
+    method: 'delete',
+    url: `${orgsPath}/${ORG}/members/user-1`,
+  },
 
   {
     name: 'privacy.requestExport',

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -31,10 +32,14 @@ type OrgRouterTestSuite struct {
 	cleanup           func()
 	service           *OrgService
 	validationService *permissionValidation.ValidationService
+	members           *fakeMemberDirectory
 	org               orgDTO.Org
 	childOrg          orgDTO.Org
 	otherOrg          orgDTO.Org
 }
+
+// callerUserID is the Keycloak user ID every test request is made as.
+const callerUserID = "caller"
 
 func (suite *OrgRouterTestSuite) SetupSuite() {
 	suite.ctx = context.Background()
@@ -47,7 +52,8 @@ func (suite *OrgRouterTestSuite) SetupSuite() {
 	noKeycloakDelete := func(context.Context, string) (orgMembers, error) { return nil, nil }
 	noKeycloakArtifacts := func(context.Context, string) (bool, error) { return false, nil }
 	noKeycloakMembers := func(context.Context, string, orgMembers) error { return nil }
-	suite.service = NewOrgService(*testDB.Queries, testDB.Conn, noKeycloak, noKeycloakDelete, noKeycloakArtifacts, noKeycloakMembers)
+	suite.members = newFakeMemberDirectory(staffMember("ada", "ad12min"), staffMember(callerUserID, "ca11ler"))
+	suite.service = NewOrgService(*testDB.Queries, testDB.Conn, noKeycloak, noKeycloakDelete, noKeycloakArtifacts, noKeycloakMembers, suite.members)
 	suite.validationService = permissionValidation.NewValidationService(*testDB.Queries)
 
 	suite.org = suite.createOrg("ase", nil)
@@ -80,6 +86,7 @@ func (suite *OrgRouterTestSuite) routerForTokenIssuedAt(issuedAt time.Time, role
 	RegisterRoutes(api, suite.service, func() gin.HandlerFunc {
 		return func(c *gin.Context) {
 			c.Set(keycloakTokenVerifier.CtxTokenIssuedAt, issuedAt)
+			c.Set(keycloakTokenVerifier.CtxUserID, callerUserID)
 			sdkTestUtils.MockAuthMiddleware(roles)(c)
 		}
 	}, suite.validationService.CheckOrgPermission)
@@ -319,15 +326,17 @@ func (suite *OrgRouterTestSuite) TestAuditEntriesNameTheOrg() {
 	}
 }
 
-func (suite *OrgRouterTestSuite) expectAuditEvent(events auditCapture, action string, orgID uuid.UUID, name string) {
+func (suite *OrgRouterTestSuite) expectAuditEvent(events auditCapture, action string, orgID uuid.UUID, name string) audit.Event {
 	select {
 	case event := <-events:
 		assert.Equal(suite.T(), action, event.Action)
 		assert.Equal(suite.T(), "org", event.EntityType, action)
 		assert.Equal(suite.T(), orgID.String(), event.EntityID, action)
 		assert.Equal(suite.T(), name, event.EntityName, action)
+		return event
 	case <-time.After(5 * time.Second):
 		suite.T().Fatalf("no audit event for %q", action)
+		return audit.Event{}
 	}
 }
 
@@ -336,6 +345,7 @@ func (suite *OrgRouterTestSuite) TestMalformedBodiesGetAJSONError() {
 		{http.MethodPost, "/api/orgs/"},
 		{http.MethodPut, orgPath(suite.org.ID)},
 		{http.MethodPut, orgPath(suite.org.ID) + "/parent"},
+		{http.MethodPut, membersPath(suite.org.ID)},
 	} {
 		req, _ := http.NewRequest(request.method, request.path, strings.NewReader(`{"name":`))
 		req.Header.Set("Content-Type", "application/json")
@@ -345,6 +355,153 @@ func (suite *OrgRouterTestSuite) TestMalformedBodiesGetAJSONError() {
 		assert.Equal(suite.T(), http.StatusBadRequest, w.Code, request.path)
 		assert.Contains(suite.T(), w.Result().Header.Get("Content-Type"), "application/json", request.path)
 	}
+}
+
+func membersPath(orgID uuid.UUID) string {
+	return orgPath(orgID) + "/members"
+}
+
+func (suite *OrgRouterTestSuite) TestListOrgMembersPermissions() {
+	suite.expectStatus(http.MethodGet, func() string { return membersPath(suite.org.ID) }, noBody, http.StatusOK, promptAdmin, orgAdmin)
+}
+
+func (suite *OrgRouterTestSuite) TestSetOrgMemberPermissions() {
+	suite.expectStatus(http.MethodPut, func() string { return membersPath(suite.org.ID) }, func() any {
+		return orgDTO.SetOrgMember{UniversityLogin: "ad12min", Role: permissionValidation.OrgMember}
+	}, http.StatusOK, promptAdmin, orgAdmin)
+}
+
+func (suite *OrgRouterTestSuite) TestRemoveOrgMemberPermissions() {
+	suite.expectStatus(http.MethodDelete, func() string { return membersPath(suite.org.ID) + "/ada" }, noBody, http.StatusNoContent, promptAdmin, orgAdmin)
+}
+
+func (suite *OrgRouterTestSuite) TestParentOrgAdminsCannotManageTheMembersOfChildOrgs() {
+	suite.expectStatus(http.MethodGet, func() string { return membersPath(suite.childOrg.ID) }, noBody, http.StatusOK, promptAdmin)
+	suite.expectStatus(http.MethodPut, func() string { return membersPath(suite.childOrg.ID) }, func() any {
+		return orgDTO.SetOrgMember{UniversityLogin: "ad12min", Role: permissionValidation.OrgAdmin}
+	}, http.StatusOK, promptAdmin)
+	suite.expectStatus(http.MethodDelete, func() string { return membersPath(suite.childOrg.ID) + "/ada" }, noBody, http.StatusNoContent, promptAdmin)
+}
+
+func (suite *OrgRouterTestSuite) TestSetOrgMemberGivesTheUserTheRole() {
+	router := suite.routerFor(orgAdmin.roles...)
+
+	w := serve(router, http.MethodPut, membersPath(suite.org.ID), orgDTO.SetOrgMember{UniversityLogin: "ad12min", Role: permissionValidation.OrgAdmin})
+	require.Equal(suite.T(), http.StatusOK, w.Code)
+	assert.Equal(suite.T(), permissionValidation.OrgAdmin, suite.members.roleOf("ase", "ada"))
+
+	w = serve(router, http.MethodPut, membersPath(suite.org.ID), orgDTO.SetOrgMember{UniversityLogin: "ad12min", Role: permissionValidation.OrgMember})
+	require.Equal(suite.T(), http.StatusOK, w.Code)
+	assert.JSONEq(suite.T(), `{
+		"keycloakUserID": "ada",
+		"username": "ada",
+		"email": "",
+		"firstName": "",
+		"lastName": "",
+		"universityLogin": "ad12min",
+		"role": "Member"
+	}`, w.Body.String())
+	assert.Equal(suite.T(), permissionValidation.OrgMember, suite.members.roleOf("ase", "ada"))
+}
+
+func (suite *OrgRouterTestSuite) TestSetOrgMemberValidatesInput() {
+	for _, tc := range []struct {
+		name   string
+		body   orgDTO.SetOrgMember
+		status int
+	}{
+		{"blank university login", orgDTO.SetOrgMember{UniversityLogin: "  ", Role: permissionValidation.OrgMember}, http.StatusBadRequest},
+		{"university login with a space", orgDTO.SetOrgMember{UniversityLogin: "ad 12min", Role: permissionValidation.OrgMember}, http.StatusBadRequest},
+		{"university login with a colon", orgDTO.SetOrgMember{UniversityLogin: "ad:12min", Role: permissionValidation.OrgMember}, http.StatusBadRequest},
+		{"university login too long", orgDTO.SetOrgMember{UniversityLogin: strings.Repeat("a", 256), Role: permissionValidation.OrgMember}, http.StatusBadRequest},
+		{"no role", orgDTO.SetOrgMember{UniversityLogin: "ad12min"}, http.StatusBadRequest},
+		{"lowercase role", orgDTO.SetOrgMember{UniversityLogin: "ad12min", Role: "admin"}, http.StatusBadRequest},
+		{"course role", orgDTO.SetOrgMember{UniversityLogin: "ad12min", Role: permissionValidation.CourseLecturer}, http.StatusBadRequest},
+		{"unknown university login", orgDTO.SetOrgMember{UniversityLogin: "un12own", Role: permissionValidation.OrgMember}, http.StatusNotFound},
+	} {
+		w := serve(suite.routerFor(orgAdmin.roles...), http.MethodPut, membersPath(suite.org.ID), tc.body)
+
+		assert.Equal(suite.T(), tc.status, w.Code, tc.name)
+		assert.True(suite.T(), json.Valid(w.Body.Bytes()), tc.name)
+	}
+}
+
+func (suite *OrgRouterTestSuite) TestNobodyChangesTheirOwnMembership() {
+	require.NoError(suite.T(), suite.members.SetOrgMemberRole(suite.ctx, "ase", callerUserID, permissionValidation.OrgAdmin))
+	router := suite.routerFor(orgAdmin.roles...)
+
+	demote := serve(router, http.MethodPut, membersPath(suite.org.ID), orgDTO.SetOrgMember{UniversityLogin: "ca11ler", Role: permissionValidation.OrgMember})
+	leave := serve(router, http.MethodDelete, membersPath(suite.org.ID)+"/"+callerUserID, nil)
+
+	assert.Equal(suite.T(), http.StatusBadRequest, demote.Code)
+	assert.Equal(suite.T(), http.StatusBadRequest, leave.Code)
+	assert.Equal(suite.T(), permissionValidation.OrgAdmin, suite.members.roleOf("ase", callerUserID))
+}
+
+func (suite *OrgRouterTestSuite) TestRemovingAnUnknownUserIsNotFound() {
+	w := serve(suite.routerFor(orgAdmin.roles...), http.MethodDelete, membersPath(suite.org.ID)+"/ghost", nil)
+
+	assert.Equal(suite.T(), http.StatusNotFound, w.Code)
+}
+
+func (suite *OrgRouterTestSuite) TestMembersOfAnUnknownOrgAreNotFoundForAdminsOnly() {
+	path := membersPath(uuid.New())
+
+	assert.Equal(suite.T(), http.StatusNotFound, serve(suite.routerFor(promptAdmin.roles...), http.MethodGet, path, nil).Code)
+	assert.Equal(suite.T(), http.StatusForbidden, serve(suite.routerFor(orgAdmin.roles...), http.MethodGet, path, nil).Code)
+}
+
+func (suite *OrgRouterTestSuite) TestMembershipErrorsFromKeycloakAreServerErrors() {
+	suite.members.err = errors.New("keycloak is down")
+	defer func() { suite.members.err = nil }()
+
+	w := serve(suite.routerFor(orgAdmin.roles...), http.MethodGet, membersPath(suite.org.ID), nil)
+
+	assert.Equal(suite.T(), http.StatusInternalServerError, w.Code)
+	assert.NotContains(suite.T(), w.Body.String(), "keycloak is down")
+}
+
+func (suite *OrgRouterTestSuite) TestOwnOrgsFollowTheTokensOrgRoles() {
+	for _, tc := range []struct {
+		actor actor
+		want  map[uuid.UUID]string
+	}{
+		{promptAdmin, map[uuid.UUID]string{}},
+		{orgAdmin, map[uuid.UUID]string{suite.org.ID: permissionValidation.OrgAdmin}},
+		{orgMember, map[uuid.UUID]string{suite.org.ID: permissionValidation.OrgMember}},
+		{otherAdmin, map[uuid.UUID]string{suite.otherOrg.ID: permissionValidation.OrgAdmin}},
+		{customGroup, map[uuid.UUID]string{}},
+		{lecturer, map[uuid.UUID]string{}},
+		{noOrgRoles, map[uuid.UUID]string{}},
+	} {
+		w := serve(suite.routerFor(tc.actor.roles...), http.MethodGet, "/api/orgs/self", nil)
+
+		require.Equal(suite.T(), http.StatusOK, w.Code, tc.actor.name)
+		var ownOrgs []orgDTO.OwnOrg
+		require.NoError(suite.T(), json.Unmarshal(w.Body.Bytes(), &ownOrgs), tc.actor.name)
+		got := map[uuid.UUID]string{}
+		for _, ownOrg := range ownOrgs {
+			got[ownOrg.ID] = ownOrg.Role
+		}
+		assert.Equal(suite.T(), tc.want, got, tc.actor.name)
+	}
+}
+
+func (suite *OrgRouterTestSuite) TestMembershipAuditEntriesNameTheOrgAndTheMember() {
+	events := make(auditCapture, 1)
+	router := suite.routerWith(orgAdmin.roles, audit.Middleware(events, audit.WithActorExtractor(func(*gin.Context) (audit.Actor, bool) {
+		return audit.Actor{ID: callerUserID}, true
+	})))
+
+	w := serve(router, http.MethodPut, membersPath(suite.org.ID), orgDTO.SetOrgMember{UniversityLogin: "ad12min", Role: permissionValidation.OrgAdmin})
+	require.Equal(suite.T(), http.StatusOK, w.Code)
+	set := suite.expectAuditEvent(events, "Set the role of an org member", suite.org.ID, "ase")
+	assert.Equal(suite.T(), map[string]any{"keycloakUserID": "ada", "role": permissionValidation.OrgAdmin}, set.Metadata)
+
+	w = serve(router, http.MethodDelete, membersPath(suite.org.ID)+"/ada", nil)
+	require.Equal(suite.T(), http.StatusNoContent, w.Code)
+	removed := suite.expectAuditEvent(events, "Removed an org member", suite.org.ID, "ase")
+	assert.Equal(suite.T(), map[string]any{"keycloakUserID": "ada"}, removed.Metadata)
 }
 
 func TestOrgRouterTestSuite(t *testing.T) {

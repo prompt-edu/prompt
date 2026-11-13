@@ -29,6 +29,14 @@ export const SEEDED_COURSES = {
   },
 }
 
+// The demo org. Its Admin and Member are the Keycloak users `org-admin` and
+// `org-member`, through the realm's /Orgs/demo-chair groups.
+export const SEEDED_ORG = {
+  id: '7a000001-0000-0000-0000-000000000001',
+  name: 'Demo Chair',
+  slug: 'demo-chair',
+}
+
 // Total non-template courses present in the seed: the four fixture courses below,
 // `iPraktikumWelcome` (which owns the welcome-text Application phase), and
 // `iPraktikumDemo`, the populated demo course the seed adds for local

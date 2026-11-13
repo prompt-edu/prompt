@@ -106,7 +106,10 @@ export const coreKeys = {
 
   orgs: {
     all: () => ['orgs'] as const,
+    // Org ids are UUIDs, so 'own' never collides with byId
+    own: () => ['orgs', 'own'] as const,
     byId: (orgId: Id) => ['orgs', orgId] as const,
+    members: (orgId: Id) => ['orgs', orgId, 'members'] as const,
   },
 
   privacy: {

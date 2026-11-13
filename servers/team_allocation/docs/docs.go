@@ -161,7 +161,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Assign a course participation to a team. Lecturers and admins may write any team; a tutor may only write the team they are assigned to, and only for a participant who is unallocated or already in that team.",
+                "description": "Assign a course participation to a team. Only lecturers and admins may change allocations; tutors have read access only.",
                 "consumes": [
                     "application/json"
                 ],
@@ -266,7 +266,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Remove the team allocation of a course participation. Lecturers and admins may remove any; a tutor may only remove one from the team they are assigned to.",
+                "description": "Remove the team allocation of a course participation. Only lecturers and admins may change allocations; tutors have read access only.",
                 "produces": [
                     "application/json"
                 ],

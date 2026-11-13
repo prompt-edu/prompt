@@ -1,19 +1,10 @@
 package main
 
 import (
-	"context"
-	"fmt"
-	"os"
-	"time"
-
-	"github.com/getsentry/sentry-go"
-	sentrygin "github.com/getsentry/sentry-go/gin"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
-	"github.com/prompt-edu/prompt-sdk/audit"
 	"github.com/prompt-edu/prompt-sdk/promptTypes"
-	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/self_team_allocation/allocation"
 	"github.com/prompt-edu/prompt/servers/self_team_allocation/bodyLimit"
 	"github.com/prompt-edu/prompt/servers/self_team_allocation/config"
@@ -25,18 +16,6 @@ import (
 
 	log "github.com/sirupsen/logrus"
 )
-
-var dbUser string = promptSDK.GetEnv("DB_USER", "prompt-postgres")
-var dbPassword string = promptSDK.GetEnv("DB_PASSWORD", "prompt-postgres")
-var dbHost string = promptSDK.GetEnv("DB_HOST_SELF_TEAM_ALLOCATION", "localhost")
-var dbPort string = promptSDK.GetEnv("DB_PORT_SELF_TEAM_ALLOCATION", "5436")
-var dbName string = promptSDK.GetEnv("DB_NAME", "prompt")
-var sslMode string = promptSDK.GetEnv("SSL_MODE", "disable")
-var timeZone string = promptSDK.GetEnv("DB_TIMEZONE", "Europe/Berlin") // Add a timezone parameter
-
-func getDatabaseURL() string {
-	return fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s&TimeZone=%s", dbUser, dbPassword, dbHost, dbPort, dbName, sslMode, timeZone)
-}
 
 // @title           PROMPT Self Team Allocation API
 // @version         1.0
@@ -51,46 +30,34 @@ func getDatabaseURL() string {
 // @description Bearer token authentication. Use format: Bearer {token}
 
 func main() {
-	sentryEnabled := promptSDK.GetEnv("SENTRY_ENABLED", "false") == "true"
-	if sentryEnabled {
-		_ = sdkUtils.InitSentry(promptSDK.GetEnv("SENTRY_DSN_SELF_TEAM_ALLOCATION", ""))
-		defer sentry.Flush(2 * time.Second)
-	}
-
-	databaseURL := getDatabaseURL()
-	log.Debugf("Connecting to database at host=%s port=%s db=%s user=%s sslmode=%s", dbHost, dbPort, dbName, dbUser, sslMode)
-
-	if err := sdkUtils.RunMigrations(databaseURL, "./db/migration"); err != nil {
-		log.Fatalf("Failed to run migrations: %v", err)
-	}
-
-	conn, err := pgxpool.New(context.Background(), databaseURL)
+	err := promptSDK.Bootstrap(promptSDK.ServiceOptions{
+		ServiceName:    "self-team-allocation",
+		BasePath:       "/self-team-allocation/api",
+		DBEnvPrefix:    "SELF_TEAM_ALLOCATION",
+		DefaultDBPort:  "5436",
+		SentryDSNEnv:   "SENTRY_DSN_SELF_TEAM_ALLOCATION",
+		DefaultAddress: "localhost:8084",
+		Capabilities: map[string]bool{
+			promptTypes.CapabilityPrivacyExport:   true,
+			promptTypes.CapabilityPrivacyDeletion: true,
+			promptTypes.CapabilityPhaseCopy:       true,
+			promptTypes.CapabilityPhaseConfig:     true,
+		},
+		RegisterRoutes: registerRoutes,
+	})
 	if err != nil {
-		log.Fatalf("Unable to create connection pool: %v\n", err)
-		os.Exit(1)
+		log.Fatalf("Self team allocation server stopped: %v", err)
 	}
-	defer conn.Close()
+}
+
+func registerRoutes(api, coursePhaseApi *gin.RouterGroup, conn *pgxpool.Pool) error {
+	// Bootstrap creates coursePhaseApi before calling back, and Gin snapshots a group's chain when
+	// a subgroup is created, so the cap goes on both groups. Routes that need more raise it with
+	// bodyLimit.WithLimit.
+	api.Use(bodyLimit.Middleware(bodyLimit.DefaultMaxBytes))
+	coursePhaseApi.Use(bodyLimit.Middleware(bodyLimit.DefaultMaxBytes))
 
 	query := db.New(conn)
-
-	clientHost := promptSDK.GetEnv("CORE_HOST", "http://localhost:3000")
-
-	router := gin.Default()
-	if sentryEnabled {
-		router.Use(sentrygin.New(sentrygin.Options{}))
-	}
-	router.Use(promptSDK.CORSMiddleware(clientHost))
-	// Cap request bodies before any route is registered, so the cap is part of every route's
-	// chain. Routes that need more raise it with bodyLimit.WithLimit.
-	router.Use(bodyLimit.Middleware(bodyLimit.DefaultMaxBytes))
-
-	api := router.Group("self-team-allocation/api")
-	// Gin snapshots the handler chain when a subgroup is created, so this must run before coursePhaseApi.
-	api.Use(audit.Middleware(audit.NewCoreSink(sdkUtils.GetCoreUrl(), "self-team-allocation")))
-	coursePhaseApi := api.Group("/course_phase/:coursePhaseID")
-	if err := promptSDK.InitPhaseKeycloak(); err != nil {
-		log.Fatalf("Failed to initialize keycloak: %v", err)
-	}
 
 	coursePhaseApi.GET("/hello", func(c *gin.Context) {
 		c.JSON(200, gin.H{
@@ -111,27 +78,5 @@ func main() {
 	privacy.RegisterRoutes(api, privacyService)
 
 	config.RegisterRoutes(coursePhaseApi, configService)
-
-	promptTypes.RegisterInfoEndpoint(api, promptTypes.ServiceInfo{
-		ServiceName: "self-team-allocation",
-		Version:     promptSDK.GetEnv("SERVER_IMAGE_TAG", ""),
-		Capabilities: map[string]bool{
-			promptTypes.CapabilityPrivacyExport:   true,
-			promptTypes.CapabilityPrivacyDeletion: true,
-			promptTypes.CapabilityPhaseCopy:       true,
-			promptTypes.CapabilityPhaseConfig:     true,
-			promptTypes.CapabilityAuditLog:        audit.Enabled(),
-		},
-	}, func() bool {
-		ctt, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
-		defer cancel()
-		return conn.Ping(ctt) == nil
-	})
-
-	serverAddress := promptSDK.GetEnv("SERVER_ADDRESS", "localhost:8084")
-	log.Info("Self Team Allocation Server started")
-	err = router.Run(serverAddress)
-	if err != nil {
-		log.Fatalf("Failed to start server: %v", err)
-	}
+	return nil
 }

@@ -5,18 +5,14 @@ import type {
 } from '@core/managementConsole/shared/interfaces/StudyProgram'
 import { coreApi } from '@core/network/api'
 import { coreCache, coreKeys } from '@core/network/cache'
+import { serverErrorMessage } from '@core/network/serverErrorMessage'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useToast } from '@tumaet/prompt-ui-components'
-import { isAxiosError } from 'axios'
 
 interface UpdateStudyProgramArgs {
   previous: StudyProgram
   studyProgram: UpdateStudyProgram
 }
-
-const serverMessage = (error: unknown): string =>
-  (isAxiosError<{ error?: string }>(error) && error.response?.data?.error) ||
-  'Please try again later'
 
 export const useStudyPrograms = () => {
   return useQuery({
@@ -45,7 +41,7 @@ export const useCreateStudyProgram = () => {
     onError: (error: unknown) => {
       toast({
         title: 'Failed to create study program',
-        description: serverMessage(error),
+        description: serverErrorMessage(error),
         variant: 'destructive',
       })
     },
@@ -70,7 +66,7 @@ export const useUpdateStudyProgram = () => {
     onError: (error: unknown) => {
       toast({
         title: 'Failed to update study program',
-        description: serverMessage(error),
+        description: serverErrorMessage(error),
         variant: 'destructive',
       })
     },
@@ -96,7 +92,7 @@ export const useDeleteStudyProgram = () => {
     onError: (error: unknown) => {
       toast({
         title: 'Failed to delete study program',
-        description: serverMessage(error),
+        description: serverErrorMessage(error),
         variant: 'destructive',
       })
     },

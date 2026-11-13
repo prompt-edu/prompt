@@ -38,6 +38,12 @@ import { Button, Card, ManagementPageHeader } from '@tumaet/prompt-ui-components
   avatar URLs yourself, and never use `getGravatarUrl` from either package: the
   `@tumaet/prompt-ui-components` one is deprecated and returns no URL, while the
   `@tumaet/prompt-shared-state` one still sends the email hash to Gravatar.
+  To ask students for a picture, put `ProfilePictureRequirementSetting` on the phase's settings
+  page (the phase stores the `off` / `optional` / `required` value in its own config) and
+  `ProfilePictureUploadPrompt` on the student page. Pass the stored value as `requirement` and
+  the course phase id as `dismissKey`; without `dismissKey` (or `isDismissed`/`onDismiss`),
+  "Not now" on an optional prompt only lasts until the student leaves the page. The own picture
+  is available through `useOwnProfilePicture` and editable through `ProfilePictureDialog`.
 - **Rich text:** `MinimalTiptapEditor`, `MailingTiptapEditor`, `DescriptionMinimalTiptapEditor`.
 - **Detail page header:** `StickyHeader` (docks below the management header while scrolling); put
   `ParticipantNavigation` inside it with `compact={docked}`, so it docks as one box with the

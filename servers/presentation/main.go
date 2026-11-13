@@ -3,13 +3,10 @@ package main
 import (
 	"context"
 	"fmt"
-	"net/url"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/getsentry/sentry-go"
-	sentrygin "github.com/getsentry/sentry-go/gin"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
@@ -28,27 +25,6 @@ const (
 	materialReaperInterval  = time.Hour
 	materialReaperBatchSize = 100
 )
-
-func databaseURL() string {
-	value := &url.URL{
-		Scheme: "postgres",
-		User: url.UserPassword(
-			promptSDK.GetEnv("DB_USER", "prompt-postgres"),
-			promptSDK.GetEnv("DB_PASSWORD", "prompt-postgres"),
-		),
-		Host: fmt.Sprintf(
-			"%s:%s",
-			promptSDK.GetEnv("DB_HOST_PRESENTATION", "localhost"),
-			promptSDK.GetEnv("DB_PORT_PRESENTATION", "5440"),
-		),
-		Path: "/" + promptSDK.GetEnv("DB_NAME", "prompt"),
-	}
-	query := value.Query()
-	query.Set("sslmode", promptSDK.GetEnv("SSL_MODE", "disable"))
-	query.Set("TimeZone", promptSDK.GetEnv("DB_TIMEZONE", "Europe/Berlin"))
-	value.RawQuery = query.Encode()
-	return value.String()
-}
 
 func intEnv(key string, defaultValue int) int {
 	value, err := strconv.Atoi(promptSDK.GetEnv(key, strconv.Itoa(defaultValue)))
@@ -109,23 +85,29 @@ func startMaterialReaper(ctx context.Context, service *presentation.Service) {
 }
 
 func main() {
-	sentryEnabled := promptSDK.GetEnv("SENTRY_ENABLED", "false") == "true"
-	if sentryEnabled {
-		_ = sdkUtils.InitSentry(promptSDK.GetEnv("SENTRY_DSN_PRESENTATION", ""))
-		defer sentry.Flush(2 * time.Second)
-	}
-
-	connectionURL := databaseURL()
-	if err := sdkUtils.RunMigrations(connectionURL, "./db/migration"); err != nil {
-		log.Fatalf("Failed to run presentation migrations: %v", err)
-	}
-	ctx := context.Background()
-	conn, err := pgxpool.New(ctx, connectionURL)
+	err := promptSDK.Bootstrap(promptSDK.ServiceOptions{
+		ServiceName:    "presentation",
+		BasePath:       "/presentation/api",
+		DBEnvPrefix:    "PRESENTATION",
+		DefaultDBPort:  "5440",
+		SentryDSNEnv:   "SENTRY_DSN_PRESENTATION",
+		DefaultAddress: "localhost:8089",
+		Capabilities: map[string]bool{
+			promptTypes.CapabilityPhaseCopy:       true,
+			promptTypes.CapabilityPhaseConfig:     true,
+			promptTypes.CapabilityPhaseDeletion:   true,
+			promptTypes.CapabilityPrivacyExport:   true,
+			promptTypes.CapabilityPrivacyDeletion: true,
+		},
+		RegisterRoutes: registerRoutes,
+	})
 	if err != nil {
-		log.Fatalf("Unable to create presentation database pool: %v", err)
+		log.Fatalf("Presentation server stopped: %v", err)
 	}
-	defer conn.Close()
+}
 
+func registerRoutes(api, coursePhaseAPI *gin.RouterGroup, conn *pgxpool.Pool) error {
+	ctx := context.Background()
 	storageAdapter, err := storage.NewS3Adapter(
 		ctx,
 		promptSDK.GetEnv("S3_BUCKET", "prompt"),
@@ -137,12 +119,9 @@ func main() {
 		boolEnv("S3_FORCE_PATH_STYLE", true),
 	)
 	if err != nil {
-		log.Fatalf("Unable to initialize presentation material storage: %v", err)
+		return fmt.Errorf("unable to initialize presentation material storage: %w", err)
 	}
 
-	if err := promptSDK.InitPhaseKeycloak(); err != nil {
-		log.Fatalf("Failed to initialize Keycloak: %v", err)
-	}
 	queries := db.New(conn)
 	service := presentation.NewService(
 		queries,
@@ -156,20 +135,19 @@ func main() {
 	)
 	startMaterialReaper(ctx, service)
 
-	router := gin.Default()
-	if sentryEnabled {
-		router.Use(sentrygin.New(sentrygin.Options{}))
-	}
-	router.Use(promptSDK.CORSMiddleware(promptSDK.GetEnv("CORE_HOST", "http://localhost:3000")))
-	// Cap request bodies before any route is registered, so the cap is part of every route's
-	// chain. Routes that need more raise it with bodyLimit.WithLimit.
-	router.Use(bodyLimit.Middleware(bodyLimit.DefaultMaxBytes))
-	api := router.Group("/presentation/api")
-	// Gin snapshots the handler chain when a subgroup is created, so this must run before coursePhaseAPI.
-	api.Use(audit.Middleware(audit.NewCoreSink(sdkUtils.GetCoreUrl(), "presentation")))
-	coursePhaseAPI := api.Group("/course_phase/:coursePhaseID")
+	registerServiceRoutes(api, coursePhaseAPI, service, coursePhaseDeletion.NewCoursePhaseDeletionService(queries, conn, storageAdapter))
+	return nil
+}
+
+func registerServiceRoutes(api, coursePhaseAPI *gin.RouterGroup, service *presentation.Service, deletionService *coursePhaseDeletion.CoursePhaseDeletionService) {
+	// Bootstrap creates coursePhaseAPI before calling back, and Gin snapshots a group's chain when
+	// a subgroup is created, so the cap goes on both groups. Routes that need more raise it with
+	// bodyLimit.WithLimit.
+	api.Use(bodyLimit.Middleware(bodyLimit.DefaultMaxBytes))
+	coursePhaseAPI.Use(bodyLimit.Middleware(bodyLimit.DefaultMaxBytes))
+
 	presentation.RegisterRoutes(coursePhaseAPI, service)
-	coursePhaseDeletion.RegisterRoutes(coursePhaseAPI, coursePhaseDeletion.NewCoursePhaseDeletionService(queries, conn, storageAdapter))
+	coursePhaseDeletion.RegisterRoutes(coursePhaseAPI, deletionService)
 
 	promptTypes.RegisterCopyModule(
 		api.Group("", audit.Describe(presentation.AuditCopyAction)),
@@ -178,26 +156,4 @@ func main() {
 		promptSDK.CourseLecturer,
 	)
 	promptTypes.RegisterPrivacyModule(api, service.PrivacyExportHandler, service.PrivacyDeletionHandler, []string{})
-	promptTypes.RegisterInfoEndpoint(api, promptTypes.ServiceInfo{
-		ServiceName: "presentation",
-		Version:     promptSDK.GetEnv("SERVER_IMAGE_TAG", ""),
-		Capabilities: map[string]bool{
-			promptTypes.CapabilityPhaseCopy:       true,
-			promptTypes.CapabilityPhaseConfig:     true,
-			promptTypes.CapabilityPhaseDeletion:   true,
-			promptTypes.CapabilityPrivacyExport:   true,
-			promptTypes.CapabilityPrivacyDeletion: true,
-			promptTypes.CapabilityAuditLog:        audit.Enabled(),
-		},
-	}, func() bool {
-		pingContext, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
-		defer cancel()
-		return conn.Ping(pingContext) == nil
-	})
-
-	address := promptSDK.GetEnv("SERVER_ADDRESS", "localhost:8089")
-	log.Infof("Presentation server started on %s", address)
-	if err := router.Run(address); err != nil {
-		log.Fatalf("Presentation server stopped: %v", err)
-	}
 }

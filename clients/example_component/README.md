@@ -15,11 +15,11 @@ PROMPT's core client (`clients/core`) is a Webpack Module Federation host. Each 
 exactly three modules (`exposes` in `clients/shared/rspack/createRspackConfig.mjs`, which is where
 this component's entire rspack config comes from):
 
-| Exposed module | File           | Consumed by core as                               |
-| -------------- | -------------- | ------------------------------------------------- |
-| `./routes`     | `routes/`      | React Router routes rendered inside the console   |
-| `./sidebar`    | `sidebar/`     | Sidebar menu entry (title, icon, subitems)        |
-| `./provide`    | `src/provide/` | Optional extension points (e.g. `StudentDetail`)  |
+| Exposed module | File           | Consumed by core as                              |
+| -------------- | -------------- | ------------------------------------------------ |
+| `./routes`     | `routes/`      | React Router routes rendered inside the console  |
+| `./sidebar`    | `sidebar/`     | Sidebar menu entry (title, icon, subitems)       |
+| `./provide`    | `src/provide/` | Optional extension points (e.g. `StudentDetail`) |
 
 Routes and sidebar items carry `requiredPermissions` (roles from `@tumaet/prompt-shared-state`);
 core filters them per user.

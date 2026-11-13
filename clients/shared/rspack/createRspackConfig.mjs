@@ -1,6 +1,7 @@
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import rspack from '@rspack/core'
+import { DEFAULT_CLIENT_PORT, devPort } from './devPorts.mjs'
 import { federatedDependencies } from './federatedDependencies.mjs'
 
 const { ModuleFederationPlugin } = rspack.container
@@ -22,7 +23,7 @@ export const createRspackConfig = ({
 
   return (env = {}) => {
     const IS_DEV = env.NODE_ENV !== 'production'
-    const coreURL = IS_DEV ? 'http://localhost:3000' : ''
+    const coreURL = IS_DEV ? `http://localhost:${devPort(DEFAULT_CLIENT_PORT)}` : ''
 
     return {
       target: 'web',
@@ -34,7 +35,7 @@ export const createRspackConfig = ({
         compress: true,
         hot: true,
         historyApiFallback: true,
-        port,
+        port: devPort(port),
         client: { progress: true },
         open: false,
         headers: { 'Access-Control-Allow-Origin': '*' },

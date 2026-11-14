@@ -4,7 +4,6 @@ import { SurveySettingsPage } from '../src/team_allocation/pages/SurveySettings/
 import { SurveyStatisticsPage } from '../src/team_allocation/pages/SurveyStatistics/SurveyStatisticsPage'
 import { TeamAllocationPage } from '../src/team_allocation/pages/TeamAllocation/TeamAllocationPage'
 import { TeamAllocationParticipantsPage } from '../src/team_allocation/pages/TeamAllocationParticipantsPage/TeamAllocationParticipantsPage'
-import { TeaseConfigPage } from '../src/team_allocation/pages/TeaseConfig/TeaseConfigPage'
 
 const routes: ExtendedRouteObject[] = [
   {
@@ -20,11 +19,6 @@ const routes: ExtendedRouteObject[] = [
   {
     path: '/settings',
     element: <SurveySettingsPage />,
-    requiredPermissions: LECTURER_ROLES,
-  },
-  {
-    path: '/tease-config',
-    element: <TeaseConfigPage />,
     requiredPermissions: LECTURER_ROLES,
   },
   {

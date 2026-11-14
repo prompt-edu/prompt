@@ -25,7 +25,8 @@ INSERT INTO skill (id, course_phase_id, name)
 INSERT INTO survey_timeframe (course_phase_id, survey_start, survey_deadline)
     VALUES ('f0000004-0000-0000-0000-000000000004', '2026-04-01 08:00:00+00', '2026-04-06 23:59:00+00');
 
--- Every student ranked both teams (1 = first choice).
+-- Every student but David Doerr ranked both teams (1 = first choice). David did not submit the
+-- survey, so the lecturer views show one open submission.
 INSERT INTO student_team_preference_response (course_participation_id, team_id, preference)
     VALUES ('cd000001-0000-0000-0000-000000000001', '3a000001-0000-0000-0000-000000000001', 1),
            ('cd000001-0000-0000-0000-000000000001', '3a000002-0000-0000-0000-000000000002', 2),
@@ -36,9 +37,7 @@ INSERT INTO student_team_preference_response (course_participation_id, team_id, 
            ('cd000004-0000-0000-0000-000000000004', '3a000001-0000-0000-0000-000000000001', 2),
            ('cd000004-0000-0000-0000-000000000004', '3a000002-0000-0000-0000-000000000002', 1),
            ('cd000005-0000-0000-0000-000000000005', '3a000001-0000-0000-0000-000000000001', 1),
-           ('cd000005-0000-0000-0000-000000000005', '3a000002-0000-0000-0000-000000000002', 2),
-           ('cd000006-0000-0000-0000-000000000006', '3a000001-0000-0000-0000-000000000001', 2),
-           ('cd000006-0000-0000-0000-000000000006', '3a000002-0000-0000-0000-000000000002', 1);
+           ('cd000005-0000-0000-0000-000000000005', '3a000002-0000-0000-0000-000000000002', 2);
 
 INSERT INTO student_skill_response (course_participation_id, skill_id, skill_level)
     VALUES ('cd000001-0000-0000-0000-000000000001', '3b000001-0000-0000-0000-000000000001', 'very_good'),
@@ -55,10 +54,7 @@ INSERT INTO student_skill_response (course_participation_id, skill_id, skill_lev
            ('cd000004-0000-0000-0000-000000000004', '3b000003-0000-0000-0000-000000000003', 'very_good'),
            ('cd000005-0000-0000-0000-000000000005', '3b000001-0000-0000-0000-000000000001', 'very_good'),
            ('cd000005-0000-0000-0000-000000000005', '3b000002-0000-0000-0000-000000000002', 'very_bad'),
-           ('cd000005-0000-0000-0000-000000000005', '3b000003-0000-0000-0000-000000000003', 'good'),
-           ('cd000006-0000-0000-0000-000000000006', '3b000001-0000-0000-0000-000000000001', 'ok'),
-           ('cd000006-0000-0000-0000-000000000006', '3b000002-0000-0000-0000-000000000002', 'good'),
-           ('cd000006-0000-0000-0000-000000000006', '3b000003-0000-0000-0000-000000000003', 'bad');
+           ('cd000005-0000-0000-0000-000000000005', '3b000003-0000-0000-0000-000000000003', 'good');
 
 -- The published allocation. This is what the Assessment, Presentation and
 -- Certificate phases read back through the teamAllocation / teams DTOs.

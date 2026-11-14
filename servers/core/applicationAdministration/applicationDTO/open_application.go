@@ -20,6 +20,18 @@ type OpenApplication struct {
 	LongDescription          *string     `json:"longDescription,omitempty"`
 	// WelcomeText is instructor-authored HTML shown above the application form.
 	WelcomeText *string `json:"welcomeText,omitempty"`
+	// ProfilePicture tells the form whether and why to ask logged-in applicants for a picture.
+	// Only set on the form of one application, not in the list of open applications.
+	ProfilePicture *ApplicationProfilePicture `json:"profilePicture,omitempty"`
+}
+
+// ApplicationProfilePicture is the profile picture configuration an applicant sees.
+type ApplicationProfilePicture struct {
+	// Requirement is "off", "optional", or "required".
+	Requirement string `json:"requirement"`
+	Explanation string `json:"explanation,omitempty"`
+	// HiddenUntilAccepted tells applicants that reviewers do not see their picture.
+	HiddenUntilAccepted bool `json:"hiddenUntilAccepted"`
 }
 
 func GetOpenApplicationPhaseDTO(dbModel db.GetAllOpenApplicationPhasesRow) OpenApplication {

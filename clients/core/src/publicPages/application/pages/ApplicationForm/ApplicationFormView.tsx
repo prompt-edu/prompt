@@ -7,6 +7,7 @@ import type { CreateApplicationAnswerText } from '@core/interfaces/application/a
 import type { ApplicationQuestionFileUpload } from '@core/interfaces/application/applicationQuestion/applicationQuestionFileUpload'
 import type { ApplicationQuestionMultiSelect } from '@core/interfaces/application/applicationQuestion/applicationQuestionMultiSelect'
 import type { ApplicationQuestionText } from '@core/interfaces/application/applicationQuestion/applicationQuestionText'
+import type { ApplicationProfilePictureConfig } from '@core/interfaces/application/openApplicationDetails'
 import type { Student } from '@tumaet/prompt-shared-state'
 import {
   Button,
@@ -19,8 +20,10 @@ import {
 import { useEffect, useRef, useState } from 'react'
 import { ApplicationQuestionFileUploadForm } from './components/FileUploadForm/ApplicationQuestionFileUploadForm'
 import { ApplicationQuestionMultiSelectForm } from './components/MultiSelectForm/ApplicationQuestionMultiSelectForm'
+import { ApplicationProfilePictureSection } from './components/ProfilePictureSection/ApplicationProfilePictureSection'
 import { StudentForm } from './components/StudentForm/StudentForm'
 import { ApplicationQuestionTextForm } from './components/TextForm/ApplicationQuestionTextForm'
+import type { ProfilePictureSectionRef } from './utils/ProfilePictureSectionRef'
 import type { QuestionFileUploadFormRef } from './utils/QuestionFileUploadFormRef'
 import type { QuestionMultiSelectFormRef } from './utils/QuestionMultiSelectFormRef'
 import type { QuestionTextFormRef } from './utils/QuestionTextFormRef'
@@ -38,6 +41,8 @@ interface ApplicationFormProps {
   allowEditUniversityData?: boolean
   applicationId?: string
   coursePhaseId?: string
+  profilePicture?: ApplicationProfilePictureConfig
+  isPreview?: boolean
   onSubmit: (
     student: Student,
     answersText: CreateApplicationAnswerText[],
@@ -58,6 +63,8 @@ export const ApplicationFormView = ({
   allowEditUniversityData = false,
   applicationId,
   coursePhaseId,
+  profilePicture,
+  isPreview = false,
   onSubmit,
 }: ApplicationFormProps) => {
   const questions: (
@@ -70,6 +77,7 @@ export const ApplicationFormView = ({
 
   const [studentData, setStudentData] = useState<Student>(student ?? ({} as Student))
   const studentRef = useRef<StudentComponentRef>(null)
+  const profilePictureRef = useRef<ProfilePictureSectionRef>(null)
   const questionTextRefs = useRef<Array<QuestionTextFormRef | null | undefined>>([])
   const questionMultiSelectRefs = useRef<Array<QuestionMultiSelectFormRef | null | undefined>>([])
   const questionFileUploadRefs = useRef<Array<QuestionFileUploadFormRef | null | undefined>>([])
@@ -95,6 +103,10 @@ export const ApplicationFormView = ({
     }
     const studentValid = await studentRef.current.validate()
     if (studentData && !studentValid) {
+      allValid = false
+    }
+
+    if (profilePictureRef.current && !(await profilePictureRef.current.validate())) {
       allValid = false
     }
 
@@ -182,6 +194,17 @@ export const ApplicationFormView = ({
             />
           </div>
           {!isInstructorView && <Separator />}
+
+          {profilePicture && profilePicture.requirement !== 'off' && (
+            <>
+              <ApplicationProfilePictureSection
+                ref={profilePictureRef}
+                config={profilePicture}
+                isInstructorView={isInstructorView || isPreview}
+              />
+              {!isInstructorView && <Separator />}
+            </>
+          )}
 
           <div>
             <h2 className='text-lg font-semibold mb-4'>Course Specific Questions</h2>

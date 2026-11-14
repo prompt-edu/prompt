@@ -14,16 +14,19 @@ import (
 
 var errInternal = errors.New("internal server error")
 
-// RegisterRoutes mounts the profile picture endpoints. Every logged-in user may read every
-// picture; uploading and deleting only ever touch the caller's own picture.
-func RegisterRoutes(routerGroup *gin.RouterGroup, service *ProfilePictureService, authMiddleware func() gin.HandlerFunc) {
-	router := routerGroup.Group("/profile-pictures", authMiddleware())
+// RegisterRoutes mounts the profile picture endpoints. Every user with a role may read every
+// picture; uploading and deleting only ever touch the caller's own picture. The own-picture
+// endpoints use applicationMiddleware, because first-time applicants have no roles yet.
+func RegisterRoutes(routerGroup *gin.RouterGroup, service *ProfilePictureService, authMiddleware func() gin.HandlerFunc, applicationMiddleware func() gin.HandlerFunc) {
+	router := routerGroup.Group("/profile-pictures")
 	// Lookups and presigning change nothing, so they stay out of the audit log.
-	router.POST("/lookup", audit.Skip(), service.lookupProfilePictures)
-	router.GET("/me", service.getOwnProfilePicture)
-	router.POST("/me/presign", audit.Skip(), service.presignProfilePictureUpload)
-	router.POST("/me/complete", audit.Describe("Uploaded profile picture"), service.completeProfilePictureUpload)
-	router.DELETE("/me", audit.Describe("Deleted profile picture"), service.deleteOwnProfilePicture)
+	router.POST("/lookup", authMiddleware(), audit.Skip(), service.lookupProfilePictures)
+
+	ownPicture := router.Group("/me", applicationMiddleware())
+	ownPicture.GET("", service.getOwnProfilePicture)
+	ownPicture.POST("/presign", audit.Skip(), service.presignProfilePictureUpload)
+	ownPicture.POST("/complete", audit.Describe("Uploaded profile picture"), service.completeProfilePictureUpload)
+	ownPicture.DELETE("", audit.Describe("Deleted profile picture"), service.deleteOwnProfilePicture)
 }
 
 // lookupProfilePictures godoc

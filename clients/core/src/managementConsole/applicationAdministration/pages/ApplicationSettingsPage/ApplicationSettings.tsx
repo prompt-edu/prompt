@@ -1,18 +1,22 @@
 import { useState } from 'react'
+import { useParams } from 'react-router-dom'
 import { useParseApplicationMetaData } from '../../hooks/useParseApplicationMetaData'
 import type { ApplicationMetaData } from '../../interfaces/applicationMetaData'
 import { getIsApplicationConfigured } from '../../utils/getApplicationIsConfigured'
 import { getApplicationStatus } from '../../utils/getApplicationStatus'
+import { getPreviewProfilePicture } from '../../utils/profilePictureSettings'
 import { useApplicationStore } from '../../zustand/useApplicationStore'
 import { ApplicationMailingSettings } from '../Mailing/ApplicationMailingSettings'
 import ApplicationOverview from './components/Overview/ApplicationSettingsOverview'
 import { ApplicationSettingsCustomScores } from './components/SettingsCustomScores/ApplicationSettingsCustomScores'
 import { ApplicationGeneralSettings } from './components/SettingsGeneral/ApplicationSettingsGeneral'
 import { ApplicationSettingsPreview } from './components/SettingsPreview/ApplicationSettingsPreview'
+import { ApplicationSettingsProfilePicture } from './components/SettingsProfilePicture/ApplicationSettingsProfilePicture'
 import { ApplicationSettingsWelcomeText } from './components/SettingsWelcomeText/ApplicationSettingsWelcomeText'
 
 export const ApplicationConfiguration = () => {
   const [applicationMetaData, setApplicationMetaData] = useState<ApplicationMetaData | null>(null)
+  const { phaseId } = useParams<{ phaseId: string }>()
   const { coursePhase } = useApplicationStore()
 
   useParseApplicationMetaData(coursePhase, setApplicationMetaData)
@@ -25,7 +29,10 @@ export const ApplicationConfiguration = () => {
     <div className='container space-y-8'>
       <div className='mb-6 flex items-center justify-between gap-4'>
         <h1 className='text-4xl font-bold'>Application Settings</h1>
-        <ApplicationSettingsPreview welcomeText={applicationMetaData?.welcomeText} />
+        <ApplicationSettingsPreview
+          welcomeText={applicationMetaData?.welcomeText}
+          profilePicture={getPreviewProfilePicture(coursePhase?.restrictedData)}
+        />
       </div>
       <ApplicationOverview
         applicationMetaData={applicationMetaData}
@@ -35,6 +42,9 @@ export const ApplicationConfiguration = () => {
 
       {applicationMetaData && <ApplicationGeneralSettings initialData={applicationMetaData} />}
       {applicationMetaData && <ApplicationSettingsWelcomeText initialData={applicationMetaData} />}
+      {applicationMetaData && (
+        <ApplicationSettingsProfilePicture key={phaseId} initialData={applicationMetaData} />
+      )}
       {applicationMetaData && <ApplicationSettingsCustomScores initialData={applicationMetaData} />}
       <ApplicationMailingSettings />
     </div>

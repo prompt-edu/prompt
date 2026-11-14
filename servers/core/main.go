@@ -251,7 +251,7 @@ func main() {
 	}
 	startUploadReaper(context.Background(), fileStorageService)
 	profilePictureService := profilePicture.NewProfilePictureService(*query, conn, fileStorageService)
-	profilePicture.RegisterRoutes(api, profilePictureService, tokenVerifier.KeycloakMiddleware)
+	profilePicture.RegisterRoutes(api, profilePictureService, tokenVerifier.KeycloakMiddleware, tokenVerifier.ApplicationMiddleware)
 
 	applicationService := applicationAdministration.NewApplicationService(*query, conn, coursePhaseService, coursePhaseParticipationService, studentService, courseParticipationService, fileStorageService, mailingService)
 	applicationAdministration.RegisterRoutes(api, applicationService, tokenVerifier.KeycloakMiddleware, tokenVerifier.ApplicationMiddleware, validationService.CheckCoursePhasePermission)

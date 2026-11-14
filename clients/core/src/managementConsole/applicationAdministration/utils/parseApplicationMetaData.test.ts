@@ -26,6 +26,9 @@ describe('parseApplicationMetaData', () => {
       useCustomScores: false,
       applicationMode: 'apply',
       welcomeText: undefined,
+      profilePictureRequirement: 'off',
+      profilePictureExplanation: '',
+      hideProfilePicturesUntilAccepted: true,
     })
   })
 })

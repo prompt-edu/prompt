@@ -14,12 +14,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// routerForUser authenticates every request as the given user, like core's Keycloak middleware.
-func (suite *ProfilePictureServiceTestSuite) routerForUser(userID string, universityLogin string) *gin.Engine {
-	gin.SetMode(gin.TestMode)
-	router := gin.New()
-	api := router.Group("/api")
-	authMiddleware := func() gin.HandlerFunc {
+func authenticateAs(userID string, universityLogin string) func() gin.HandlerFunc {
+	return func() gin.HandlerFunc {
 		return func(c *gin.Context) {
 			c.Set(keycloakTokenVerifier.CtxUserID, userID)
 			c.Set(keycloakTokenVerifier.CtxUniversityLogin, universityLogin)
@@ -27,8 +23,24 @@ func (suite *ProfilePictureServiceTestSuite) routerForUser(userID string, univer
 			c.Next()
 		}
 	}
-	RegisterRoutes(api, suite.service, authMiddleware)
+}
+
+func rejectUserWithoutRoles() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "User has no roles"})
+	}
+}
+
+func (suite *ProfilePictureServiceTestSuite) newRouter(authMiddleware, applicationMiddleware func() gin.HandlerFunc) *gin.Engine {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	RegisterRoutes(router.Group("/api"), suite.service, authMiddleware, applicationMiddleware)
 	return router
+}
+
+func (suite *ProfilePictureServiceTestSuite) routerForUser(userID string, universityLogin string) *gin.Engine {
+	identify := authenticateAs(userID, universityLogin)
+	return suite.newRouter(identify, identify)
 }
 
 func serveJSON(router *gin.Engine, method, path string, body any) *httptest.ResponseRecorder {
@@ -74,6 +86,29 @@ func (suite *ProfilePictureServiceTestSuite) TestRouter_UploadReadLookupDelete()
 
 	w = serveJSON(router, http.MethodGet, "/api/profile-pictures/me", nil)
 	assert.Equal(suite.T(), http.StatusNotFound, w.Code)
+}
+
+func (suite *ProfilePictureServiceTestSuite) TestRouter_FirstTimeApplicantManagesOwnPicture() {
+	userID := uuid.New()
+	router := suite.newRouter(rejectUserWithoutRoles, authenticateAs(userID.String(), "ap02pli"))
+
+	w := serveJSON(router, http.MethodPost, "/api/profile-pictures/me/presign", nil)
+	require.Equal(suite.T(), http.StatusOK, w.Code)
+	var presigned profilePictureDTO.PresignedUpload
+	require.NoError(suite.T(), json.Unmarshal(w.Body.Bytes(), &presigned))
+	suite.store.put(presigned.StorageKey, pictureContentType, validJPEG)
+
+	w = serveJSON(router, http.MethodPost, "/api/profile-pictures/me/complete", profilePictureDTO.CompleteUpload{StorageKey: presigned.StorageKey})
+	require.Equal(suite.T(), http.StatusOK, w.Code, w.Body.String())
+
+	w = serveJSON(router, http.MethodGet, "/api/profile-pictures/me", nil)
+	assert.Equal(suite.T(), http.StatusOK, w.Code)
+
+	w = serveJSON(router, http.MethodPost, "/api/profile-pictures/lookup", profilePictureDTO.LookupRequest{UserIDs: []uuid.UUID{userID}})
+	assert.Equal(suite.T(), http.StatusUnauthorized, w.Code, "looking up pictures still needs a role")
+
+	w = serveJSON(router, http.MethodDelete, "/api/profile-pictures/me", nil)
+	assert.Equal(suite.T(), http.StatusNoContent, w.Code)
 }
 
 func (suite *ProfilePictureServiceTestSuite) TestRouter_CompleteRejectsInvalidRequests() {

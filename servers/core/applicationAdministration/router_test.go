@@ -29,6 +29,7 @@ import (
 	"github.com/prompt-edu/prompt/servers/core/student"
 	"github.com/prompt-edu/prompt/servers/core/student/studentDTO"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -73,7 +74,7 @@ func (suite *ApplicationAdminRouterTestSuite) SetupSuite() {
 	testMiddleware := func() gin.HandlerFunc {
 		mockAuth := sdkTestUtils.MockAuthMiddlewareWithEmail([]string{"PROMPT_Admin", "ios24245-iPraktikum-Lecturer"}, "existingstudent@example.com", "03711111", "ab12cde")
 		return func(c *gin.Context) {
-			c.Set(keycloakTokenVerifier.CtxUserID, "applicant-user-id")
+			c.Set(keycloakTokenVerifier.CtxUserID, "5f7d6a3e-8e27-4c07-9a58-3c1f3c1e9b21")
 			mockAuth(c)
 		}
 	}
@@ -365,6 +366,20 @@ func (suite *ApplicationAdminRouterTestSuite) TestPostApplicationAuthenticatedEn
 	err = json.Unmarshal(resp.Body.Bytes(), &responseBody)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), "application posted", responseBody["message"])
+}
+
+func (suite *ApplicationAdminRouterTestSuite) TestPostApplicationAuthenticatedEndpoint_RejectsMissingRequiredPicture() {
+	application := applicationDTO.PostApplication{Student: authApplicationWithEmail("existingstudent@example.com").Student}
+	jsonBody, err := json.Marshal(application)
+	require.NoError(suite.T(), err)
+	req := httptest.NewRequest(http.MethodPost, "/api/apply/authenticated/"+phaseWithRequiredPicture.String(), bytes.NewReader(jsonBody))
+	req.Header.Set("Content-Type", "application/json")
+	resp := httptest.NewRecorder()
+
+	suite.router.ServeHTTP(resp, req)
+
+	assert.Equal(suite.T(), http.StatusBadRequest, resp.Code)
+	assert.Contains(suite.T(), resp.Body.String(), "requires a profile picture")
 }
 
 const seededStudentID = "3a774200-39a7-4656-bafb-92b7210a93c1"

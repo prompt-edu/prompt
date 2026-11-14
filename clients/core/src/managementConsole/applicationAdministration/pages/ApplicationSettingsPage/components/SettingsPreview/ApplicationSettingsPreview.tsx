@@ -1,3 +1,4 @@
+import type { ApplicationProfilePictureConfig } from '@core/interfaces/application/openApplicationDetails'
 import { coreApi } from '@core/network/api'
 import { coreKeys } from '@core/network/cache'
 import { ApplicationPreview } from '@core/publicPages/application/pages/ApplicationPreview/ApplicationPreview'
@@ -8,9 +9,13 @@ import type { ApplicationForm } from '../../../../interfaces/form/applicationFor
 
 interface ApplicationSettingsPreviewProps {
   welcomeText?: string
+  profilePicture: ApplicationProfilePictureConfig
 }
 
-export const ApplicationSettingsPreview = ({ welcomeText }: ApplicationSettingsPreviewProps) => {
+export const ApplicationSettingsPreview = ({
+  welcomeText,
+  profilePicture,
+}: ApplicationSettingsPreviewProps) => {
   const { phaseId } = useParams<{ phaseId: string }>()
 
   const {
@@ -43,6 +48,7 @@ export const ApplicationSettingsPreview = ({ welcomeText }: ApplicationSettingsP
       questionsMultiSelect={applicationForm.questionsMultiSelect}
       questionsFileUpload={applicationForm.questionsFileUpload}
       welcomeText={welcomeText}
+      profilePicture={profilePicture}
     />
   )
 }

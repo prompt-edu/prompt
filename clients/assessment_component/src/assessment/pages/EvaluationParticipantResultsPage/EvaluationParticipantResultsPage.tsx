@@ -5,7 +5,9 @@ import {
   CardContent,
   ErrorPage,
   getStudentName,
+  ParticipantNavigation,
   QueryGate,
+  StickyHeader,
 } from '@tumaet/prompt-ui-components'
 import { Printer } from 'lucide-react'
 import { type ReactNode, useMemo } from 'react'
@@ -13,14 +15,17 @@ import { useParams } from 'react-router-dom'
 import { AssessmentType } from '../../interfaces/assessmentType'
 import { assessmentApi } from '../../network/api'
 import { assessmentKeys } from '../../network/cache'
-import { EvaluationHeader } from '../components/EvaluationHeader'
+import { ScoreBadges } from '../components/EvaluationScore'
 import { FeedbackItemDisplayPanel } from '../components/FeedbackItemDisplayPanel/FeedbackItemDisplayPanel'
+import { ParticipantProfile } from '../components/ParticipantProfile'
 import { PrintReport } from '../components/PrintReport/PrintReport'
 import { useGetAllTeams } from '../hooks/useGetAllTeams'
 import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
 import { useGetCoursePhaseParticipations } from '../hooks/useGetCoursePhaseParticipations'
 import { useGetEvaluationCategoriesWithCompetencies } from '../hooks/useGetEvaluationCategoriesWithCompetencies'
+import { useParticipantNavigation } from '../hooks/useParticipantNavigation'
 import { CategoryEvaluation } from '../TutorEvaluationResultsPage/components/CategoryEvaluation'
+import { getScoreLevelsFromEvaluations } from '../utils/getScoreLevelsFromEvaluations'
 import { getTeamMemberName } from '../utils/getTeamMemberName'
 import { printPage } from '../utils/printPage'
 
@@ -38,6 +43,7 @@ export const EvaluationParticipantResultsPage = ({
 
   const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
   const { data: participations } = useGetCoursePhaseParticipations()
+  const { orderedParticipations, navigateToParticipation } = useParticipantNavigation()
   const { data: teams } = useGetAllTeams()
   const { data: selfEvaluationCategories } = useGetEvaluationCategoriesWithCompetencies(
     AssessmentType.SELF,
@@ -69,6 +75,10 @@ export const EvaluationParticipantResultsPage = ({
   })
 
   const evaluations = evaluationsQuery.data ?? []
+  const score = useMemo(
+    () => getScoreLevelsFromEvaluations(evaluations, assessmentType)[0],
+    [evaluations, assessmentType],
+  )
   const feedbackItems = feedbackItemsQuery.data ?? []
 
   const participant = useMemo(
@@ -142,9 +152,25 @@ export const EvaluationParticipantResultsPage = ({
         return (
           <>
             <div className='space-y-4 print:hidden'>
-              <EvaluationHeader>
-                {pageTitle} for {studentName}
-              </EvaluationHeader>
+              <StickyHeader
+                floating
+                expandedContent={
+                  <ParticipantProfile participant={participant}>
+                    <ScoreBadges score={score} />
+                  </ParticipantProfile>
+                }
+              >
+                {(docked) => (
+                  <ParticipantNavigation
+                    participants={orderedParticipations}
+                    currentId={courseParticipationID}
+                    onNavigate={navigateToParticipation}
+                    compact={docked}
+                  >
+                    <ScoreBadges score={score} />
+                  </ParticipantNavigation>
+                )}
+              </StickyHeader>
 
               {categories.length === 0 ? (
                 <Card>

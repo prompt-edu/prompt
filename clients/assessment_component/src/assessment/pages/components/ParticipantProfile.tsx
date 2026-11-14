@@ -6,23 +6,17 @@ import {
   ProfilePicture,
 } from '@tumaet/prompt-ui-components'
 import { Book, Calendar, GraduationCap } from 'lucide-react'
+import type { ReactNode } from 'react'
 
-import type { AssessmentParticipationWithStudent } from '../../../interfaces/assessmentParticipationWithStudent'
-import type { StudentAssessment } from '../../../interfaces/studentAssessment'
+import type { AssessmentParticipationWithStudent } from '../../interfaces/assessmentParticipationWithStudent'
 
-import { StudentAssessmentBadges } from './StudentAssessmentBadges'
-
-interface AssessmentProfileProps {
+interface ParticipantProfileProps {
   participant: AssessmentParticipationWithStudent
-  studentAssessment: StudentAssessment
-  remainingAssessments: number
+  /** Badges next to the name. */
+  children?: ReactNode
 }
 
-export const AssessmentProfile = ({
-  participant,
-  studentAssessment,
-  remainingAssessments,
-}: AssessmentProfileProps) => {
+export const ParticipantProfile = ({ participant, children }: ParticipantProfileProps) => {
   return (
     <Card>
       <CardHeader>
@@ -38,10 +32,7 @@ export const AssessmentProfile = ({
             {getStudentName(participant.student)}
           </h1>
 
-          <StudentAssessmentBadges
-            studentAssessment={studentAssessment}
-            remainingAssessments={remainingAssessments}
-          />
+          {children}
         </div>
       </CardHeader>
 

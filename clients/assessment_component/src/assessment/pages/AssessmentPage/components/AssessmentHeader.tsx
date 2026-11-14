@@ -1,14 +1,10 @@
-import { Button, cn, getStudentName } from '@tumaet/prompt-ui-components'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { getStatusBadge, ParticipantNavigation, StickyHeader } from '@tumaet/prompt-ui-components'
 
 import type { AssessmentParticipationWithStudent } from '../../../interfaces/assessmentParticipationWithStudent'
 import type { StudentAssessment } from '../../../interfaces/studentAssessment'
-import { StickyHeader } from '../../components/StickyHeader'
+import { ParticipantProfile } from '../../components/ParticipantProfile'
+import { useParticipantNavigation } from '../../hooks/useParticipantNavigation'
 
-import { useParticipantNavigation } from '../hooks/useParticipantNavigation'
-
-import { AssessmentProfile } from './AssessmentProfile'
 import { StudentAssessmentBadges } from './StudentAssessmentBadges'
 
 interface AssessmentHeaderProps {
@@ -22,69 +18,42 @@ export const AssessmentHeader = ({
   studentAssessment,
   remainingAssessments,
 }: AssessmentHeaderProps) => {
-  const navigate = useNavigate()
-  const { prevMember, nextMember } = useParticipantNavigation()
-
-  const studentName = getStudentName(participant.student)
+  const { orderedParticipations, navigateToParticipation } = useParticipantNavigation()
 
   return (
     <StickyHeader
+      floating
       expandedContent={
-        <AssessmentProfile
-          participant={participant}
-          studentAssessment={studentAssessment}
-          remainingAssessments={remainingAssessments}
-        />
+        <ParticipantProfile participant={participant}>
+          {getStatusBadge(participant.passStatus)}
+          <StudentAssessmentBadges
+            studentAssessment={studentAssessment}
+            remainingAssessments={remainingAssessments}
+          />
+        </ParticipantProfile>
       }
     >
       {(docked) => (
-        <div className='flex items-center gap-2'>
-          {prevMember && (
-            <Button
-              variant='outline'
-              className='h-10 shrink-0'
-              aria-label={`Navigate to previous participant: ${getStudentName(prevMember)}`}
-              onClick={() => navigate(`../${prevMember.id}`, { relative: 'path' })}
-            >
-              <ChevronLeft className='h-4 w-4' />
-              <span className='hidden md:inline'>{getStudentName(prevMember)}</span>
-            </Button>
-          )}
-
-          {/* Name + badges. Sits between the buttons only while docked; fades
-              in as the full card below collapses, so it appears to move up. */}
-          <div
-            className={cn(
-              'flex min-w-0 flex-1 items-center justify-center gap-2 px-2 transition-opacity duration-300',
-              docked ? 'opacity-100' : 'pointer-events-none opacity-0',
-            )}
-          >
-            <span className='truncate font-semibold'>{studentName}</span>
-            <StudentAssessmentBadges
-              studentAssessment={studentAssessment}
-              remainingAssessments={remainingAssessments}
-              variant='compact'
-              className='flex-nowrap xl:hidden'
-            />
-            <StudentAssessmentBadges
-              studentAssessment={studentAssessment}
-              remainingAssessments={remainingAssessments}
-              className='flex-nowrap hidden xl:flex'
-            />
-          </div>
-
-          {nextMember && (
-            <Button
-              variant='outline'
-              className='h-10 shrink-0'
-              aria-label={`Navigate to next participant: ${getStudentName(nextMember)}`}
-              onClick={() => navigate(`../${nextMember.id}`, { relative: 'path' })}
-            >
-              <span className='hidden md:inline'>{getStudentName(nextMember)}</span>
-              <ChevronRight className='h-4 w-4' />
-            </Button>
-          )}
-        </div>
+        <ParticipantNavigation
+          participants={orderedParticipations}
+          currentId={participant.courseParticipationID}
+          onNavigate={navigateToParticipation}
+          colorByStatus
+          compact={docked}
+        >
+          {getStatusBadge(participant.passStatus)}
+          <StudentAssessmentBadges
+            studentAssessment={studentAssessment}
+            remainingAssessments={remainingAssessments}
+            variant='compact'
+            className='flex-nowrap xl:hidden'
+          />
+          <StudentAssessmentBadges
+            studentAssessment={studentAssessment}
+            remainingAssessments={remainingAssessments}
+            className='flex-nowrap hidden xl:flex'
+          />
+        </ParticipantNavigation>
       )}
     </StickyHeader>
   )

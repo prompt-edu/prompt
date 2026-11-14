@@ -23,6 +23,7 @@ import {
 import { PeerEvaluationCompletionBadge } from '../components/badges'
 import { AssessmentDiagram } from '../components/diagrams/AssessmentDiagram'
 import { ScoreLevelDistributionDiagram } from '../components/diagrams/ScoreLevelDistributionDiagram'
+import { createScoreColumns } from '../components/EvaluationScore'
 import { PrintReport } from '../components/PrintReport/PrintReport'
 import { useGetAllEvaluationCompletions } from '../hooks/useGetAllEvaluationCompletions'
 import { useGetAllEvaluations } from '../hooks/useGetAllEvaluations'
@@ -30,6 +31,7 @@ import { useGetAllTeams } from '../hooks/useGetAllTeams'
 import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
 import { useGetCoursePhaseParticipations } from '../hooks/useGetCoursePhaseParticipations'
 import { useGetEvaluationCategoriesWithCompetencies } from '../hooks/useGetEvaluationCategoriesWithCompetencies'
+import type { ParticipantDetailLocationState } from '../hooks/useParticipantNavigation'
 import { getScoreLevelsFromEvaluations } from '../utils/getScoreLevelsFromEvaluations'
 import { getTeamMemberName } from '../utils/getTeamMemberName'
 import { printPage } from '../utils/printPage'
@@ -209,8 +211,9 @@ export const EvaluationParticipantsOverviewPage = ({
         ),
         enableSorting: true,
       },
+      ...createScoreColumns<EvaluationParticipantRow>(typedScoreLevels),
     ],
-    [],
+    [typedScoreLevels],
   )
 
   return (
@@ -247,9 +250,13 @@ export const EvaluationParticipantsOverviewPage = ({
         <PromptTable<EvaluationParticipantRow>
           data={data}
           columns={columns}
-          onRowClick={(row) => {
+          onRowClick={(row, orderedRows) => {
             if (isEnabled) {
-              navigate(`${path}/${row.id}`)
+              navigate(`${path}/${row.id}`, {
+                state: {
+                  orderedParticipationIds: orderedRows.map((orderedRow) => orderedRow.id),
+                } satisfies ParticipantDetailLocationState,
+              })
             }
           }}
         />

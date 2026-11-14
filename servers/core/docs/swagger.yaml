@@ -1598,6 +1598,30 @@ definitions:
       username:
         type: string
     type: object
+  keycloakRealmDTO.OrgMember:
+    properties:
+      email:
+        type: string
+      firstName:
+        type: string
+      keycloakUserID:
+        type: string
+      lastName:
+        type: string
+      role:
+        description: Role is the user's org role, Admin or Member.
+        enum:
+        - Admin
+        - Member
+        type: string
+      universityLogin:
+        description: |-
+          UniversityLogin is the user's university_login attribute, the login phases match tutors
+          against. It is empty when the user has none.
+        type: string
+      username:
+        type: string
+    type: object
   keycloakRealmDTO.StaffMember:
     properties:
       email:
@@ -1728,6 +1752,51 @@ definitions:
         type: string
         x-nullable: true
     type: object
+  orgDTO.OwnOrg:
+    properties:
+      contactEmail:
+        type: string
+        x-nullable: true
+      createdAt:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      parentOrgID:
+        type: string
+        x-nullable: true
+      role:
+        description: Role is the caller's org role, Admin or Member.
+        enum:
+        - Admin
+        - Member
+        type: string
+      school:
+        type: string
+        x-nullable: true
+      slug:
+        type: string
+      university:
+        type: string
+        x-nullable: true
+      website:
+        type: string
+        x-nullable: true
+    type: object
+  orgDTO.SetOrgMember:
+    properties:
+      role:
+        enum:
+        - Admin
+        - Member
+        type: string
+      universityLogin:
+        type: string
+    required:
+    - role
+    - universityLogin
+    type: object
   orgDTO.UpdateOrg:
     properties:
       contactEmail:
@@ -1742,6 +1811,16 @@ definitions:
         type: string
     required:
     - name
+    type: object
+  orgDTO.UpdateOrgMemberRole:
+    properties:
+      role:
+        enum:
+        - Admin
+        - Member
+        type: string
+    required:
+    - role
     type: object
   orgDTO.UpdateOrgParent:
     properties:
@@ -5634,6 +5713,178 @@ paths:
       summary: Update an org
       tags:
       - orgs
+  /orgs/{orgID}/members:
+    get:
+      description: Get the users in the org's Admin and Member groups, Admins first.
+        A user in both groups is listed once, as an Admin.
+      parameters:
+      - description: Org UUID
+        in: path
+        name: orgID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/keycloakRealmDTO.OrgMember'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get the members of an org
+      tags:
+      - orgs
+    put:
+      consumes:
+      - application/json
+      description: Give the user with the university login the Admin or Member role
+        of the org, adding them to the org if they are not a member yet. A user holds
+        one org role at a time. Callers cannot change their own membership.
+      parameters:
+      - description: Org UUID
+        in: path
+        name: orgID
+        required: true
+        type: string
+      - description: University login and org role
+        in: body
+        name: member
+        required: true
+        schema:
+          $ref: '#/definitions/orgDTO.SetOrgMember'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/keycloakRealmDTO.OrgMember'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Set the role of an org member
+      tags:
+      - orgs
+  /orgs/{orgID}/members/{userID}:
+    delete:
+      description: Take the user out of the org's Admin and Member groups. Removing
+        a user who is not a member changes nothing. Callers cannot remove themselves.
+      parameters:
+      - description: Org UUID
+        in: path
+        name: orgID
+        required: true
+        type: string
+      - description: Keycloak user ID
+        in: path
+        name: userID
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Remove a member from an org
+      tags:
+      - orgs
+    put:
+      consumes:
+      - application/json
+      description: Give the user with the Keycloak ID the Admin or Member role of
+        the org, adding them to the org if they are not a member yet. A user holds
+        one org role at a time. Callers cannot change their own membership.
+      parameters:
+      - description: Org UUID
+        in: path
+        name: orgID
+        required: true
+        type: string
+      - description: Keycloak user ID
+        in: path
+        name: userID
+        required: true
+        type: string
+      - description: Org role
+        in: body
+        name: role
+        required: true
+        schema:
+          $ref: '#/definitions/orgDTO.UpdateOrgMemberRole'
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Change the role of an org member
+      tags:
+      - orgs
   /orgs/{orgID}/parent:
     put:
       consumes:
@@ -5674,6 +5925,28 @@ paths:
       security:
       - BearerAuth: []
       summary: Move an org
+      tags:
+      - orgs
+  /orgs/self:
+    get:
+      description: Get the orgs whose Admin or Member role the caller's token holds,
+        each with the caller's role in it. A new role shows only after a token refresh.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/orgDTO.OwnOrg'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get the caller's orgs
       tags:
       - orgs
   /privacy/admin/data-deletions:

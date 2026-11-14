@@ -45,7 +45,8 @@ func (suite *OrgHierarchyTestSuite) SetupSuite() {
 	noKeycloakDelete := func(context.Context, string) (orgMembers, error) { return nil, nil }
 	noKeycloakArtifacts := func(context.Context, string) (bool, error) { return false, nil }
 	noKeycloakMembers := func(context.Context, string, orgMembers) error { return nil }
-	suite.service = NewOrgService(*testDB.Queries, testDB.Conn, noKeycloak, noKeycloakDelete, noKeycloakArtifacts, noKeycloakMembers)
+	directory := newFakeMemberDirectory()
+	suite.service = NewOrgService(*testDB.Queries, testDB.Conn, noKeycloak, noKeycloakDelete, noKeycloakArtifacts, noKeycloakMembers, directory, directory)
 
 	_, err = suite.conn.Exec(suite.ctx, `
 		INSERT INTO org (id, parent_org_id, name, slug)

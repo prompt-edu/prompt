@@ -166,6 +166,40 @@ func (q *Queries) GetOrgIDBySlug(ctx context.Context, slug string) (uuid.UUID, e
 	return id, err
 }
 
+const getOrgsBySlugs = `-- name: GetOrgsBySlugs :many
+SELECT id, parent_org_id, name, slug, school, university, website, contact_email, created_at FROM org WHERE slug = ANY($1::text[]) ORDER BY name ASC, slug ASC
+`
+
+func (q *Queries) GetOrgsBySlugs(ctx context.Context, slugs []string) ([]Org, error) {
+	rows, err := q.db.Query(ctx, getOrgsBySlugs, slugs)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Org
+	for rows.Next() {
+		var i Org
+		if err := rows.Scan(
+			&i.ID,
+			&i.ParentOrgID,
+			&i.Name,
+			&i.Slug,
+			&i.School,
+			&i.University,
+			&i.Website,
+			&i.ContactEmail,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const lockOrgHierarchy = `-- name: LockOrgHierarchy :exec
 SELECT pg_advisory_xact_lock(hashtext('org_hierarchy'))
 `

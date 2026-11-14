@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"path"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -24,11 +25,23 @@ type fakeKeycloak struct {
 	mu              sync.Mutex
 	groupIDs        map[string]string   // group path → group ID
 	members         map[string][]string // group ID → user IDs
+	users           []gocloak.User      // the realm's users, returned with their attributes
 	loginFails      bool
 	membersFail     bool
 	usersFailingAdd map[string]bool
+	unknownUsers    map[string]bool // user IDs that Keycloak answers with 404
 	deleted         []string
 	added           []string
+	writeLog        []string // every write in order, as "PUT <path>" or "DELETE <path>"
+}
+
+func (f *fakeKeycloak) user(userID string) gocloak.User {
+	for _, user := range f.users {
+		if *user.ID == userID {
+			return user
+		}
+	}
+	return gocloak.User{ID: gocloak.StringP(userID)}
 }
 
 func (f *fakeKeycloak) start(t *testing.T) *KeycloakRealmService {
@@ -63,22 +76,55 @@ func (f *fakeKeycloak) start(t *testing.T) *KeycloakRealmService {
 		pageSize, _ := strconv.Atoi(r.URL.Query().Get("max"))
 		page := []gocloak.User{}
 		for _, userID := range all[min(first, len(all)):min(first+pageSize, len(all))] {
-			page = append(page, gocloak.User{ID: gocloak.StringP(userID)})
+			page = append(page, f.user(userID))
 		}
 		writeJSON(w, page)
 	})
+	// Like Keycloak, the search matches substrings unless exact=true is passed.
+	mux.HandleFunc("GET /admin/realms/prompt/users", func(w http.ResponseWriter, r *http.Request) {
+		query := r.URL.Query()
+		found := []gocloak.User{}
+		for _, user := range f.users {
+			if attribute, value, ok := strings.Cut(query.Get("q"), ":"); ok {
+				if slices.ContainsFunc(user.Attributes[attribute], func(v string) bool { return strings.Contains(v, value) }) {
+					found = append(found, user)
+				}
+				continue
+			}
+			username := query.Get("username")
+			if username != "" && (*user.Username == username || (query.Get("exact") != "true" && strings.Contains(*user.Username, username))) {
+				found = append(found, user)
+			}
+		}
+		writeJSON(w, found)
+	})
 	mux.HandleFunc("DELETE /admin/realms/prompt/", func(w http.ResponseWriter, r *http.Request) {
+		resource := strings.TrimPrefix(r.URL.Path, "/admin/realms/prompt/")
 		f.mu.Lock()
-		f.deleted = append(f.deleted, strings.TrimPrefix(r.URL.Path, "/admin/realms/prompt/"))
+		f.deleted = append(f.deleted, resource)
+		f.writeLog = append(f.writeLog, "DELETE "+resource)
 		f.mu.Unlock()
+		w.WriteHeader(http.StatusNoContent)
+	})
+	mux.HandleFunc("DELETE /admin/realms/prompt/users/{user}/groups/{group}", func(w http.ResponseWriter, r *http.Request) {
+		resource := strings.TrimPrefix(r.URL.Path, "/admin/realms/prompt/")
+		f.mu.Lock()
+		f.deleted = append(f.deleted, resource)
+		f.writeLog = append(f.writeLog, "DELETE "+resource)
+		f.mu.Unlock()
+		if f.unknownUsers[r.PathValue("user")] {
+			http.Error(w, `{"error":"User not found"}`, http.StatusNotFound)
+			return
+		}
 		w.WriteHeader(http.StatusNoContent)
 	})
 	mux.HandleFunc("PUT /admin/realms/prompt/users/{user}/groups/{group}", func(w http.ResponseWriter, r *http.Request) {
 		userID := r.PathValue("user")
 		f.mu.Lock()
 		f.added = append(f.added, userID+" -> "+r.PathValue("group"))
+		f.writeLog = append(f.writeLog, "PUT "+strings.TrimPrefix(r.URL.Path, "/admin/realms/prompt/"))
 		f.mu.Unlock()
-		if f.usersFailingAdd[userID] {
+		if f.usersFailingAdd[userID] || f.unknownUsers[userID] {
 			http.Error(w, `{"error":"User not found"}`, http.StatusNotFound)
 			return
 		}

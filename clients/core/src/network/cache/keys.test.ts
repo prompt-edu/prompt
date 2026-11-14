@@ -148,6 +148,13 @@ describe('coreKeys', () => {
   it('puts each org under the org list, so one invalidation reaches both', () => {
     expect(coreKeys.orgs.all()).toEqual(['orgs'])
     expect(coreKeys.orgs.byId('org-1')).toEqual(['orgs', 'org-1'])
+    expect(coreKeys.orgs.own(['org-ase-Admin'])).toEqual(['orgs', 'own', ['org-ase-Admin']])
+    expect(coreKeys.orgs.members('org-1')).toEqual(['orgs', 'org-1', 'members'])
+  })
+
+  it('never gives the own orgs the key of an org, whatever id the URL holds', () => {
+    expect(coreKeys.orgs.own([])).not.toEqual(coreKeys.orgs.byId('own'))
+    expect(coreKeys.orgs.own([])).not.toEqual(coreKeys.orgs.members('own'))
   })
 
   it('builds the privacy keys, with the resource folded into the second element', () => {

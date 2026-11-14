@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/Nerzal/gocloak/v14"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 	log "github.com/sirupsen/logrus"
 )
@@ -70,22 +69,17 @@ func (s *KeycloakRealmService) orgMemberIDs(ctx context.Context, accessToken, or
 }
 
 func (s *KeycloakRealmService) groupMemberIDs(ctx context.Context, accessToken, groupID string) ([]string, error) {
+	users, err := s.groupMembers(ctx, accessToken, groupID)
+	if err != nil {
+		return nil, err
+	}
 	var userIDs []string
-	for first := 0; ; first += groupMembersPageSize {
-		pageSize := groupMembersPageSize
-		page, err := s.client.GetGroupMembers(ctx, accessToken, s.Realm, groupID, gocloak.GetGroupsParams{First: &first, Max: &pageSize})
-		if err != nil {
-			return nil, err
-		}
-		for _, user := range page {
-			if user.ID != nil {
-				userIDs = append(userIDs, *user.ID)
-			}
-		}
-		if len(page) < groupMembersPageSize {
-			return userIDs, nil
+	for _, user := range users {
+		if user.ID != nil {
+			userIDs = append(userIDs, *user.ID)
 		}
 	}
+	return userIDs, nil
 }
 
 // AddOrgMembers puts users back into the org's role groups, keyed by role as DeleteOrgGroupsAndRoles

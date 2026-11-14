@@ -56,7 +56,12 @@ export const Breadcrumbs: React.FC = () => {
     queryFn: () => coreApi.coursePhases.participations(currentPhaseId ?? ''),
     enabled: !!currentPhaseId && hasParticipantSegment,
   })
-  const currentOrgId = segments[1] === 'admin' && segments[2] === 'orgs' ? segments[3] : undefined
+  const currentOrgId =
+    segments[1] === 'admin' && segments[2] === 'orgs'
+      ? segments[3]
+      : segments[1] === 'org'
+        ? segments[2]
+        : undefined
   const { data: currentOrg } = useOrg(currentOrgId)
 
   const { tableSearch } = (location.state as TableReturnState | null) ?? {}
@@ -109,6 +114,11 @@ export const Breadcrumbs: React.FC = () => {
             path: `/management/admin/orgs/${pathSegments[3]}`,
           })
         }
+      } else if (pathSegments[1] === 'org' && pathSegments.length > 2) {
+        breadcrumbs.push({
+          title: currentOrg?.name ?? 'Org',
+          path: `/management/org/${pathSegments[2]}`,
+        })
       } else if (pathSegments[1] === 'course' && pathSegments.length >= 3) {
         const courseId = pathSegments[2]
         const course = courses.find((c) => c.id === courseId)

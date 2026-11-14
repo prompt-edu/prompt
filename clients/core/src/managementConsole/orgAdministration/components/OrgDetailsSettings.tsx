@@ -16,6 +16,7 @@ import { OrgDetailsFields } from './OrgDetailsFields'
 
 interface OrgDetailsSettingsProps {
   org: Org
+  readOnly?: boolean
 }
 
 const toDetails = (org: Org): UpdateOrg => ({
@@ -26,16 +27,24 @@ const toDetails = (org: Org): UpdateOrg => ({
   contactEmail: org.contactEmail ?? '',
 })
 
-export const OrgDetailsSettings = ({ org }: OrgDetailsSettingsProps) => {
+const differ = (a: UpdateOrg, b: UpdateOrg): boolean =>
+  (Object.keys(a) as (keyof UpdateOrg)[]).some((field) => a[field] !== b[field])
+
+export const OrgDetailsSettings = ({ org, readOnly = false }: OrgDetailsSettingsProps) => {
   const updateOrg = useUpdateOrg()
-  const [details, setDetails] = useState(() => toDetails(org))
+  const saved = toDetails(org)
+  const [details, setDetails] = useState(saved)
+  // The org can change while the card is shown: a cached org renders first, and its refetch may bring
+  // another Admin's edits. The fields then show the new values, so a save never writes old ones back.
+  const [shown, setShown] = useState(saved)
+  if (differ(saved, shown)) {
+    setShown(saved)
+    setDetails(saved)
+  }
 
   const values = trimOrgDetails(details)
   const errors = validateOrgDetails(values)
-  const saved = toDetails(org)
-  const isDirty = (Object.keys(saved) as (keyof UpdateOrg)[]).some(
-    (field) => values[field] !== saved[field],
-  )
+  const isDirty = differ(saved, values)
   const canSave = isDirty && Object.keys(errors).length === 0 && !updateOrg.isPending
 
   return (
@@ -43,7 +52,9 @@ export const OrgDetailsSettings = ({ org }: OrgDetailsSettingsProps) => {
       <CardHeader>
         <CardTitle>Details</CardTitle>
         <CardDescription>
-          The org&apos;s name and contact information. Leaving an optional field empty clears it.
+          {readOnly
+            ? "The org's name and contact information. Admins of the org can change them."
+            : "The org's name and contact information. Leaving an optional field empty clears it."}
         </CardDescription>
       </CardHeader>
       <CardContent className='flex flex-col gap-4'>
@@ -59,17 +70,19 @@ export const OrgDetailsSettings = ({ org }: OrgDetailsSettingsProps) => {
           idPrefix='org'
           values={details}
           errors={errors}
-          disabled={updateOrg.isPending}
+          disabled={readOnly || updateOrg.isPending}
           onChange={setDetails}
         />
-        <div className='flex justify-end'>
-          <Button
-            disabled={!canSave}
-            onClick={() => updateOrg.mutate({ orgId: org.id, org: values })}
-          >
-            Save
-          </Button>
-        </div>
+        {!readOnly && (
+          <div className='flex justify-end'>
+            <Button
+              disabled={!canSave}
+              onClick={() => updateOrg.mutate({ orgId: org.id, org: values })}
+            >
+              Save
+            </Button>
+          </div>
+        )}
       </CardContent>
     </Card>
   )

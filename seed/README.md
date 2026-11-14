@@ -30,7 +30,7 @@ Full documentation: [`docs/contributor/guide/seeding.md`](../docs/contributor/gu
 
 | File | Database | Owns |
 | --- | --- | --- |
-| `core.sql` | core | courses, students, phases, the graph, participations, application form and answers, data dependency edges, mail campaign |
+| `core.sql` | core | courses, students, phases, the graph, participations, application form and answers, data dependency edges, mail campaign, the demo org |
 | `interview.sql` | interview | slots, assignments, reviews |
 | `team_allocation.sql` | team_allocation | skills, teams, survey, responses, allocation, tutors |
 | `self_team_allocation.sql` | self_team_allocation | teams, timeframe, assignments |
@@ -52,6 +52,7 @@ across databases. `scripts/seed-check.sh` knows the core-owned prefixes.
 | Prefix | What |
 | --- | --- |
 | `c0000001…` / `c0000002…` / `c0000003…` | courses `iPraktikumFull` / `iPraktikumDemo` / `iPraktikumWelcome` |
+| `7a000001…` | the demo org `demo-chair`, whose Keycloak groups and users are in the realm imports |
 | `d7307be2…`, `e12ffe63…`, `be780b32…` | the e2e fixture courses |
 | `f00000NN…` | demo course phases (1 Application … 9 Example) |
 | `cd0000NN…` | demo course participations |

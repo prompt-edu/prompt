@@ -35,24 +35,42 @@ export class TeamAllocationPage {
     await expect(this.page.getByText(/of \d+ checks complete/)).toBeVisible({ timeout: 15_000 })
   }
 
-  async expectLaunchDialogChecksData() {
+  launchDialog(): Locator {
+    return this.page.getByRole('dialog', { name: 'Launch TEASE' })
+  }
+
+  // Expects both launch warnings: the phase has no previous phase data and no survey submission.
+  async expectLaunchDialogWarnings() {
     await this.page.getByRole('button', { name: 'Launch Tease to Matchmake' }).click()
-    const dialog = this.page.getByRole('dialog', { name: 'Launch TEASE' })
+    const dialog = this.launchDialog()
     await expect(dialog).toBeVisible()
     const launch = dialog.getByRole('link', { name: /^Launch TEASE/ })
     await expect(launch).toHaveAttribute('target', '_blank')
     await expect(launch).toHaveAttribute('href', /\/tease\?coursePhaseId=/)
-    await expect(dialog.getByText('Checking the student data...')).toBeHidden({ timeout: 15_000 })
-    await dialog.getByRole('button', { name: 'Cancel' }).click()
-    await expect(dialog).toBeHidden()
+    await expect(dialog.getByText(/^Data from previous phases is missing:/)).toBeVisible({
+      timeout: 15_000,
+    })
+    await expect(dialog.getByRole('link', { name: 'Open the settings' })).toHaveAttribute(
+      'href',
+      /\/settings$/,
+    )
+    await expect(dialog.getByText(/students have not submitted the survey/)).toBeVisible()
+    await expect(launch).toHaveText(/Launch TEASE anyway/)
   }
 
-  async expectParticipantSurveyColumn() {
+  async followNotSubmittedLink() {
+    await this.launchDialog().getByRole('link', { name: 'Show these students' }).click()
+    await expect(this.page).toHaveURL(/\/participants\?filters=/)
+  }
+
+  async expectOnlyNotSubmittedParticipants(lastName: string) {
     const table = this.page.locator('#table-view')
     await expect(table.getByRole('columnheader', { name: 'Survey' })).toBeVisible({
       timeout: 15_000,
     })
-    await expect(table.getByText(/^(Submitted|Not submitted)$/).first()).toBeVisible()
+    const row = table.getByRole('row').filter({ hasText: lastName })
+    await expect(row.getByText('Not submitted', { exact: true })).toBeVisible()
+    await expect(table.getByText('Submitted', { exact: true })).toHaveCount(0)
   }
 
   async createTeam(name: string) {

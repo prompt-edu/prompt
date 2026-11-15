@@ -60,12 +60,15 @@ test.describe('team allocation: lecturer journey', () => {
     await phase.goto(SEEDED_COURSES.fullCourse.id, PHASE_ID, '/allocations')
     await phase.expectAllocationsLoaded()
     await phase.expectAllocatedMember(TEAM_NAME, `${stan.firstName} ${stan.lastName}`)
-    await phase.expectLaunchDialogChecksData()
+    await phase.expectLaunchDialogWarnings()
 
-    // ...and the participants table shows Stan's allocated team and the survey status.
+    // ...the survey warning links to the participants filtered to "Not submitted"...
+    await phase.followNotSubmittedLink()
+    await phase.expectOnlyNotSubmittedParticipants(stan.lastName)
+
+    // ...and the participants table shows Stan's allocated team.
     await phase.goto(SEEDED_COURSES.fullCourse.id, PHASE_ID, '/participants')
     await phase.expectParticipantAllocatedTeam(stan.lastName, TEAM_NAME)
-    await phase.expectParticipantSurveyColumn()
 
     // ...and the allocation is readable through the API.
     const api = await apiContextFor('course-lecturer')

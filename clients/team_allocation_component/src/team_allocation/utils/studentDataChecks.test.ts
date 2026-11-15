@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { Device } from '../interfaces/tease/device'
 import { Gender } from '../interfaces/tease/gender'
 import { LanguageProficiency } from '../interfaces/tease/languageProficiency'
-import { SkillProficiency } from '../interfaces/tease/skillProficiency'
+import { SkillProficiency, UNKNOWN_SKILL_PROFICIENCY } from '../interfaces/tease/skillProficiency'
 import type { TeaseStudent } from '../interfaces/tease/student'
 import { getLaunchWarnings, runStudentDataChecks } from './studentDataChecks'
 import {
@@ -13,8 +13,7 @@ import {
   SURVEY_SUBMITTED,
 } from './surveyStatus'
 
-const comment = { author: 'Tutor', date: '2026-01-01', description: '', text: 'Good' }
-
+// Shaped like the GET /tease/course_phase/:id/students response, which never fills the comments.
 const completeStudent = (overrides: Partial<TeaseStudent> = {}): TeaseStudent => ({
   id: 'student-1',
   firstName: 'Ada',
@@ -34,8 +33,8 @@ const completeStudent = (overrides: Partial<TeaseStudent> = {}): TeaseStudent =>
   ],
   projectPreferences: [{ projectId: 'team-1', priority: 0 }],
   skills: [],
-  studentComments: [comment],
-  tutorComments: [comment],
+  studentComments: [],
+  tutorComments: [],
   ...overrides,
 })
 
@@ -75,6 +74,23 @@ describe('runStudentDataChecks', () => {
     expect(devices?.problemDescription).toBe('1 of 2 students have provided devices information.')
   })
 
+  it('does not check the comments, which the server never sends', () => {
+    const labels = runStudentDataChecks([completeStudent()]).map((check) => check.label)
+    expect(labels).not.toContain('Tutor Comments')
+    expect(labels).not.toContain('Student Comments')
+  })
+
+  it('counts the unknown score level from the server as missing', () => {
+    const checks = runStudentDataChecks([
+      completeStudent({
+        introCourseProficiency: UNKNOWN_SKILL_PROFICIENCY,
+        introSelfEvaluation: UNKNOWN_SKILL_PROFICIENCY,
+      }),
+    ])
+    expect(checks.find((check) => check.label === 'Score Level')?.isValid).toBe(false)
+    expect(checks.find((check) => check.label === 'Self Evaluation')?.isValid).toBe(false)
+  })
+
   it('does not round a nearly complete check up to valid', () => {
     const students = Array.from({ length: 300 }, (_, i) => completeStudent({ id: `student-${i}` }))
     students[0] = completeStudent({ id: 'student-0', devices: [] })
@@ -96,9 +112,9 @@ describe('getLaunchWarnings', () => {
   it('lists the incomplete checks and counts the missing survey submissions', () => {
     const warnings = getLaunchWarnings([
       completeStudent(),
-      completeStudent({ id: 'student-2', tutorComments: [], projectPreferences: [] }),
+      completeStudent({ id: 'student-2', devices: [], projectPreferences: [] }),
     ])
-    expect(warnings.incompleteChecks).toEqual(['Tutor Comments'])
+    expect(warnings.incompleteChecks).toEqual(['Devices'])
     expect(warnings.studentsWithoutSurvey).toBe(1)
     expect(warnings.totalStudents).toBe(2)
   })

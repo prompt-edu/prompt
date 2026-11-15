@@ -10,7 +10,6 @@ import {
 import { Loader2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { useCanReadTeaseStudents } from '../../hooks/useCanReadTeaseStudents'
 import type { Skill } from '../../interfaces/skill'
 import type { SurveyTimeframe } from '../../interfaces/timeframe'
 import { teamAllocationKeys } from '../../network/cache'
@@ -26,7 +25,6 @@ import { TeamSettings } from './components/TeamSettings'
 
 export const SurveySettingsPage = () => {
   const { phaseId } = useParams<{ phaseId: string }>()
-  const canReadTeaseStudents = useCanReadTeaseStudents()
 
   const skillsQuery = useQuery<Skill[]>({
     queryKey: teamAllocationKeys.skills(phaseId),
@@ -117,7 +115,7 @@ export const SurveySettingsPage = () => {
           )
         }
       </QueryGate>
-      {canReadTeaseStudents && <PreviousPhaseDataCheck />}
+      <PreviousPhaseDataCheck />
     </>
   )
 }

@@ -16,7 +16,6 @@ import {
 import { AlertCircle } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { useCanReadTeaseStudents } from '../../hooks/useCanReadTeaseStudents'
 import type { Allocation } from '../../interfaces/allocation'
 import type { StudentName } from '../../interfaces/studentNameUpdateRequest'
 import type { TeaseStudent } from '../../interfaces/tease/student'
@@ -31,7 +30,6 @@ import { createSurveyStatusColumn } from './components/SurveyStatusColumn'
 
 export const TeamAllocationParticipantsPage = () => {
   const { phaseId } = useParams<{ phaseId: string }>()
-  const canReadTeaseStudents = useCanReadTeaseStudents()
   const [selectedStudent, setSelectedStudent] = useState<TeaseStudent | null>(null)
 
   const participationsQuery = useGetCoursePhaseParticipants()
@@ -49,13 +47,13 @@ export const TeamAllocationParticipantsPage = () => {
   const teaseStudentsQuery = useQuery<TeaseStudent[]>({
     queryKey: teamAllocationKeys.tease.students(phaseId),
     queryFn: () => getAllTeaseStudents(phaseId ?? ''),
-    enabled: canReadTeaseStudents,
   })
 
   const coursePhaseParticipations = participationsQuery.data
   const teams = teamsQuery.data
   const teamAllocations = teamAllocationsQuery.data
-  const teaseStudents = canReadTeaseStudents ? teaseStudentsQuery.data : undefined
+  // Undefined when the survey data could not be loaded: the table then has no Survey column.
+  const teaseStudents = teaseStudentsQuery.data
 
   const teaseStudentByParticipation = useMemo(
     () => new Map((teaseStudents ?? []).map((student) => [student.id, student])),

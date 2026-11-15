@@ -33,14 +33,17 @@ interface StudentDetailDialogProps {
 export function StudentDetailDialog({ student, open, onOpenChange }: StudentDetailDialogProps) {
   const { phaseId } = useParams<{ phaseId: string }>()
 
+  // Same key as the teams query of the Participants page, so the dialog reuses its data.
   const teamsQuery = useQuery<Team[]>({
-    queryKey: teamAllocationKeys.tease.teams(phaseId),
+    queryKey: teamAllocationKeys.teams(phaseId),
     queryFn: () => getAllTeams(phaseId ?? ''),
+    enabled: open && student !== null,
   })
 
   const skillsQuery = useQuery({
     queryKey: teamAllocationKeys.tease.skills(phaseId),
     queryFn: () => getAllSkills(phaseId ?? ''),
+    enabled: open && student !== null,
   })
 
   const teams = teamsQuery.data
@@ -106,8 +109,8 @@ export function StudentDetailDialog({ student, open, onOpenChange }: StudentDeta
 
                 {student.skills && student.skills.length > 0 ? (
                   <div className='space-y-4'>
-                    {student.skills.map((skill, index) => (
-                      <Card key={index} className='overflow-hidden'>
+                    {student.skills.map((skill) => (
+                      <Card key={skill.id} className='overflow-hidden'>
                         <CardContent className='p-3'>
                           <div className='flex flex-col sm:flex-row sm:items-center gap-2'>
                             <div className='font-medium'>{getSkillNameById(skill.id)}</div>

@@ -128,7 +128,8 @@ export const TEAM_ALLOCATION_TUTOR_SCOPE = {
 // `selfEvaluation` by the self-evaluation spec (Stan participates),
 // `print` by the print spec (Stan participates), `gradeExport` by the grade
 // export spec (Stan participates), and `evaluationOnly` by the evaluation-only
-// spec (Stan participates), which flips assessment_enabled off.
+// spec (Stan participates), which flips assessment_enabled off. `tutorScope`
+// also serves the participant navigation spec, which only reads it.
 export const ASSESSMENT_FIXTURE_PHASES = {
   visibility: 'd0000006-0000-0000-0000-000000000006',
   selfEvaluation: 'd0000007-0000-0000-0000-000000000007',

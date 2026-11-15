@@ -247,6 +247,35 @@ export class AssessmentPage {
     })
   }
 
+  // ── Participant navigation (previous / next on a participant's page) ─────
+
+  // The undocked bar at the top of the page; the docked one only renders after scrolling.
+  participantNavigation(): Locator {
+    return this.page.getByRole('navigation', { name: 'Participant navigation' })
+  }
+
+  // Each button is labeled with the participant it leads to, or only its direction when disabled.
+  previousParticipantButton(): Locator {
+    return this.participantNavigation().getByRole('button', { name: /^Previous participant/ })
+  }
+
+  nextParticipantButton(): Locator {
+    return this.participantNavigation().getByRole('button', { name: /^Next participant/ })
+  }
+
+  // Scrolls back to the top, where the header is expanded. The core shell scrolls the window.
+  async scrollToTop() {
+    await this.page.evaluate(() => window.scrollTo({ top: 0 }))
+  }
+
+  // The participant card's name heading plus the "position / total" between the buttons.
+  async expectOpenedParticipant(fullName: string, position: number, total: number) {
+    await expect(this.page.getByRole('heading', { name: fullName, exact: true })).toBeVisible({
+      timeout: 15_000,
+    })
+    await expect(this.participantNavigation()).toContainText(`${position} / ${total}`)
+  }
+
   // ── Grading (per-participant assessment page) ────────────────────────────
 
   // Each competency renders as a bordered block containing its name and the

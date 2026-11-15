@@ -155,7 +155,7 @@ export const EvaluationParticipantResultsPage = ({
               <StickyHeader
                 floating
                 expandedContent={
-                  <ParticipantProfile participant={participant}>
+                  <ParticipantProfile participant={participant} label={pageTitle}>
                     <ScoreBadges score={score} />
                   </ParticipantProfile>
                 }

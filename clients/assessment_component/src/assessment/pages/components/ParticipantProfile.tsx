@@ -12,14 +12,21 @@ import type { AssessmentParticipationWithStudent } from '../../interfaces/assess
 
 interface ParticipantProfileProps {
   participant: AssessmentParticipationWithStudent
+  /** Names the page above the participant, e.g. "Self Evaluation Results". */
+  label?: string
   /** Badges next to the name. */
   children?: ReactNode
 }
 
-export const ParticipantProfile = ({ participant, children }: ParticipantProfileProps) => {
+export const ParticipantProfile = ({ participant, label, children }: ParticipantProfileProps) => {
   return (
     <Card>
       <CardHeader>
+        {label && (
+          <p className='text-sm font-medium text-muted-foreground text-center sm:text-left'>
+            {label}
+          </p>
+        )}
         <div className='flex flex-wrap items-center gap-2'>
           <ProfilePicture
             courseParticipationId={participant.courseParticipationID}

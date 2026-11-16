@@ -91,8 +91,7 @@ export const EvaluationParticipantResultsPage = ({
 
   const categories =
     assessmentType === AssessmentType.SELF ? selfEvaluationCategories : peerEvaluationCategories
-  const pageTitle =
-    assessmentType === AssessmentType.SELF ? 'Self Evaluation Results' : 'Peer Evaluation Results'
+  const pageLabel = assessmentType === AssessmentType.SELF ? 'Self Evaluation' : 'Peer Evaluation'
 
   const evaluationsByCategory = useMemo(
     () =>
@@ -155,7 +154,7 @@ export const EvaluationParticipantResultsPage = ({
               <StickyHeader
                 floating
                 expandedContent={
-                  <ParticipantProfile participant={participant} label={pageTitle}>
+                  <ParticipantProfile participant={participant} label={pageLabel}>
                     <ScoreBadges score={score} />
                   </ParticipantProfile>
                 }
@@ -219,7 +218,7 @@ export const EvaluationParticipantResultsPage = ({
             </div>
 
             <PrintReport
-              title={`${pageTitle} for ${studentName}`}
+              title={`${pageLabel} Results for ${studentName}`}
               subtitle={teamName}
               meta={
                 evaluatorCount > 1 ? (

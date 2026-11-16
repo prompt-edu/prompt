@@ -12,7 +12,7 @@ import type { AssessmentParticipationWithStudent } from '../../interfaces/assess
 
 interface ParticipantProfileProps {
   participant: AssessmentParticipationWithStudent
-  /** Names the page above the participant, e.g. "Self Evaluation Results". */
+  /** Names the page above the participant, e.g. "Self Evaluation". */
   label?: string
   /** Badges next to the name. */
   children?: ReactNode

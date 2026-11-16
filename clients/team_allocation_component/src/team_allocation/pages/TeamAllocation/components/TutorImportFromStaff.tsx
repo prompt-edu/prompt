@@ -13,6 +13,7 @@ import { TutorSelection } from './TutorSelection'
 interface TutorImportFromStaffProps {
   courseId: string
   teamOptions: { id: string; name: string }[]
+  currentTeams: Record<string, string[]>
   isImporting: boolean
   onImport: (tutors: Tutor[]) => void
 }
@@ -22,10 +23,11 @@ interface TutorImportFromStaffProps {
 export const TutorImportFromStaff = ({
   courseId,
   teamOptions,
+  currentTeams,
   isImporting,
   onImport,
 }: TutorImportFromStaffProps) => {
-  const selection = useTutorSelection()
+  const selection = useTutorSelection(currentTeams)
 
   const {
     data: staff,

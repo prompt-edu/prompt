@@ -1,8 +1,9 @@
-import type { Student } from '@tumaet/prompt-shared-state'
+import type { Student, Team } from '@tumaet/prompt-shared-state'
 import { describe, expect, it } from 'vitest'
 import type { CourseStaffMember } from '../../../interfaces/courseStaff'
 import {
   buildTutorImport,
+  currentTeamsByTutor,
   isSelectableTutor,
   staffMemberToTutorCandidate,
   studentToTutorCandidate,
@@ -68,5 +69,23 @@ describe('tutor import', () => {
         teamIDs: ['team-a', 'team-b'],
       },
     ])
+  })
+
+  it('lists the teams each tutor already leads', () => {
+    const team = (id: string, tutorIDs: string[]) =>
+      ({
+        id,
+        name: id,
+        members: [],
+        tutors: tutorIDs.map((tutorID) => ({ id: tutorID, firstName: '', lastName: '' })),
+      }) as Team
+
+    expect(
+      currentTeamsByTutor([
+        team('lovelace', ['kc-1']),
+        team('turing', ['kc-1', 'st-1']),
+        team('hamilton', []),
+      ]),
+    ).toEqual({ 'kc-1': ['lovelace', 'turing'], 'st-1': ['turing'] })
   })
 })

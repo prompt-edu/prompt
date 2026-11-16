@@ -1,12 +1,17 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import type { Tutor, TutorCandidate } from '../../../interfaces/tutor'
 import { buildTutorImport, isSelectableTutor } from '../utils/tutorImport'
 
 // Selection state shared by every source of the tutor import dialog: who is selected, and which
-// teams each selected person leads.
-export const useTutorSelection = () => {
+// teams each selected person leads. A person starts from the teams they lead today (currentTeams),
+// since an import replaces them.
+export const useTutorSelection = (currentTeams: Record<string, string[]>) => {
   const [selectedTutors, setSelectedTutors] = useState<string[]>([])
-  const [teamAssignments, setTeamAssignments] = useState<Record<string, string[]>>({})
+  const [editedTeams, setEditedTeams] = useState<Record<string, string[]>>({})
+  const teamAssignments = useMemo(
+    () => ({ ...currentTeams, ...editedTeams }),
+    [currentTeams, editedTeams],
+  )
 
   const toggleTutor = useCallback((tutorId: string) => {
     setSelectedTutors((prev) =>
@@ -20,12 +25,12 @@ export const useTutorSelection = () => {
   }, [])
 
   const setTeams = useCallback((tutorId: string, teamIds: string[]) => {
-    setTeamAssignments((prev) => ({ ...prev, [tutorId]: teamIds }))
+    setEditedTeams((prev) => ({ ...prev, [tutorId]: teamIds }))
   }, [])
 
   const reset = useCallback(() => {
     setSelectedTutors([])
-    setTeamAssignments({})
+    setEditedTeams({})
   }, [])
 
   const buildImport = useCallback(

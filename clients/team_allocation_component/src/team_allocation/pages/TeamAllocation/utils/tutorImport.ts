@@ -1,4 +1,4 @@
-import type { Student } from '@tumaet/prompt-shared-state'
+import type { Student, Team } from '@tumaet/prompt-shared-state'
 import type { CourseStaffMember } from '../../../interfaces/courseStaff'
 import type { Tutor, TutorCandidate } from '../../../interfaces/tutor'
 
@@ -35,3 +35,15 @@ export const buildTutorImport = (
       universityLogin: candidate.universityLogin ?? '',
       teamIDs: teamAssignments[candidate.id] ?? [],
     }))
+
+// The teams each person already leads, keyed by the id their tutor rows carry. An import replaces
+// a tutor's teams, so the dialog starts a selected person from these.
+export const currentTeamsByTutor = (teams: Team[]): Record<string, string[]> => {
+  const current: Record<string, string[]> = {}
+  for (const team of teams) {
+    for (const tutor of team.tutors ?? []) {
+      if (tutor.id) current[tutor.id] = [...(current[tutor.id] ?? []), team.id]
+    }
+  }
+  return current
+}

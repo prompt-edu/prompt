@@ -21,12 +21,14 @@ import { TutorSelection } from './TutorSelection'
 
 interface TutorImportFromCourseProps {
   teamOptions: { id: string; name: string }[]
+  currentTeams: Record<string, string[]>
   isImporting: boolean
   onImport: (tutors: Tutor[]) => void
 }
 
 export const TutorImportFromCourse = ({
   teamOptions,
+  currentTeams,
   isImporting,
   onImport,
 }: TutorImportFromCourseProps) => {
@@ -34,7 +36,7 @@ export const TutorImportFromCourse = ({
 
   const [selectedSourceCourse, setSelectedSourceCourse] = useState<string | null>(null)
   const [selectedSourcePhase, setSelectedSourcePhase] = useState<string | null>(null)
-  const selection = useTutorSelection()
+  const selection = useTutorSelection(currentTeams)
 
   const handleCourseChange = (courseID: string) => {
     setSelectedSourceCourse(courseID)

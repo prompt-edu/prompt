@@ -15,12 +15,13 @@ import {
 } from '@tumaet/prompt-ui-components'
 import { isAxiosError } from 'axios'
 import { UserPlus } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import type { Tutor } from '../../../interfaces/tutor'
 import { teamAllocationCache, teamAllocationKeys } from '../../../network/cache'
 import { importTutors } from '../../../network/mutations/importTutors'
 import { getAllTeams } from '../../../network/queries/getAllTeams'
+import { currentTeamsByTutor } from '../utils/tutorImport'
 import { TutorImportFromCourse } from './TutorImportFromCourse'
 import { TutorImportFromStaff } from './TutorImportFromStaff'
 import { TutorSearchStudents } from './TutorSearchStudents'
@@ -84,6 +85,7 @@ export function TutorImportDialog() {
   }
 
   const teamOptions = (fetchedTeams ?? []).map((t) => ({ id: t.id, name: t.name }))
+  const currentTeams = useMemo(() => currentTeamsByTutor(fetchedTeams ?? []), [fetchedTeams])
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -98,7 +100,8 @@ export function TutorImportDialog() {
           <DialogTitle>Import Tutors</DialogTitle>
           <DialogDescription>
             Import tutors from another course phase, from the editors of this course, or search all
-            students to add them directly. A tutor can lead several teams.
+            students to add them directly. A tutor can lead several teams. Importing a tutor
+            replaces the teams they already lead, so each person starts with their current teams.
           </DialogDescription>
         </DialogHeader>
 
@@ -112,6 +115,7 @@ export function TutorImportDialog() {
           <TabsContent value='course'>
             <TutorImportFromCourse
               teamOptions={teamOptions}
+              currentTeams={currentTeams}
               isImporting={isImporting}
               onImport={handleImport}
             />
@@ -121,6 +125,7 @@ export function TutorImportDialog() {
             <TutorImportFromStaff
               courseId={courseId ?? ''}
               teamOptions={teamOptions}
+              currentTeams={currentTeams}
               isImporting={isImporting}
               onImport={handleImport}
             />
@@ -130,6 +135,7 @@ export function TutorImportDialog() {
             <TabsContent value='search'>
               <TutorSearchStudents
                 teamOptions={teamOptions}
+                currentTeams={currentTeams}
                 isImporting={isImporting}
                 onImport={handleImport}
               />

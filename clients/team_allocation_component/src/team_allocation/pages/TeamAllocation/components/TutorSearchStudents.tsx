@@ -12,6 +12,7 @@ import { TutorSelection } from './TutorSelection'
 
 interface TutorSearchStudentsProps {
   teamOptions: { id: string; name: string }[]
+  currentTeams: Record<string, string[]>
   isImporting: boolean
   onImport: (tutors: Tutor[]) => void
 }
@@ -27,12 +28,13 @@ const useDebouncedValue = <T,>(value: T, delayMs = 300): T => {
 
 export const TutorSearchStudents = ({
   teamOptions,
+  currentTeams,
   isImporting,
   onImport,
 }: TutorSearchStudentsProps) => {
   const [query, setQuery] = useState('')
   const debouncedQuery = useDebouncedValue(query, 300)
-  const selection = useTutorSelection()
+  const selection = useTutorSelection(currentTeams)
 
   const trimmedQuery = debouncedQuery.trim()
 

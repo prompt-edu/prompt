@@ -30,8 +30,8 @@ disposable - do not keep work there.
 | Application | yes (initial) | text, multi-select and file-upload questions, answers and scores for 8 applicants |
 | Interview | yes | two questions, four slots, six assignments, six scored reviews |
 | Matching | yes | the pass/fail funnel |
-| Team Allocation | yes | 3 skills, 2 teams, survey responses, a published allocation |
-| Assessment | yes | a rubric with 4 competencies, 6 graded participants, a self-evaluation round |
+| Team Allocation | yes | 3 skills, 2 teams with a tutor each, survey responses, a published allocation |
+| Assessment | yes | a rubric with 4 competencies, 6 graded participants, self, peer and tutor evaluation rounds |
 | Presentation | yes | a team presentation schedule and feedback categories |
 | Certificate | yes | a released Typst template |
 | Self Team Allocation | no | 2 student-formed teams |
@@ -55,7 +55,7 @@ The Keycloak users are seeded by `keycloakConfig.json` (username == password):
 | --- | --- |
 | `admin` | PromptAdmin (sees every course) |
 | `lecturer`, `course-lecturer` | Course Lecturer |
-| `course-editor` | Course Editor |
+| `course-editor` | Course Editor, confined to Team Kepler, which they tutor |
 | `student` (Stan), `student2` (Selma) | enrolled students |
 
 Staff access comes from the `ios2526-iPraktikumDemo-Lecturer` / `-Editor` client

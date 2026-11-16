@@ -2,7 +2,8 @@
 --
 -- The Team Allocation phase of iPraktikumDemo
 -- (f0000004-0000-0000-0000-000000000004): the skills and teams a lecturer
--- configures, the student survey responses, and the published allocation.
+-- configures, the student survey responses, the published allocation, and
+-- the team tutors.
 --
 -- Deleting the teams and skills cascades the survey responses, allocations and
 -- tutors that hang off them. Student names are denormalized copies of the core
@@ -69,6 +70,22 @@ INSERT INTO allocations (id, course_participation_id, team_id, course_phase_id, 
            ('3c000004-0000-0000-0000-000000000004', 'cd000002-0000-0000-0000-000000000002', '3a000002-0000-0000-0000-000000000002', 'f0000004-0000-0000-0000-000000000004', 'Selma', 'Second'),
            ('3c000005-0000-0000-0000-000000000005', 'cd000004-0000-0000-0000-000000000004', '3a000002-0000-0000-0000-000000000002', 'f0000004-0000-0000-0000-000000000004', 'Bruno', 'Baumann'),
            ('3c000006-0000-0000-0000-000000000006', 'cd000006-0000-0000-0000-000000000006', '3a000002-0000-0000-0000-000000000002', 'f0000004-0000-0000-0000-000000000004', 'David', 'Doerr');
+
+-- One tutor per team. The Assessment phase reads them through the teams DTO and
+-- keys its tutor evaluations on the tutor's course_participation_id, so that id
+-- has to be a participation of the demo course: cd000007 and cd000008, the two
+-- applicants who never enter the later phases and so are never assessed
+-- themselves. As in the iPraktikumFull tutor fixtures below, the tutor row
+-- carries the staff user's own name and login rather than the core student
+-- behind the participation, and nothing joins the two.
+--
+-- A phase with tutors confines every course editor to the team whose tutor
+-- row carries their login and denies editors without one, so course-editor
+-- (co69edt) tutors Team Kepler and keeps editor access to the demo course.
+-- course-lecturer (co67lec) tutors Team Hubble; lecturers are never scoped.
+INSERT INTO tutor (course_phase_id, course_participation_id, first_name, last_name, team_id, university_login)
+    VALUES ('f0000004-0000-0000-0000-000000000004', 'cd000007-0000-0000-0000-000000000007', 'Eduard', 'Eduard', '3a000001-0000-0000-0000-000000000001', 'co69edt'),
+           ('f0000004-0000-0000-0000-000000000004', 'cd000008-0000-0000-0000-000000000008', 'Lector', 'Lector', '3a000002-0000-0000-0000-000000000002', 'co67lec');
 
 -- The standalone Team Allocation phase of iPraktikumFull
 -- (b3000004-0000-0000-0000-000000000004) behind the e2e tutor scope spec: two

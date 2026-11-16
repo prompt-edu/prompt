@@ -82,13 +82,20 @@ Eight applicants, six of whom pass into the rest of the course. `cd000001` and
 `cd000002` are the Keycloak `student` and `student2` users, so a local login lands on
 a populated course.
 
-Two things are intentionally absent:
+Each Team Allocation team has a tutor: `course-editor` (`co69edt`) tutors Team Kepler
+and `course-lecturer` (`co67lec`) tutors Team Hubble. A phase with tutors confines
+every course editor to the team they tutor, so `course-editor` sees Team Kepler only.
+The tutor rows use `cd000007` and `cd000008`, the two applicants who never reach the
+later phases, as their participation ids, because the Assessment phase keys tutor
+evaluations on that id and no staff user has a participation of their own. The
+Assessment phase runs self, peer and tutor evaluation rounds on its own schemas:
+every student rates both teammates and their tutor.
+
+One thing is intentionally absent:
 
 - **File-upload answers.** `application_answer_file_upload` needs a `files` row backed
   by a real object in SeaweedFS, which SQL alone cannot create. The upload *question*
   is seeded.
-- **Peer and tutor evaluations.** The config leaves those schema columns to their
-  migration-set defaults; only the self-evaluation round is seeded.
 
 ## The demo timeline
 
@@ -102,7 +109,7 @@ them, so the demo reads as a semester that has been played through end to end:
 | Interview | slots 2026-03-20 and 2026-03-21 | assigned and reviewed |
 | Team Allocation | survey 2026-04-01 to 2026-04-06 | responses in, teams allocated |
 | Self Team Allocation | timeframe 2026-04-07 to 2026-04-14 | teams filled |
-| Assessment | 2026-07-01 to 2026-09-20, self-evaluation 2026-06-15 to 2026-06-30 | graded, results released |
+| Assessment | 2026-07-01 to 2026-09-20, self, peer and tutor evaluation 2026-06-15 to 2026-06-30 | graded, results released |
 | Presentation | slots 2026-09-24 | scheduled, feedback recorded |
 | Certificate | template released 2026-09-30 | one download recorded |
 
@@ -110,7 +117,7 @@ The dates are pinned rather than derived from `NOW()`, for the same reason the i
 are: a reseed has to reproduce the same course, and a relative timeline would
 disagree with the semester tag and the course's own start and end date. The trade is
 that the demo ages. Once summer 2026 is behind us every window is closed, and the
-phases that gate on one (the self-evaluation, both allocation timeframes, the
+phases that gate on one (the evaluation rounds, both allocation timeframes, the
 application) will refuse new input. To act against a live deadline, move that one
 window in the phase's configuration screen after seeding, or edit the row in the
 seed file before loading it.

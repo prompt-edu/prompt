@@ -1,16 +1,12 @@
 name: Build and Deploy to Dev
 
 on:
+  # Every PR runs, so the `ci-passed` required check always reports. The
+  # `changes` job skips the build, test and e2e jobs when only the paths below
+  # changed; a `paths-ignore` here would leave such a PR waiting on a required
+  # check that never reports.
   pull_request:
     branches: [main]
-    paths-ignore:
-      - "**.md"
-      - "docs/**"
-      - ".gitignore"
-      - "LICENSE"
-      - ".github/ISSUE_TEMPLATE/**"
-      - ".github/workflows/build-docs.yml"
-      - ".github/workflows/discord-notifications.yml"
   push:
     branches: [main]
     paths-ignore:
@@ -31,6 +27,35 @@ permissions:
   packages: write
 
 jobs:
+  # Whether a PR touches anything beyond docs and repository metadata. A push to
+  # main only gets here past `paths-ignore`, so it always counts as code.
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      pull-requests: read
+    outputs:
+      code: ${{ github.event_name != 'pull_request' || steps.filter.outputs.code == 'true' }}
+    steps:
+      - name: Detect changes outside docs
+        id: filter
+        if: github.event_name == 'pull_request'
+        uses: dorny/paths-filter@v4
+        with:
+          # A file counts only if it matches every pattern, i.e. none of the
+          # exclusions. Keep them in sync with the push trigger's paths-ignore.
+          predicate-quantifier: every
+          filters: |
+            code:
+              - '**'
+              - '!**/*.md'
+              - '!docs/**'
+              - '!.gitignore'
+              - '!LICENSE'
+              - '!.github/ISSUE_TEMPLATE/**'
+              - '!.github/workflows/build-docs.yml'
+              - '!.github/workflows/discord-notifications.yml'
+
   assign-author:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
@@ -67,6 +92,8 @@ jobs:
       contents: read
       pull-requests: write
   quality-servers:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     uses: ./.github/workflows/quality-servers.yml
   test-servers:
     needs: quality-servers
@@ -78,6 +105,8 @@ jobs:
     uses: ./.github/workflows/build-and-push-servers.yml
     secrets: inherit
   quality-clients:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     uses: ./.github/workflows/quality-clients.yml
   e2e-tests:
     needs: [quality-servers, quality-clients]
@@ -88,6 +117,43 @@ jobs:
     needs: quality-clients
     uses: ./.github/workflows/build-and-push-clients.yml
     secrets: inherit
+  # The one check the main ruleset requires. A skipped job that calls a reusable
+  # workflow reports under its own name (`build-clients`), never the nested
+  # names (`build-clients / core / merge`), so requiring those left docs-only
+  # PRs waiting forever. Code changes need every job to succeed; docs-only
+  # changes need them all skipped.
+  ci-passed:
+    needs:
+      - changes
+      - quality-servers
+      - test-servers
+      - build-servers
+      - quality-clients
+      - e2e-tests
+      - build-clients
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify every CI job has the expected result
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+          CODE_CHANGED: ${{ needs.changes.outputs.code }}
+        run: |
+          if [ "$CODE_CHANGED" = "true" ]; then expected=success; else expected=skipped; fi
+          echo "Code changed: ${CODE_CHANGED:-unknown}, expecting every CI job to be $expected"
+          failed=0
+          while IFS=$'\t' read -r job result; do
+            want=$expected
+            [ "$job" = "changes" ] && want=success
+            echo "$job = $result"
+            if [ "$result" != "$want" ]; then
+              echo "::error::CI job '$job' is $result, expected $want"
+              failed=1
+            fi
+          done < <(jq -r 'to_entries[] | "\(.key)\t\(.value.result)"' <<<"$NEEDS")
+          exit $failed
+
   deploy-dev:
     needs: [build-clients, build-servers, e2e-tests]
     uses: ./.github/workflows/deploy-docker.yml

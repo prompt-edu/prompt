@@ -10,6 +10,7 @@ import { instructorNotes } from './instructorNotes'
 import { keycloak } from './keycloak'
 import { mailCampaigns } from './mailCampaigns'
 import { mailing } from './mailing'
+import { orgs } from './orgs'
 import { privacy } from './privacy'
 import { students } from './students'
 import { studyPrograms } from './studyPrograms'
@@ -32,6 +33,7 @@ export const coreApi = {
   keycloak,
   mailCampaigns,
   mailing,
+  orgs,
   privacy,
   students,
   studyPrograms,

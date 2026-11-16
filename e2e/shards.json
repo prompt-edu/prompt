@@ -12,6 +12,7 @@
         "/tests/configurator/.*\\.spec\\.ts$",
         "/tests/course-staff/.*\\.spec\\.ts$",
         "/tests/courses/.*\\.spec\\.ts$",
+        "/tests/orgs/.*\\.spec\\.ts$",
         "/tests/students/.*\\.spec\\.ts$",
         "/tests/permissions/.*\\.spec\\.ts$",
         "/tests/privacy/.*\\.spec\\.ts$",

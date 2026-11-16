@@ -20,8 +20,8 @@ import (
     promptSDK "github.com/prompt-edu/prompt-sdk"
 )
 
-// once in main.go — phase services use InitPhaseKeycloak, which reads the
-// KEYCLOAK_* / SERVER_CORE_HOST env vars itself
+// once in main.go: promptSDK.Bootstrap does this for phase services; a service with its own
+// startup sequence calls InitPhaseKeycloak, which reads the KEYCLOAK_* / SERVER_CORE_HOST env vars
 if err := promptSDK.InitPhaseKeycloak(); err != nil {
     log.Fatalf("Failed to initialize keycloak: %v", err)
 }

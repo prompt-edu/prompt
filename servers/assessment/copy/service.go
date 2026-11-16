@@ -2,10 +2,12 @@ package copy
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
@@ -67,17 +69,22 @@ func (s *CopyService) CopyPhase(ctx context.Context, sourceCoursePhaseID, target
 
 	tx, err := s.conn.Begin(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to begin phase copy transaction: %w", err)
 	}
 	defer promptSDK.DeferDBRollback(tx, ctx)
 
 	qtx := s.queries.WithTx(tx)
 
-	// Get the course phase config from the source course phase
 	sourceConfig, err := qtx.GetCoursePhaseConfig(ctx, sourceCoursePhaseID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		// A phase whose config was never saved has nothing to copy, and a copy must not write to
+		// the source. The target stays unconfigured too and, like the source, gets the default
+		// config when CoursePhaseConfigService.GetCoursePhaseConfig first reads it.
+		return nil
+	}
 	if err != nil {
 		log.WithError(err).Error("Failed to get source course phase config")
-		return err
+		return fmt.Errorf("failed to get config of source phase %s: %w", sourceCoursePhaseID, err)
 	}
 
 	// Copying a disabled source must not hide grades a non-empty target already holds
@@ -85,7 +92,7 @@ func (s *CopyService) CopyPhase(ctx context.Context, sourceCoursePhaseID, target
 		hasData, err := qtx.PhaseHasAssessmentData(ctx, targetCoursePhaseID)
 		if err != nil {
 			log.WithError(err).Error("Failed to check target course phase for assessment data")
-			return err
+			return fmt.Errorf("failed to check target phase %s for assessment data: %w", targetCoursePhaseID, err)
 		}
 		if hasData.Bool {
 			return coursePhaseConfig.ErrCannotDisableAssessmentWithData
@@ -122,7 +129,7 @@ func (s *CopyService) CopyPhase(ctx context.Context, sourceCoursePhaseID, target
 	err = qtx.CreateOrUpdateCoursePhaseConfig(ctx, params)
 	if err != nil {
 		log.WithError(err).Error("Failed to create course phase config for target course phase")
-		return err
+		return fmt.Errorf("failed to create config of target phase %s: %w", targetCoursePhaseID, err)
 	}
 
 	if err := tx.Commit(ctx); err != nil {

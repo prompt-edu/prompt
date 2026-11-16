@@ -8,6 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	promptTypes "github.com/prompt-edu/prompt-sdk/promptTypes"
@@ -129,23 +130,18 @@ func (suite *CopyServiceTestSuite) TestHandlePhaseCopy_SameSourceAndTarget() {
 	assert.NoError(suite.T(), err, "Should not error when source and target are the same")
 }
 
-func (suite *CopyServiceTestSuite) TestHandlePhaseCopy_NonExistentSource() {
-	nonExistentSourceID := uuid.New()
+func (suite *CopyServiceTestSuite) TestHandlePhaseCopy_SourceWithoutConfigStaysReadOnly() {
+	sourceCoursePhaseID := uuid.New()
 	targetCoursePhaseID := uuid.New()
 
-	handler := suite.copyService
-	req := promptTypes.PhaseCopyRequest{
-		SourceCoursePhaseID: nonExistentSourceID,
-		TargetCoursePhaseID: targetCoursePhaseID,
-	}
+	assert.NoError(suite.T(), suite.copyPhase(sourceCoursePhaseID, targetCoursePhaseID),
+		"Should copy a source phase whose config was never saved")
 
-	// Create a proper gin context for the test
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-	c.Request = httptest.NewRequest("POST", "/api/copy", nil)
+	_, err := suite.copyService.queries.GetCoursePhaseConfig(suite.suiteCtx, sourceCoursePhaseID)
+	assert.ErrorIs(suite.T(), err, pgx.ErrNoRows, "The copy should not write a config to the source")
 
-	err := handler.HandlePhaseCopy(c, req)
-	assert.Error(suite.T(), err, "Should error when source course phase config doesn't exist")
+	_, err = suite.copyService.queries.GetCoursePhaseConfig(suite.suiteCtx, targetCoursePhaseID)
+	assert.ErrorIs(suite.T(), err, pgx.ErrNoRows, "The target should stay unconfigured like the source")
 }
 
 // seedCoursePhaseConfig writes a minimal config so a copy has something to read or overwrite.

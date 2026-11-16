@@ -59,8 +59,10 @@ types remotes by that suffix):
 
 1. `cp -R servers/example_server servers/<name>`; rename the `example/` module package.
 2. `go.mod`: module path `github.com/prompt-edu/prompt/servers/<name>`; update all imports.
-3. `main.go`: route prefix `<name>-service`, env vars `DB_HOST_<NAME>_SERVER` /
-   `DB_PORT_<NAME>_SERVER` / `SENTRY_DSN_<NAME>_SERVER`, server port, swagger annotations.
+3. `main.go`: the `promptSDK.Bootstrap` options (route prefix `<name>-service`, `DBEnvPrefix`
+   `<NAME>_SERVER` for `DB_HOST_<NAME>_SERVER` / `DB_PORT_<NAME>_SERVER`, `DefaultDBPort`,
+   `SENTRY_DSN_<NAME>_SERVER`, server port), swagger annotations, and your routes in
+   `registerRoutes`.
 4. Keep the `config/` and `copy/` packages — they implement the SDK phase config/copy contracts
    that course templating and deep copy rely on.
 5. Schema in `db/migration/`, queries in `db/query/`, then `sqlc generate` (see the
@@ -149,8 +151,8 @@ Also add the management route in `src/App.tsx` (copy the `example_component` blo
 
 Core seeds phase types at startup in `servers/core/coursePhaseType/initializeTypes.go`. Add an
 `init<Name>()` following the existing pattern: name (must match the mapping keys from 2.3),
-`BaseUrl` (`{CORE_HOST}/<name>/api` in production, `http://localhost:<port>/<name>/api` in dev),
-description, and the phase's required inputs / provided outputs. For a purely private deployment
+`BaseUrl` (`{CORE_HOST}/<name>/api` in production, `devServiceURL(<port>, "/<name>/api")` in
+dev, which shifts the port to the stack a worktree runs in), description, and the phase's required inputs / provided outputs. For a purely private deployment
 you can instead insert the row into `course_phase_type` manually, but the initializer is the
 supported path.
 

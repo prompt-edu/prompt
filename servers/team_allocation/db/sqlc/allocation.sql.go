@@ -56,17 +56,15 @@ DELETE
 FROM allocations a
 WHERE a.course_participation_id = $1
   AND a.course_phase_id = $2
-  AND a.team_id = COALESCE($3::uuid, a.team_id)
 `
 
 type DeleteAllocationForParticipantParams struct {
-	CourseParticipationID uuid.UUID   `json:"course_participation_id"`
-	CoursePhaseID         uuid.UUID   `json:"course_phase_id"`
-	ExpectedTeamID        pgtype.UUID `json:"expected_team_id"`
+	CourseParticipationID uuid.UUID `json:"course_participation_id"`
+	CoursePhaseID         uuid.UUID `json:"course_phase_id"`
 }
 
 func (q *Queries) DeleteAllocationForParticipant(ctx context.Context, arg DeleteAllocationForParticipantParams) (int64, error) {
-	result, err := q.db.Exec(ctx, deleteAllocationForParticipant, arg.CourseParticipationID, arg.CoursePhaseID, arg.ExpectedTeamID)
+	result, err := q.db.Exec(ctx, deleteAllocationForParticipant, arg.CourseParticipationID, arg.CoursePhaseID)
 	if err != nil {
 		return 0, err
 	}
@@ -328,7 +326,7 @@ func (q *Queries) UpdateStudentNameForAllocation(ctx context.Context, arg Update
 	return err
 }
 
-const upsertAllocationForParticipant = `-- name: UpsertAllocationForParticipant :execrows
+const upsertAllocationForParticipant = `-- name: UpsertAllocationForParticipant :exec
 INSERT INTO allocations AS a (
   id,
   course_participation_id,
@@ -354,34 +352,25 @@ SET team_id = EXCLUDED.team_id,
     student_first_name = EXCLUDED.student_first_name,
     student_last_name = EXCLUDED.student_last_name,
     updated_at = CURRENT_TIMESTAMP
-WHERE a.team_id = COALESCE($7::uuid, a.team_id)
 `
 
 type UpsertAllocationForParticipantParams struct {
-	ID                    uuid.UUID   `json:"id"`
-	CourseParticipationID uuid.UUID   `json:"course_participation_id"`
-	TeamID                uuid.UUID   `json:"team_id"`
-	CoursePhaseID         uuid.UUID   `json:"course_phase_id"`
-	StudentFirstName      string      `json:"student_first_name"`
-	StudentLastName       string      `json:"student_last_name"`
-	ExpectedTeamID        pgtype.UUID `json:"expected_team_id"`
+	ID                    uuid.UUID `json:"id"`
+	CourseParticipationID uuid.UUID `json:"course_participation_id"`
+	TeamID                uuid.UUID `json:"team_id"`
+	CoursePhaseID         uuid.UUID `json:"course_phase_id"`
+	StudentFirstName      string    `json:"student_first_name"`
+	StudentLastName       string    `json:"student_last_name"`
 }
 
-// The COALESCE guard scopes the write to an expected source team: a NULL
-// expected_team_id writes unconditionally, a set one only updates a row that is
-// still in that team, so authorization and mutation stay a single statement.
-func (q *Queries) UpsertAllocationForParticipant(ctx context.Context, arg UpsertAllocationForParticipantParams) (int64, error) {
-	result, err := q.db.Exec(ctx, upsertAllocationForParticipant,
+func (q *Queries) UpsertAllocationForParticipant(ctx context.Context, arg UpsertAllocationForParticipantParams) error {
+	_, err := q.db.Exec(ctx, upsertAllocationForParticipant,
 		arg.ID,
 		arg.CourseParticipationID,
 		arg.TeamID,
 		arg.CoursePhaseID,
 		arg.StudentFirstName,
 		arg.StudentLastName,
-		arg.ExpectedTeamID,
 	)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected(), nil
+	return err
 }

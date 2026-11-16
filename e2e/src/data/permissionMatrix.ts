@@ -102,6 +102,18 @@ export const SURFACES: Surface[] = [
     },
   },
   {
+    name: 'orgs',
+    browser: {
+      path: () => '/management/admin/orgs',
+      heading: 'Orgs',
+      allowed: ['admin'],
+    },
+    api: {
+      path: () => '/api/orgs/',
+      allowed: ['admin'],
+    },
+  },
+  {
     name: 'course settings',
     browser: {
       path: (courseId) => `/management/course/${courseId}/settings`,

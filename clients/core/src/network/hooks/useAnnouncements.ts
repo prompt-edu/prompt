@@ -2,15 +2,11 @@ import { describeVisibility } from '@core/announcementBanner/utils/announcementS
 import type { Announcement, UpsertAnnouncement } from '@core/interfaces/announcement'
 import { coreApi } from '@core/network/api'
 import { coreCache, coreKeys } from '@core/network/cache'
+import { serverErrorMessage } from '@core/network/serverErrorMessage'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useToast } from '@tumaet/prompt-ui-components'
-import { isAxiosError } from 'axios'
 
 const ACTIVE_ANNOUNCEMENTS_REFETCH_INTERVAL_MS = 5 * 60 * 1000
-
-const describeError = (error: Error): string =>
-  (isAxiosError<{ error?: string }>(error) && error.response?.data?.error) ||
-  'Please try again later'
 
 export const useActiveAnnouncements = () => {
   return useQuery({
@@ -45,7 +41,7 @@ const useAnnouncementMutation = <TVariables>(
       coreCache.announcementsChanged(queryClient)
     },
     onError: (error) => {
-      toast({ title: errorTitle, description: describeError(error), variant: 'destructive' })
+      toast({ title: errorTitle, description: serverErrorMessage(error), variant: 'destructive' })
     },
   })
 }
@@ -81,7 +77,7 @@ export const useDeleteAnnouncement = () => {
     onError: (error) => {
       toast({
         title: 'Failed to delete announcement',
-        description: describeError(error),
+        description: serverErrorMessage(error),
         variant: 'destructive',
       })
     },

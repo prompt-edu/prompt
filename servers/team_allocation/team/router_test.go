@@ -418,6 +418,34 @@ func (suite *TeamRouterTestSuite) TestImportTutorsSetsExactlyTheListedTeams() {
 	assert.Equal(suite.T(), "im01prt", login[0].UniversityLogin.String, "the login is stored normalized")
 }
 
+func (suite *TeamRouterTestSuite) TestImportTutorsReplacesTheRowsOfATutorStoredWithoutLogin() {
+	coursePhaseID := "4179d58a-d00d-4fa7-94a5-397bc69fab02"
+	// Like Bob Williams in the seed: a row stored without a login, so only its id matches it.
+	tutorID := "99999999-9999-9999-9999-9999999999b1"
+	assert.NoError(suite.T(), suite.teamService.queries.InsertTutor(suite.suiteCtx, db.InsertTutorParams{
+		CoursePhaseID:         uuid.MustParse(coursePhaseID),
+		CourseParticipationID: uuid.MustParse(tutorID),
+		FirstName:             "Nola",
+		LastName:              "Login",
+		TeamID:                uuid.MustParse(teamAlphaID),
+	}))
+	tutor := teamDTO.Tutor{
+		CourseParticipationID: uuid.MustParse(tutorID),
+		FirstName:             "Nola",
+		LastName:              "Login",
+		UniversityLogin:       "nl01ogn",
+		TeamIDs:               []uuid.UUID{uuid.MustParse(teamGammaID)},
+	}
+
+	assert.Equal(suite.T(), http.StatusCreated, suite.postTutors(coursePhaseID, []teamDTO.Tutor{tutor}))
+	assert.Equal(suite.T(), []string{teamGammaID}, suite.tutorTeams(coursePhaseID, tutorID), "the login-less row is replaced")
+
+	// Importing the tutor for their old team again must not collide with a leftover row.
+	tutor.TeamIDs = []uuid.UUID{uuid.MustParse(teamAlphaID)}
+	assert.Equal(suite.T(), http.StatusCreated, suite.postTutors(coursePhaseID, []teamDTO.Tutor{tutor}))
+	assert.Equal(suite.T(), []string{teamAlphaID}, suite.tutorTeams(coursePhaseID, tutorID))
+}
+
 func (suite *TeamRouterTestSuite) TestImportTutorsRejectsInvalidRequests() {
 	coursePhaseID := "4179d58a-d00d-4fa7-94a5-397bc69fab02"
 	valid := func(login string) teamDTO.Tutor {

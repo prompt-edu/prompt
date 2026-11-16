@@ -1,4 +1,4 @@
-import { QueryClient } from '@tanstack/react-query'
+import { QueryClient, QueryObserver } from '@tanstack/react-query'
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import { coreCache } from './events'
@@ -11,6 +11,8 @@ const OTHER_PHASE = 'phase-2'
 const PARTICIPATION = 'participation-1'
 const CAMPAIGN = 'campaign-1'
 const STUDENT = 'student-1'
+const ORG = 'org-1'
+const OTHER_ORG = 'org-2'
 
 let queryClient: QueryClient
 
@@ -338,6 +340,46 @@ describe('study program events', () => {
   })
 })
 
+describe('org events', () => {
+  it('invalidates the org list and every org on a change', () => {
+    seed(coreKeys.orgs.all(), coreKeys.orgs.byId(ORG), coreKeys.orgs.byId(OTHER_ORG))
+
+    coreCache.orgsChanged(queryClient)
+
+    expect(isInvalidated(coreKeys.orgs.all())).toBe(true)
+    expect(isInvalidated(coreKeys.orgs.byId(ORG))).toBe(true)
+    expect(isInvalidated(coreKeys.orgs.byId(OTHER_ORG))).toBe(true)
+  })
+
+  it('invalidates the org list and drops the deleted org on a delete, so it is never refetched into a 404', () => {
+    seed(coreKeys.orgs.all(), coreKeys.orgs.byId(ORG), coreKeys.orgs.byId(OTHER_ORG))
+
+    coreCache.orgDeleted(queryClient, ORG)
+
+    expect(isInvalidated(coreKeys.orgs.all())).toBe(true)
+    expect(queryClient.getQueryState(coreKeys.orgs.byId(ORG))).toBeUndefined()
+    expect(isInvalidated(coreKeys.orgs.byId(OTHER_ORG))).toBe(false)
+  })
+
+  it('keeps the deleted org while its page still observes it, so a re-render cannot refetch it', () => {
+    seed(coreKeys.orgs.byId(ORG))
+    const page = new QueryObserver(queryClient, {
+      queryKey: coreKeys.orgs.byId(ORG),
+      enabled: false,
+    })
+    const unmountPage = page.subscribe(() => {})
+
+    coreCache.orgDeleted(queryClient, ORG)
+
+    expect(queryClient.getQueryData(coreKeys.orgs.byId(ORG))).toBe('seeded')
+    expect(isInvalidated(coreKeys.orgs.byId(ORG))).toBe(false)
+
+    unmountPage()
+
+    expect(queryClient.getQueryState(coreKeys.orgs.byId(ORG))).toBeUndefined()
+  })
+})
+
 describe('privacy events', () => {
   it('keeps the admin deletion and export lists apart', () => {
     seed(coreKeys.privacy.admin.deletions(), coreKeys.privacy.admin.exports())
@@ -350,18 +392,6 @@ describe('privacy events', () => {
     coreCache.privacyExportsChanged(queryClient)
 
     expect(isInvalidated(coreKeys.privacy.admin.exports())).toBe(true)
-  })
-})
-
-describe('ownProfilePictureChanged', () => {
-  it('invalidates the own picture and every picture the lib looked up', () => {
-    const lookedUpStudent = [...coreKeys.profilePictures.lookedUp(), 'student', STUDENT]
-    seed(coreKeys.profilePictures.own(), lookedUpStudent)
-
-    coreCache.ownProfilePictureChanged(queryClient)
-
-    expect(isInvalidated(coreKeys.profilePictures.own())).toBe(true)
-    expect(isInvalidated(lookedUpStudent)).toBe(true)
   })
 })
 

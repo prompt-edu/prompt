@@ -86,6 +86,23 @@ export const YourRoutes = React.lazy(() =>
 `clients/core/src/declaration.d.ts` already types `*_component/routes`, `*_component/sidebar`, and
 `*_component/provide`, so no per-remote declaration is needed.
 
+## Remotes behind a switch
+
+A remote that is not a phase and only exists while a feature is on (the AI remote, behind
+`AI_ENABLED`) does not go into `REMOTES`. The federation runtime fetches the entry of every static
+remote on each page load, and `remotes.config.test.ts` requires every entry to map to a phase type.
+Instead:
+
+1. Add a `DefinePlugin` constant for its entry in `clients/core/rspack.config.mjs`, resolved from
+   `IS_DEV` with the same `?${Date.now()}` cache-buster, e.g.
+   `` __PROMPT_AI_REMOTE_ENTRY__: JSON.stringify(`${aiURL}/remoteEntry.js?${Date.now()}`) ``, and declare
+   it in `clients/core/src/declaration.d.ts`.
+2. Register it on first use with `registerRemotes` and load modules with `loadRemote`, both from
+   `@module-federation/runtime-tools/runtime`, following
+   `clients/core/src/managementConsole/PhaseMapping/aiRemote.ts`.
+
+Such a remote is not part of `__PROMPT_REMOTES__`, so the System Status page does not probe it.
+
 ## Verify / debug
 
 - `name` in the remote MUST match the key used in core's `remotes` and the import specifier.

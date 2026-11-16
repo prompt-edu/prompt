@@ -3,6 +3,7 @@ package privacy
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -25,6 +26,7 @@ import (
 	"github.com/prompt-edu/prompt/servers/core/mailing"
 	"github.com/prompt-edu/prompt/servers/core/privacy/privacyDTO"
 	"github.com/prompt-edu/prompt/servers/core/privacy/service"
+	"github.com/prompt-edu/prompt/servers/core/standaloneModule"
 	"github.com/prompt-edu/prompt/servers/core/storage"
 	"github.com/prompt-edu/prompt/servers/core/storage/files"
 	"github.com/prompt-edu/prompt/servers/core/storage/privacyexport"
@@ -202,6 +204,7 @@ type RouterTestSuite struct {
 	suite.Suite
 	router         *gin.Engine
 	privacyService *service.PrivacyService
+	testDB         *sdkTestUtils.TestDB[*db.Queries]
 	ctx            context.Context
 	cleanup        func()
 }
@@ -216,12 +219,19 @@ func (suite *RouterTestSuite) SetupSuite() {
 
 	suite.cleanup = cleanup
 
+	suite.testDB = testDB
+	suite.privacyService = newPrivacyService(testDB, privacyexport.NewExportStorage(&storage.MockStorageAdapter{}))
+
+	suite.router = setupRouter(suite.privacyService)
+}
+
+func newPrivacyService(testDB *sdkTestUtils.TestDB[*db.Queries], exportStorage service.ExportStorageProvider, modules ...standaloneModule.Module) *service.PrivacyService {
 	resolutionService := resolution.NewResolutionService("localhost:8080")
 	studentService := student.NewStudentService(*testDB.Queries)
 	courseParticipationService := courseParticipation.NewCourseParticipationService(*testDB.Queries)
 	fileStorageService := files.NewStorageService(*testDB.Queries, testDB.Conn, &storage.MockStorageAdapter{}, 50, nil)
 	mailingService := mailing.NewMailingService(*testDB.Queries, "localhost", "25", "", "", "Test-Email-Sender", "test@test.de", "localhost")
-	suite.privacyService = service.NewPrivacyService(
+	return service.NewPrivacyService(
 		*testDB.Queries,
 		testDB.Conn,
 		applicationAdministration.NewApplicationService(
@@ -239,11 +249,10 @@ func (suite *RouterTestSuite) SetupSuite() {
 		studentService,
 		instructorNote.NewInstructorNoteService(*testDB.Queries, testDB.Conn),
 		fileStorageService,
-		privacyexport.NewExportStorage(&storage.MockStorageAdapter{}),
+		exportStorage,
 		mailingService,
+		modules...,
 	)
-
-	suite.router = setupRouter(suite.privacyService)
 }
 
 func setupRouter(privacyService *service.PrivacyService) *gin.Engine {
@@ -456,6 +465,43 @@ func (suite *RouterTestSuite) TestRouterGetDownloadURL_ArchivedExport() {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(suite.T(), http.StatusForbidden, w.Code)
+}
+
+type failingUploadStorage struct {
+	service.ExportStorageProvider
+	failFor string
+}
+
+func (s failingUploadStorage) GetUploadURL(ctx context.Context, exportRequestID, serviceName string) (string, error) {
+	if serviceName == s.failFor {
+		return "", errors.New("presign failed")
+	}
+	return s.ExportStorageProvider.GetUploadURL(ctx, exportRequestID, serviceName)
+}
+
+func (suite *RouterTestSuite) TestPrepareDataExportFailsTheExportAndLiftsTheRateLimit() {
+	exportStorage := failingUploadStorage{ExportStorageProvider: privacyexport.NewExportStorage(&storage.MockStorageAdapter{}), failFor: "AI"}
+	privacyService := newPrivacyService(suite.testDB, exportStorage, standaloneModule.Module{Name: "AI", BaseURL: "http://ai.test/ai/api"})
+	userID := uuid.New()
+	c, _ := gin.CreateTestContext(httptest.NewRecorder())
+	c.Request = httptest.NewRequest(http.MethodPost, "/", nil)
+	c.Set("userID", userID.String())
+	defer func() {
+		_, err := suite.testDB.Conn.Exec(suite.ctx, `
+			WITH removed AS (DELETE FROM privacy_export_document
+			                 WHERE export_id IN (SELECT id FROM privacy_export WHERE user_id = $1))
+			DELETE FROM privacy_export WHERE user_id = $1`, userID)
+		suite.Require().NoError(err)
+	}()
+
+	_, err := privacyService.PrepareDataExport(c)
+	suite.Require().Error(err)
+
+	var status db.ExportStatus
+	suite.Require().NoError(suite.testDB.Conn.QueryRow(suite.ctx,
+		`SELECT status FROM privacy_export WHERE user_id = $1`, userID).Scan(&status))
+	suite.Equal(db.ExportStatusFailed, status, "an export that could not be prepared must not stay pending")
+	suite.NoError(privacyService.ValidateNotRateLimited(suite.ctx, userID), "the user may try again right away")
 }
 
 func TestRouterTestSuite(t *testing.T) {

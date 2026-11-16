@@ -16,6 +16,7 @@ import (
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentCompletion/assessmentCompletionDTO"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/assessment/testutils"
 	"github.com/prompt-edu/prompt/servers/assessment/utils"
 )
 
@@ -38,6 +39,7 @@ func (suite *AssessmentCompletionServiceTestSuite) SetupSuite() {
 		*testDB.Queries,
 		testDB.Conn,
 		coursePhaseConfig.NewCoursePhaseConfigService(*testDB.Queries, testDB.Conn, assessmentSchemas.NewAssessmentSchemaService(*testDB.Queries, testDB.Conn)),
+		testutils.CheckTestParticipant,
 	)
 }
 
@@ -100,7 +102,7 @@ func (suite *AssessmentCompletionServiceTestSuite) TestCreateOrUpdateAssessmentC
 	}
 
 	// Test creation
-	err := suite.service.CreateOrUpdateAssessmentCompletion(suite.suiteCtx, completionDTO)
+	err := suite.service.CreateOrUpdateAssessmentCompletion(suite.suiteCtx, "", completionDTO)
 	assert.NoError(suite.T(), err, "Expected no error while creating assessment completion")
 
 	// Verify creation - check existence
@@ -128,7 +130,7 @@ func (suite *AssessmentCompletionServiceTestSuite) TestCreateOrUpdateAssessmentC
 	completionDTO.GradeSuggestion = 2.0
 	completionDTO.Completed = false // Keep it false to allow updates
 
-	err = suite.service.CreateOrUpdateAssessmentCompletion(suite.suiteCtx, completionDTO)
+	err = suite.service.CreateOrUpdateAssessmentCompletion(suite.suiteCtx, "", completionDTO)
 	assert.NoError(suite.T(), err, "Expected no error while updating assessment completion")
 
 	// Verify update
@@ -149,7 +151,7 @@ func (suite *AssessmentCompletionServiceTestSuite) TestCreateOrUpdateAssessmentC
 
 	for _, grade := range []float64{-3.0, 0.0, 0.9, 5.1, 9.9} {
 		partID := uuid.New()
-		err := suite.service.CreateOrUpdateAssessmentCompletion(suite.suiteCtx, assessmentCompletionDTO.AssessmentCompletion{
+		err := suite.service.CreateOrUpdateAssessmentCompletion(suite.suiteCtx, "", assessmentCompletionDTO.AssessmentCompletion{
 			CourseParticipationID: partID,
 			CoursePhaseID:         phaseID,
 			CompletedAt:           pgtype.Timestamptz{Time: time.Now(), Valid: true},
@@ -181,7 +183,7 @@ func (suite *AssessmentCompletionServiceTestSuite) TestDeleteAssessmentCompletio
 		Completed:             false,
 	}
 
-	err := suite.service.CreateOrUpdateAssessmentCompletion(suite.suiteCtx, completionDTO)
+	err := suite.service.CreateOrUpdateAssessmentCompletion(suite.suiteCtx, "", completionDTO)
 	assert.NoError(suite.T(), err)
 
 	// Verify it exists
@@ -218,7 +220,7 @@ func (suite *AssessmentCompletionServiceTestSuite) TestCreateOrUpdateAssessmentC
 
 	// This might not fail since nil UUIDs are technically valid
 	// The test expectation might be wrong - let's see what actually happens
-	err := suite.service.CreateOrUpdateAssessmentCompletion(suite.suiteCtx, completionDTO)
+	err := suite.service.CreateOrUpdateAssessmentCompletion(suite.suiteCtx, "", completionDTO)
 	// Since nil UUIDs might be valid, we should not expect an error here
 	// The database constraints would determine if this fails
 	// If this consistently doesn't error, the test expectation is wrong

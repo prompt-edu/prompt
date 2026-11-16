@@ -11,6 +11,13 @@ seeded from `seed/` (by the one-shot `seed` service, after the servers have migr
 ports that coexist with a dev stack — client 4000, core API 18090, Keycloak 18081,
 Mailpit 18025.
 
+Those are the ports of the main checkout (stack 0). In a linked worktree, which is where
+agent sessions usually run, the Makefile picks the worktree's own stack number `n` and
+shifts every port by `n * 100` (client 4100, core API 18190, Keycloak 18181 in stack 1),
+with containers named `prompt-<n>-e2e-*`. Run `make stack` first and use its ports in
+every URL below; `make verify-up` also prints them. Several worktrees can then verify at
+the same time without touching each other's stacks.
+
 `e2e/docker-compose.browser.yml` overlays it for **host-browser mode**, and
 `make verify-up` boots that combination. Drive it with the **Playwright MCP** browser
 (`mcp__playwright__*`), which the repo's `.mcp.json` registers.
@@ -29,7 +36,7 @@ under a minute. Readiness:
 ```bash
 curl -s -o /dev/null -w '%{http_code}\n' http://localhost:18090/api/hello   # core API
 curl -s -o /dev/null -w '%{http_code}\n' http://localhost:4000              # core client
-docker compose -f docker-compose.e2e.yml logs seed | tail -1                # "seed: done"
+docker logs prompt-e2e-seed 2>&1 | tail -1                                # "seed: done"
 ```
 
 Tear down with `make verify-down` (removes volumes, so the seed is fresh next boot).
@@ -93,7 +100,9 @@ The overlay fixes both ends so there is exactly one issuer,
   presigned upload/download URLs handed to the browser resolve on the host.
 
 The e2e realm already whitelists `http://localhost:4000/*` as a redirect URI and web
-origin, so no realm edit is needed.
+origin, so no realm edit is needed. In stack `n` the overlay hands Keycloak the shifted
+client port, which the realm's import placeholders pick up. Every port in the overlay
+follows the stack the same way.
 
 ## Fallback: drive from inside the compose network
 
@@ -104,12 +113,13 @@ container, which sits on the network and ships Playwright plus Chromium:
 ```bash
 env -u DB_CORE_HOST -u DB_CORE_PORT -u DB_CORE_USER -u DB_CORE_PASSWORD -u DB_CORE_NAME \
     -u KEYCLOAK_HOST -u CORE_HOST -u SERVER_ADDRESS \
-  docker compose -f docker-compose.e2e.yml --env-file e2e/.env.e2e \
+  docker compose -p prompt-e2e -f docker-compose.e2e.yml --env-file e2e/.env.e2e \
   run --rm --no-deps -e SHOTS=/work/test-results \
   -v "$PWD/e2e/drive.mjs:/work/drive.mjs" e2e-runner node drive.mjs
 ```
 
-Inside the container use `BASE_URL=http://client-core`, `http://server-core:8080` for the
+In stack `n`, use the project `prompt-<n>-e2e` instead of `prompt-e2e` (`make stack`
+prints the flags). Inside the container use `BASE_URL=http://client-core`, `http://server-core:8080` for the
 core API and `http://keycloak:8080` for tokens. Screenshots written to
 `/work/test-results` land in `e2e/test-results/` on the host. Delete the driver script
 from the repo when done — `e2e/` is checked in.
@@ -125,15 +135,16 @@ from the repo when done — `e2e/` is checked in.
 - The seed runs in the one-shot `seed` container with `--single-transaction` and
   `ON_ERROR_STOP`: a bad statement rolls the whole file back and `seed` exits non-zero.
   `make verify-up` does not wait for it, so the browser stack still comes up, just without
-  the demo data. Read `docker compose -f docker-compose.e2e.yml logs seed` first.
+  the demo data. Read `docker logs prompt-e2e-seed` (`prompt-<n>-e2e-seed`) first.
   `make seed-check` catches a mistyped cross-database id without booting anything.
 - The driver command's `--no-deps` skips `seed` along with everything else, so the boot
   step above is the only thing that seeds the databases. The seed is authoritative, so
-  `docker compose -f docker-compose.e2e.yml start seed` runs the one-shot container
+  `docker start -a prompt-e2e-seed` (`prompt-<n>-e2e-seed`) runs the one-shot container
   again and resets a stack you have written into.
 - Reusing images with `SKIP_BUILD=1` keeps the *baked-in* copy of `e2e/src` and
   `e2e/tests`; `seed/` is a bind mount and updates without a rebuild. Edited constants
   therefore need a rebuild, or the fallback driver navigates to stale ids. A client or
   server code change always needs the build.
-- Both stacks share container names, so run one at a time: `make verify-down` before
-  `make test-e2e-shard`, and vice versa.
+- Within one checkout the verify stack and `make test-e2e-shard` share the Compose
+  project and container names, so run one at a time: `make verify-down` before
+  `make test-e2e-shard`, and vice versa. Stacks of different worktrees are independent.

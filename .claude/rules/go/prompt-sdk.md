@@ -14,11 +14,23 @@ import "github.com/prompt-edu/prompt-sdk/promptTypes"
 import sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 ```
 
+## Service startup
+
+- `Bootstrap(ServiceOptions) error`: **phase services start through this**; runs Sentry,
+  migrations, the pgx pool, gin with Sentry + CORS + audit, the `/api` and
+  `/course_phase/:coursePhaseID` groups, `InitPhaseKeycloak`, the `/info` endpoint, and graceful
+  shutdown. `main.go` passes `ServiceName`, `BasePath`, `DBEnvPrefix`, `DefaultDBPort`,
+  `SentryDSNEnv`, `DefaultAddress`, `Capabilities` (audit is added) and a
+  `RegisterRoutes(api, coursePhase, conn)` callback. Never hand-roll this sequence.
+- `sdkUtils.GetDatabaseURLForPrefix(envPrefix, defaultPort)`: per-phase `DB_HOST_<PREFIX>` /
+  `DB_PORT_<PREFIX>` URL; `sdkUtils.GetDatabaseURL()` for the generic `DB_HOST` / `DB_PORT` (core).
+- `sdkUtils.SanitizeDatabaseURL(input)`: masks the password of any PostgreSQL URL before logging.
+
 ## Middleware & Auth
 
-- `InitPhaseKeycloak() error` — **phase services use this**; reads `KEYCLOAK_HOST`,
-  `KEYCLOAK_REALM_NAME`, and `SERVER_CORE_HOST` and calls `InitAuthenticationMiddleware`. Never
-  hand-roll an `initKeycloak()`.
+- `InitPhaseKeycloak() error`: reads `KEYCLOAK_HOST`, `KEYCLOAK_REALM_NAME`, and
+  `SERVER_CORE_HOST` and calls `InitAuthenticationMiddleware`. `Bootstrap` calls it; a service
+  with its own startup sequence calls it directly. Never hand-roll an `initKeycloak()`.
 - `InitAuthenticationMiddleware(KeycloakURL, Realm, CoreURL string) error` — call once in `main.go`.
 - `AuthenticationMiddleware(allowedRoles ...string) gin.HandlerFunc` — route protection factory.
 - `CORSMiddleware(clientHost string) gin.HandlerFunc`.

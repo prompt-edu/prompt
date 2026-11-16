@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"io"
+	"net/url"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -12,6 +13,7 @@ import (
 	"github.com/prompt-edu/prompt/servers/core/coursePhaseType/coursePhaseTypeDTO"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/core/instructorNote/instructorNoteDTO"
+	"github.com/prompt-edu/prompt/servers/core/standaloneModule"
 	"github.com/prompt-edu/prompt/servers/core/student/studentDTO"
 )
 
@@ -77,6 +79,8 @@ type PrivacyService struct {
 	applicationFiles ApplicationFileProvider
 	exportStorage    ExportStorageProvider
 	mailer           DeletionMailer
+	// standaloneModules are asked for every subject, next to the phase types of their courses.
+	standaloneModules []standaloneModule.Module
 }
 
 func NewPrivacyService(
@@ -90,17 +94,32 @@ func NewPrivacyService(
 	applicationFiles ApplicationFileProvider,
 	exportStorage ExportStorageProvider,
 	mailer DeletionMailer,
+	standaloneModules ...standaloneModule.Module,
 ) *PrivacyService {
 	return &PrivacyService{
-		queries:          queries,
-		conn:             conn,
-		applications:     applications,
-		subjects:         subjects,
-		coursePhaseTypes: coursePhaseTypes,
-		students:         students,
-		instructorNotes:  instructorNotes,
-		applicationFiles: applicationFiles,
-		exportStorage:    exportStorage,
-		mailer:           mailer,
+		queries:           queries,
+		conn:              conn,
+		applications:      applications,
+		subjects:          subjects,
+		coursePhaseTypes:  coursePhaseTypes,
+		students:          students,
+		instructorNotes:   instructorNotes,
+		applicationFiles:  applicationFiles,
+		exportStorage:     exportStorage,
+		mailer:            mailer,
+		standaloneModules: standaloneModules,
 	}
+}
+
+// externalModules lists the modules to ask for the subject's data: the phase types with a module
+// of their own, then the standalone modules.
+func (s *PrivacyService) externalModules(coursePhaseTypes []coursePhaseTypeDTO.CoursePhaseType) []standaloneModule.Module {
+	modules := make([]standaloneModule.Module, 0, len(coursePhaseTypes)+len(s.standaloneModules))
+	for _, cpt := range coursePhaseTypes {
+		if _, err := url.ParseRequestURI(cpt.BaseUrl); err != nil {
+			continue
+		}
+		modules = append(modules, standaloneModule.Module{Name: cpt.Name, BaseURL: cpt.BaseUrl})
+	}
+	return append(modules, s.standaloneModules...)
 }

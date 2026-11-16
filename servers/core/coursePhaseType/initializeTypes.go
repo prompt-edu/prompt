@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -13,6 +14,23 @@ import (
 	"github.com/prompt-edu/prompt/servers/core/meta"
 	log "github.com/sirupsen/logrus"
 )
+
+// devServiceURL is the address a development stack registers for the phase
+// service that listens on port in stack 0. Parallel local stacks shift every
+// host port by the same amount, which the Makefile hands over as
+// PROMPT_PORT_OFFSET (docs/contributor/setup.md).
+func devServiceURL(port int, path string) string {
+	offset := 0
+	if raw := sdkUtils.GetEnv("PROMPT_PORT_OFFSET", ""); raw != "" {
+		parsed, err := strconv.Atoi(raw)
+		if err != nil {
+			log.Warn("ignoring PROMPT_PORT_OFFSET, it is not a number: ", err)
+		} else {
+			offset = parsed
+		}
+	}
+	return fmt.Sprintf("http://localhost:%d%s", port+offset, path)
+}
 
 // InitializePhaseTypes creates every built-in course phase type and repairs the
 // descriptors of the ones that already exist. A failure is fatal: core must not
@@ -94,7 +112,7 @@ func (s *CoursePhaseTypeService) initInterview() error {
 		// 1.) Create the phase
 		baseURL := "{CORE_HOST}/interview/api"
 		if s.isDevEnvironment {
-			baseURL = "http://localhost:8087/interview/api"
+			baseURL = devServiceURL(8087, "/interview/api")
 		}
 
 		newInterviewPhase := db.CreateCoursePhaseTypeParams{
@@ -264,7 +282,7 @@ func (s *CoursePhaseTypeService) initIntroCourseDeveloper() error {
 		// 1.) Create the phase
 		baseURL := "{CORE_HOST}/intro-course/api"
 		if s.isDevEnvironment {
-			baseURL = "http://localhost:8082/intro-course/api"
+			baseURL = devServiceURL(8082, "/intro-course/api")
 		}
 		newIntroCourseDeveloper := db.CreateCoursePhaseTypeParams{
 			ID:           uuid.New(),
@@ -348,7 +366,7 @@ func (s *CoursePhaseTypeService) initAssessment() error {
 		// 1.) Create the phase
 		baseURL := "{CORE_HOST}/assessment/api"
 		if s.isDevEnvironment {
-			baseURL = "http://localhost:8085/assessment/api"
+			baseURL = devServiceURL(8085, "/assessment/api")
 		}
 
 		// create the phase
@@ -436,7 +454,7 @@ func (s *CoursePhaseTypeService) initTeamAllocation() error {
 		// 1.) Create the phase
 		baseURL := "{CORE_HOST}/team-allocation/api"
 		if s.isDevEnvironment {
-			baseURL = "http://localhost:8083/team-allocation/api"
+			baseURL = devServiceURL(8083, "/team-allocation/api")
 		}
 
 		newTeamAllocation := db.CreateCoursePhaseTypeParams{
@@ -519,7 +537,7 @@ func (s *CoursePhaseTypeService) initSelfTeamAllocation() error {
 		// 1.) Create the phase
 		baseURL := "{CORE_HOST}/self-team-allocation/api"
 		if s.isDevEnvironment {
-			baseURL = "http://localhost:8084/self-team-allocation/api"
+			baseURL = devServiceURL(8084, "/self-team-allocation/api")
 		}
 
 		newTeamAllocation := db.CreateCoursePhaseTypeParams{
@@ -581,7 +599,7 @@ func (s *CoursePhaseTypeService) initCertificate() error {
 		// 1.) Create the phase
 		baseURL := "{CORE_HOST}/certificate/api"
 		if s.isDevEnvironment {
-			baseURL = "http://localhost:8088/certificate/api"
+			baseURL = devServiceURL(8088, "/certificate/api")
 		}
 
 		newCertificate := db.CreateCoursePhaseTypeParams{
@@ -643,7 +661,7 @@ func (s *CoursePhaseTypeService) initPresentation() error {
 
 	baseURL := "{CORE_HOST}/presentation/api"
 	if s.isDevEnvironment {
-		baseURL = "http://localhost:8089/presentation/api"
+		baseURL = devServiceURL(8089, "/presentation/api")
 	}
 
 	presentationPhaseID := uuid.New()
@@ -703,7 +721,7 @@ func (s *CoursePhaseTypeService) initInfrastructureSetup() error {
 
 	baseURL := "{CORE_HOST}/infrastructure-setup/api"
 	if s.isDevEnvironment {
-		baseURL = "http://localhost:8091/infrastructure-setup/api"
+		baseURL = devServiceURL(8091, "/infrastructure-setup/api")
 	}
 
 	infrastructureSetupPhaseID := uuid.New()

@@ -104,6 +104,11 @@ export const coreKeys = {
     studentCounts: () => ['studyPrograms', 'studentCounts'] as const,
   },
 
+  orgs: {
+    all: () => ['orgs'] as const,
+    byId: (orgId: Id) => ['orgs', orgId] as const,
+  },
+
   privacy: {
     latest: (resource: string) => ['privacy', `${resource}-latest`] as const,
     create: (resource: string) => ['privacy', `${resource}-create`] as const,
@@ -113,15 +118,6 @@ export const coreKeys = {
       exports: () => ['privacy', 'admin', 'exports'] as const,
       deletions: () => ['privacy', 'admin', 'deletions'] as const,
     },
-  },
-
-  profilePictures: {
-    // Not a child of `lookedUp`: the own picture is read from its own endpoint
-    own: () => ['ownProfilePicture'] as const,
-    // Owned by @tumaet/prompt-ui-components (`profilePictureQueryKeys.all`), which caches every
-    // looked-up picture below it: react-query is a Module Federation singleton, so this entry is
-    // shared with every remote and must keep its literal
-    lookedUp: () => ['profilePicture'] as const,
   },
 
   serviceInfo: {
@@ -141,6 +137,10 @@ export const coreKeys = {
     global: (filters: unknown, limit: number, cursor: unknown) =>
       ['auditLog', 'global', filters, limit, cursor] as const,
     status: () => ['auditLogStatus'] as const,
+  },
+
+  ai: {
+    info: () => ['aiInfo'] as const,
   },
 
   githubPullRequest: (pullRequestNumber: Id) => ['github-pr', pullRequestNumber] as const,

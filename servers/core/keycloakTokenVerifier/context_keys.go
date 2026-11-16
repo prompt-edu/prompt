@@ -8,5 +8,6 @@ const (
     CtxUniversityLogin      = "universityLogin"
     CtxFirstName            = "firstName"
     CtxLastName             = "lastName"
+    CtxTokenIssuedAt        = "tokenIssuedAt"
 )
 

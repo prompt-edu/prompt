@@ -20,6 +20,7 @@ on:
       - "clients/package.json"
       - "clients/lerna.json"
       - "docker-compose.yml"
+      - "docker-compose.stack.yml"
       - ".env.template"
       - ".env.dev.template"
       - "Makefile"
@@ -44,7 +45,7 @@ jobs:
       - run: corepack enable
       - uses: actions/setup-node@v7
         with:
-          node-version: "24.22.1"
+          node-version: "26.13.0"
           cache: "yarn"
           cache-dependency-path: ./clients/yarn.lock
       - name: Scaffold a throwaway phase
@@ -56,11 +57,14 @@ jobs:
         run: |
           cp .env.template .env
           docker compose config -q
+          docker compose -f docker-compose.yml -f docker-compose.stack.yml config -q
       - name: Check env/compose consistency
         run: |
           grep -q '^  server-ci-smoke:$' docker-compose.yml
           grep -q '^  client-ci-smoke-component:$' docker-compose.yml
           grep -q '^  db-ci-smoke-server:$' docker-compose.yml
+          grep -q '^  db-ci-smoke-server:$' docker-compose.stack.yml
+          grep -q '^DB_SERVICES = .*db-ci-smoke-server' Makefile
           grep -q '^DB_HOST_CI_SMOKE_SERVER=db-ci-smoke-server$' .env.template
       - name: Check for leftover template tokens
         run: |

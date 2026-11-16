@@ -234,6 +234,7 @@ export const ApplicationQuestionConfig = () => {
               questionsFileUpload={applicationQuestions.filter(
                 (question) => 'allowedFileTypes' in question,
               )}
+              welcomeText={coursePhase?.restrictedData?.welcomeText}
             />
             <AddQuestionMenu
               setApplicationQuestions={setApplicationQuestions}

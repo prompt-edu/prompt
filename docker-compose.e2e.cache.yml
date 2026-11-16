@@ -81,6 +81,14 @@ services:
     build:
       cache_from:
         - type=gha,scope=e2e-client-team-allocation
+  server-ai:
+    build:
+      cache_from:
+        - type=gha,scope=e2e-server-ai
+  client-ai:
+    build:
+      cache_from:
+        - type=gha,scope=e2e-client-ai
   e2e-runner:
     build:
       cache_from:

@@ -25,6 +25,11 @@ export const PRESENTATION_API = '/presentation/api'
 export const TEAM_ALLOCATION_API = '/team-allocation/api'
 export const EXAMPLE_API = '/example-service/api'
 export const INFRASTRUCTURE_SETUP_API = '/infrastructure-setup/api'
+export const AI_API = '/ai/api'
+
+// Set by the `ai` shard only, whose stack runs the AI server with aimock as the provider.
+export const AI_ENABLED = process.env.AI_ENABLED === 'true'
+export const AIMOCK_URL = process.env.AIMOCK_URL ?? 'http://localhost:4010'
 
 export const tokenEndpoint = () =>
   `${KEYCLOAK_URL}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/token`

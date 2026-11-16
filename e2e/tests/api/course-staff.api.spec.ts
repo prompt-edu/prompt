@@ -139,7 +139,8 @@ test.describe('core API: keycloak user search', () => {
     const results = (await res.json()) as UserSearchResults
     expect(Array.isArray(results.results)).toBeTruthy()
     expect(results.results.length).toBeGreaterThan(0)
-    expect(results.results.some((u) => u.username === 'admin')).toBeTruthy()
+    const admin = results.results.find((u) => u.username === 'admin')
+    expect(admin?.universityLogin).toBe('ad12min')
   })
 
   test('GET /keycloak/users/search rejects a query shorter than 2 characters', async ({

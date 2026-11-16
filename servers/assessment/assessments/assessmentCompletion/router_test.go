@@ -24,6 +24,7 @@ import (
 	dto "github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentCompletion/assessmentCompletionDTO"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/assessment/testutils"
 	"github.com/prompt-edu/prompt/servers/assessment/utils"
 )
 
@@ -45,7 +46,7 @@ func (suite *AssessmentCompletionRouterTestSuite) SetupSuite() {
 	suite.cleanup = cleanup
 
 	suite.coursePhaseConfigService = coursePhaseConfig.NewCoursePhaseConfigService(*testDB.Queries, testDB.Conn, assessmentSchemas.NewAssessmentSchemaService(*testDB.Queries, testDB.Conn))
-	suite.service = NewAssessmentCompletionService(*testDB.Queries, testDB.Conn, suite.coursePhaseConfigService)
+	suite.service = NewAssessmentCompletionService(*testDB.Queries, testDB.Conn, suite.coursePhaseConfigService, testutils.CheckTestParticipant)
 
 	suite.router = gin.Default()
 	api := suite.router.Group("/api/course_phase/:coursePhaseID")
@@ -186,6 +187,31 @@ func (suite *AssessmentCompletionRouterTestSuite) TestCreateOrUpdateAssessmentCo
 
 	suite.router.ServeHTTP(resp, req)
 	assert.Equal(suite.T(), http.StatusOK, resp.Code)
+}
+
+func (suite *AssessmentCompletionRouterTestSuite) TestCreateOrUpdateAssessmentCompletionRejectsUnverifiedParticipants() {
+	phaseID := uuid.MustParse("24461b6b-3c3a-4bc6-ba42-69eeb1514da9")
+	send := func(method string, courseParticipationID uuid.UUID) int {
+		body, _ := json.Marshal(dto.AssessmentCompletion{
+			CourseParticipationID: courseParticipationID,
+			Author:                "Test Author",
+			GradeSuggestion:       2.0,
+		})
+		req, _ := http.NewRequest(method, "/api/course_phase/"+phaseID.String()+"/student-assessment/completed", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		resp := httptest.NewRecorder()
+		suite.router.ServeHTTP(resp, req)
+		return resp.Code
+	}
+
+	for _, method := range []string{"POST", "PUT"} {
+		assert.Equal(suite.T(), http.StatusBadRequest, send(method, testutils.OutsideParticipationID), method)
+		assert.Equal(suite.T(), http.StatusBadGateway, send(method, testutils.UnverifiableParticipationID), method)
+	}
+
+	exists, err := suite.service.CheckAssessmentCompletionExists(suite.suiteCtx, testutils.OutsideParticipationID, phaseID)
+	assert.NoError(suite.T(), err)
+	assert.False(suite.T(), exists)
 }
 
 func (suite *AssessmentCompletionRouterTestSuite) TestCreateOrUpdateAssessmentCompletionInvalidJSON() {

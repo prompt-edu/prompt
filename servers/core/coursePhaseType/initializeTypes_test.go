@@ -146,3 +146,14 @@ func TestInfrastructureSetupPhaseTypeExists(t *testing.T) {
 	}
 	assert.Equal(t, 1, infrastructureSetupCount)
 }
+
+func TestDevServiceURLFollowsTheStackPortOffset(t *testing.T) {
+	t.Setenv("PROMPT_PORT_OFFSET", "")
+	assert.Equal(t, "http://localhost:8085/assessment/api", devServiceURL(8085, "/assessment/api"))
+
+	t.Setenv("PROMPT_PORT_OFFSET", "200")
+	assert.Equal(t, "http://localhost:8285/assessment/api", devServiceURL(8085, "/assessment/api"))
+
+	t.Setenv("PROMPT_PORT_OFFSET", "not-a-number")
+	assert.Equal(t, "http://localhost:8085/assessment/api", devServiceURL(8085, "/assessment/api"))
+}

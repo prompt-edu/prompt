@@ -112,6 +112,7 @@ func (s *ActionItemService) getStudentActionItemsForCoursePhaseCommunication(c *
 // @Failure 401 {object} map[string]string
 // @Failure 403 {object} map[string]string
 // @Failure 500 {object} map[string]string
+// @Failure 502 {object} map[string]string
 // @Router /course_phase/{coursePhaseID}/student-assessment/action-item [post]
 func (s *ActionItemService) createActionItem(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
@@ -132,7 +133,7 @@ func (s *ActionItemService) createActionItem(c *gin.Context) {
 	}
 	req.Author = author
 
-	err = s.CreateActionItem(c, coursePhaseID, req)
+	err = s.CreateActionItem(c, c.GetHeader("Authorization"), coursePhaseID, req)
 	if err != nil {
 		sdkUtils.HandleError(c, actionItemErrorStatus(err), err)
 		return
@@ -334,6 +335,10 @@ func actionItemErrorStatus(err error) int {
 	switch {
 	case errors.Is(err, ErrActionItemNotFound):
 		return http.StatusNotFound
+	case errors.Is(err, coursePhaseConfig.ErrParticipantNotInPhase):
+		return http.StatusBadRequest
+	case errors.Is(err, coursePhaseConfig.ErrParticipantLookup):
+		return http.StatusBadGateway
 	case errors.Is(err, teamScope.ErrOutsideScope):
 		return http.StatusForbidden
 	case errors.Is(err, assessmentCompletion.ErrAssessmentCompleted), errors.Is(err, coursePhaseConfig.ErrNotStarted):

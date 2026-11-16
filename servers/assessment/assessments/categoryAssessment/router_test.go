@@ -16,6 +16,7 @@ import (
 	"github.com/prompt-edu/prompt/servers/assessment/assessments/assessmentCompletion"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/assessment/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
@@ -36,7 +37,7 @@ func (suite *CategoryAssessmentRouterTestSuite) SetupSuite() {
 	}
 	suite.cleanup = cleanup
 	coursePhaseConfigService := coursePhaseConfig.NewCoursePhaseConfigService(*testDB.Queries, testDB.Conn, assessmentSchemas.NewAssessmentSchemaService(*testDB.Queries, testDB.Conn))
-	suite.service = NewCategoryAssessmentService(*testDB.Queries, testDB.Conn, assessmentCompletion.NewAssessmentCompletionService(*testDB.Queries, testDB.Conn, coursePhaseConfigService))
+	suite.service = NewCategoryAssessmentService(*testDB.Queries, testDB.Conn, assessmentCompletion.NewAssessmentCompletionService(*testDB.Queries, testDB.Conn, coursePhaseConfigService, testutils.CheckTestParticipant), testutils.CheckTestParticipant)
 
 	suite.router = gin.Default()
 	api := suite.router.Group("/api/course_phase/:coursePhaseID")
@@ -77,6 +78,34 @@ func (suite *CategoryAssessmentRouterTestSuite) TestCreateOrUpdateIgnoresBodyCou
 	inBodyPhase, err := suite.service.ListCategoryAssessmentsByStudentInPhase(suite.suiteCtx, partID, otherPhaseID)
 	assert.NoError(suite.T(), err)
 	assert.Empty(suite.T(), inBodyPhase)
+}
+
+func (suite *CategoryAssessmentRouterTestSuite) postCategoryAssessment(categoryID, courseParticipationID uuid.UUID) int {
+	phaseID := uuid.MustParse("4179d58a-d00d-4fa7-94a5-397bc69fab02")
+	body, _ := json.Marshal(map[string]string{
+		"categoryID":            categoryID.String(),
+		"courseParticipationID": courseParticipationID.String(),
+		"comment":               "Out of phase comment",
+	})
+	req, _ := http.NewRequest("POST", "/api/course_phase/"+phaseID.String()+"/category-assessment", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp := httptest.NewRecorder()
+	suite.router.ServeHTTP(resp, req)
+	return resp.Code
+}
+
+func (suite *CategoryAssessmentRouterTestSuite) TestCreateOrUpdateRejectsUnknownCategory() {
+	assert.Equal(suite.T(), http.StatusBadRequest, suite.postCategoryAssessment(uuid.New(), uuid.New()))
+}
+
+func (suite *CategoryAssessmentRouterTestSuite) TestCreateOrUpdateRejectsParticipantOutsidePhase() {
+	categoryID := uuid.MustParse("25f1c984-ba31-4cf2-aa8e-5662721bf44e")
+	assert.Equal(suite.T(), http.StatusBadRequest, suite.postCategoryAssessment(categoryID, testutils.OutsideParticipationID))
+}
+
+func (suite *CategoryAssessmentRouterTestSuite) TestCreateOrUpdateWhenParticipantLookupFails() {
+	categoryID := uuid.MustParse("25f1c984-ba31-4cf2-aa8e-5662721bf44e")
+	assert.Equal(suite.T(), http.StatusBadGateway, suite.postCategoryAssessment(categoryID, testutils.UnverifiableParticipationID))
 }
 
 func TestCategoryAssessmentRouterTestSuite(t *testing.T) {

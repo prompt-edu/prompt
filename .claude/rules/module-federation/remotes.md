@@ -69,7 +69,7 @@ export const REMOTES = [
 ]
 ```
 
-`clients/core/remotes.config.mjs` is the single list of remotes core loads. `rspack.config.mjs`
+`clients/core/remotes.config.mjs` is the single list of remotes core loads at startup. `rspack.config.mjs`
 resolves each entry from `IS_DEV`, not from environment variables: the dev port in development, the
 reverse-proxy path in production, with a `?${Date.now()}` cache-buster that forces a reload after
 redeploy. The list also reaches the app as `__PROMPT_REMOTES__` for the admin System Status page,
@@ -84,6 +84,17 @@ export const YourRoutes = React.lazy(() => import('your_component/routes').then(
 
 The `*_component/routes`, `*_component/sidebar`, and `*_component/provide` module shapes are typed
 once in `clients/core/src/declaration.d.ts`.
+
+### Remotes behind a switch
+
+A remote that only exists while a feature is on (the AI remote, behind `AI_ENABLED`) stays out of
+`REMOTES`: the federation runtime fetches every static remote's entry on each page load, and
+`remotes.config.test.ts` ties every entry to a phase type. Such a remote is registered on first use
+through `registerRemotes` from `@module-federation/runtime-tools/runtime` and loaded with
+`loadRemote` (see `src/managementConsole/PhaseMapping/aiRemote.ts`). Its entry URL comes from a
+`DefinePlugin` constant in `clients/core/rspack.config.mjs` (`__PROMPT_AI_REMOTE_ENTRY__`), resolved
+from `IS_DEV` with the same `?${Date.now()}` cache-buster and declared in `declaration.d.ts`. It is
+therefore not part of `__PROMPT_REMOTES__`, and the System Status page does not probe it.
 
 ## Styling
 

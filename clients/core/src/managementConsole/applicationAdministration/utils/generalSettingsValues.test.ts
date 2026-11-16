@@ -23,7 +23,7 @@ describe('getGeneralSettingsValues', () => {
       startTime: '00:00',
       endTime: '23:59',
       externalStudentsAllowed: false,
-      universityLoginAvailable: false,
+      universityLoginAvailable: true,
       autoAccept: false,
       mode: 'apply',
     })

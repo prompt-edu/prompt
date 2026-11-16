@@ -129,6 +129,10 @@ Never bake a secret into the image (`ENV API_KEY=...`) or commit it to `docker-c
 
 ## Debugging
 
+These commands target the main checkout's stack (stack 0). In a linked worktree, a bare
+`docker compose` would reach stack 0's containers too: replace `docker compose` with the compose
+command `make stack` prints for that worktree's stack.
+
 ```bash
 docker compose logs -f server-team-allocation   # follow one service's logs
 docker compose ps                                # what's running / health status

@@ -1,4 +1,3 @@
-import { ProfilePictureDialog } from '@core/managementConsole/shared/components/ProfilePictureDialog/ProfilePictureDialog'
 import {
   Button,
   DropdownMenu,
@@ -7,6 +6,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  ProfilePictureDialog,
   ThemeToggle,
 } from '@tumaet/prompt-ui-components'
 import { CircleUserRound, LogOut, Shield } from 'lucide-react'

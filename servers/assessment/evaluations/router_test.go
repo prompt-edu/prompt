@@ -154,7 +154,7 @@ func (suite *EvaluationRouterTestSuite) TestGetMyEvaluations() {
 func (suite *EvaluationRouterTestSuite) TestCreateOrUpdateEvaluation() {
 	requestBody := evaluationDTO.CreateOrUpdateEvaluationRequest{
 		CourseParticipationID:       uuid.MustParse("01234567-1234-1234-1234-123456789012"), // Self evaluation: subject is the author
-		CompetencyID:                uuid.MustParse("c1234567-1234-1234-1234-123456789012"), // Valid from test data
+		CompetencyID:                uuid.MustParse("c4234567-1234-1234-1234-123456789012"), // In the phase's self evaluation schema
 		ScoreLevel:                  scoreLevelDTO.ScoreLevelGood,
 		AuthorCourseParticipationID: uuid.MustParse("01234567-1234-1234-1234-123456789012"), // Must match test middleware
 		Type:                        assessmentType.Self,
@@ -168,6 +168,25 @@ func (suite *EvaluationRouterTestSuite) TestCreateOrUpdateEvaluation() {
 	suite.router.ServeHTTP(w, req)
 
 	assert.Equal(suite.T(), http.StatusCreated, w.Code)
+}
+
+func (suite *EvaluationRouterTestSuite) TestCreateOrUpdateEvaluationRejectsCompetencyOutsideEvaluationSchema() {
+	requestBody := evaluationDTO.CreateOrUpdateEvaluationRequest{
+		CourseParticipationID:       uuid.MustParse("01234567-1234-1234-1234-123456789012"),
+		CompetencyID:                uuid.MustParse("c1234567-1234-1234-1234-123456789012"), // In the assessment schema, not the self evaluation schema
+		ScoreLevel:                  scoreLevelDTO.ScoreLevelGood,
+		AuthorCourseParticipationID: uuid.MustParse("01234567-1234-1234-1234-123456789012"),
+		Type:                        assessmentType.Self,
+	}
+
+	body, _ := json.Marshal(requestBody)
+	req, _ := http.NewRequest(http.MethodPost, "/assessment/api/course_phase/"+suite.testCoursePhaseID.String()+"/evaluation", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	suite.router.ServeHTTP(w, req)
+
+	assert.Equal(suite.T(), http.StatusBadRequest, w.Code)
 }
 
 func (suite *EvaluationRouterTestSuite) TestCreateOrUpdateEvaluationInvalidJSON() {
@@ -188,7 +207,7 @@ func (suite *EvaluationRouterTestSuite) TestCreateOrUpdateEvaluationInvalidJSON(
 func (suite *EvaluationRouterTestSuite) TestCreateOrUpdateEvaluationForbiddenAuthor() {
 	requestBody := evaluationDTO.CreateOrUpdateEvaluationRequest{
 		CourseParticipationID:       uuid.MustParse("02234567-1234-1234-1234-123456789012"), // Valid from test data
-		CompetencyID:                uuid.MustParse("c1234567-1234-1234-1234-123456789012"), // Valid from test data
+		CompetencyID:                uuid.MustParse("c4234567-1234-1234-1234-123456789012"), // In the phase's self evaluation schema
 		ScoreLevel:                  scoreLevelDTO.ScoreLevelGood,
 		AuthorCourseParticipationID: uuid.MustParse("02234567-1234-1234-1234-123456789012"), // Different from test middleware user
 		Type:                        assessmentType.Self,

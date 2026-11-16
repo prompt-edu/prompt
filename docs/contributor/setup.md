@@ -537,7 +537,7 @@ The host ports are `5432` (core), `5434` (team allocation), `5435` (assessment),
 File uploads (application documents, certificates, presentation materials) are stored through the SeaweedFS S3 gateway. It is **required** — start it before the servers in step 5:
 
 ```bash
-docker compose up -d seaweedfs-volume seaweedfs-s3
+make s3
 ```
 
 Without it the core and presentation servers exit during startup instead of coming up degraded: both check that their bucket exists while building the S3 adapter, and abort on the connection error with `Failed to initialize prompt file storage` (core) or `Unable to initialize presentation material storage` (presentation).
@@ -579,6 +579,8 @@ The target loads `.env` and `.env.dev`, downloads Go dependencies on demand, and
 
 Phase services have their own targets — `make server-assessment`, `make server-interview`, `make server-team-allocation`, `make server-self-team-allocation`, `make server-example`, `make server-certificate`, `make server-presentation`, `make server-infrastructure-setup` — and `make servers` starts the core server together with all of them.
 
+Each target starts its server on its own port (`8083` team allocation, `8084` self team allocation, `8085` assessment, `8086` example, `8087` interview, `8088` certificate, `8089` presentation, `8091` infrastructure setup); `SERVER_ADDRESS` in `.env` only decides which interface they bind.
+
 ### 6. Start the Clients
 
 In a separate terminal, launch **all** microfrontends at once:
@@ -588,6 +590,8 @@ make clients
 ```
 
 This installs the workspace dependencies (`yarn install`) and starts every microfrontend in parallel on its own rspack dev server. Then open [http://localhost:3000](http://localhost:3000).
+
+`make servers` and `make clients` keep running in the background, so Ctrl-C in their terminal doesn't stop them. `make stop` stops every server and client dev server of the stack, and `make db-down` does the same before it stops the databases.
 
 | Microfrontend | Port |
 | --- | --- |
@@ -602,11 +606,14 @@ This installs the workspace dependencies (`yarn install`) and starts every micro
 | `presentation_component` | 3011 |
 | `infrastructure_setup_component` | 3012 |
 
-To run only a subset, use one of the per-client targets — `make client-core`, `make client-assessment`, `make client-certificate`, `make client-interview`, `make client-matching`, `make client-presentation`. The remaining components (example, team allocation, self team allocation, infrastructure setup) have no target; run `yarn dev` inside the corresponding folder:
+To run only a subset, use the per-client targets: `make client-core`, `make client-example`, `make client-interview`, `make client-matching`, `make client-assessment`, `make client-team-allocation`, `make client-self-team-allocation`, `make client-certificate`, `make client-presentation` and `make client-infrastructure-setup`. For example:
 
 ```bash
-cd clients/core && yarn dev
+make client-core
+make client-assessment   # in another terminal
 ```
+
+Prefer these targets over `yarn dev` inside a component folder. A plain `yarn dev` doesn't get the stack's client port, so in a worktree (see [Run Several Stacks Side by Side](#run-several-stacks-side-by-side)) it binds stack 0's port.
 
 Phases developed in their own repositories (for example the intro course and the GitHub challenge) are loaded as external remotes and served by those projects.
 
@@ -632,6 +639,67 @@ make test
 ---
 
 You should now have Keycloak (on `localhost:8081`), your PostgreSQL databases, the Go backend, and the React microfrontends running. Happy coding!
+
+## Run Several Stacks Side by Side
+
+Every git worktree of the repository can run its own complete stack (databases, Keycloak, SeaweedFS, servers, client dev servers, and the e2e/verify stack) next to the others. That lets you work on two branches at once, review a PR while your feature keeps running, or give parallel agent sessions one stack each, without sharing data or migration state.
+
+Each checkout has a **stack number** `n`:
+
+- The main checkout (the clone itself) is stack `0`. It keeps the ports, container names (`prompt-db`, `prompt-keycloak`, ...) and bind-mounted data directories described above, so nothing changes for it.
+- A linked worktree (`git worktree add ...`) gets the first free number from `1` to `7` the first time a target needs one. `make stack` and `make stop` only look, so they never take one. The allocation is recorded in `$(git rev-parse --git-common-dir)/prompt-stacks`, and `make stack-down` or removing the worktree frees its number. A number whose stack still has containers or volumes is not handed out again until you remove them (see below).
+- `PROMPT_STACK=<n>` overrides the number for one command, for example `make db PROMPT_STACK=3`. It is not recorded. It refuses a number another worktree holds (stack `0` belongs to the main checkout) and names that worktree; add `PROMPT_STACK_FORCE=1` only when you mean to work on its stack from here.
+
+There is nothing to configure: run the usual targets inside the worktree.
+
+```bash
+git worktree add ../prompt-my-feature -b my-feature
+cd ../prompt-my-feature
+make stack          # shows the stack number and its ports
+make db && make s3  # the stack's own databases, Keycloak and SeaweedFS
+make servers        # in a second terminal
+make clients        # in a third terminal
+make seed           # once the servers have migrated
+```
+
+Both `.env` and `.env.dev` are gitignored, so a plain `git worktree add` doesn't copy them, and the Makefile then reads the main checkout's copies. Worktrees that Claude Code creates get their own copies through `.worktreeinclude`. A file in the worktree takes precedence, and a copy can go stale when the templates change: if a database exits right after `make db`, compare the files with `.env.template` and `.env.dev.template`.
+
+### What a stack number changes
+
+Stack `n` shifts every published host port by `n * 100` and puts everything else in its own namespace:
+
+| | Stack 0 | Stack n (e.g. 1) |
+| --- | --- | --- |
+| Client dev servers | `3000` (core) to `3013` | `3000 + 100n` to `3013 + 100n` (`3100` to `3113`) |
+| Core API, phase servers | `8080`, `8083` to `8091` | `8180`, `8183` to `8191` |
+| AI server, its PostgreSQL (with `AI_ENABLED=true`) | `8092`, `5442` | `8192`, `5542` |
+| Keycloak | `8081` | `8181` |
+| PostgreSQL | `5431` (Keycloak), `5432` to `5441` | `5531`, `5532` to `5541` |
+| SeaweedFS S3 | `8334` | `8434` |
+| e2e/verify stack | client `4000`, API `18090`, Keycloak `18081`, Mailpit `18025`, S3 `18333` | `4100`, `18190`, `18181`, `18125`, `18433` |
+| Containers | `prompt-*`, `prompt-e2e-*` | `prompt-1-*`, `prompt-1-e2e-*` |
+| Compose projects | directory name, `prompt-e2e` | `prompt-1`, `prompt-1-e2e` |
+| Data | bind-mounted `./postgres_*_data`, `./keycloak_postgres_data`, `./seaweedfs_*_data` | named volumes `prompt-1_*` |
+
+The Makefile computes all of it per target, there is no generated env file:
+
+- The Compose files read each host port from `PROMPT_PORT_<stack 0 port>` and each container name prefix from `PROMPT_CONTAINER_PREFIX`, with today's values as defaults. For stacks from `1` up the Makefile adds `docker-compose.stack.yml`, which moves the data to named volumes.
+- The host-run servers get the stack's database, Keycloak and S3 ports, `SERVER_CORE_HOST` and `CORE_HOST` (the CORS origin). Core registers the phase services at their shifted ports.
+- The client dev servers read their base port from `PROMPT_CLIENT_PORT` (`clients/shared/rspack/devPorts.mjs`), and the core dev server serves `env.js` with the stack's API and Keycloak ports. This also shifts the external remotes (intro course `3005`, GitHub challenge `3006`) and the intro-course API (`8082`). Their repositories don't know the stack number, so in stack `n` they only load if you start them on `3005 + 100n`, `3006 + 100n` and `8082 + 100n`.
+- The stack's Keycloak imports `keycloakConfig.json` with the stack's client and core ports filled into its redirect URIs and web origins. Its `prompt-server` client keeps the realm's placeholder secret, which the Makefile passes to the servers, so step 4 is not needed for a worktree stack.
+
+The ports are spaced so that stacks `0` to `7` never collide with each other or with the e2e stacks. Always go through `make` in a worktree: a bare `docker compose` there runs with stack 0's names and ports. `make stack` prints the Compose flags it uses.
+
+### Tear a stack down
+
+`make stop` stops the stack's servers and client dev servers. `make db-down` stops them as well as the stack's databases, and keeps the data. To remove a worktree's processes, containers and volumes for good and free its stack number, run this before you remove the worktree:
+
+```bash
+make stack-down
+git worktree remove ../prompt-my-feature
+```
+
+For a worktree that is already gone, run `make stack-down PROMPT_STACK=<n>` from any checkout. `make stack` in any worktree lists the current allocations and every number whose removed worktree left containers or volumes behind, with the command to remove them. `docker ps -a --filter name=prompt-<n>-` shows what a stack still runs. `make stack-down` refuses to touch stack 0, whose data lives in the main checkout's bind-mounted directories.
 
 ## Optional: IDE Configuration
 

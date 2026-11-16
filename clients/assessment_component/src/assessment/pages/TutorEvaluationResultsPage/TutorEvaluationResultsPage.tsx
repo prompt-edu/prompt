@@ -18,6 +18,7 @@ import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
 import { useGetEvaluationCategoriesWithCompetencies } from '../hooks/useGetEvaluationCategoriesWithCompetencies'
 import { getTutorLabel } from '../hooks/useTutorLabel'
 import { getTeamMemberName } from '../utils/getTeamMemberName'
+import { getTeamNamesOfTutor } from '../utils/getTutorRows'
 import { printPage } from '../utils/printPage'
 import { CategoryEvaluation } from './components/CategoryEvaluation'
 import { useGetEvaluationsForTutorInPhase } from './hooks/useGetEvaluationsForTutorInPhase'
@@ -47,20 +48,18 @@ export const TutorEvaluationResultsPage = () => {
   const tutorEvaluations = evaluationsQuery.data ?? []
   const feedbackItems = feedbackItemsQuery.data ?? []
 
+  // A tutor who leads several teams is listed under each of them.
   const tutor = useMemo(() => {
-    for (const team of teams) {
-      const foundTutor = team.tutors.find((t) => t.id === tutorId)
-      if (foundTutor) {
-        return {
-          id: foundTutor.id,
-          firstName: foundTutor.firstName,
-          lastName: foundTutor.lastName,
-          teamName: team.name,
-          teamId: team.id,
-        }
-      }
+    const foundTutor = teams
+      .flatMap((team) => team.tutors)
+      .find((teamTutor) => teamTutor.id === tutorId)
+    if (!foundTutor) return null
+    return {
+      id: foundTutor.id,
+      firstName: foundTutor.firstName,
+      lastName: foundTutor.lastName,
+      teamNames: getTeamNamesOfTutor(teams, tutorId ?? ''),
     }
-    return null
   }, [teams, tutorId])
 
   const positiveFeedbackItems = useMemo(() => {
@@ -180,7 +179,7 @@ export const TutorEvaluationResultsPage = () => {
 
             <PrintReport
               title={`${tutorLabel.title} Evaluation Results for ${getStudentName(tutor)}`}
-              subtitle={tutor.teamName}
+              subtitle={tutor.teamNames.join(', ')}
               meta={
                 evaluatorCount > 1 ? (
                   <span>

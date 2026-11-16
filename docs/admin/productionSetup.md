@@ -99,6 +99,7 @@ For this option, refer to the [Keycloak Local Development Guide](/contributor/ke
 
 Keep in mind:
 
+- `keycloakConfig.json` contains `${PROMPT_PORT_*:<port>}` placeholders in its redirect URIs and web origins. Keycloak resolves them only when it imports the file at startup (`--import-realm`). Before uploading it through the admin console, replace each placeholder with your own origin.
 - The `docker-compose.extern.yml` includes a sample setup with a Docker container for Keycloak and a database instance to persist Keycloak data.
 - **Domain Setup:**  
   Configure a separate domain for your Keycloak instance (this can be a subdomain but **not** a subpath).

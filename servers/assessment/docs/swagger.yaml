@@ -1437,6 +1437,12 @@ paths:
             additionalProperties:
               type: string
             type: object
+        "502":
+          description: Bad Gateway
+          schema:
+            additionalProperties:
+              type: string
+            type: object
       summary: Create or update category assessment comment
       tags:
       - categoryAssessments
@@ -3220,6 +3226,12 @@ paths:
             additionalProperties:
               type: string
             type: object
+        "502":
+          description: Bad Gateway
+          schema:
+            additionalProperties:
+              type: string
+            type: object
       summary: Create or update assessment
       tags:
       - assessments
@@ -3387,6 +3399,12 @@ paths:
             type: object
         "500":
           description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "502":
+          description: Bad Gateway
           schema:
             additionalProperties:
               type: string
@@ -3732,6 +3750,12 @@ paths:
             additionalProperties:
               type: string
             type: object
+        "502":
+          description: Bad Gateway
+          schema:
+            additionalProperties:
+              type: string
+            type: object
       summary: Create or update assessment completion
       tags:
       - assessment_completions
@@ -3774,6 +3798,12 @@ paths:
             type: object
         "500":
           description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "502":
+          description: Bad Gateway
           schema:
             additionalProperties:
               type: string
@@ -4232,6 +4262,12 @@ paths:
             type: object
         "500":
           description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "502":
+          description: Bad Gateway
           schema:
             additionalProperties:
               type: string

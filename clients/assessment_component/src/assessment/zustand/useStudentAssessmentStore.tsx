@@ -20,9 +20,14 @@ export interface StudentAssessmentStore {
 
   assessmentParticipation: AssessmentParticipationWithStudent | undefined
   setAssessmentParticipation: (participation: AssessmentParticipationWithStudent) => void
+
+  reset: () => void
 }
 
-export const useStudentAssessmentStore = create<StudentAssessmentStore>((set) => ({
+const initialState: Omit<
+  StudentAssessmentStore,
+  'setStudentAssessment' | 'setAssessmentParticipation' | 'reset'
+> = {
   courseParticipationID: undefined,
   assessments: [],
   categoryAssessments: [],
@@ -30,6 +35,11 @@ export const useStudentAssessmentStore = create<StudentAssessmentStore>((set) =>
   studentScore: undefined,
   selfEvaluations: [],
   peerEvaluations: [],
+  assessmentParticipation: undefined,
+}
+
+export const useStudentAssessmentStore = create<StudentAssessmentStore>((set) => ({
+  ...initialState,
   setStudentAssessment: (assessment) =>
     set({
       courseParticipationID: assessment.courseParticipationID,
@@ -45,6 +55,7 @@ export const useStudentAssessmentStore = create<StudentAssessmentStore>((set) =>
       ),
     }),
 
-  assessmentParticipation: undefined,
   setAssessmentParticipation: (participation) => set({ assessmentParticipation: participation }),
+
+  reset: () => set(initialState),
 }))

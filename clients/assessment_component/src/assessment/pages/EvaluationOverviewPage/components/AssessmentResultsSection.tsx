@@ -38,7 +38,7 @@ export const AssessmentResultsSection = ({ onReadyChange }: AssessmentResultsSec
 
   const { data: myParticipation } = useGetMyParticipation({ enabled: isStudent })
   const { data: teams } = useGetAllTeams()
-  const { setStudentAssessment, setAssessmentParticipation } = useStudentAssessmentStore()
+  const { setStudentAssessment, setAssessmentParticipation, reset } = useStudentAssessmentStore()
 
   const shouldFetch = isStudent && resultsReleased
   const shouldFetchCategories = (shouldFetch || !isStudent) && gradingSheetVisible
@@ -76,6 +76,13 @@ export const AssessmentResultsSection = ({ onReadyChange }: AssessmentResultsSec
       myIndependentAssessments: [],
     })
   }, [results, setStudentAssessment])
+
+  // The example writes made-up results into the shared store, so clear them before another page
+  // (a participant's assessment, for example) reads it.
+  useEffect(() => {
+    if (isStudent) return
+    return reset
+  }, [isStudent, reset])
 
   const isReportReady =
     resultsReleased &&
@@ -138,10 +145,12 @@ export const AssessmentResultsSection = ({ onReadyChange }: AssessmentResultsSec
               ) : null}
             </div>
 
-            <AssessmentPrintReport
-              categories={assessmentCategories}
-              actionItems={results.actionItems}
-            />
+            {isStudent && (
+              <AssessmentPrintReport
+                categories={assessmentCategories}
+                actionItems={results.actionItems}
+              />
+            )}
           </>
         )
       }}

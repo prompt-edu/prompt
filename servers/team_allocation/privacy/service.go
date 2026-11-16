@@ -62,10 +62,15 @@ func (s *TeamsPrivacyService) DataDeletionHandler(c *gin.Context, subject sdkAut
 	return tx.Commit(c)
 }
 
-// tutorIDs lists the ids a tutor row of the subject can carry: a coach is stored under a course
-// participation, a course editor (a project lead, for example) under their Keycloak user id.
+// tutorIDs lists the ids a tutor row of the subject can carry: a tutor imported From Course or
+// through Search Students is stored under their student id, a course editor (a project lead, for
+// example) under their Keycloak user id, and older rows under a course participation id. A
+// re-import keeps the id a tutor already has, so a row can carry any of them whatever its source.
 func tutorIDs(subject sdkAuth.SubjectIdentifiers) []uuid.UUID {
 	ids := append([]uuid.UUID{}, subject.CourseParticipationIDs...)
+	if subject.StudentID != uuid.Nil {
+		ids = append(ids, subject.StudentID)
+	}
 	if subject.UserID != uuid.Nil {
 		ids = append(ids, subject.UserID)
 	}

@@ -29,6 +29,9 @@ Once the assessment phase is set up, students and instructors can begin evaluati
    several students in the participants table and use **Mark as final** from the actions menu.
    Students with unassessed competencies or no grade suggestion are skipped. **Unmark final** reopens
    assessments until the deadline has passed.
+5. **Read Your Tutor Evaluation**: Once the results are released, tutors find what their students
+   wrote about them on the phase page (see
+   [Tutors Seeing Their Tutor Evaluation Results](#tutors-seeing-their-tutor-evaluation-results)).
 
 > 💡 **Tip**: Regularly check for updates and communicate with your team to ensure timely submissions.
 
@@ -146,6 +149,19 @@ mail has a subject and content.
 - If sending times out, PROMPT cannot tell who received the mail, so the students of that release
   are not mailed again automatically
 - Besides the usual student placeholders, `{{coursePhaseName}}` and `{{coursePhaseLink}}` are available
+
+#### Tutors Seeing Their Tutor Evaluation Results
+
+When the tutor evaluation is enabled and you release the results, every tutor of a team sees a
+**Your Tutor Evaluation Results** card on the phase page. **View your results** opens a page with
+what their students wrote about them. PROMPT matches the signed-in staff member to a tutor by their
+university login in the team allocation phase that provides the teams, so the card only appears for
+tutors listed there.
+
+> 🔒 **Tutor results are anonymized.** A tutor sees the number of students who evaluated them, the
+> average score of each competency that at least two students rated, and the written feedback
+> without names. Positive and negative feedback are each shown only once at least two students wrote
+> that kind, so no text points to a single student. Unreleasing the results hides the page again.
 
 #### Evaluation-Only Phases
 

@@ -18,8 +18,9 @@ keep it to one or two commands and use `GH_PAGER=cat` on `gh` calls to avoid pag
 2. Screenshots (visible changes only): a diff that changes what a user sees in `clients/` carries
    the before/after shots the `verify` skill saves under
    `.playwright-mcp/pr-screenshots/<branch>/`. When that folder is missing, holds no before shots,
-   or predates the branch's last commit under `clients/`, run `verify` now and take them.
-   Refactors and server-only changes carry none.
+   or predates the branch's last commit under `clients/` or `servers/` (a server change can alter
+   the data a shot shows), run `verify` now and take them. Refactors and server-only changes
+   carry none.
 
 3. Compose the PR locally (no shell commands needed):
    - **Title** — `` `Tag`: short description ``: a backticked feature tag, then a plain sentence-case

@@ -1,4 +1,4 @@
-import { ManagementPageHeader } from '@tumaet/prompt-ui-components'
+import { ManagementPageHeader, PassStatusSummary } from '@tumaet/prompt-ui-components'
 import type { ReactNode } from 'react'
 import { useParams } from 'react-router-dom'
 import { useApplicationStore } from '../../zustand/useApplicationStore'
@@ -6,6 +6,7 @@ import { ApplicationManualAddingDialog } from './components/ApplicationManualAdd
 import { ImportStudents } from './components/ImportStudents/ImportStudents'
 import AssessmentScoreUpload from './components/ScoreUpload/ScoreUpload'
 import { ApplicationParticipantsTable } from './components/table/ApplicationParticipantsTable'
+import { APPLICATION_PASS_STATUS_LABELS } from './components/table/getApplicationStatusBadge'
 
 export const ApplicationParticipantsPage = (): ReactNode => {
   const { phaseId } = useParams<{ phaseId: string }>()
@@ -27,6 +28,11 @@ export const ApplicationParticipantsPage = (): ReactNode => {
           <ApplicationManualAddingDialog existingApplications={participations ?? []} />
         </div>
       </div>
+      <PassStatusSummary
+        participations={participations ?? []}
+        passStatusLabels={APPLICATION_PASS_STATUS_LABELS}
+        className='mb-4'
+      />
       <ApplicationParticipantsTable phaseId={phaseId!} />
     </div>
   )

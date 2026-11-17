@@ -4,6 +4,7 @@ import {
   type ExtraParticipantColumn,
   ManagementPageHeader,
   type ParticipantRow,
+  PassStatusSummary,
   QueryGate,
   type RowAction,
   type TableFilter,
@@ -277,6 +278,7 @@ export const AssessmentParticipantsPage = () => {
             openInNewTabRef.current = e.metaKey || e.ctrlKey
           }}
         >
+          <PassStatusSummary participations={participations ?? []} className='mb-4' />
           <CoursePhaseParticipationsTable
             phaseId={phaseId}
             participants={participations ?? []}

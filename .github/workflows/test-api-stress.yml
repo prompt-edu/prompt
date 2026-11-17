@@ -2,8 +2,8 @@ name: API Stress Tests
 
 # Boots the isolated prompt-stress stack and runs the api-stress suite against
 # it; see api-stress/README.md. Fails only on P0 findings (auth bypass,
-# cross-course IDOR, a service going down). P1/P2 findings are listed in the
-# job summary.
+# cross-course IDOR, a service going down) or a fuzzer crash. P1/P2 findings
+# are listed in the job summary.
 #
 # This repository is public, so everything this job prints or uploads is too.
 # P0 details therefore never leave the runner: the summary and the artifact come

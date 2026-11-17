@@ -98,8 +98,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument(
         "--fail-on",
         choices=PRIORITIES,
-        help="exit 1 if the run has a finding of this priority or a higher one "
-        "(default: always exit 0 once the report is built).",
+        help="exit 1 if the run has a finding of this priority or a higher one, "
+        "or if the fuzzer did not finish (default: always exit 0 once the report "
+        "is built).",
     )
     p.add_argument(
         "--public-summary",
@@ -254,13 +255,20 @@ def count_at_or_above(findings: list[dict], threshold: str) -> int:
     return sum(1 for f in findings if f.get("priority") in gated)
 
 
-def gate(run_dir: Path, threshold: str) -> int:
-    """Exit code for --fail-on. Prints counts only, never finding details."""
-    findings_path = run_dir / "findings.json"
-    if not findings_path.exists():
-        print(f"==> gate: no findings.json, failing (--fail-on {threshold})")
+def gate(run_dir: Path, threshold: str, fuzz_returncode: int = 0) -> int:
+    """Exit code for --fail-on. Prints counts only, never finding details.
+
+    An incomplete run fails too: build_report.py writes findings.json even when
+    the fuzzer crashed, and that report silently lacks every auth and IDOR result.
+    """
+    if fuzz_returncode != 0:
+        print(f"==> gate: fuzz exited {fuzz_returncode}, failing (--fail-on {threshold})")
         return 1
-    hits = count_at_or_above(json.loads(findings_path.read_text()), threshold)
+    for name in ("fuzz_findings.json", "findings.json"):
+        if not (run_dir / name).exists():
+            print(f"==> gate: no {name}, failing (--fail-on {threshold})")
+            return 1
+    hits = count_at_or_above(json.loads((run_dir / "findings.json").read_text()), threshold)
     if hits:
         print(f"==> gate: {hits} finding(s) at {threshold} or above, failing")
         return 1
@@ -362,7 +370,7 @@ def main(argv: list[str] | None = None) -> int:
     print(f"Report:   {run_dir}/report.md")
     print(f"Findings: {run_dir}/findings.json")
     print(f"HTML:     {run_dir}/report.html")
-    return gate(run_dir, args.fail_on) if args.fail_on else 0
+    return gate(run_dir, args.fail_on, fuzz.returncode) if args.fail_on else 0
 
 
 if __name__ == "__main__":

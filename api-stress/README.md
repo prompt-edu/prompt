@@ -78,7 +78,8 @@ docker compose --env-file api-stress/stress.env \
 `.github/workflows/test-api-stress.yml` runs on every PR (called from `dev.yml`): it
 runs the unit tests (`cd api-stress && uv run pytest`), boots this stack, and runs
 `--smoke-only --intensity gentle --fail-on P0 --public-summary <dir>`. So the job
-fails only on P0 findings, while P1/P2 findings appear in the job summary and the
+fails on P0 findings, or when the fuzzer crashed and the report lacks its auth and
+IDOR results. P1/P2 findings appear in the job summary and the
 `api-stress-public-findings` artifact.
 
 The repository is public, so the job never publishes P0 details: the summary only

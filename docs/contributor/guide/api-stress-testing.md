@@ -102,7 +102,8 @@ api-stress/run.sh --smoke-only --intensity gentle --fail-on P0 --public-summary 
 ```
 
 - **It fails only on P0.** P1/P2 findings are listed in the job summary and the
-  `api-stress-public-findings` artifact, so they never block a PR.
+  `api-stress-public-findings` artifact, so they never block a PR. A fuzzer crash
+  fails the job too, because the report would then lack every auth and IDOR result.
 - **P0 details stay private.** The repository is public, and so are its CI logs and
   artifacts. `--public-summary` writes a `summary.md` and `findings.json` that only
   count P0 findings, and the full reports never leave the runner. When the job fails,

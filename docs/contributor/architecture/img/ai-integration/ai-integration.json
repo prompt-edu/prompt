@@ -1,341 +1,146 @@
 {
-  "id": "98714da3-e8e6-4d06-a9eb-36bebc36af58",
+  "id": "639df15c-cfa2-41d7-8ac9-c120e5fee748",
   "version": "4.1.0",
   "title": "PROMPT AI Integration",
   "type": "ComponentDiagram",
   "nodes": [
     {
-      "id": "coreClient",
-      "width": 200,
-      "height": 90,
+      "id": "5527bdc8-662e-4c0c-877e-507790a80d91",
+      "width": 180,
+      "height": 120,
       "type": "component",
       "position": {
-        "x": 400,
-        "y": 0
-      },
-      "data": {
-        "name": "Core Client",
-        "isComponentHeaderShown": true
-      },
-      "measured": {
-        "width": 200,
-        "height": 90
-      }
-    },
-    {
-      "id": "client",
-      "width": 200,
-      "height": 90,
-      "type": "component",
-      "position": {
-        "x": 1520,
-        "y": 0
+        "x": -380,
+        "y": 545
       },
       "data": {
         "name": "Assessment Client",
         "isComponentHeaderShown": true
       },
       "measured": {
-        "width": 200,
-        "height": 90
+        "width": 180,
+        "height": 120
       }
     },
     {
-      "id": "iCore",
-      "width": 30,
-      "height": 30,
-      "type": "componentInterface",
-      "position": {
-        "x": 485,
-        "y": 230
-      },
-      "data": {
-        "name": "Core API"
-      },
-      "measured": {
-        "width": 30,
-        "height": 30
-      }
-    },
-    {
-      "id": "iAiPhase",
-      "width": 30,
-      "height": 30,
-      "type": "componentInterface",
-      "position": {
-        "x": 1055,
-        "y": 230
-      },
-      "data": {
-        "name": "AI Course Phase API (events, audit)"
-      },
-      "measured": {
-        "width": 30,
-        "height": 30
-      }
-    },
-    {
-      "id": "iAssessment",
-      "width": 30,
-      "height": 30,
-      "type": "componentInterface",
-      "position": {
-        "x": 1605,
-        "y": 230
-      },
-      "data": {
-        "name": "Assessment API"
-      },
-      "measured": {
-        "width": 30,
-        "height": 30
-      }
-    },
-    {
-      "id": "iPrivacy",
-      "width": 30,
-      "height": 30,
-      "type": "componentInterface",
-      "position": {
-        "x": 695,
-        "y": 315
-      },
-      "data": {
-        "name": "Privacy & Deletion"
-      },
-      "measured": {
-        "width": 30,
-        "height": 30
-      }
-    },
-    {
-      "id": "keycloak",
-      "width": 200,
-      "height": 90,
+      "id": "5cddeb76-5ff3-433d-886e-bb529aadef14",
+      "width": 180,
+      "height": 120,
       "type": "component",
       "position": {
-        "x": 0,
-        "y": 420
-      },
-      "data": {
-        "name": "Keycloak",
-        "isComponentHeaderShown": true
-      },
-      "measured": {
-        "width": 200,
-        "height": 90
-      }
-    },
-    {
-      "id": "core",
-      "width": 200,
-      "height": 90,
-      "type": "component",
-      "position": {
-        "x": 400,
-        "y": 420
-      },
-      "data": {
-        "name": "Core Server",
-        "isComponentHeaderShown": true
-      },
-      "measured": {
-        "width": 200,
-        "height": 90
-      }
-    },
-    {
-      "id": "iRoles",
-      "width": 30,
-      "height": 30,
-      "type": "componentInterface",
-      "position": {
-        "x": 695,
-        "y": 450
-      },
-      "data": {
-        "name": "Role Resolution"
-      },
-      "measured": {
-        "width": 30,
-        "height": 30
-      }
-    },
-    {
-      "id": "ai",
-      "width": 500,
-      "height": 330,
-      "type": "componentSubsystem",
-      "position": {
-        "x": 820,
-        "y": 380
-      },
-      "data": {
-        "name": "AI Server (AI_ENABLED)",
-        "isComponentSubsystemHeaderShown": true
-      },
-      "measured": {
-        "width": 500,
-        "height": 330
-      }
-    },
-    {
-      "id": "auth",
-      "width": 220,
-      "height": 90,
-      "type": "component",
-      "position": {
-        "x": 20,
-        "y": 70
-      },
-      "parentId": "ai",
-      "data": {
-        "name": "prompt-sdk Auth",
-        "isComponentHeaderShown": true
-      },
-      "measured": {
-        "width": 220,
-        "height": 90
-      }
-    },
-    {
-      "id": "gateway",
-      "width": 220,
-      "height": 90,
-      "type": "component",
-      "position": {
-        "x": 260,
-        "y": 70
-      },
-      "parentId": "ai",
-      "data": {
-        "name": "OpenAI-compatible Gateway (model allowlist)",
-        "isComponentHeaderShown": true
-      },
-      "measured": {
-        "width": 220,
-        "height": 90
-      }
-    },
-    {
-      "id": "keys",
-      "width": 220,
-      "height": 90,
-      "type": "component",
-      "position": {
-        "x": 20,
-        "y": 200
-      },
-      "parentId": "ai",
-      "data": {
-        "name": "Feature Registry (retention per feature)",
-        "isComponentHeaderShown": true
-      },
-      "measured": {
-        "width": 220,
-        "height": 90
-      }
-    },
-    {
-      "id": "audit",
-      "width": 220,
-      "height": 90,
-      "type": "component",
-      "position": {
-        "x": 260,
-        "y": 200
-      },
-      "parentId": "ai",
-      "data": {
-        "name": "Audit (fail-closed, retention per feature)",
-        "isComponentHeaderShown": true
-      },
-      "measured": {
-        "width": 220,
-        "height": 90
-      }
-    },
-    {
-      "id": "iAi",
-      "width": 30,
-      "height": 30,
-      "type": "componentInterface",
-      "position": {
-        "x": 1405,
-        "y": 450
-      },
-      "data": {
-        "name": "OpenAI-compatible API"
-      },
-      "measured": {
-        "width": 30,
-        "height": 30
-      }
-    },
-    {
-      "id": "assessment",
-      "width": 200,
-      "height": 90,
-      "type": "component",
-      "position": {
-        "x": 1520,
-        "y": 420
+        "x": 90,
+        "y": 550
       },
       "data": {
         "name": "Assessment Server",
         "isComponentHeaderShown": true
       },
       "measured": {
-        "width": 200,
-        "height": 90
+        "width": 180,
+        "height": 120
       }
     },
     {
-      "id": "iLogos",
-      "width": 30,
-      "height": 30,
-      "type": "componentInterface",
-      "position": {
-        "x": 1855,
-        "y": 450
-      },
-      "data": {
-        "name": "Chat Completions"
-      },
-      "measured": {
-        "width": 30,
-        "height": 30
-      }
-    },
-    {
-      "id": "logos",
-      "width": 200,
-      "height": 90,
+      "id": "43144144-efbf-4501-ab97-949fc2a80d2b",
+      "width": 180,
+      "height": 120,
       "type": "component",
       "position": {
-        "x": 2020,
-        "y": 420
+        "x": 590,
+        "y": 550
+      },
+      "data": {
+        "name": "AI Server",
+        "isComponentHeaderShown": true
+      },
+      "measured": {
+        "width": 180,
+        "height": 120
+      }
+    },
+    {
+      "id": "ca101e00-9737-46cb-bccd-598ba0093ca2",
+      "width": 180,
+      "height": 120,
+      "type": "component",
+      "position": {
+        "x": 390,
+        "y": 220
+      },
+      "data": {
+        "name": "MCP Server",
+        "isComponentHeaderShown": true
+      },
+      "measured": {
+        "width": 180,
+        "height": 120
+      }
+    },
+    {
+      "id": "e65c8fde-0db4-4dba-9604-fe2bcd15d8ed",
+      "width": 180,
+      "height": 120,
+      "type": "component",
+      "position": {
+        "x": 590,
+        "y": 795
+      },
+      "data": {
+        "name": "Audit Log Database",
+        "isComponentHeaderShown": false
+      },
+      "measured": {
+        "width": 180,
+        "height": 120
+      }
+    },
+    {
+      "id": "9483385b-b961-45f7-b5d8-897fba6a8049",
+      "width": 180,
+      "height": 120,
+      "type": "component",
+      "position": {
+        "x": 1130,
+        "y": 550
       },
       "data": {
         "name": "Logos",
         "isComponentHeaderShown": true
       },
       "measured": {
-        "width": 200,
-        "height": 90
+        "width": 180,
+        "height": 120
       }
     },
     {
-      "id": "iOidc",
+      "id": "dd3c9fb4-a9be-447f-aa98-52620560113b",
+      "width": 180,
+      "height": 120,
+      "type": "component",
+      "position": {
+        "x": 100,
+        "y": 355
+      },
+      "data": {
+        "name": "Core Server",
+        "isComponentHeaderShown": true
+      },
+      "measured": {
+        "width": 180,
+        "height": 120
+      }
+    },
+    {
+      "id": "7107a9cd-ae0b-4e19-89be-0b3bd69ae657",
       "width": 30,
       "height": 30,
       "type": "componentInterface",
       "position": {
-        "x": 285,
-        "y": 785
+        "x": 940,
+        "y": 590
       },
       "data": {
-        "name": "OIDC"
+        "name": "OpenAI compatible API \n(Logos Key)"
       },
       "measured": {
         "width": 30,
@@ -343,140 +148,151 @@
       }
     },
     {
-      "id": "coreDb",
-      "width": 200,
-      "height": 90,
-      "type": "component",
+      "id": "d940fc73-3c31-441b-93e5-e78be9bb71f8",
+      "width": 30,
+      "height": 30,
+      "type": "componentInterface",
       "position": {
-        "x": 400,
-        "y": 900
+        "x": 465,
+        "y": 595
       },
       "data": {
-        "name": "Core DB",
-        "isComponentHeaderShown": true
+        "name": "AI Service \n(Provider Key)"
       },
       "measured": {
-        "width": 200,
-        "height": 90
+        "width": 30,
+        "height": 30
       }
     },
     {
-      "id": "aiDb",
-      "width": 200,
-      "height": 90,
-      "type": "component",
+      "id": "e2d57d3a-3f92-4b84-92cc-a4d0387a0dec",
+      "width": 30,
+      "height": 30,
+      "type": "componentInterface",
       "position": {
-        "x": 970,
-        "y": 900
+        "x": -20,
+        "y": 590
       },
       "data": {
-        "name": "AI DB (AI_ENABLED)",
-        "isComponentHeaderShown": true
+        "name": "Assessment \n(Keycloak Token)"
       },
       "measured": {
-        "width": 200,
-        "height": 90
+        "width": 30,
+        "height": 30
       }
     },
     {
-      "id": "assessmentDb",
-      "width": 200,
-      "height": 90,
-      "type": "component",
+      "id": "49345076-ccf3-4517-9f5d-1e95497a9a48",
+      "width": 30,
+      "height": 30,
+      "type": "componentInterface",
       "position": {
-        "x": 1520,
-        "y": 900
+        "x": 170,
+        "y": 265
       },
       "data": {
-        "name": "Assessment DB",
-        "isComponentHeaderShown": true
+        "name": "Management API"
       },
       "measured": {
-        "width": 200,
-        "height": 90
+        "width": 30,
+        "height": 30
       }
     },
     {
-      "id": "aiClient",
+      "id": "76bef3a6-5767-4783-aa54-1f4dcc5e8a74",
       "width": 180,
-      "height": 90,
+      "height": 120,
       "type": "component",
       "position": {
-        "x": 980,
-        "y": 0
+        "x": 1125,
+        "y": -50
       },
       "data": {
-        "name": "AI Client (ai_component)",
+        "name": "External MCP Client (e.g. Claude Code)",
         "isComponentHeaderShown": true
       },
       "measured": {
         "width": 180,
-        "height": 90
+        "height": 120
       }
     },
     {
-      "id": "planned",
-      "width": 440,
-      "height": 250,
-      "type": "componentSubsystem",
+      "id": "1d011e3d-9f06-450a-86d2-7ab408139a2a",
+      "width": 30,
+      "height": 30,
+      "type": "componentInterface",
       "position": {
-        "x": 1780,
-        "y": 620
+        "x": 465,
+        "y": -5
       },
       "data": {
-        "name": "Planned (#2285, #2286)",
-        "isComponentSubsystemHeaderShown": true
+        "name": "MCP"
       },
       "measured": {
-        "width": 440,
-        "height": 250
+        "width": 30,
+        "height": 30
       }
     },
     {
-      "id": "chatClient",
-      "width": 190,
-      "height": 90,
+      "id": "d5136ec4-b095-4eea-a4e5-2697a5e1e384",
+      "width": 180,
+      "height": 120,
       "type": "component",
       "position": {
-        "x": 20,
-        "y": 110
+        "x": -380,
+        "y": 220
       },
-      "parentId": "planned",
       "data": {
-        "name": "AI Chat Client (AI_CHAT)",
+        "name": "Core Client",
         "isComponentHeaderShown": true
       },
       "measured": {
-        "width": 190,
-        "height": 90
+        "width": 180,
+        "height": 120
       }
     },
     {
-      "id": "mcp",
-      "width": 190,
-      "height": 90,
+      "id": "b7e53b6d-b909-4abe-8e41-ddf39cbc7e9d",
+      "width": 180,
+      "height": 120,
       "type": "component",
       "position": {
-        "x": 230,
-        "y": 110
+        "x": 105,
+        "y": -55
       },
-      "parentId": "planned",
       "data": {
-        "name": "prompt-mcp (AI_MCP)",
+        "name": "Chat Overlay",
         "isComponentHeaderShown": true
       },
       "measured": {
-        "width": 190,
-        "height": 90
+        "width": 180,
+        "height": 120
+      }
+    },
+    {
+      "id": "c10c4792-ecec-47bc-b08f-93fb6275f206",
+      "width": 30,
+      "height": 30,
+      "type": "componentInterface",
+      "position": {
+        "x": -510,
+        "y": 265
+      },
+      "data": {
+        "name": "Federation Service"
+      },
+      "measured": {
+        "width": 30,
+        "height": 30
       }
     }
   ],
   "edges": [
     {
-      "id": "e0-coreClient-iCore",
-      "source": "coreClient",
-      "target": "iCore",
-      "type": "ComponentRequiredInterface",
+      "id": "0622a5e2-813e-46d0-b8f4-71df3561c117",
+      "source": "43144144-efbf-4501-ab97-949fc2a80d2b",
+      "target": "e65c8fde-0db4-4dba-9604-fe2bcd15d8ed",
+      "type": "ComponentDependency",
       "sourceHandle": "bottom",
       "targetHandle": "top",
       "data": {
@@ -484,181 +300,124 @@
       }
     },
     {
-      "id": "e1-core-iCore",
-      "source": "core",
-      "target": "iCore",
+      "id": "9b3383fc-db18-4eac-9611-3f63efc7aa12",
+      "source": "9483385b-b961-45f7-b5d8-897fba6a8049",
+      "target": "7107a9cd-ae0b-4e19-89be-0b3bd69ae657",
       "type": "ComponentProvidedInterface",
-      "sourceHandle": "top",
-      "targetHandle": "bottom",
-      "data": {
-        "points": []
-      }
-    },
-    {
-      "id": "e2-client-iAssessment",
-      "source": "client",
-      "target": "iAssessment",
-      "type": "ComponentRequiredInterface",
-      "sourceHandle": "bottom",
-      "targetHandle": "top",
-      "data": {
-        "points": []
-      }
-    },
-    {
-      "id": "e3-assessment-iAssessment",
-      "source": "assessment",
-      "target": "iAssessment",
-      "type": "ComponentProvidedInterface",
-      "sourceHandle": "top",
-      "targetHandle": "bottom",
-      "data": {
-        "points": []
-      }
-    },
-    {
-      "id": "e4-ai-iAiPhase",
-      "source": "ai",
-      "target": "iAiPhase",
-      "type": "ComponentProvidedInterface",
-      "sourceHandle": "top-between-left-mid-left",
-      "targetHandle": "left",
-      "data": {
-        "points": [
-          {
-            "x": 960,
-            "y": 379
-          },
-          {
-            "x": 960,
-            "y": 245
-          },
-          {
-            "x": 1054,
-            "y": 245
-          }
-        ]
-      }
-    },
-    {
-      "id": "e5-aiClient-iAiPhase",
-      "source": "aiClient",
-      "target": "iAiPhase",
-      "type": "ComponentRequiredInterface",
-      "sourceHandle": "bottom",
-      "targetHandle": "top",
-      "data": {
-        "points": []
-      }
-    },
-    {
-      "id": "e6-client-iAiPhase",
-      "source": "client",
-      "target": "iAiPhase",
-      "type": "ComponentRequiredInterface",
       "sourceHandle": "left",
       "targetHandle": "right",
       "data": {
-        "points": [
-          {
-            "x": 1519,
-            "y": 45
-          },
-          {
-            "x": 1170,
-            "y": 45
-          },
-          {
-            "x": 1170,
-            "y": 245
-          },
-          {
-            "x": 1090,
-            "y": 245
-          }
-        ]
+        "targetAnchor": {
+          "side": "right",
+          "ratio": 0.5
+        },
+        "points": []
       }
     },
     {
-      "id": "e7-assessment-iAiPhase",
-      "source": "assessment",
-      "target": "iAiPhase",
+      "id": "8dc3514d-b13f-4723-9daa-91bbdf3d11ae",
+      "source": "43144144-efbf-4501-ab97-949fc2a80d2b",
+      "target": "7107a9cd-ae0b-4e19-89be-0b3bd69ae657",
       "type": "ComponentRequiredInterface",
-      "sourceHandle": "top-left",
-      "targetHandle": "bottom",
+      "sourceHandle": "right",
+      "targetHandle": "left",
       "data": {
-        "points": [
-          {
-            "x": 1560,
-            "y": 419
-          },
-          {
-            "x": 1560,
-            "y": 330
-          },
-          {
-            "x": 1070,
-            "y": 330
-          },
-          {
-            "x": 1070,
-            "y": 265
-          }
-        ]
+        "points": []
       }
     },
     {
-      "id": "e8-ai-iPrivacy",
-      "source": "ai",
-      "target": "iPrivacy",
+      "id": "a6a4bc6d-fb5d-4291-9576-1c67b0e2133d",
+      "source": "d940fc73-3c31-441b-93e5-e78be9bb71f8",
+      "target": "43144144-efbf-4501-ab97-949fc2a80d2b",
       "type": "ComponentProvidedInterface",
-      "sourceHandle": "top-left",
-      "targetHandle": "right",
-      "data": {
-        "points": [
-          {
-            "x": 920,
-            "y": 379
-          },
-          {
-            "x": 920,
-            "y": 330
-          },
-          {
-            "x": 726,
-            "y": 330
-          }
-        ]
-      }
-    },
-    {
-      "id": "e9-core-iPrivacy",
-      "source": "core",
-      "target": "iPrivacy",
-      "type": "ComponentRequiredInterface",
-      "sourceHandle": "top-right",
+      "sourceHandle": "right",
       "targetHandle": "left",
       "data": {
         "points": [
           {
-            "x": 560,
-            "y": 419
+            "x": 495,
+            "y": 610
           },
           {
-            "x": 560,
-            "y": 330
+            "x": 590,
+            "y": 610
+          }
+        ],
+        "sourceAnchor": {
+          "side": "right",
+          "ratio": 0.5
+        },
+        "targetAnchor": {
+          "side": "left",
+          "ratio": 0.5
+        }
+      }
+    },
+    {
+      "id": "a7394daa-60d0-4df1-b418-4732ab1d0332",
+      "source": "5cddeb76-5ff3-433d-886e-bb529aadef14",
+      "target": "d940fc73-3c31-441b-93e5-e78be9bb71f8",
+      "type": "ComponentRequiredInterface",
+      "sourceHandle": "right",
+      "targetHandle": "top",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "f00f992b-c380-4d61-859a-c035d98f6a3e",
+      "source": "e2d57d3a-3f92-4b84-92cc-a4d0387a0dec",
+      "target": "5cddeb76-5ff3-433d-886e-bb529aadef14",
+      "type": "ComponentProvidedInterface",
+      "sourceHandle": "right",
+      "targetHandle": "left-between-mid-bottom-center",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "b52a6156-7618-4b0c-84d7-f54ab518d59a",
+      "source": "5527bdc8-662e-4c0c-877e-507790a80d91",
+      "target": "e2d57d3a-3f92-4b84-92cc-a4d0387a0dec",
+      "type": "ComponentRequiredInterface",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "c4a18852-825e-47f5-87f3-b6c366601fe9",
+      "source": "ca101e00-9737-46cb-bccd-598ba0093ca2",
+      "target": "d940fc73-3c31-441b-93e5-e78be9bb71f8",
+      "type": "ComponentRequiredInterface",
+      "sourceHandle": "bottom",
+      "targetHandle": "top",
+      "data": {
+        "sourceAnchor": {
+          "side": "bottom",
+          "ratio": 0.5
+        },
+        "targetAnchor": {
+          "side": "top",
+          "ratio": 0.5
+        },
+        "points": [
+          {
+            "x": 480,
+            "y": 340
           },
           {
-            "x": 690,
-            "y": 330
+            "x": 480,
+            "y": 591
           }
         ]
       }
     },
     {
-      "id": "e10-core-iRoles",
-      "source": "core",
-      "target": "iRoles",
+      "id": "81c42c35-47e5-4de4-b291-8ad630511682",
+      "source": "dd3c9fb4-a9be-447f-aa98-52620560113b",
+      "target": "49345076-ccf3-4517-9f5d-1e95497a9a48",
       "type": "ComponentProvidedInterface",
       "sourceHandle": "right",
       "targetHandle": "left",
@@ -667,318 +426,133 @@
       }
     },
     {
-      "id": "e11-auth-iRoles",
-      "source": "auth",
-      "target": "iRoles",
+      "id": "866d5629-f096-427c-99db-3111db76c441",
+      "source": "ca101e00-9737-46cb-bccd-598ba0093ca2",
+      "target": "49345076-ccf3-4517-9f5d-1e95497a9a48",
       "type": "ComponentRequiredInterface",
-      "sourceHandle": "left-top",
+      "sourceHandle": "left",
       "targetHandle": "right",
       "data": {
-        "points": []
+        "sourceAnchor": {
+          "side": "left",
+          "ratio": 0.5
+        },
+        "points": [
+          {
+            "x": 390,
+            "y": 280
+          },
+          {
+            "x": 204,
+            "y": 280
+          }
+        ],
+        "targetAnchor": {
+          "side": "right",
+          "ratio": 0.5
+        }
       }
     },
     {
-      "id": "e12-assessment-iRoles",
-      "source": "assessment",
-      "target": "iRoles",
-      "type": "ComponentRequiredInterface",
-      "sourceHandle": "bottom-left",
+      "id": "165098e3-aed2-46a2-8ce3-0bdfb2ae83dd",
+      "source": "ca101e00-9737-46cb-bccd-598ba0093ca2",
+      "target": "1d011e3d-9f06-450a-86d2-7ab408139a2a",
+      "type": "ComponentProvidedInterface",
+      "sourceHandle": "top",
       "targetHandle": "bottom",
       "data": {
-        "points": [
-          {
-            "x": 1560,
-            "y": 511
-          },
-          {
-            "x": 1560,
-            "y": 760
-          },
-          {
-            "x": 710,
-            "y": 760
-          },
-          {
-            "x": 710,
-            "y": 485
-          }
-        ]
+        "sourceAnchor": {
+          "side": "top",
+          "ratio": 0.5
+        },
+        "points": []
       }
     },
     {
-      "id": "e13-keycloak-iOidc",
-      "source": "keycloak",
-      "target": "iOidc",
-      "type": "ComponentProvidedInterface",
+      "id": "ab2d34cb-a9ab-4bd1-8ec0-0912fe28eeed",
+      "source": "76bef3a6-5767-4783-aa54-1f4dcc5e8a74",
+      "target": "1d011e3d-9f06-450a-86d2-7ab408139a2a",
+      "type": "ComponentRequiredInterface",
       "sourceHandle": "bottom",
-      "targetHandle": "left",
-      "data": {
-        "points": [
-          {
-            "x": 100,
-            "y": 511
-          },
-          {
-            "x": 100,
-            "y": 800
-          },
-          {
-            "x": 284,
-            "y": 800
-          }
-        ]
-      }
-    },
-    {
-      "id": "e14-core-iOidc",
-      "source": "core",
-      "target": "iOidc",
-      "type": "ComponentRequiredInterface",
-      "sourceHandle": "bottom-left",
-      "targetHandle": "top",
-      "data": {
-        "points": [
-          {
-            "x": 440,
-            "y": 511
-          },
-          {
-            "x": 440,
-            "y": 700
-          },
-          {
-            "x": 300,
-            "y": 700
-          },
-          {
-            "x": 300,
-            "y": 780
-          }
-        ]
-      }
-    },
-    {
-      "id": "e15-auth-iOidc",
-      "source": "auth",
-      "target": "iOidc",
-      "type": "ComponentRequiredInterface",
-      "sourceHandle": "left-bottom",
       "targetHandle": "right",
       "data": {
-        "points": [
-          {
-            "x": 839,
-            "y": 525
-          },
-          {
-            "x": 780,
-            "y": 525
-          },
-          {
-            "x": 780,
-            "y": 800
-          },
-          {
-            "x": 320,
-            "y": 800
-          }
-        ]
+        "targetAnchor": {
+          "side": "right",
+          "ratio": 0.5
+        },
+        "points": []
       }
     },
     {
-      "id": "e16-assessment-iOidc",
-      "source": "assessment",
-      "target": "iOidc",
+      "id": "4af638c0-fb28-4776-811a-8a528b11be3e",
+      "source": "b7e53b6d-b909-4abe-8e41-ddf39cbc7e9d",
+      "target": "1d011e3d-9f06-450a-86d2-7ab408139a2a",
       "type": "ComponentRequiredInterface",
-      "sourceHandle": "bottom-between-left-mid-left",
-      "targetHandle": "right",
-      "data": {
-        "points": [
-          {
-            "x": 1575,
-            "y": 510
-          },
-          {
-            "x": 1575,
-            "y": 800
-          },
-          {
-            "x": 315,
-            "y": 800
-          }
-        ]
-      }
-    },
-    {
-      "id": "e17-gateway-auth",
-      "source": "gateway",
-      "target": "auth",
-      "type": "ComponentDependency",
-      "sourceHandle": "left",
-      "targetHandle": "right",
-      "data": {
-        "points": []
-      }
-    },
-    {
-      "id": "e18-gateway-audit",
-      "source": "gateway",
-      "target": "audit",
-      "type": "ComponentDependency",
-      "sourceHandle": "bottom",
-      "targetHandle": "top",
-      "data": {
-        "points": []
-      }
-    },
-    {
-      "id": "e19-gateway-keys",
-      "source": "gateway",
-      "target": "keys",
-      "type": "ComponentDependency",
-      "sourceHandle": "bottom-left",
-      "targetHandle": "top-right",
-      "data": {
-        "points": [
-          {
-            "x": 1125,
-            "y": 541
-          },
-          {
-            "x": 1125,
-            "y": 560
-          },
-          {
-            "x": 1015,
-            "y": 560
-          },
-          {
-            "x": 1015,
-            "y": 579
-          }
-        ]
-      }
-    },
-    {
-      "id": "e20-gateway-iAi",
-      "source": "gateway",
-      "target": "iAi",
-      "type": "ComponentProvidedInterface",
-      "sourceHandle": "right-top",
-      "targetHandle": "left",
-      "data": {
-        "points": []
-      }
-    },
-    {
-      "id": "e21-assessment-iAi",
-      "source": "assessment",
-      "target": "iAi",
-      "type": "ComponentRequiredInterface",
-      "sourceHandle": "left",
-      "targetHandle": "right",
-      "data": {
-        "points": []
-      }
-    },
-    {
-      "id": "e22-gateway-iLogos",
-      "source": "gateway",
-      "target": "iLogos",
-      "type": "ComponentRequiredInterface",
-      "sourceHandle": "top-right",
-      "targetHandle": "top",
-      "data": {
-        "points": [
-          {
-            "x": 1255,
-            "y": 449
-          },
-          {
-            "x": 1255,
-            "y": 365
-          },
-          {
-            "x": 1870,
-            "y": 365
-          },
-          {
-            "x": 1870,
-            "y": 445
-          }
-        ]
-      }
-    },
-    {
-      "id": "e23-logos-iLogos",
-      "source": "logos",
-      "target": "iLogos",
-      "type": "ComponentProvidedInterface",
-      "sourceHandle": "left",
-      "targetHandle": "right",
-      "data": {
-        "points": []
-      }
-    },
-    {
-      "id": "e24-core-coreDb",
-      "source": "core",
-      "target": "coreDb",
-      "type": "ComponentDependency",
-      "sourceHandle": "bottom",
-      "targetHandle": "top",
-      "data": {
-        "points": []
-      }
-    },
-    {
-      "id": "e26-audit-aiDb",
-      "source": "audit",
-      "target": "aiDb",
-      "type": "ComponentDependency",
-      "sourceHandle": "bottom",
-      "targetHandle": "top",
-      "data": {
-        "points": [
-          {
-            "x": 1190,
-            "y": 671
-          },
-          {
-            "x": 1190,
-            "y": 691
-          },
-          {
-            "x": 1070,
-            "y": 691
-          },
-          {
-            "x": 1070,
-            "y": 899
-          }
-        ]
-      }
-    },
-    {
-      "id": "e27-assessment-assessmentDb",
-      "source": "assessment",
-      "target": "assessmentDb",
-      "type": "ComponentDependency",
-      "sourceHandle": "bottom",
-      "targetHandle": "top",
-      "data": {
-        "points": []
-      }
-    },
-    {
-      "id": "e28-coreClient-aiClient",
-      "source": "coreClient",
-      "target": "aiClient",
-      "type": "ComponentDependency",
       "sourceHandle": "right",
       "targetHandle": "left",
       "data": {
         "points": []
+      }
+    },
+    {
+      "id": "b26c0eb9-b01c-4a7d-a7ae-3c91a6b24f4b",
+      "source": "c10c4792-ecec-47bc-b08f-93fb6275f206",
+      "target": "d5136ec4-b095-4eea-a4e5-2697a5e1e384",
+      "type": "ComponentProvidedInterface",
+      "sourceHandle": "right",
+      "targetHandle": "left-between-mid-bottom-center",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "5fc45621-238b-44ac-9e28-8df1327743fe",
+      "source": "5527bdc8-662e-4c0c-877e-507790a80d91",
+      "target": "c10c4792-ecec-47bc-b08f-93fb6275f206",
+      "type": "ComponentRequiredInterface",
+      "sourceHandle": "top",
+      "targetHandle": "bottom",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "6c916a56-fdc7-4043-a48d-7f19fa7f3e50",
+      "source": "b7e53b6d-b909-4abe-8e41-ddf39cbc7e9d",
+      "target": "c10c4792-ecec-47bc-b08f-93fb6275f206",
+      "type": "ComponentRequiredInterface",
+      "sourceHandle": "left",
+      "targetHandle": "top",
+      "data": {
+        "points": []
+      }
+    },
+    {
+      "id": "66402d10-50d0-45f7-ae30-8b78f68c1022",
+      "source": "d5136ec4-b095-4eea-a4e5-2697a5e1e384",
+      "target": "49345076-ccf3-4517-9f5d-1e95497a9a48",
+      "type": "ComponentRequiredInterface",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "data": {
+        "points": [
+          {
+            "x": -200,
+            "y": 280
+          },
+          {
+            "x": 166,
+            "y": 280
+          }
+        ],
+        "sourceAnchor": {
+          "side": "right",
+          "ratio": 0.5
+        },
+        "targetAnchor": {
+          "side": "left",
+          "ratio": 0.5
+        }
       }
     }
   ],

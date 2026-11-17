@@ -130,6 +130,19 @@ async function unrelease() {
   }
 }
 
+// Moves the tutor evaluation deadline into the past: tutors only see their results once it passed.
+async function closeTutorEvaluation() {
+  const lecturer = await apiAsRole('lecturer')
+  try {
+    await putConfig(lecturer, PHASE_ID, {
+      tutorEvaluationEnabled: true,
+      tutorEvaluationDeadline: new Date(Date.now() - 60 * 1000).toISOString(),
+    })
+  } finally {
+    await lecturer.dispose()
+  }
+}
+
 const reset = async () => {
   await unrelease()
   await cleanUpStudentRows()
@@ -202,13 +215,33 @@ test.describe('assessment: tutors see their tutor evaluation results', () => {
     await expect(page.getByText('Your Tutor Evaluation Results')).toHaveCount(0)
   })
 
-  test('serves the tutor anonymous averages and feedback once released', async () => {
+  test('keeps released results from the tutor while the tutor evaluation is open', async ({
+    page,
+  }) => {
     const admin = await apiAsRole('admin')
     try {
       await releaseResults(admin, PHASE_ID)
     } finally {
       await admin.dispose()
     }
+
+    expect((await getMyTutorResults('course-editor')).status).toBe(204)
+
+    const phase = new AssessmentPage(page)
+    await phase.goto(COURSE_ID, PHASE_ID)
+    await expect(page.getByRole('heading', { name: 'Assessment Results & Evaluation' })).toBeVisible()
+    await expect(page.getByText('Your Tutor Evaluation Results')).toHaveCount(0)
+
+    await phase.goto(COURSE_ID, PHASE_ID, '/tutor-results')
+    await expect(
+      page.getByText(
+        'Tutor evaluation results are shown once the tutor evaluation deadline has passed.',
+      ),
+    ).toBeVisible()
+  })
+
+  test('serves the tutor anonymous averages and feedback once the evaluation closed', async () => {
+    await closeTutorEvaluation()
 
     const { status, body } = await getMyTutorResults('course-editor')
     expect(status).toBe(200)

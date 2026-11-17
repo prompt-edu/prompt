@@ -200,6 +200,29 @@ func (q *Queries) GetOrgsBySlugs(ctx context.Context, slugs []string) ([]Org, er
 	return items, nil
 }
 
+const lockOrgForMembershipChange = `-- name: LockOrgForMembershipChange :one
+SELECT id, parent_org_id, name, slug, school, university, website, contact_email, created_at FROM org WHERE id = $1 FOR KEY SHARE
+`
+
+// Holds off the org's deletion until the transaction ends, and waits for a deletion in progress.
+// KEY SHARE conflicts with DELETE only, so details edits and other membership changes go ahead.
+func (q *Queries) LockOrgForMembershipChange(ctx context.Context, id uuid.UUID) (Org, error) {
+	row := q.db.QueryRow(ctx, lockOrgForMembershipChange, id)
+	var i Org
+	err := row.Scan(
+		&i.ID,
+		&i.ParentOrgID,
+		&i.Name,
+		&i.Slug,
+		&i.School,
+		&i.University,
+		&i.Website,
+		&i.ContactEmail,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const lockOrgHierarchy = `-- name: LockOrgHierarchy :exec
 SELECT pg_advisory_xact_lock(hashtext('org_hierarchy'))
 `

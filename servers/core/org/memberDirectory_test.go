@@ -17,6 +17,8 @@ type fakeMemberDirectory struct {
 	users []keycloakRealmDTO.StaffMember
 	roles map[string]map[string]string // org slug → Keycloak user ID → org role
 	err   error                        // returned by every call when set
+	// beforeWrite, when set, runs at the start of every write, as a request to Keycloak would
+	beforeWrite func()
 }
 
 func newFakeMemberDirectory(users ...keycloakRealmDTO.StaffMember) *fakeMemberDirectory {
@@ -56,6 +58,9 @@ func (d *fakeMemberDirectory) knows(userID string) bool {
 }
 
 func (d *fakeMemberDirectory) SetOrgMemberRole(_ context.Context, slug, userID, orgRole string) error {
+	if d.beforeWrite != nil {
+		d.beforeWrite()
+	}
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	if d.err != nil {
@@ -72,6 +77,9 @@ func (d *fakeMemberDirectory) SetOrgMemberRole(_ context.Context, slug, userID, 
 }
 
 func (d *fakeMemberDirectory) RemoveOrgMember(_ context.Context, slug, userID string) error {
+	if d.beforeWrite != nil {
+		d.beforeWrite()
+	}
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	if d.err != nil {

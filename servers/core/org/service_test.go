@@ -705,6 +705,69 @@ func (suite *OrgServiceTestSuite) TestRemoveOrgMemberRejectsTheCallersOwnMembers
 	assert.Equal(suite.T(), permissionValidation.OrgAdmin, members.roleOf("members-leave", "ada"))
 }
 
+func (suite *OrgServiceTestSuite) TestMembershipChangesWaitForADeletionInProgress() {
+	org := suite.createOrg("members-deleting", nil)
+	service, members := suite.withMembers(staffMember("ada", "ad12min"))
+	tx, err := suite.conn.Begin(suite.ctx)
+	require.NoError(suite.T(), err)
+	defer func() { _ = tx.Rollback(suite.ctx) }()
+	_, err = db.New(tx).DeleteOrg(suite.ctx, org.ID)
+	require.NoError(suite.T(), err)
+
+	changed := make(chan error, 1)
+	go func() {
+		_, err := service.UpdateOrgMemberRole(suite.ctx, org.ID, "ada", permissionValidation.OrgMember, caller)
+		changed <- err
+	}()
+	select {
+	case err := <-changed:
+		suite.T().Fatalf("the membership change did not wait for the deletion: %v", err)
+	case <-time.After(200 * time.Millisecond):
+	}
+	require.NoError(suite.T(), tx.Commit(suite.ctx))
+
+	assert.ErrorIs(suite.T(), <-changed, ErrOrgNotFound)
+	assert.Empty(suite.T(), members.roleOf("members-deleting", "ada"))
+}
+
+// A deletion re-adds the members it found when it fails, so it must not find them while a change
+// is still under way in Keycloak.
+func (suite *OrgServiceTestSuite) TestDeletionWaitsForAMembershipChangeInKeycloak() {
+	org := suite.createOrg("members-changing", nil)
+	service, members := suite.withMembers(staffMember("ada", "ad12min"))
+	require.NoError(suite.T(), members.SetOrgMemberRole(suite.ctx, "members-changing", "ada", permissionValidation.OrgMember))
+	inKeycloak, release := make(chan struct{}), make(chan struct{})
+	var releaseOnce sync.Once
+	releaseChange := func() { releaseOnce.Do(func() { close(release) }) }
+	defer releaseChange()
+	members.beforeWrite = func() {
+		close(inKeycloak)
+		<-release
+	}
+
+	changed := make(chan error, 1)
+	go func() {
+		_, err := service.RemoveOrgMember(suite.ctx, org.ID, "ada", caller)
+		changed <- err
+	}()
+	<-inKeycloak
+	deleted := make(chan error, 1)
+	go func() {
+		_, err := service.DeleteOrg(suite.ctx, org.ID)
+		deleted <- err
+	}()
+	select {
+	case err := <-deleted:
+		suite.T().Fatalf("the deletion did not wait for the membership change: %v", err)
+	case <-time.After(200 * time.Millisecond):
+	}
+	releaseChange()
+
+	require.NoError(suite.T(), <-changed)
+	require.NoError(suite.T(), <-deleted)
+	assert.Equal(suite.T(), []string{"members-changing"}, suite.keycloak.deleted)
+}
+
 func TestOrgServiceTestSuite(t *testing.T) {
 	suite.Run(t, new(OrgServiceTestSuite))
 }

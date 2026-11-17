@@ -9,6 +9,11 @@ UPDATE org SET created_at = clock_timestamp() WHERE id = $1 RETURNING *;
 -- name: GetOrgByID :one
 SELECT * FROM org WHERE id = $1;
 
+-- name: LockOrgForMembershipChange :one
+-- Holds off the org's deletion until the transaction ends, and waits for a deletion in progress.
+-- KEY SHARE conflicts with DELETE only, so details edits and other membership changes go ahead.
+SELECT * FROM org WHERE id = $1 FOR KEY SHARE;
+
 -- name: GetOrgIDBySlug :one
 SELECT id FROM org WHERE slug = $1;
 

@@ -170,14 +170,25 @@ func (s *OrgService) RemoveOrgMember(ctx context.Context, orgID uuid.UUID, userI
 	})
 }
 
-// changeMembership applies a change to the user's membership in Keycloak. Nobody but a PROMPT admin
-// changes their own membership, so an Org Admin cannot lock themselves out of the org; PROMPT admins
-// manage every org anyway.
+// changeMembership applies a change to the user's membership in Keycloak while it holds off the
+// org's deletion. A deletion re-adds the members it found if it fails, so a change made while it
+// runs would be undone. Nobody but a PROMPT admin changes their own membership, so an Org Admin
+// cannot lock themselves out of the org; PROMPT admins manage every org anyway.
 func (s *OrgService) changeMembership(ctx context.Context, orgID uuid.UUID, userID string, caller Caller, change func(ctx context.Context, slug string) error) (orgDTO.Org, error) {
-	org, err := s.GetOrg(ctx, orgID)
+	tx, err := s.conn.Begin(ctx)
 	if err != nil {
 		return orgDTO.Org{}, err
 	}
+	defer promptSDK.DeferDBRollback(tx, ctx)
+
+	locked, err := s.queries.WithTx(tx).LockOrgForMembershipChange(ctx, orgID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return orgDTO.Org{}, ErrOrgNotFound
+	}
+	if err != nil {
+		return orgDTO.Org{}, fmt.Errorf("failed to lock the org: %w", err)
+	}
+	org := orgDTO.GetOrgDTOFromDBModel(locked)
 	if userID == caller.UserID && !caller.IsPromptAdmin {
 		return orgDTO.Org{}, ErrOwnMembership
 	}
@@ -186,6 +197,10 @@ func (s *OrgService) changeMembership(ctx context.Context, orgID uuid.UUID, user
 	defer cancel()
 	if err := change(keycloakCtx, org.Slug); err != nil {
 		return orgDTO.Org{}, err
+	}
+	// The transaction only holds the lock and writes nothing, so a failed commit just ends the lock.
+	if err := tx.Commit(ctx); err != nil {
+		log.Error("failed to release the membership lock of org ", org.Slug, ": ", err)
 	}
 	return org, nil
 }

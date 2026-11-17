@@ -56,7 +56,7 @@ const routes: ExtendedRouteObject[] = [
   {
     path: '/results',
     element: (
-      <EvaluationDataShell>
+      <EvaluationDataShell hideNonStudentAlert>
         <EvaluationResultsPage />
       </EvaluationDataShell>
     ),

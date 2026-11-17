@@ -43,7 +43,7 @@ func newTestAssessmentService(queries db.Queries, conn *pgxpool.Pool, coursePhas
 		categoryAssessment.NewCategoryAssessmentService(queries, conn, completionService, testutils.CheckTestParticipant),
 		actionItem.NewActionItemService(queries, completionService, coursePhaseConfigService, testutils.CheckTestParticipant),
 		scoreLevel.NewScoreLevelService(queries),
-		evaluations.NewEvaluationService(queries, conn, evaluationCompletion.NewEvaluationCompletionService(queries, conn, coursePhaseConfig.GetTeamsForCoursePhase, coursePhaseConfigService), coursePhaseConfigService),
+		evaluations.NewEvaluationService(queries, conn, evaluationCompletion.NewEvaluationCompletionService(queries, conn, coursePhaseConfig.GetTeamsForCoursePhase, coursePhaseConfigService), coursePhaseConfigService, teamScope.ResolveOwnTutorID),
 		coursePhaseConfigService,
 		testutils.CheckTestParticipant,
 	)

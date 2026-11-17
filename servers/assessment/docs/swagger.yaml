@@ -713,6 +713,13 @@ definitions:
       competencyID:
         type: string
     type: object
+  evaluationDTO.AnonymousFeedbackItem:
+    properties:
+      feedbackText:
+        type: string
+      feedbackType:
+        $ref: '#/definitions/db.FeedbackType'
+    type: object
   evaluationDTO.CreateOrUpdateEvaluationRequest:
     properties:
       authorCourseParticipationID:
@@ -785,6 +792,23 @@ definitions:
         items:
           $ref: '#/definitions/evaluationDTO.SelfEvaluationResult'
         type: array
+    type: object
+  evaluationDTO.TutorEvaluationResults:
+    properties:
+      coursePhaseID:
+        type: string
+      evaluatorCount:
+        type: integer
+      feedbackItems:
+        items:
+          $ref: '#/definitions/evaluationDTO.AnonymousFeedbackItem'
+        type: array
+      results:
+        items:
+          $ref: '#/definitions/evaluationDTO.AggregatedEvaluationResult'
+        type: array
+      tutorID:
+        type: string
     type: object
   feedbackItemDTO.CreateFeedbackItemRequest:
     properties:
@@ -3005,6 +3029,52 @@ paths:
               type: string
             type: object
       summary: Get own evaluation results
+      tags:
+      - evaluations
+  /course_phase/{coursePhaseID}/evaluation/my-tutor-results:
+    get:
+      description: 'Get the anonymized results of the tutor evaluations written about
+        the caller: averages per competency rated by at least two students, the number
+        of evaluators, and the positive or negative feedback texts without authors
+        once at least two students wrote feedback of that type. Only served once the
+        tutor evaluation is enabled, its deadline has passed, the results are released,
+        and the phase providing the teams lists the caller as a tutor.'
+      parameters:
+      - description: Course phase ID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/evaluationDTO.TutorEvaluationResults'
+        "204":
+          description: No Content
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "502":
+          description: Bad Gateway
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get own tutor evaluation results
       tags:
       - evaluations
   /course_phase/{coursePhaseID}/evaluation/peer/{courseParticipationID}:

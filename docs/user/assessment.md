@@ -34,6 +34,9 @@ Once the assessment phase is set up, students and instructors can begin evaluati
    overview offers the same actions for tutor evaluations, with one file per tutor listing every
    team they lead. The **Self Evaluations** and **Peer Evaluations** overviews offer **Export PDF**;
    selected participants without any evaluations are skipped.
+6. **Read Your Tutor Evaluation**: Once the tutor evaluation deadline has passed and the results
+   are released, tutors find what their students wrote about them on the phase page (see
+   [Tutors Seeing Their Tutor Evaluation Results](#tutors-seeing-their-tutor-evaluation-results)).
 
 > 💡 **Tip**: Regularly check for updates and communicate with your team to ensure timely submissions.
 
@@ -151,6 +154,24 @@ mail has a subject and content.
 - If sending times out, PROMPT cannot tell who received the mail, so the students of that release
   are not mailed again automatically
 - Besides the usual student placeholders, `{{coursePhaseName}}` and `{{coursePhaseLink}}` are available
+
+#### Tutors Seeing Their Tutor Evaluation Results
+
+When the tutor evaluation is enabled, its deadline has passed, and you release the results, every
+tutor of a team sees a **Your Tutor Evaluation Results** card on the phase page. **View your results** opens a page with
+what their students wrote about them. PROMPT matches the signed-in staff member to a tutor by their
+university login in the team allocation phase that provides the teams, so the card only appears for
+tutors listed there.
+
+> 🔒 **Tutor results are anonymized.** A tutor sees the number of students who evaluated them, the
+> average score of each competency that at least two students rated, and the written feedback
+> without names. Positive and negative feedback are each shown only once at least two students wrote
+> that kind, so no text points to a single student. Unreleasing the results hides the page again.
+
+> ⏰ **Set a tutor evaluation deadline.** Tutors only see their results after the tutor evaluation
+> deadline, even when the results are already released. While students can still submit, a tutor
+> who reloads after each submission could otherwise tell from the changing averages and texts what
+> that student wrote. A phase without a tutor evaluation deadline never shows tutors their results.
 
 #### Evaluation-Only Phases
 

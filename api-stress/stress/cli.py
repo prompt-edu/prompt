@@ -22,6 +22,8 @@ import json
 import os
 import subprocess
 import sys
+import time
+from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
 
@@ -45,6 +47,11 @@ PREFLIGHT_URLS = [
     "http://localhost:18088/certificate/api/info",
     f"{KC_URL}/realms/prompt/.well-known/openid-configuration",
 ]
+
+# No server defines a Docker healthcheck, so `docker compose up --wait` returns
+# once the containers run, before the servers listen. Preflight polls instead.
+PREFLIGHT_TIMEOUT_S = 90
+PREFLIGHT_INTERVAL_S = 2
 
 
 def stress_dir() -> Path:
@@ -103,6 +110,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "is built).",
     )
     p.add_argument(
+        "--preflight-timeout",
+        type=float,
+        default=PREFLIGHT_TIMEOUT_S,
+        metavar="SECONDS",
+        help="how long preflight waits for the stack to become healthy "
+        f"(default: {PREFLIGHT_TIMEOUT_S}).",
+    )
+    p.add_argument(
         "--public-summary",
         metavar="DIR",
         type=Path,
@@ -145,22 +160,44 @@ def run_step(argv: list[str], err: str) -> None:
         sys.exit(err)
 
 
-def preflight() -> None:
-    print("==> preflight")
-    ok = True
-    with httpx.Client(timeout=5) as client:
-        for url in PREFLIGHT_URLS:
+def wait_until_healthy(
+    client: httpx.Client,
+    urls: list[str],
+    timeout: float,
+    interval: float = PREFLIGHT_INTERVAL_S,
+    sleep: Callable[[float], None] = time.sleep,
+    clock: Callable[[], float] = time.monotonic,
+) -> dict[str, int]:
+    """Poll each URL until it answers 200 or the shared deadline passes.
+
+    Returns the last status code per URL (0 = no connection). The deadline is
+    shared because the services boot in parallel: a broken stack fails after
+    `timeout` seconds, not after `timeout` seconds per URL.
+    """
+    deadline = clock() + timeout
+    codes: dict[str, int] = {}
+    for url in urls:
+        while True:
             try:
                 code = client.get(url).status_code
             except httpx.HTTPError:
                 code = 0
-            if code == 200:
-                print(f"  ok: {url}")
-            else:
-                print(f"  UNHEALTHY ({code}): {url}")
-                ok = False
-    if not ok:
-        print("Stack not healthy. Bring it up with:")
+            if code == 200 or clock() >= deadline:
+                break
+            sleep(interval)
+        codes[url] = code
+        print(f"  ok: {url}" if code == 200 else f"  UNHEALTHY ({code}): {url}")
+    return codes
+
+
+def preflight(timeout: float) -> None:
+    print(f"==> preflight (waiting up to {timeout:g}s for the stack)")
+    with httpx.Client(timeout=5) as client:
+        codes = wait_until_healthy(client, PREFLIGHT_URLS, timeout)
+    unhealthy = [url for url, code in codes.items() if code != 200]
+    if unhealthy:
+        print(f"Stack not healthy after {timeout:g}s: {len(unhealthy)} URL(s) did not answer 200.")
+        print("Bring it up with:")
         print(
             "  docker compose --env-file api-stress/stress.env -f docker-compose.yml "
             "-f api-stress/docker-compose.stress.yml -p prompt-stress up -d"
@@ -301,7 +338,7 @@ def main(argv: list[str] | None = None) -> int:
     print("==> regenerate endpoint catalog from partials")
     run_step(["catalog/merge_catalog.py"], "catalog merge failed")
 
-    preflight()
+    preflight(args.preflight_timeout)
     ensure_long_token_lifespan()
     raise_fd_limit()
 

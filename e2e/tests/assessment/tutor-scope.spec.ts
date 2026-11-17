@@ -14,6 +14,8 @@ const TUTOR = {
   fileBaseName: 'Eduard_Eduard',
   courseParticipationId: 'a0000005-0000-0000-0000-000000000005',
 }
+// The tutor leads several teams and gets one row per team.
+const TUTOR_ROW = `${TUTOR.name}.*Team Lovelace`
 const OTHER_TUTOR_PHASE_ID = ASSESSMENT_FIXTURE_PHASES.otherTutor
 const { ownTeam, hidden } = TUTOR_SCOPE_PARTICIPANTS
 const everyone = [...ownTeam, ...hidden]
@@ -134,10 +136,10 @@ test.describe('assessment: tutors only reach the teams they lead', () => {
     test('exports the selected tutor evaluations as zipped JSON and PDF', async ({ page }) => {
       const phase = new AssessmentPage(page)
       await phase.goto(SEEDED_COURSES.fullCourse.id, PHASE_ID, '/tutors')
-      await expect(page.getByRole('row', { name: new RegExp(TUTOR.name) })).toBeVisible({
+      await expect(page.getByRole('row', { name: new RegExp(TUTOR_ROW) })).toBeVisible({
         timeout: 15_000,
       })
-      await phase.selectRow(TUTOR.name)
+      await phase.selectRow(TUTOR_ROW)
 
       const json = await phase.downloadBulkAction('Export JSON')
       expect(json.name).toMatch(/^tutor_evaluations_json_\d{4}-\d{2}-\d{2}\.zip$/)

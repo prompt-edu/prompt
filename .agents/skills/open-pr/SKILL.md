@@ -58,8 +58,14 @@ keep it to one or two commands and use `GH_PAGER=cat` on `gh` calls to avoid pag
    `--attach .playwright-mcp/pr-screenshots/<branch>/<file>.png` per shot the body references.
    `gh` uploads each and rewrites its `./<file>.png` reference to the upload; it appends a shot the
    body does not reference at the end, so attach only referenced ones. When an upload fails, the
-   PR is still created and the command exits non-zero: run `GH_PAGER=cat gh pr edit` with the same
-   `--body-file` and every `--attach` again, never a second `gh pr create`. `unknown flag: --attach`
-   means `gh` is older than 2.99: `brew upgrade gh`.
+   command exits non-zero, and its output tells whether a PR exists:
+   - **Output has a PR URL** (some shots uploaded): repair it with `GH_PAGER=cat gh pr edit`,
+     passing the same `--body-file` and every `--attach` again, never a second `gh pr create`.
+   - **No PR URL**: no PR exists. Either every upload failed (`no pull request was created`) or
+     `gh` refused before creating anything (`attaching files requires write access to the
+     repository`). Fix the cause and run `gh pr create` again, or create the PR without `--attach`
+     and add the shots with `gh pr edit` once uploads work.
+
+   `unknown flag: --attach` means `gh` is older than 2.99: `brew upgrade gh`.
 
 5. Delete `.pr_body_tmp.md` or the screenshot folder and report the PR URL.

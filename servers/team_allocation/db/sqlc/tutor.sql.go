@@ -64,6 +64,32 @@ func (q *Queries) GetTutorByTeamID(ctx context.Context, arg GetTutorByTeamIDPara
 	return i, err
 }
 
+const getTutorByUniversityLogin = `-- name: GetTutorByUniversityLogin :one
+SELECT t.course_participation_id, t.first_name, t.last_name
+FROM tutor t
+WHERE t.course_phase_id = $1
+  AND t.university_login = $2
+LIMIT 1
+`
+
+type GetTutorByUniversityLoginParams struct {
+	CoursePhaseID   uuid.UUID   `json:"course_phase_id"`
+	UniversityLogin pgtype.Text `json:"university_login"`
+}
+
+type GetTutorByUniversityLoginRow struct {
+	CourseParticipationID uuid.UUID `json:"course_participation_id"`
+	FirstName             string    `json:"first_name"`
+	LastName              string    `json:"last_name"`
+}
+
+func (q *Queries) GetTutorByUniversityLogin(ctx context.Context, arg GetTutorByUniversityLoginParams) (GetTutorByUniversityLoginRow, error) {
+	row := q.db.QueryRow(ctx, getTutorByUniversityLogin, arg.CoursePhaseID, arg.UniversityLogin)
+	var i GetTutorByUniversityLoginRow
+	err := row.Scan(&i.CourseParticipationID, &i.FirstName, &i.LastName)
+	return i, err
+}
+
 const updateTutorTeam = `-- name: UpdateTutorTeam :execrows
 UPDATE tutor
 SET team_id = $3

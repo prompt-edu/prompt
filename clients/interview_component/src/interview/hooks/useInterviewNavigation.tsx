@@ -1,8 +1,8 @@
 import type { CoursePhaseParticipationWithStudent } from '@tumaet/prompt-shared-state'
+import { resolveNavigationOrder } from '@tumaet/prompt-ui-components'
 import { useMemo } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import type { ProfileDetailLocationState } from '../pages/ProfileDetail/ProfileDetailPage'
-import { resolveNavigationOrder } from '../utils/resolveNavigationOrder'
 import { useParticipationStore } from '../zustand/useParticipationStore'
 
 interface InterviewNavigation {

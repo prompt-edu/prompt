@@ -93,6 +93,7 @@ export interface ConfigOverrides {
   assessmentSchemaId?: string
   selfEvaluationEnabled?: boolean
   selfEvaluationSchema?: string
+  tutorEvaluationEnabled?: boolean
 }
 
 // PUT /config requires the full request body; start/deadline are set to a
@@ -125,7 +126,7 @@ export async function putConfig(
         peerEvaluationSchema: current.peerEvaluationSchema,
         peerEvaluationStart: past,
         peerEvaluationDeadline: future,
-        tutorEvaluationEnabled: false,
+        tutorEvaluationEnabled: overrides.tutorEvaluationEnabled ?? false,
         tutorEvaluationSchema: current.tutorEvaluationSchema,
         tutorEvaluationStart: past,
         tutorEvaluationDeadline: future,

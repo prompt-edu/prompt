@@ -11,6 +11,7 @@ import type {
   StudentAssessmentResults,
 } from '../../interfaces/assessmentResults'
 import type { CategoryWithCompetencies } from '../../interfaces/category'
+import type { CategoryAssessment } from '../../interfaces/categoryAssessment'
 import type { CoursePhaseConfig } from '../../interfaces/coursePhaseConfig'
 import type { StudentEvaluationResults } from '../../interfaces/evaluationResults'
 import { getWeightedScoreLevel } from './getWeightedScoreLevel'
@@ -35,6 +36,9 @@ const EXAMPLE_LEVELS = [
   ScoreLevel.Good,
   ScoreLevel.Bad,
 ]
+
+const EXAMPLE_CATEGORY_COMMENT =
+  'Consistent work in this area, with room to take on more ownership.'
 
 const EXAMPLE_ACTION_ITEMS = [
   'Break larger features into smaller, reviewable pull requests.',
@@ -70,6 +74,20 @@ export const buildExampleAssessmentResults = (
     authorID: EXAMPLE_AUTHOR,
   }))
 
+  const categoryAssessments: CategoryAssessment[] = config.gradingSheetVisible
+    ? categories.map((category) => ({
+        id: `example-category-assessment-${category.id}`,
+        categoryID: category.id,
+        coursePhaseID,
+        courseParticipationID: EXAMPLE_PARTICIPATION_ID,
+        comment: EXAMPLE_CATEGORY_COMMENT,
+        author: EXAMPLE_AUTHOR,
+        authorID: EXAMPLE_AUTHOR,
+        createdAt: EXAMPLE_DATE,
+        updatedAt: EXAMPLE_DATE,
+      }))
+    : []
+
   const scoreNumeric = getWeightedScoreLevel(assessments, categories)
 
   const actionItems: ActionItem[] = config.actionItemsVisible
@@ -98,7 +116,7 @@ export const buildExampleAssessmentResults = (
       gradeSuggestion: config.gradeSuggestionVisible ? 1.7 : 0,
     },
     assessments,
-    categoryAssessments: [],
+    categoryAssessments,
     studentScore:
       assessments.length > 0
         ? { scoreNumeric, scoreLevel: mapNumberToScoreLevel(scoreNumeric) }

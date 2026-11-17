@@ -41,6 +41,7 @@ describe('buildExampleAssessmentResults', () => {
     const results = buildExampleAssessmentResults('phase-1', categories, allVisible)
 
     expect(results.assessments.map((assessment) => assessment.competencyID)).toEqual(['c1', 'c2'])
+    expect(results.categoryAssessments.map((comment) => comment.categoryID)).toEqual(['category-1'])
     expect(results.studentScore?.scoreNumeric).toBeGreaterThan(0)
     expect(results.assessmentCompletion.gradeSuggestion).toBeGreaterThan(0)
     expect(results.actionItems?.length).toBeGreaterThan(0)
@@ -58,6 +59,7 @@ describe('buildExampleAssessmentResults', () => {
     })
 
     expect(results.assessments).toEqual([])
+    expect(results.categoryAssessments).toEqual([])
     expect(results.studentScore).toBeUndefined()
     expect(results.selfEvaluationResults).toEqual([])
     expect(results.peerEvaluationResults).toEqual([])

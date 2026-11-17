@@ -19,8 +19,9 @@ keep it to one or two commands and use `GH_PAGER=cat` on `gh` calls to avoid pag
    the before/after shots the `verify` skill saves under
    `.playwright-mcp/pr-screenshots/<branch>/`. When that folder is missing, holds no before shots,
    or predates the branch's last commit under `clients/` or `servers/` (a server change can alter
-   the data a shot shows), run `verify` now and take them. Refactors and server-only changes
-   carry none.
+   the data a shot shows), run `verify` now and take them. On an existing PR whose body already
+   shows shots, take only the states that are new or changed since. Refactors and server-only
+   changes carry none.
 
 3. Compose the PR locally (no shell commands needed):
    - **Title** — `` `Tag`: short description ``: a backticked feature tag, then a plain sentence-case
@@ -39,9 +40,10 @@ keep it to one or two commands and use `GH_PAGER=cat` on `gh` calls to avoid pag
      the repo: to `.pr_body_tmp.md`, or with screenshots to `body.md` in the screenshot folder,
      since `gh` resolves image paths against the body file's folder.
    - **Screenshots** — a table under `## Screenshots` with one row per changed state and width,
-     its before and after side by side, each shot referenced as `./<file>.png`. The change cell
-     names the state and width, then what changed in a few words. A state only one side has
-     shows `_new_` or `_gone_` in the other cell:
+     its before and after side by side, each new shot referenced as `./<file>.png`. A shot an
+     existing PR body already shows keeps its uploaded URL, so it is not attached again. The
+     change cell names the state and width, then what changed in a few words. A state only one
+     side has shows `_new_` or `_gone_` in the other cell:
 
      ```markdown
      | Change | Before | After |

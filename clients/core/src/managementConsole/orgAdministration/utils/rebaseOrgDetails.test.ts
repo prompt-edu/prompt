@@ -27,6 +27,20 @@ describe('rebaseOrgDetails', () => {
     })
   })
 
+  it('takes the newer value of a field that differs only by surrounding whitespace', () => {
+    const draft = { ...SAVED, school: ' CIT ' }
+    const after = { ...SAVED, school: 'LMU' }
+
+    expect(rebaseOrgDetails(SAVED, after, draft)).toEqual({ draft: after, conflicts: [] })
+  })
+
+  it('reports no conflict for an edit the newer value matches once trimmed', () => {
+    const draft = { ...SAVED, name: 'Renamed Chair ' }
+    const after = { ...SAVED, name: 'Renamed Chair' }
+
+    expect(rebaseOrgDetails(SAVED, after, draft)).toEqual({ draft, conflicts: [] })
+  })
+
   it('reports a field both sides changed to different values', () => {
     const draft = { ...SAVED, name: 'My Name' }
     const after = { ...SAVED, name: 'Their Name' }

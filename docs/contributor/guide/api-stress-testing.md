@@ -58,8 +58,9 @@ stack you already have running:
 
 ## Running it
 
-Prerequisites: Docker, [`k6`](https://k6.io/) (`brew install k6`), Python 3 with
-`httpx` (`python3 -m venv api-stress/.venv && api-stress/.venv/bin/pip install -r api-stress/requirements.txt`).
+Prerequisites: Docker, [`k6`](https://k6.io/), and [`uv`](https://docs.astral.sh/uv/)
+(`brew install k6 uv`). `uv` provisions the Python environment from
+`api-stress/pyproject.toml` and `uv.lock` on demand, so there is no install step.
 
 ```bash
 # 1. local env file (gitignored; run.sh also auto-creates it)
@@ -80,6 +81,7 @@ api-stress/run.sh                    # full run, medium intensity
 api-stress/run.sh --smoke-only       # quick reachability + latency baseline
 api-stress/run.sh --no-exhaustion    # skip the host-stressing lane (good for repeats)
 api-stress/run.sh --intensity brutal # all-out
+api-stress/run.sh --fail-on P0       # exit 1 on any P0 finding (what CI does)
 
 # 4. teardown when done (same file set: -v only removes volumes the files declare)
 docker compose --env-file api-stress/stress.env \
@@ -88,6 +90,27 @@ docker compose --env-file api-stress/stress.env \
 ```
 
 Output lands in `api-stress/reports/<timestamp>/` (gitignored). Open `report.md` first.
+
+## In CI
+
+Every PR runs the suite through `.github/workflows/test-api-stress.yml`, called from
+`dev.yml`. The job runs the suite's unit tests (`cd api-stress && uv run pytest`),
+builds and boots the isolated stack, and runs a smoke + fuzz pass:
+
+```bash
+api-stress/run.sh --smoke-only --intensity gentle --fail-on P0 --public-summary <dir>
+```
+
+- **It fails only on P0.** P1/P2 findings are listed in the job summary and the
+  `api-stress-public-findings` artifact, so they never block a PR.
+- **P0 details stay private.** The repository is public, and so are its CI logs and
+  artifacts. `--public-summary` writes a `summary.md` and `findings.json` that only
+  count P0 findings, and the full reports never leave the runner. When the job fails,
+  reproduce the run locally and read `report.md`; treat a real P0 as a security issue
+  (private advisory, not a public issue).
+- **Longer passes are manual.** Dispatch the workflow from the Actions tab and pick a
+  higher `intensity` and more `scenarios` (e.g. `smoke load spike soak`).
+  `exhaustion` floods the shared runner, so keep it for local runs.
 
 ## How findings are prioritized
 

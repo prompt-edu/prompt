@@ -101,6 +101,7 @@ VALUES ('d1000000-0000-0000-0000-000000000000', 'd0000000-0000-0000-0000-0000000
 -- One more owned schema per remaining way another phase can use a schema, each of which must hand
 -- the schema over instead of letting the delete cascade into that phase's data:
 --   * d5000000-...-06: selected as the tutor evaluation schema of d2000000-....
+--   * d5000000-...-0b: selected as the peer evaluation schema of d3000000-....
 --   * d5000000-...-07, -08, -09: hold an assessment, an independent assessment and an evaluation of
 --     phase c9000000-..., which has no config at all.
 --   * d5000000-...-0a: selected by the config of d3000000-... and holding an assessment of
@@ -110,28 +111,32 @@ VALUES ('d5000000-0000-0000-0000-000000000006', 'Tutor Schema', 'Tutor evaluatio
        ('d5000000-0000-0000-0000-000000000007', 'Assessment Data Schema', 'Assessed by a phase without config', 'd1000000-0000-0000-0000-000000000000'),
        ('d5000000-0000-0000-0000-000000000008', 'Independent Data Schema', 'Assessed independently by a phase without config', 'd1000000-0000-0000-0000-000000000000'),
        ('d5000000-0000-0000-0000-000000000009', 'Evaluation Data Schema', 'Evaluated by a phase without config', 'd1000000-0000-0000-0000-000000000000'),
-       ('d5000000-0000-0000-0000-00000000000a', 'Contested Schema', 'Selected by one phase, assessed by another', 'd1000000-0000-0000-0000-000000000000');
+       ('d5000000-0000-0000-0000-00000000000a', 'Contested Schema', 'Selected by one phase, assessed by another', 'd1000000-0000-0000-0000-000000000000'),
+       ('d5000000-0000-0000-0000-00000000000b', 'Peer Schema', 'Peer evaluation schema of a retained phase', 'd1000000-0000-0000-0000-000000000000');
 
 INSERT INTO category (id, name, assessment_schema_id)
 VALUES ('d6000000-0000-0000-0000-000000000006', 'Tutor Category', 'd5000000-0000-0000-0000-000000000006'),
        ('d6000000-0000-0000-0000-000000000007', 'Assessment Data Category', 'd5000000-0000-0000-0000-000000000007'),
        ('d6000000-0000-0000-0000-000000000008', 'Independent Data Category', 'd5000000-0000-0000-0000-000000000008'),
        ('d6000000-0000-0000-0000-000000000009', 'Evaluation Data Category', 'd5000000-0000-0000-0000-000000000009'),
-       ('d6000000-0000-0000-0000-00000000000a', 'Contested Category', 'd5000000-0000-0000-0000-00000000000a');
+       ('d6000000-0000-0000-0000-00000000000a', 'Contested Category', 'd5000000-0000-0000-0000-00000000000a'),
+       ('d6000000-0000-0000-0000-00000000000b', 'Peer Category', 'd5000000-0000-0000-0000-00000000000b');
 
 INSERT INTO competency (id, category_id, name)
 VALUES ('d7000000-0000-0000-0000-000000000006', 'd6000000-0000-0000-0000-000000000006', 'Tutor Competency'),
        ('d7000000-0000-0000-0000-000000000007', 'd6000000-0000-0000-0000-000000000007', 'Assessment Data Competency'),
        ('d7000000-0000-0000-0000-000000000008', 'd6000000-0000-0000-0000-000000000008', 'Independent Data Competency'),
        ('d7000000-0000-0000-0000-000000000009', 'd6000000-0000-0000-0000-000000000009', 'Evaluation Data Competency'),
-       ('d7000000-0000-0000-0000-00000000000a', 'd6000000-0000-0000-0000-00000000000a', 'Contested Competency');
+       ('d7000000-0000-0000-0000-00000000000a', 'd6000000-0000-0000-0000-00000000000a', 'Contested Competency'),
+       ('d7000000-0000-0000-0000-00000000000b', 'd6000000-0000-0000-0000-00000000000b', 'Peer Competency');
 
 UPDATE course_phase_config
 SET tutor_evaluation_schema = 'd5000000-0000-0000-0000-000000000006'
 WHERE course_phase_id = 'd2000000-0000-0000-0000-000000000000';
 
 UPDATE course_phase_config
-SET assessment_schema_id = 'd5000000-0000-0000-0000-00000000000a'
+SET assessment_schema_id   = 'd5000000-0000-0000-0000-00000000000a',
+    peer_evaluation_schema = 'd5000000-0000-0000-0000-00000000000b'
 WHERE course_phase_id = 'd3000000-0000-0000-0000-000000000000';
 
 INSERT INTO assessment (id, course_participation_id, course_phase_id, competency_id, score_level, author)

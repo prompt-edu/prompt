@@ -201,6 +201,7 @@ func (suite *CoursePhaseDeletionServiceTestSuite) TestHandsSchemasOverForEveryKi
 		table    string
 	}{
 		{"tutor evaluation schema", uuid.MustParse("d5000000-0000-0000-0000-000000000006"), retainedCoursePhaseID, "course_phase_config"},
+		{"peer evaluation schema", uuid.MustParse("d5000000-0000-0000-0000-00000000000b"), earlierCoursePhaseID, "course_phase_config"},
 		{"assessment", uuid.MustParse("d5000000-0000-0000-0000-000000000007"), configlessCoursePhase, "assessment"},
 		{"independent assessment", uuid.MustParse("d5000000-0000-0000-0000-000000000008"), configlessCoursePhase, "independent_assessment"},
 		{"evaluation", uuid.MustParse("d5000000-0000-0000-0000-000000000009"), configlessCoursePhase, "evaluation"},

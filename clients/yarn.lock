@@ -1152,7 +1152,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@hookform/resolvers@npm:^7.0.2, @hookform/resolvers@npm:^7.0.3":
+"@hookform/resolvers@npm:^7.0.2":
   version: 7.0.6
   resolution: "@hookform/resolvers@npm:7.0.6"
   dependencies:
@@ -1230,6 +1230,87 @@ __metadata:
     zod:
       optional: true
   checksum: 10c0/9fafcfa47e7889da6504f34a1e296d8bcbbff6647268bde57ab02648da8937c5efb6857a582137b253aa2fbe4fafaa27768c1fe6d87c3925f1b84308ead3d769
+  languageName: node
+  linkType: hard
+
+"@hookform/resolvers@npm:^7.0.5":
+  version: 7.0.7
+  resolution: "@hookform/resolvers@npm:7.0.7"
+  dependencies:
+    "@standard-schema/utils": "npm:^0.3.0"
+  peerDependencies:
+    "@standard-schema/spec": ^1.0.0
+    "@vinejs/vine": ^2.0.0 || ^3.0.0 || ^4.0.0
+    ajv: ^8.12.0
+    ajv-errors: ^3.0.0
+    ajv-formats: ^2.1.1 || ^3.0.0
+    arktype: ^2.0.0
+    ata-validator: ^1.23.0
+    class-transformer: ">=0.4.0"
+    class-validator: ">=0.12.0"
+    computed-types: ^1.0.0
+    effect: ^4.0.0
+    fluentvalidation-ts: ^3.0.0
+    fp-ts: ^2.7.0
+    io-ts: ^2.0.0
+    joi: ^17.0.0 || ^18.0.0
+    nope-validator: ">=0.12.0"
+    react-hook-form: ^7.55.0
+    superstruct: ">=0.12.0"
+    typanion: ^3.3.2
+    typebox: ^1.0.0
+    valibot: ">=0.31.0 || ^1.0.0-beta.4 || ^1.0.0-rc"
+    vest: ">=6.0.0"
+    yup: ^1.0.0
+    zod: ^3.25.0 || ^4.0.0
+  peerDependenciesMeta:
+    "@standard-schema/spec":
+      optional: true
+    "@vinejs/vine":
+      optional: true
+    ajv:
+      optional: true
+    ajv-errors:
+      optional: true
+    ajv-formats:
+      optional: true
+    arktype:
+      optional: true
+    ata-validator:
+      optional: true
+    class-transformer:
+      optional: true
+    class-validator:
+      optional: true
+    computed-types:
+      optional: true
+    effect:
+      optional: true
+    fluentvalidation-ts:
+      optional: true
+    fp-ts:
+      optional: true
+    io-ts:
+      optional: true
+    joi:
+      optional: true
+    nope-validator:
+      optional: true
+    superstruct:
+      optional: true
+    typanion:
+      optional: true
+    typebox:
+      optional: true
+    valibot:
+      optional: true
+    vest:
+      optional: true
+    yup:
+      optional: true
+    zod:
+      optional: true
+  checksum: 10c0/f69235bb799022452d114117378fc8cffece294e5c03511bb370cf10601b23a3d07f01ff783e01b45c1b0679b7867d3916dc0fcbb4c16e97203ccb1c33ce3a17
   languageName: node
   linkType: hard
 
@@ -4110,7 +4191,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tanstack/react-query@npm:^5.106.1":
+"@tanstack/react-query@npm:^5.107.1":
   version: 5.107.1
   resolution: "@tanstack/react-query@npm:5.107.1"
   dependencies:
@@ -5617,7 +5698,7 @@ __metadata:
   dependencies:
     "@rspack/cli": "npm:^2.3.1"
     "@rspack/core": "npm:^2.3.1"
-    openai: "npm:^7.53.0"
+    openai: "npm:^7.55.0"
   languageName: unknown
   linkType: soft
 
@@ -5756,7 +5837,7 @@ __metadata:
     "@rspack/cli": "npm:^2.3.1"
     "@rspack/core": "npm:^2.3.1"
     "@types/papaparse": "npm:^5.5.2"
-    html2canvas-pro: "npm:2.5.4"
+    html2canvas-pro: "npm:2.6.3"
     jspdf: "npm:^4.2.1"
     jszip: "npm:^3.10.2"
     papaparse: "npm:^5.7.0"
@@ -5787,7 +5868,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"axios@npm:^1.20.0, axios@npm:^1.21.0":
+"axios@npm:^1.20.0, axios@npm:^1.21.1":
   version: 1.21.1
   resolution: "axios@npm:1.21.1"
   dependencies:
@@ -7311,7 +7392,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"follow-redirects@npm:^1.16.2":
+"follow-redirects@npm:^1.16.2, follow-redirects@npm:^1.16.3":
   version: 1.16.3
   resolution: "follow-redirects@npm:1.16.3"
   peerDependenciesMeta:
@@ -7649,10 +7730,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"html2canvas-pro@npm:2.5.4":
-  version: 2.5.4
-  resolution: "html2canvas-pro@npm:2.5.4"
-  checksum: 10c0/144b4de9f069643dfd03498209051199a221428953f258d5bdce0ff05b640a0993f403c9c761704207b18b6a3bee61a6f0110a85a85f1a56d234242acd487262
+"html2canvas-pro@npm:2.6.3":
+  version: 2.6.3
+  resolution: "html2canvas-pro@npm:2.6.3"
+  checksum: 10c0/0fe5e218c713a3d5914069019379f3b4b2bcbe54b2310a0bc40cf31bd12ddd4a1992bcf017a478e07ad7b9fc0b76d2797e7ac5ad013431b31c90fc54c010984c
   languageName: node
   linkType: hard
 
@@ -8526,16 +8607,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"lucide-react@npm:^1.70.0":
-  version: 1.72.0
-  resolution: "lucide-react@npm:1.72.0"
+"lucide-react@npm:^1.71.0":
+  version: 1.74.0
+  resolution: "lucide-react@npm:1.74.0"
   peerDependencies:
     "@types/react": "*"
     react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
   peerDependenciesMeta:
     "@types/react":
       optional: true
-  checksum: 10c0/ee2f41fef871f611256529acb5c2286781b5ce798e73fcb16e7131c56cdef4103cf417733d911bc208e7046706a5f4352766b0dd1efdd362d8ed160dbb2509ba
+  checksum: 10c0/be0770ac4a4d2148bd03991019b2d70335d5bc00387ef8b6a47010b90e3620cfc341752050802f0167800d7217d23653c8449e67b971abff455b4ceca0edf04d
   languageName: node
   linkType: hard
 
@@ -8766,7 +8847,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"motion@npm:^14.10.1":
+"motion@npm:^14.12.0":
   version: 14.14.0
   resolution: "motion@npm:14.14.0"
   dependencies:
@@ -9250,9 +9331,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"openai@npm:^7.53.0":
-  version: 7.56.0
-  resolution: "openai@npm:7.56.0"
+"openai@npm:^7.55.0":
+  version: 7.57.0
+  resolution: "openai@npm:7.57.0"
   peerDependencies:
     "@aws-sdk/credential-provider-node": ">=3.972.0 <4"
     "@smithy/hash-node": ">=4.3.0 <5"
@@ -9276,7 +9357,7 @@ __metadata:
       optional: true
     zod:
       optional: true
-  checksum: 10c0/b635d9e0945ba2a891460734d705a7a3523157278e634a42df081b014d7b4490d7349159e44e6e91f1095108485d277f6e92c2f090ab75fa1a751831d33a2f08
+  checksum: 10c0/49f3e1a92a5e29da0fe6ac56730cbc06cdadf89e687fd7427666179fe2d4bb46f7f20cd3dc6df3e0db5285824eaf28922e5beafde9dc74f021bdbfd8b7db1843
   languageName: node
   linkType: hard
 
@@ -10113,7 +10194,7 @@ __metadata:
   dependencies:
     "@biomejs/biome": "npm:2.6.6"
     "@hello-pangea/dnd": "npm:^18.0.1"
-    "@hookform/resolvers": "npm:^7.0.3"
+    "@hookform/resolvers": "npm:^7.0.5"
     "@module-federation/runtime-tools": "npm:^2.9.3"
     "@radix-ui/react-icons": "npm:^1.3.2"
     "@radix-ui/react-toolbar": "npm:^1.2.1"
@@ -10121,7 +10202,7 @@ __metadata:
     "@rspack/core": "npm:^2.3.1"
     "@rspack/dev-server": "npm:^2.2.2"
     "@tailwindcss/postcss": "npm:^4.3.5"
-    "@tanstack/react-query": "npm:^5.106.1"
+    "@tanstack/react-query": "npm:^5.107.1"
     "@tanstack/react-table": "npm:^9.3.1"
     "@tiptap/core": "npm:^3.33.0"
     "@tiptap/extension-code-block": "npm:^3.33.0"
@@ -10145,7 +10226,7 @@ __metadata:
     "@types/react": "npm:^19.3.0"
     "@types/react-beautiful-dnd": "npm:^13.1.8"
     "@types/react-dom": "npm:^19.3.0"
-    axios: "npm:^1.21.0"
+    axios: "npm:^1.21.1"
     class-variance-authority: "npm:^0.7.1"
     clsx: "npm:^2.1.1"
     css-loader: "npm:^7.1.5"
@@ -10158,8 +10239,8 @@ __metadata:
     keycloak-js: "npm:25.0.6"
     lerna: "npm:^10.1.1"
     lowlight: "npm:^3.3.0"
-    lucide-react: "npm:^1.70.0"
-    motion: "npm:^14.10.1"
+    lucide-react: "npm:^1.71.0"
+    motion: "npm:^14.12.0"
     postcss: "npm:^8.5.32"
     postcss-loader: "npm:8.2.1"
     react: "npm:^19.3.1"
@@ -10178,7 +10259,7 @@ __metadata:
     ts-node-register: "npm:^1.0.0"
     typescript: "npm:^6.0.3"
     use-debounce: "npm:^10.1.1"
-    vite: "npm:^8.3.6"
+    vite: "npm:^8.3.7"
     vitest: "npm:^5.1.0"
     webpack-bundle-analyzer: "npm:^5.4.2"
     zod: "npm:^4.6.7"
@@ -11925,7 +12006,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vite@npm:^8.3.6":
+"vite@npm:^8.3.7":
   version: 8.3.8
   resolution: "vite@npm:8.3.8"
   dependencies:

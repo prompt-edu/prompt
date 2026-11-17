@@ -3,6 +3,7 @@ package evaluations
 import (
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -332,7 +333,7 @@ func evaluationErrorStatus(err error) int {
 
 // getMyTutorEvaluationResults godoc
 // @Summary Get own tutor evaluation results
-// @Description Get the anonymized results of the tutor evaluations written about the caller: averages per competency rated by at least two students, the number of evaluators, and the positive or negative feedback texts without authors once at least two students wrote feedback of that type. Only served once the tutor evaluation is enabled, the results are released, and the phase providing the teams lists the caller as a tutor.
+// @Description Get the anonymized results of the tutor evaluations written about the caller: averages per competency rated by at least two students, the number of evaluators, and the positive or negative feedback texts without authors once at least two students wrote feedback of that type. Only served once the tutor evaluation is enabled, its deadline has passed, the results are released, and the phase providing the teams lists the caller as a tutor.
 // @Tags evaluations
 // @Produce json
 // @Param coursePhaseID path string true "Course phase ID"
@@ -354,7 +355,7 @@ func (s *EvaluationService) getMyTutorEvaluationResults(c *gin.Context) {
 		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
-	if !config.TutorEvaluationEnabled || !config.ResultsReleased {
+	if !config.TutorEvaluationEnabled || !config.ResultsReleased || !tutorEvaluationDeadlinePassed(config.TutorEvaluationDeadline, time.Now()) {
 		c.Status(http.StatusNoContent)
 		return
 	}
@@ -378,4 +379,11 @@ func (s *EvaluationService) getMyTutorEvaluationResults(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, results)
+}
+
+// tutorEvaluationDeadlinePassed holds the tutor results back until the tutor evaluation deadline:
+// while it is open, a tutor who reloads after each submission could tell from the shifted averages
+// and the new texts what that student wrote. A phase without a deadline counts as open.
+func tutorEvaluationDeadlinePassed(deadline time.Time, now time.Time) bool {
+	return !deadline.IsZero() && now.After(deadline)
 }

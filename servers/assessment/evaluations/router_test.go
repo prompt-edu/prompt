@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -318,10 +319,14 @@ var (
 )
 
 // withTutorEvaluations stores two students' tutor evaluations and feedback about evaluatedTutorID,
-// sets the release state, and undoes both when the test ends.
+// sets the release state, closes the tutor evaluation with a past deadline, and undoes all of it
+// when the test ends.
 func (suite *EvaluationRouterTestSuite) withTutorEvaluations(resultsReleased bool) {
 	ctx := suite.suiteCtx
 	conn := suite.evaluationService.conn
+	var originalDeadline *time.Time
+	suite.Require().NoError(conn.QueryRow(ctx, `SELECT tutor_evaluation_deadline FROM course_phase_config WHERE course_phase_id = $1`, suite.testCoursePhaseID).Scan(&originalDeadline))
+	suite.setTutorEvaluationDeadline(time.Now().Add(-24 * time.Hour))
 	_, err := conn.Exec(ctx, `
 		INSERT INTO evaluation (id, course_participation_id, course_phase_id, competency_id, score_level, author_course_participation_id, type)
 		VALUES (gen_random_uuid(), $1, $2, $3, 'very_good', $4, 'tutor'),
@@ -341,9 +346,16 @@ func (suite *EvaluationRouterTestSuite) withTutorEvaluations(resultsReleased boo
 	suite.T().Cleanup(func() {
 		_, _ = conn.Exec(ctx, `DELETE FROM evaluation WHERE course_participation_id = $1`, evaluatedTutorID)
 		_, _ = conn.Exec(ctx, `DELETE FROM feedback_items WHERE course_participation_id = $1`, evaluatedTutorID)
-		_, _ = conn.Exec(ctx, `UPDATE course_phase_config SET results_released = false WHERE course_phase_id = $1`, suite.testCoursePhaseID)
+		_, _ = conn.Exec(ctx, `UPDATE course_phase_config SET results_released = false, tutor_evaluation_deadline = $2 WHERE course_phase_id = $1`, suite.testCoursePhaseID, originalDeadline)
 		suite.ownTutorID, suite.ownTutorFound, suite.ownTutorErr = uuid.Nil, false, nil
 	})
+}
+
+// setTutorEvaluationDeadline sets the tutor evaluation deadline of the test phase; nil clears it.
+// withTutorEvaluations restores the original deadline when the test ends.
+func (suite *EvaluationRouterTestSuite) setTutorEvaluationDeadline(deadline any) {
+	_, err := suite.evaluationService.conn.Exec(suite.suiteCtx, `UPDATE course_phase_config SET tutor_evaluation_deadline = $2 WHERE course_phase_id = $1`, suite.testCoursePhaseID, deadline)
+	suite.Require().NoError(err)
 }
 
 func (suite *EvaluationRouterTestSuite) getMyTutorResults(coursePhaseID uuid.UUID) *httptest.ResponseRecorder {
@@ -380,6 +392,28 @@ func (suite *EvaluationRouterTestSuite) TestMyTutorResultsAreAnonymousAverages()
 
 func (suite *EvaluationRouterTestSuite) TestMyTutorResultsNoContentUntilReleased() {
 	suite.withTutorEvaluations(false)
+	suite.ownTutorID, suite.ownTutorFound = evaluatedTutorID, true
+
+	w := suite.getMyTutorResults(suite.testCoursePhaseID)
+
+	assert.Equal(suite.T(), http.StatusNoContent, w.Code)
+	assert.Empty(suite.T(), w.Body.String())
+}
+
+func (suite *EvaluationRouterTestSuite) TestMyTutorResultsNoContentWhileTutorEvaluationOpen() {
+	suite.withTutorEvaluations(true)
+	suite.setTutorEvaluationDeadline(time.Now().Add(24 * time.Hour))
+	suite.ownTutorID, suite.ownTutorFound = evaluatedTutorID, true
+
+	w := suite.getMyTutorResults(suite.testCoursePhaseID)
+
+	assert.Equal(suite.T(), http.StatusNoContent, w.Code)
+	assert.Empty(suite.T(), w.Body.String())
+}
+
+func (suite *EvaluationRouterTestSuite) TestMyTutorResultsNoContentWithoutTutorEvaluationDeadline() {
+	suite.withTutorEvaluations(true)
+	suite.setTutorEvaluationDeadline(nil)
 	suite.ownTutorID, suite.ownTutorFound = evaluatedTutorID, true
 
 	w := suite.getMyTutorResults(suite.testCoursePhaseID)

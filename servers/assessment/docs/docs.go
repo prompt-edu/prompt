@@ -2869,7 +2869,7 @@ const docTemplate = `{
         },
         "/course_phase/{coursePhaseID}/evaluation/my-tutor-results": {
             "get": {
-                "description": "Get the anonymized results of the tutor evaluations written about the caller: averages per competency rated by at least two students, the number of evaluators, and the positive or negative feedback texts without authors once at least two students wrote feedback of that type. Only served once the tutor evaluation is enabled, the results are released, and the phase providing the teams lists the caller as a tutor.",
+                "description": "Get the anonymized results of the tutor evaluations written about the caller: averages per competency rated by at least two students, the number of evaluators, and the positive or negative feedback texts without authors once at least two students wrote feedback of that type. Only served once the tutor evaluation is enabled, its deadline has passed, the results are released, and the phase providing the teams lists the caller as a tutor.",
                 "produces": [
                     "application/json"
                 ],

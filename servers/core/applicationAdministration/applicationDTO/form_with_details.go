@@ -38,6 +38,11 @@ func GetFormWithDetailsDTOFromDBModel(applicationPhase db.GetOpenApplicationPhas
 		ShortDescription:         shortDesc,
 		LongDescription:          longDesc,
 		WelcomeText:              welcomeText,
+		ProfilePicture: &ApplicationProfilePicture{
+			Requirement:         applicationPhase.ProfilePictureRequirement,
+			Explanation:         applicationPhase.ProfilePictureExplanation,
+			HiddenUntilAccepted: applicationPhase.HideProfilePicturesUntilAccepted,
+		},
 	}
 
 	applicationFormDTO := FormWithDetails{

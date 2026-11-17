@@ -98,4 +98,55 @@ INSERT INTO results_released_mail (course_phase_id, course_participation_id)
 VALUES ('d1000000-0000-0000-0000-000000000000', 'd0000000-0000-0000-0000-000000000001'),
        ('d2000000-0000-0000-0000-000000000000', 'd0000000-0000-0000-0000-000000000001');
 
+-- One more owned schema per remaining way another phase can use a schema, each of which must hand
+-- the schema over instead of letting the delete cascade into that phase's data:
+--   * d5000000-...-06: selected as the tutor evaluation schema of d2000000-....
+--   * d5000000-...-07, -08, -09: hold an assessment, an independent assessment and an evaluation of
+--     phase c9000000-..., which has no config at all.
+--   * d5000000-...-0a: selected by the config of d3000000-... and holding an assessment of
+--     c9000000-.... The phase with a config wins although c9000000-... sorts first by id.
+INSERT INTO assessment_schema (id, name, description, source_phase_id)
+VALUES ('d5000000-0000-0000-0000-000000000006', 'Tutor Schema', 'Tutor evaluation schema of a retained phase', 'd1000000-0000-0000-0000-000000000000'),
+       ('d5000000-0000-0000-0000-000000000007', 'Assessment Data Schema', 'Assessed by a phase without config', 'd1000000-0000-0000-0000-000000000000'),
+       ('d5000000-0000-0000-0000-000000000008', 'Independent Data Schema', 'Assessed independently by a phase without config', 'd1000000-0000-0000-0000-000000000000'),
+       ('d5000000-0000-0000-0000-000000000009', 'Evaluation Data Schema', 'Evaluated by a phase without config', 'd1000000-0000-0000-0000-000000000000'),
+       ('d5000000-0000-0000-0000-00000000000a', 'Contested Schema', 'Selected by one phase, assessed by another', 'd1000000-0000-0000-0000-000000000000');
+
+INSERT INTO category (id, name, assessment_schema_id)
+VALUES ('d6000000-0000-0000-0000-000000000006', 'Tutor Category', 'd5000000-0000-0000-0000-000000000006'),
+       ('d6000000-0000-0000-0000-000000000007', 'Assessment Data Category', 'd5000000-0000-0000-0000-000000000007'),
+       ('d6000000-0000-0000-0000-000000000008', 'Independent Data Category', 'd5000000-0000-0000-0000-000000000008'),
+       ('d6000000-0000-0000-0000-000000000009', 'Evaluation Data Category', 'd5000000-0000-0000-0000-000000000009'),
+       ('d6000000-0000-0000-0000-00000000000a', 'Contested Category', 'd5000000-0000-0000-0000-00000000000a');
+
+INSERT INTO competency (id, category_id, name)
+VALUES ('d7000000-0000-0000-0000-000000000006', 'd6000000-0000-0000-0000-000000000006', 'Tutor Competency'),
+       ('d7000000-0000-0000-0000-000000000007', 'd6000000-0000-0000-0000-000000000007', 'Assessment Data Competency'),
+       ('d7000000-0000-0000-0000-000000000008', 'd6000000-0000-0000-0000-000000000008', 'Independent Data Competency'),
+       ('d7000000-0000-0000-0000-000000000009', 'd6000000-0000-0000-0000-000000000009', 'Evaluation Data Competency'),
+       ('d7000000-0000-0000-0000-00000000000a', 'd6000000-0000-0000-0000-00000000000a', 'Contested Competency');
+
+UPDATE course_phase_config
+SET tutor_evaluation_schema = 'd5000000-0000-0000-0000-000000000006'
+WHERE course_phase_id = 'd2000000-0000-0000-0000-000000000000';
+
+UPDATE course_phase_config
+SET assessment_schema_id = 'd5000000-0000-0000-0000-00000000000a'
+WHERE course_phase_id = 'd3000000-0000-0000-0000-000000000000';
+
+INSERT INTO assessment (id, course_participation_id, course_phase_id, competency_id, score_level, author)
+VALUES ('d8000000-0000-0000-0000-000000000007', 'd0000000-0000-0000-0000-000000000001',
+        'c9000000-0000-0000-0000-000000000000', 'd7000000-0000-0000-0000-000000000007', 'good', 'Tutor'),
+       ('d8000000-0000-0000-0000-00000000000a', 'd0000000-0000-0000-0000-000000000001',
+        'c9000000-0000-0000-0000-000000000000', 'd7000000-0000-0000-0000-00000000000a', 'good', 'Tutor');
+
+INSERT INTO independent_assessment (id, course_participation_id, course_phase_id, competency_id, score_level, author, author_id)
+VALUES ('d8100000-0000-0000-0000-000000000008', 'd0000000-0000-0000-0000-000000000001',
+        'c9000000-0000-0000-0000-000000000000', 'd7000000-0000-0000-0000-000000000008', 'good', 'Tutor', 'tutor-1');
+
+INSERT INTO evaluation (id, course_participation_id, course_phase_id, competency_id, score_level, author_course_participation_id, type)
+VALUES ('d8300000-0000-0000-0000-000000000009', 'd0000000-0000-0000-0000-000000000001',
+        'c9000000-0000-0000-0000-000000000000', 'd7000000-0000-0000-0000-000000000009', 'good',
+        'd0000000-0000-0000-0000-000000000002', 'peer');
+
 COMMIT;

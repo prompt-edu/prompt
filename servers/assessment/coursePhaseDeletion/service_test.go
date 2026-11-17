@@ -25,10 +25,12 @@ var (
 	privateSchemaID       = uuid.MustParse("d5000000-0000-0000-0000-000000000003")
 	unusedSchemaID        = uuid.MustParse("d5000000-0000-0000-0000-000000000004")
 	retainedSchemaID      = uuid.MustParse("d5000000-0000-0000-0000-000000000005")
+	configlessCoursePhase = uuid.MustParse("c9000000-0000-0000-0000-000000000000")
 )
 
 // coursePhaseTables lists every table that stores course phase scoped data. A new table keyed by
-// course_phase_id belongs here and in HandleCoursePhaseDeletion.
+// course_phase_id belongs here and in HandleCoursePhaseDeletion, which
+// TestCoursePhaseTablesMatchTheSchema enforces.
 var coursePhaseTables = []string{
 	"assessment",
 	"independent_assessment",
@@ -128,6 +130,28 @@ func (suite *CoursePhaseDeletionServiceTestSuite) TestDeletesEveryCoursePhaseSco
 	}
 }
 
+func (suite *CoursePhaseDeletionServiceTestSuite) TestCoursePhaseTablesMatchTheSchema() {
+	rows, err := suite.conn.Query(suite.suiteCtx, `
+		SELECT c.table_name
+		FROM information_schema.columns c
+		         JOIN information_schema.tables t ON t.table_schema = c.table_schema AND t.table_name = c.table_name
+		WHERE c.table_schema = 'public'
+		  AND c.column_name = 'course_phase_id'
+		  AND t.table_type = 'BASE TABLE'`)
+	suite.Require().NoError(err)
+	defer rows.Close()
+
+	var tables []string
+	for rows.Next() {
+		var table string
+		suite.Require().NoError(rows.Scan(&table))
+		tables = append(tables, table)
+	}
+	suite.Require().NoError(rows.Err())
+	suite.ElementsMatch(coursePhaseTables, tables,
+		"Expected every table with a course_phase_id column to be deleted by HandleCoursePhaseDeletion")
+}
+
 func (suite *CoursePhaseDeletionServiceTestSuite) TestKeepsOtherCoursePhases() {
 	suite.deletePhase(deletedCoursePhaseID)
 
@@ -165,6 +189,34 @@ func (suite *CoursePhaseDeletionServiceTestSuite) TestHandsSchemaToThePhaseHoldi
 	suite.requireOwner(dataOnlySchemaID, retainedCoursePhaseID)
 	suite.Equal(int64(1), suite.countPhaseRows("category_assessment", retainedCoursePhaseID),
 		"Expected the retained phase to keep its category assessment in the handed over schema")
+}
+
+// Every way another phase can use a schema must hand the schema over, or deleting it would cascade
+// into that phase's data.
+func (suite *CoursePhaseDeletionServiceTestSuite) TestHandsSchemasOverForEveryKindOfUse() {
+	tests := []struct {
+		name     string
+		schemaID uuid.UUID
+		newOwner uuid.UUID
+		table    string
+	}{
+		{"tutor evaluation schema", uuid.MustParse("d5000000-0000-0000-0000-000000000006"), retainedCoursePhaseID, "course_phase_config"},
+		{"assessment", uuid.MustParse("d5000000-0000-0000-0000-000000000007"), configlessCoursePhase, "assessment"},
+		{"independent assessment", uuid.MustParse("d5000000-0000-0000-0000-000000000008"), configlessCoursePhase, "independent_assessment"},
+		{"evaluation", uuid.MustParse("d5000000-0000-0000-0000-000000000009"), configlessCoursePhase, "evaluation"},
+		// The phase selecting the schema in its config wins over a phase that only holds data in it,
+		// although the latter sorts first by id.
+		{"config over data", uuid.MustParse("d5000000-0000-0000-0000-00000000000a"), earlierCoursePhaseID, "course_phase_config"},
+	}
+
+	suite.deletePhase(deletedCoursePhaseID)
+
+	for _, tt := range tests {
+		suite.Run(tt.name, func() {
+			suite.requireOwner(tt.schemaID, tt.newOwner)
+			suite.NotZero(suite.countPhaseRows(tt.table, tt.newOwner), "Expected the new owner to keep its %s rows", tt.table)
+		})
+	}
 }
 
 // The deleted and the retained phases select the global templates the migrations create.

@@ -19,4 +19,14 @@ test.describe('application: participants list', () => {
     await admin.expectParticipantListed(stan.email, stan.lastName)
     await admin.expectParticipantListed(maxMustermann.email, maxMustermann.lastName)
   })
+
+  test('an accepted applicant has no hidden picture marker', async ({ page }) => {
+    const admin = new ApplicationAdminPage(page)
+
+    await admin.gotoParticipants(SEEDED_COURSES.fullCourse.id, FULL_COURSE_PHASES.application.id)
+
+    await admin.expectPictureShownInList(stan.email)
+    await admin.openApplication(stan.email)
+    await admin.expectPictureShownOnApplication()
+  })
 })

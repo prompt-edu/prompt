@@ -41,6 +41,7 @@ var (
 	ErrOrgHasCourses     = errors.New("the org still has courses")
 	ErrOrgMembersRemoved = errors.New("the org was not deleted, but not all of its members could be re-added to its Keycloak groups: the server log names them; re-add them, or delete the org again")
 	ErrOwnMembership     = errors.New("you cannot change your own org membership; ask another Org Admin or a PROMPT admin")
+	ErrAlreadyOrgMember  = errors.New("the user is already a member of the org; change their role instead")
 )
 
 // orgMembers maps an org role to the Keycloak IDs of the users in its group.
@@ -49,6 +50,7 @@ type orgMembers = map[string][]string
 // OrgMemberDirectory reads and changes the membership of orgs, which lives in Keycloak only.
 type OrgMemberDirectory interface {
 	GetOrgMembers(ctx context.Context, slug string) ([]keycloakRealmDTO.OrgMember, error)
+	OrgRoleOf(ctx context.Context, slug, userID string) (string, error)
 	SetOrgMemberRole(ctx context.Context, slug, userID, orgRole string) error
 	RemoveOrgMember(ctx context.Context, slug, userID string) error
 }
@@ -147,6 +149,25 @@ func (s *OrgService) GetOrgMembers(ctx context.Context, orgID uuid.UUID) ([]keyc
 		return nil, fmt.Errorf("failed to get the members of org %s: %w", org.Slug, err)
 	}
 	return members, nil
+}
+
+// AddOrgMember gives the user with the Keycloak ID the org role if they hold none yet. Unlike
+// UpdateOrgMemberRole, it never changes the role of a member: a user picked from a stale list may
+// have become one since.
+func (s *OrgService) AddOrgMember(ctx context.Context, orgID uuid.UUID, userID, orgRole string, caller Caller) (orgDTO.Org, error) {
+	return s.changeMembership(ctx, orgID, userID, caller, func(ctx context.Context, slug string) error {
+		currentRole, err := s.members.OrgRoleOf(ctx, slug, userID)
+		if err != nil {
+			return fmt.Errorf("failed to get the org role of user %s: %w", userID, err)
+		}
+		if currentRole != "" {
+			return ErrAlreadyOrgMember
+		}
+		if err := s.members.SetOrgMemberRole(ctx, slug, userID, orgRole); err != nil {
+			return fmt.Errorf("failed to set the org role of user %s: %w", userID, err)
+		}
+		return nil
+	})
 }
 
 // UpdateOrgMemberRole gives the user with the Keycloak ID the org role, adding them to the org if

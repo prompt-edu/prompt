@@ -182,11 +182,16 @@ test.describe('org membership', () => {
           .map((m) => m.role)
 
       await asRole('org-admin', async (orgAdmin) => {
-        const added = await orgAdmin.put(`${MEMBERS_PATH}/${userID}`, { data: { role: 'Member' } })
+        const added = await orgAdmin.post(`${MEMBERS_PATH}/${userID}`, { data: { role: 'Member' } })
         expect(added.status()).toBe(204)
         expect(await rolesOfAddedUser()).toEqual(['Member'])
         const listed = (await membersAs('org-admin')).find((m) => m.keycloakUserID === userID)
         expect(listed?.universityLogin).toBe(ADDED_USER.universityLogin)
+
+        // Adding never changes the role of a member, so a stale pick cannot demote anyone
+        const readded = await orgAdmin.post(`${MEMBERS_PATH}/${userID}`, { data: { role: 'Admin' } })
+        expect(readded.status()).toBe(409)
+        expect(await rolesOfAddedUser()).toEqual(['Member'])
 
         const promoted = await orgAdmin.put(`${MEMBERS_PATH}/${userID}`, { data: { role: 'Admin' } })
         expect(promoted.status()).toBe(204)
@@ -200,7 +205,7 @@ test.describe('org membership', () => {
 
     test('an unknown user is not found', async () => {
       await asRole('org-admin', async (orgAdmin) => {
-        const res = await orgAdmin.put(`${MEMBERS_PATH}/${randomUUID()}`, {
+        const res = await orgAdmin.post(`${MEMBERS_PATH}/${randomUUID()}`, {
           data: { role: 'Member' },
         })
 
@@ -228,7 +233,7 @@ test.describe('org membership', () => {
 
       await asRole('admin', async (admin) => {
         try {
-          const joined = await admin.put(`${MEMBERS_PATH}/${adminID}`, { data: { role: 'Admin' } })
+          const joined = await admin.post(`${MEMBERS_PATH}/${adminID}`, { data: { role: 'Admin' } })
           expect(joined.status()).toBe(204)
           expect((await membersAs('admin')).some((m) => m.keycloakUserID === adminID)).toBe(true)
         } finally {
@@ -251,7 +256,7 @@ test.describe('org membership', () => {
 
     test('an org member can neither manage members nor search for users to add', async () => {
       await asRole('org-member', async (orgMember) => {
-        const added = await orgMember.put(`${MEMBERS_PATH}/${randomUUID()}`, {
+        const added = await orgMember.post(`${MEMBERS_PATH}/${randomUUID()}`, {
           data: { role: 'Member' },
         })
         const searched = await orgMember.get('/api/keycloak/users/search?q=student')

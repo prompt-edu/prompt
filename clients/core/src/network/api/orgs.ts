@@ -30,6 +30,9 @@ export const orgs = {
 
   members: (orgID: string): Promise<OrgMember[]> => coreRequest.get(`${ofOrg(orgID)}/members`),
 
+  addMember: (orgID: string, keycloakUserID: string, role: UpdateOrgMemberRole): Promise<void> =>
+    coreRequest.post(`${ofOrg(orgID)}/members/${keycloakUserID}`, role),
+
   setMemberRole: (
     orgID: string,
     keycloakUserID: string,

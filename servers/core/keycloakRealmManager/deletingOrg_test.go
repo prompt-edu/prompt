@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"net/http"
 	"net/http/httptest"
 	"path"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -78,6 +80,23 @@ func (f *fakeKeycloak) start(t *testing.T) *KeycloakRealmService {
 			page = append(page, f.user(userID))
 		}
 		writeJSON(w, page)
+	})
+	mux.HandleFunc("GET /admin/realms/prompt/users/{user}/groups", func(w http.ResponseWriter, r *http.Request) {
+		userID := r.PathValue("user")
+		if f.unknownUsers[userID] {
+			http.Error(w, `{"error":"User not found"}`, http.StatusNotFound)
+			return
+		}
+		groups := []gocloak.Group{}
+		for _, groupPath := range slices.Sorted(maps.Keys(f.groupIDs)) {
+			groupID := f.groupIDs[groupPath]
+			if slices.Contains(f.members[groupID], userID) {
+				groups = append(groups, gocloak.Group{ID: gocloak.StringP(groupID), Path: gocloak.StringP("/" + groupPath)})
+			}
+		}
+		first, _ := strconv.Atoi(r.URL.Query().Get("first"))
+		pageSize, _ := strconv.Atoi(r.URL.Query().Get("max"))
+		writeJSON(w, groups[min(first, len(groups)):min(first+pageSize, len(groups))])
 	})
 	mux.HandleFunc("DELETE /admin/realms/prompt/", func(w http.ResponseWriter, r *http.Request) {
 		resource := strings.TrimPrefix(r.URL.Path, "/admin/realms/prompt/")

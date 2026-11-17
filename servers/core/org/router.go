@@ -1,6 +1,7 @@
 package org
 
 import (
+	"context"
 	"errors"
 	"net/http"
 
@@ -42,6 +43,7 @@ func setupOrgRouter(router *gin.RouterGroup, s *OrgService, authMiddleware func(
 	org.DELETE("/:orgID", audit.Describe("Deleted an org"), permissionRoleMiddleware(permissionValidation.PromptAdmin), s.deleteOrg)
 
 	org.GET("/:orgID/members", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.OrgAdmin), s.getOrgMembers)
+	org.POST("/:orgID/members/:userID", audit.Describe("Added an org member"), permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.OrgAdmin), s.addOrgMember)
 	org.PUT("/:orgID/members/:userID", audit.Describe("Changed the role of an org member"), permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.OrgAdmin), s.updateOrgMemberRole)
 	org.DELETE("/:orgID/members/:userID", audit.Describe("Removed an org member"), permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.OrgAdmin), s.removeOrgMember)
 }
@@ -105,6 +107,26 @@ func (s *OrgService) getOrgMembers(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, members)
 }
 
+// addOrgMember godoc
+// @Summary Add a member to an org
+// @Description Give the user with the Keycloak ID the Admin or Member role of the org. A user who already holds a role in the org is refused, so a stale selection never changes their role. Only PROMPT admins can add themselves.
+// @Tags orgs
+// @Accept json
+// @Param orgID path string true "Org UUID"
+// @Param userID path string true "Keycloak user ID"
+// @Param role body orgDTO.UpdateOrgMemberRole true "Org role"
+// @Success 204
+// @Failure 400 {object} utils.ErrorResponse
+// @Failure 401 {object} utils.ErrorResponse
+// @Failure 404 {object} utils.ErrorResponse
+// @Failure 409 {object} utils.ErrorResponse
+// @Failure 500 {object} utils.ErrorResponse
+// @Security BearerAuth
+// @Router /orgs/{orgID}/members/{userID} [post]
+func (s *OrgService) addOrgMember(c *gin.Context) {
+	s.writeOrgMemberRole(c, s.AddOrgMember, "failed to add the org member")
+}
+
 // updateOrgMemberRole godoc
 // @Summary Change the role of an org member
 // @Description Give the user with the Keycloak ID the Admin or Member role of the org, adding them to the org if they are not a member yet. A user holds one org role at a time. Only PROMPT admins can change their own membership.
@@ -121,6 +143,11 @@ func (s *OrgService) getOrgMembers(c *gin.Context) {
 // @Security BearerAuth
 // @Router /orgs/{orgID}/members/{userID} [put]
 func (s *OrgService) updateOrgMemberRole(c *gin.Context) {
+	s.writeOrgMemberRole(c, s.UpdateOrgMemberRole, "failed to change the org member's role")
+}
+
+// writeOrgMemberRole gives the user in the URL the org role in the body through write.
+func (s *OrgService) writeOrgMemberRole(c *gin.Context, write func(ctx context.Context, orgID uuid.UUID, userID, orgRole string, caller Caller) (orgDTO.Org, error), fallbackMessage string) {
 	id, err := uuid.Parse(c.Param("orgID"))
 	if err != nil {
 		sdkUtils.HandleError(c, http.StatusBadRequest, err)
@@ -145,9 +172,9 @@ func (s *OrgService) updateOrgMemberRole(c *gin.Context) {
 		return
 	}
 
-	org, err := s.UpdateOrgMemberRole(c, id, userID, input.Role, caller)
+	org, err := write(c, id, userID, input.Role, caller)
 	if err != nil {
-		handleServiceError(c, err, "failed to change the org member's role")
+		handleServiceError(c, err, fallbackMessage)
 		return
 	}
 	recordOrgMemberAudit(c, org, userID, input.Role)
@@ -419,7 +446,7 @@ func handleServiceError(c *gin.Context, err error, fallbackMessage string) {
 		sdkUtils.HandleError(c, http.StatusNotFound, err)
 	case errors.Is(err, ErrParentOrgNotFound), errors.Is(err, ErrOrgCycle), errors.Is(err, ErrOwnMembership), errors.Is(err, keycloakRealmManager.ErrInvalidOrgRole):
 		sdkUtils.HandleError(c, http.StatusBadRequest, err)
-	case errors.Is(err, ErrDuplicateOrgSlug), errors.Is(err, ErrOrgHasChildOrgs), errors.Is(err, ErrOrgHasCourses):
+	case errors.Is(err, ErrDuplicateOrgSlug), errors.Is(err, ErrOrgHasChildOrgs), errors.Is(err, ErrOrgHasCourses), errors.Is(err, ErrAlreadyOrgMember):
 		sdkUtils.HandleError(c, http.StatusConflict, err)
 	case errors.Is(err, ErrOrgMembersRemoved):
 		log.Error(err)

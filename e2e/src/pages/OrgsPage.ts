@@ -103,7 +103,7 @@ export class OrgDetailPage {
     const dialog = await this.searchUsersToAdd(search)
     await dialog.getByRole('combobox', { name: 'Role of the new member' }).click()
     await this.page.getByRole('option', { name: role, exact: true }).click()
-    await this.awaitMembersWrite('PUT', () =>
+    await this.awaitMembersWrite('POST', () =>
       dialog.getByRole('button', { name: `Add ${username}`, exact: true }).click(),
     )
     await expect(dialog).toBeHidden()
@@ -133,7 +133,7 @@ export class OrgDetailPage {
     expect(response.ok()).toBe(true)
   }
 
-  private async awaitMembersWrite(method: 'PUT' | 'DELETE', action: () => Promise<void>) {
+  private async awaitMembersWrite(method: 'POST' | 'PUT' | 'DELETE', action: () => Promise<void>) {
     const [response] = await Promise.all([
       this.page.waitForResponse(
         (res) =>

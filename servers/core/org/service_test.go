@@ -640,6 +640,8 @@ func (suite *OrgServiceTestSuite) TestMembershipOfAnUnknownOrgIsNotFound() {
 
 	_, err := service.GetOrgMembers(suite.ctx, uuid.New())
 	assert.ErrorIs(suite.T(), err, ErrOrgNotFound)
+	_, err = service.AddOrgMember(suite.ctx, uuid.New(), "ada", permissionValidation.OrgMember, caller)
+	assert.ErrorIs(suite.T(), err, ErrOrgNotFound)
 	_, err = service.UpdateOrgMemberRole(suite.ctx, uuid.New(), "ada", permissionValidation.OrgMember, caller)
 	assert.ErrorIs(suite.T(), err, ErrOrgNotFound)
 	_, err = service.RemoveOrgMember(suite.ctx, uuid.New(), "ada", caller)
@@ -703,6 +705,39 @@ func (suite *OrgServiceTestSuite) TestRemoveOrgMemberRejectsTheCallersOwnMembers
 
 	assert.ErrorIs(suite.T(), err, ErrOwnMembership)
 	assert.Equal(suite.T(), permissionValidation.OrgAdmin, members.roleOf("members-leave", "ada"))
+}
+
+func (suite *OrgServiceTestSuite) TestAddOrgMemberAddsAUserWithoutAnOrgRole() {
+	org := suite.createOrg("members-add-new", nil)
+	service, members := suite.withMembers(staffMember("ada", "ad12min"))
+
+	gotOrg, err := service.AddOrgMember(suite.ctx, org.ID, "ada", permissionValidation.OrgMember, caller)
+
+	require.NoError(suite.T(), err)
+	assert.Equal(suite.T(), org.ID, gotOrg.ID)
+	assert.Equal(suite.T(), permissionValidation.OrgMember, members.roleOf("members-add-new", "ada"))
+}
+
+// A user picked from a stale list may have become a member since, so adding them never changes
+// their role.
+func (suite *OrgServiceTestSuite) TestAddOrgMemberNeverChangesTheRoleOfAMember() {
+	org := suite.createOrg("members-add-existing", nil)
+	service, members := suite.withMembers(staffMember("ada", "ad12min"))
+	require.NoError(suite.T(), members.SetOrgMemberRole(suite.ctx, "members-add-existing", "ada", permissionValidation.OrgAdmin))
+
+	_, err := service.AddOrgMember(suite.ctx, org.ID, "ada", permissionValidation.OrgMember, caller)
+
+	assert.ErrorIs(suite.T(), err, ErrAlreadyOrgMember)
+	assert.Equal(suite.T(), permissionValidation.OrgAdmin, members.roleOf("members-add-existing", "ada"))
+}
+
+func (suite *OrgServiceTestSuite) TestAddOrgMemberOfAnUnknownUser() {
+	org := suite.createOrg("members-add-ghost", nil)
+	service, _ := suite.withMembers()
+
+	_, err := service.AddOrgMember(suite.ctx, org.ID, "ghost", permissionValidation.OrgMember, caller)
+
+	assert.ErrorIs(suite.T(), err, keycloakRealmManager.ErrUserNotFound)
 }
 
 // awaitSignal waits until a goroutine signals, and fails the test when it returns first or never

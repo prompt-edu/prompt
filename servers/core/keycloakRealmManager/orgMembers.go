@@ -7,12 +7,16 @@ import (
 	"net/http"
 	"slices"
 
+	"github.com/Nerzal/gocloak/v14"
 	"github.com/prompt-edu/prompt/servers/core/keycloakRealmManager/keycloakRealmDTO"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 	log "github.com/sirupsen/logrus"
 )
 
 var ErrInvalidOrgRole = errors.New("org role must be Admin or Member")
+
+// userGroupsPageSize is how many of a user's groups OrgRoleOf asks Keycloak for at a time.
+const userGroupsPageSize = 100
 
 var orgRoles = []string{permissionValidation.OrgAdmin, permissionValidation.OrgMember}
 
@@ -55,6 +59,43 @@ func (s *KeycloakRealmService) GetOrgMembers(ctx context.Context, slug string) (
 		}
 	}
 	return members, nil
+}
+
+// OrgRoleOf returns the user's role in the org, or "" when they hold none. A user in both groups
+// counts as an Admin, as in GetOrgMembers.
+func (s *KeycloakRealmService) OrgRoleOf(ctx context.Context, slug, userID string) (string, error) {
+	token, err := s.LoginClient(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	groupPaths := map[string]bool{}
+	for first := 0; ; first += userGroupsPageSize {
+		page, err := s.client.GetUserGroups(ctx, token.AccessToken, s.Realm, userID, gocloak.GetGroupsParams{
+			First: gocloak.IntP(first),
+			Max:   gocloak.IntP(userGroupsPageSize),
+		})
+		if hasStatus(err, http.StatusNotFound) {
+			return "", ErrUserNotFound
+		}
+		if err != nil {
+			return "", fmt.Errorf("failed to get the groups of user %s: %w", userID, err)
+		}
+		for _, group := range page {
+			if group.Path != nil {
+				groupPaths[*group.Path] = true
+			}
+		}
+		if len(page) < userGroupsPageSize {
+			break
+		}
+	}
+	for _, orgRole := range orgRoles {
+		if groupPaths["/"+orgRoleGroupPath(slug, orgRole)] {
+			return orgRole, nil
+		}
+	}
+	return "", nil
 }
 
 // SetOrgMemberRole gives the user exactly the given org role. It adds them to that role's group

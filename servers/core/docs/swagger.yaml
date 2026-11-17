@@ -5776,6 +5776,57 @@ paths:
       summary: Remove a member from an org
       tags:
       - orgs
+    post:
+      consumes:
+      - application/json
+      description: Give the user with the Keycloak ID the Admin or Member role of
+        the org. A user who already holds a role in the org is refused, so a stale
+        selection never changes their role. Only PROMPT admins can add themselves.
+      parameters:
+      - description: Org UUID
+        in: path
+        name: orgID
+        required: true
+        type: string
+      - description: Keycloak user ID
+        in: path
+        name: userID
+        required: true
+        type: string
+      - description: Org role
+        in: body
+        name: role
+        required: true
+        schema:
+          $ref: '#/definitions/orgDTO.UpdateOrgMemberRole'
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Add a member to an org
+      tags:
+      - orgs
     put:
       consumes:
       - application/json

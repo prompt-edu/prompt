@@ -69,8 +69,34 @@ export const useOrgMembers = (orgId: string) => {
   })
 }
 
-// Gives the user the org role by their Keycloak ID, adding them to the org if they are not a member
-// yet.
+// Adds a user picked from the search. The server refuses a user who is already a member, so a stale
+// pick never changes their role.
+export const useAddOrgMember = (orgId: string) => {
+  const { toast } = useToast()
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ user, role }: SetOrgMemberRoleArgs) =>
+      coreApi.orgs.addMember(orgId, user.keycloakUserID, { role }),
+    onSuccess: (_data, { user, role }) => {
+      toast({
+        title: 'Member added',
+        description: `${user.username} is now an org ${ORG_ROLE_LABELS[role]}.`,
+      })
+    },
+    onError: (error) => {
+      toast({
+        title: 'Failed to add the member',
+        description: serverErrorMessage(error),
+        variant: 'destructive',
+      })
+    },
+    // Also after an error: the user may have become a member in the meantime
+    onSettled: () => coreCache.orgMembersChanged(queryClient, orgId),
+  })
+}
+
+// Changes the role of a listed member by their Keycloak ID.
 export const useSetOrgMemberRole = (orgId: string) => {
   const { toast } = useToast()
   const queryClient = useQueryClient()
@@ -80,14 +106,14 @@ export const useSetOrgMemberRole = (orgId: string) => {
       coreApi.orgs.setMemberRole(orgId, user.keycloakUserID, { role }),
     onSuccess: (_data, { user, role }) => {
       toast({
-        title: 'Member saved',
+        title: 'Role changed',
         description: `${user.username} is now an org ${ORG_ROLE_LABELS[role]}.`,
       })
       coreCache.orgMembersChanged(queryClient, orgId)
     },
     onError: (error) => {
       toast({
-        title: 'Failed to save the member',
+        title: 'Failed to change the role',
         description: serverErrorMessage(error),
         variant: 'destructive',
       })

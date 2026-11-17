@@ -52,6 +52,18 @@ func (d *fakeMemberDirectory) GetOrgMembers(_ context.Context, slug string) ([]k
 	return members, nil
 }
 
+func (d *fakeMemberDirectory) OrgRoleOf(_ context.Context, slug, userID string) (string, error) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if d.err != nil {
+		return "", d.err
+	}
+	if !d.knows(userID) {
+		return "", keycloakRealmManager.ErrUserNotFound
+	}
+	return d.roles[slug][userID], nil
+}
+
 // knows reports whether the user exists; like Keycloak, the writes fail for any other user.
 func (d *fakeMemberDirectory) knows(userID string) bool {
 	return slices.ContainsFunc(d.users, func(user keycloakRealmDTO.StaffMember) bool { return user.KeycloakUserID == userID })

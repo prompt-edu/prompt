@@ -1,6 +1,11 @@
 import { ORG_ROLE_LABELS, type Org, type OrgMember, type OrgRole } from '@core/interfaces/org'
 import { staffMemberFullName } from '@core/managementConsole/courseUserManagement/interfaces/StaffMember'
-import { useOrgMembers, useRemoveOrgMember, useSetOrgMemberRole } from '@core/network/hooks/useOrgs'
+import {
+  useAddOrgMember,
+  useOrgMembers,
+  useRemoveOrgMember,
+  useSetOrgMemberRole,
+} from '@core/network/hooks/useOrgs'
 import { Role, useAuthStore } from '@tumaet/prompt-shared-state'
 import {
   AlertDialog,
@@ -45,6 +50,7 @@ const loginOf = (member: OrgMember): string => member.universityLogin || member.
 
 export const OrgMembersSettings = ({ org }: OrgMembersSettingsProps) => {
   const membersQuery = useOrgMembers(org.id)
+  const addMember = useAddOrgMember(org.id)
   const setMemberRole = useSetOrgMemberRole(org.id)
   const removeMember = useRemoveOrgMember(org.id)
   const { user, permissions } = useAuthStore()
@@ -52,7 +58,7 @@ export const OrgMembersSettings = ({ org }: OrgMembersSettingsProps) => {
   const [newMemberRole, setNewMemberRole] = useState<OrgRole>('Member')
   const [pendingRemoval, setPendingRemoval] = useState<OrgMember | null>(null)
 
-  const isBusy = setMemberRole.isPending || removeMember.isPending
+  const isBusy = addMember.isPending || setMemberRole.isPending || removeMember.isPending
   // PROMPT admins manage every org anyway, so only they may change their own membership. The
   // username is compared case-insensitively: the token may carry a display-case username while
   // Keycloak stores it lowercase. The server guards by the token's user ID.
@@ -199,12 +205,9 @@ export const OrgMembersSettings = ({ org }: OrgMembersSettingsProps) => {
         // A member's role changes in the table, so adding never changes it by accident
         isDisabled={(candidate) => roleOf(candidate.keycloakUserID) !== undefined}
         onSelect={(candidate) =>
-          setMemberRole.mutate(
-            { user: candidate, role: newMemberRole },
-            { onSuccess: closeAddDialog },
-          )
+          addMember.mutate({ user: candidate, role: newMemberRole }, { onSuccess: closeAddDialog })
         }
-        isAdding={setMemberRole.isPending}
+        isAdding={addMember.isPending}
       >
         <div className='flex items-center gap-3'>
           <Label htmlFor='org-new-member-role'>Add as</Label>

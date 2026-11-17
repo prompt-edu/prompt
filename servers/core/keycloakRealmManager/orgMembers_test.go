@@ -2,6 +2,7 @@ package keycloakRealmManager
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/Nerzal/gocloak/v14"
@@ -56,6 +57,41 @@ func TestGetOrgMembersOfAnOrgWithoutMembersIsAnEmptyList(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotNil(t, members)
 	assert.Empty(t, members)
+}
+
+func TestOrgRoleOf(t *testing.T) {
+	keycloak := &fakeKeycloak{
+		groupIDs:     orgGroupIDs(),
+		members:      map[string][]string{"admin-group": {"ada"}, "member-group": {"max", "ada"}},
+		unknownUsers: map[string]bool{"ghost": true},
+	}
+	service := keycloak.start(t)
+
+	for userID, want := range map[string]string{"ada": permissionValidation.OrgAdmin, "max": permissionValidation.OrgMember, "eve": ""} {
+		role, err := service.OrgRoleOf(context.Background(), "lab", userID)
+
+		require.NoError(t, err, userID)
+		assert.Equal(t, want, role, userID)
+	}
+	_, err := service.OrgRoleOf(context.Background(), "lab", "ghost")
+	assert.ErrorIs(t, err, ErrUserNotFound)
+}
+
+func TestOrgRoleOfReadsEveryPageOfTheUsersGroups(t *testing.T) {
+	groupIDs := orgGroupIDs()
+	members := map[string][]string{"member-group": {"ada"}}
+	// A page of groups that the fake lists before the org's, by path
+	for i := range userGroupsPageSize {
+		groupID := fmt.Sprintf("course-group-%03d", i)
+		groupIDs[fmt.Sprintf("Courses/course-%03d/Student", i)] = groupID
+		members[groupID] = []string{"ada"}
+	}
+	keycloak := &fakeKeycloak{groupIDs: groupIDs, members: members}
+
+	role, err := keycloak.start(t).OrgRoleOf(context.Background(), "lab", "ada")
+
+	require.NoError(t, err)
+	assert.Equal(t, permissionValidation.OrgMember, role)
 }
 
 func TestSetOrgMemberRoleAddsTheNewRoleBeforeRemovingTheOther(t *testing.T) {

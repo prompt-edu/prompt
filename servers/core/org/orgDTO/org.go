@@ -47,13 +47,6 @@ type OwnOrg struct {
 	Role string `json:"role" enums:"Admin,Member"`
 }
 
-// SetOrgMember gives the user with the university login an org role, adding them to the org if
-// they are not a member yet.
-type SetOrgMember struct {
-	UniversityLogin string `json:"universityLogin" validate:"required"`
-	Role            string `json:"role" validate:"required" enums:"Admin,Member"`
-}
-
 // UpdateOrgMemberRole gives the user in the URL an org role, adding them to the org if they are not
 // a member yet.
 type UpdateOrgMemberRole struct {

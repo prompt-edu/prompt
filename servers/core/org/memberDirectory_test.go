@@ -50,19 +50,6 @@ func (d *fakeMemberDirectory) GetOrgMembers(_ context.Context, slug string) ([]k
 	return members, nil
 }
 
-func (d *fakeMemberDirectory) FindUserByUniversityLogin(_ context.Context, universityLogin string) (keycloakRealmDTO.StaffMember, error) {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-	if d.err != nil {
-		return keycloakRealmDTO.StaffMember{}, d.err
-	}
-	index := slices.IndexFunc(d.users, func(user keycloakRealmDTO.StaffMember) bool { return user.UniversityLogin == universityLogin })
-	if index < 0 {
-		return keycloakRealmDTO.StaffMember{}, keycloakRealmManager.ErrUniversityLoginNotFound
-	}
-	return d.users[index], nil
-}
-
 // knows reports whether the user exists; like Keycloak, the writes fail for any other user.
 func (d *fakeMemberDirectory) knows(userID string) bool {
 	return slices.ContainsFunc(d.users, func(user keycloakRealmDTO.StaffMember) bool { return user.KeycloakUserID == userID })

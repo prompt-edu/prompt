@@ -1784,19 +1784,6 @@ definitions:
         type: string
         x-nullable: true
     type: object
-  orgDTO.SetOrgMember:
-    properties:
-      role:
-        enum:
-        - Admin
-        - Member
-        type: string
-      universityLogin:
-        type: string
-    required:
-    - role
-    - universityLogin
-    type: object
   orgDTO.UpdateOrg:
     properties:
       contactEmail:
@@ -5749,60 +5736,11 @@ paths:
       summary: Get the members of an org
       tags:
       - orgs
-    put:
-      consumes:
-      - application/json
-      description: Give the user with the university login the Admin or Member role
-        of the org, adding them to the org if they are not a member yet. A user holds
-        one org role at a time. Callers cannot change their own membership.
-      parameters:
-      - description: Org UUID
-        in: path
-        name: orgID
-        required: true
-        type: string
-      - description: University login and org role
-        in: body
-        name: member
-        required: true
-        schema:
-          $ref: '#/definitions/orgDTO.SetOrgMember'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/keycloakRealmDTO.OrgMember'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/utils.ErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/utils.ErrorResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/utils.ErrorResponse'
-        "409":
-          description: Conflict
-          schema:
-            $ref: '#/definitions/utils.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/utils.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Set the role of an org member
-      tags:
-      - orgs
   /orgs/{orgID}/members/{userID}:
     delete:
       description: Take the user out of the org's Admin and Member groups. Removing
-        a user who is not a member changes nothing. Callers cannot remove themselves.
+        a user who is not a member changes nothing. Only PROMPT admins can remove
+        themselves.
       parameters:
       - description: Org UUID
         in: path
@@ -5843,7 +5781,7 @@ paths:
       - application/json
       description: Give the user with the Keycloak ID the Admin or Member role of
         the org, adding them to the org if they are not a member yet. A user holds
-        one org role at a time. Callers cannot change their own membership.
+        one org role at a time. Only PROMPT admins can change their own membership.
       parameters:
       - description: Org UUID
         in: path

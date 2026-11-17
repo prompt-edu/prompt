@@ -17,7 +17,11 @@ interface OrgDetailPageProps {
   viewer: OrgViewer
 }
 
-const PromptAdminOrgSettings = ({ org }: { org: Org }) => {
+interface PromptAdminOrgSettingsProps {
+  org: Org
+}
+
+const PromptAdminOrgSettings = ({ org }: PromptAdminOrgSettingsProps) => {
   const orgsQuery = useOrgs()
 
   return (

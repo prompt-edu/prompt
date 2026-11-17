@@ -618,13 +618,6 @@ const ROUTES: Route[] = [
     url: `${orgsPath}/${ORG}/members`,
   },
   {
-    name: 'orgs.setMember',
-    run: () => coreApi.orgs.setMember(ORG, body()),
-    method: 'put',
-    url: `${orgsPath}/${ORG}/members`,
-    data: BODY,
-  },
-  {
     name: 'orgs.setMemberRole',
     run: () => coreApi.orgs.setMemberRole(ORG, 'user-1', body()),
     method: 'put',

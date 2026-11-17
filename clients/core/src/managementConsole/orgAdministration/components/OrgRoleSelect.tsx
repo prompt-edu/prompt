@@ -8,6 +8,7 @@ import {
 } from '@tumaet/prompt-ui-components'
 
 interface OrgRoleSelectProps {
+  id?: string
   value: OrgRole
   ariaLabel: string
   disabled?: boolean
@@ -16,6 +17,7 @@ interface OrgRoleSelectProps {
 }
 
 export const OrgRoleSelect = ({
+  id,
   value,
   ariaLabel,
   disabled,
@@ -32,7 +34,7 @@ export const OrgRoleSelect = ({
       }
     }}
   >
-    <SelectTrigger aria-label={ariaLabel} className={className}>
+    <SelectTrigger id={id} aria-label={ariaLabel} className={className}>
       <SelectValue />
     </SelectTrigger>
     <SelectContent>

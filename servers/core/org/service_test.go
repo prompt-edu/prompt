@@ -82,7 +82,7 @@ func (suite *OrgServiceTestSuite) SetupSuite() {
 	suite.conn = testDB.Conn
 	suite.keycloak = &keycloakSpy{}
 	directory := newFakeMemberDirectory()
-	suite.service = NewOrgService(*testDB.Queries, testDB.Conn, suite.keycloak.create, suite.keycloak.delete, suite.keycloak.exist, suite.keycloak.add, directory, directory)
+	suite.service = NewOrgService(*testDB.Queries, testDB.Conn, suite.keycloak.create, suite.keycloak.delete, suite.keycloak.exist, suite.keycloak.add, directory)
 }
 
 // withMembers returns the suite's service with its own member directory holding the users.
@@ -90,7 +90,6 @@ func (suite *OrgServiceTestSuite) withMembers(users ...keycloakRealmDTO.StaffMem
 	members := newFakeMemberDirectory(users...)
 	service := *suite.service
 	service.members = members
-	service.users = members
 	return &service, members
 }
 
@@ -619,41 +618,21 @@ func (suite *OrgServiceTestSuite) TestGetOwnOrgsWithoutOrgRolesIsAnEmptyList() {
 	assert.Empty(suite.T(), ownOrgs)
 }
 
-func (suite *OrgServiceTestSuite) TestSetOrgMemberGivesTheUserTheRole() {
-	org := suite.createOrg("members-set", nil)
-	service, members := suite.withMembers(staffMember("ada", "ad12min"))
+var caller = Caller{UserID: "caller"}
 
-	gotOrg, member, err := service.SetOrgMember(suite.ctx, org.ID, orgDTO.SetOrgMember{UniversityLogin: "  ad12min ", Role: permissionValidation.OrgAdmin}, "caller")
+func (suite *OrgServiceTestSuite) TestUpdateOrgMemberRoleAddsAUserToTheOrg() {
+	org := suite.createOrg("members-add", nil)
+	ada := staffMember("ada", "ad12min")
+	service, members := suite.withMembers(ada)
+
+	gotOrg, err := service.UpdateOrgMemberRole(suite.ctx, org.ID, "ada", permissionValidation.OrgAdmin, caller)
 
 	require.NoError(suite.T(), err)
 	assert.Equal(suite.T(), org.ID, gotOrg.ID)
-	assert.Equal(suite.T(), "ada", member.KeycloakUserID)
-	assert.Equal(suite.T(), permissionValidation.OrgAdmin, member.Role)
-	assert.Equal(suite.T(), permissionValidation.OrgAdmin, members.roleOf("members-set", "ada"))
-
+	assert.Equal(suite.T(), permissionValidation.OrgAdmin, members.roleOf("members-add", "ada"))
 	listed, err := service.GetOrgMembers(suite.ctx, org.ID)
 	require.NoError(suite.T(), err)
-	require.Len(suite.T(), listed, 1)
-	assert.Equal(suite.T(), member, listed[0])
-}
-
-func (suite *OrgServiceTestSuite) TestSetOrgMemberRejectsTheCallersOwnMembership() {
-	org := suite.createOrg("members-self", nil)
-	service, members := suite.withMembers(staffMember("ada", "ad12min"))
-
-	_, _, err := service.SetOrgMember(suite.ctx, org.ID, orgDTO.SetOrgMember{UniversityLogin: "ad12min", Role: permissionValidation.OrgMember}, "ada")
-
-	assert.ErrorIs(suite.T(), err, ErrOwnMembership)
-	assert.Empty(suite.T(), members.roleOf("members-self", "ada"))
-}
-
-func (suite *OrgServiceTestSuite) TestSetOrgMemberWithAnUnknownUniversityLogin() {
-	org := suite.createOrg("members-unknown", nil)
-	service, _ := suite.withMembers()
-
-	_, _, err := service.SetOrgMember(suite.ctx, org.ID, orgDTO.SetOrgMember{UniversityLogin: "ad12min", Role: permissionValidation.OrgMember}, "caller")
-
-	assert.ErrorIs(suite.T(), err, keycloakRealmManager.ErrUniversityLoginNotFound)
+	assert.Equal(suite.T(), []keycloakRealmDTO.OrgMember{{StaffMember: ada, Role: permissionValidation.OrgAdmin}}, listed)
 }
 
 func (suite *OrgServiceTestSuite) TestMembershipOfAnUnknownOrgIsNotFound() {
@@ -661,11 +640,9 @@ func (suite *OrgServiceTestSuite) TestMembershipOfAnUnknownOrgIsNotFound() {
 
 	_, err := service.GetOrgMembers(suite.ctx, uuid.New())
 	assert.ErrorIs(suite.T(), err, ErrOrgNotFound)
-	_, _, err = service.SetOrgMember(suite.ctx, uuid.New(), orgDTO.SetOrgMember{UniversityLogin: "ad12min", Role: permissionValidation.OrgMember}, "caller")
+	_, err = service.UpdateOrgMemberRole(suite.ctx, uuid.New(), "ada", permissionValidation.OrgMember, caller)
 	assert.ErrorIs(suite.T(), err, ErrOrgNotFound)
-	_, err = service.UpdateOrgMemberRole(suite.ctx, uuid.New(), "ada", permissionValidation.OrgMember, "caller")
-	assert.ErrorIs(suite.T(), err, ErrOrgNotFound)
-	_, err = service.RemoveOrgMember(suite.ctx, uuid.New(), "ada", "caller")
+	_, err = service.RemoveOrgMember(suite.ctx, uuid.New(), "ada", caller)
 	assert.ErrorIs(suite.T(), err, ErrOrgNotFound)
 }
 
@@ -677,7 +654,7 @@ func (suite *OrgServiceTestSuite) TestUpdateOrgMemberRoleChangesTheRoleOfExactly
 	service, members := suite.withMembers(ada, max)
 	require.NoError(suite.T(), members.SetOrgMemberRole(suite.ctx, "members-role", "max", permissionValidation.OrgMember))
 
-	gotOrg, err := service.UpdateOrgMemberRole(suite.ctx, org.ID, "max", permissionValidation.OrgAdmin, "caller")
+	gotOrg, err := service.UpdateOrgMemberRole(suite.ctx, org.ID, "max", permissionValidation.OrgAdmin, caller)
 
 	require.NoError(suite.T(), err)
 	assert.Equal(suite.T(), org.ID, gotOrg.ID)
@@ -690,7 +667,7 @@ func (suite *OrgServiceTestSuite) TestUpdateOrgMemberRoleRejectsTheCallersOwnMem
 	service, members := suite.withMembers(staffMember("ada", "ad12min"))
 	require.NoError(suite.T(), members.SetOrgMemberRole(suite.ctx, "members-self-role", "ada", permissionValidation.OrgAdmin))
 
-	_, err := service.UpdateOrgMemberRole(suite.ctx, org.ID, "ada", permissionValidation.OrgMember, "ada")
+	_, err := service.UpdateOrgMemberRole(suite.ctx, org.ID, "ada", permissionValidation.OrgMember, Caller{UserID: "ada"})
 
 	assert.ErrorIs(suite.T(), err, ErrOwnMembership)
 	assert.Equal(suite.T(), permissionValidation.OrgAdmin, members.roleOf("members-self-role", "ada"))
@@ -700,7 +677,7 @@ func (suite *OrgServiceTestSuite) TestUpdateOrgMemberRoleOfAnUnknownUser() {
 	org := suite.createOrg("members-ghost", nil)
 	service, _ := suite.withMembers()
 
-	_, err := service.UpdateOrgMemberRole(suite.ctx, org.ID, "ghost", permissionValidation.OrgMember, "caller")
+	_, err := service.UpdateOrgMemberRole(suite.ctx, org.ID, "ghost", permissionValidation.OrgMember, caller)
 
 	assert.ErrorIs(suite.T(), err, keycloakRealmManager.ErrUserNotFound)
 }
@@ -710,7 +687,7 @@ func (suite *OrgServiceTestSuite) TestRemoveOrgMemberTakesTheUserOutOfTheOrg() {
 	service, members := suite.withMembers(staffMember("ada", "ad12min"))
 	require.NoError(suite.T(), members.SetOrgMemberRole(suite.ctx, "members-remove", "ada", permissionValidation.OrgMember))
 
-	gotOrg, err := service.RemoveOrgMember(suite.ctx, org.ID, "ada", "caller")
+	gotOrg, err := service.RemoveOrgMember(suite.ctx, org.ID, "ada", caller)
 
 	require.NoError(suite.T(), err)
 	assert.Equal(suite.T(), org.ID, gotOrg.ID)
@@ -722,7 +699,7 @@ func (suite *OrgServiceTestSuite) TestRemoveOrgMemberRejectsTheCallersOwnMembers
 	service, members := suite.withMembers(staffMember("ada", "ad12min"))
 	require.NoError(suite.T(), members.SetOrgMemberRole(suite.ctx, "members-leave", "ada", permissionValidation.OrgAdmin))
 
-	_, err := service.RemoveOrgMember(suite.ctx, org.ID, "ada", "ada")
+	_, err := service.RemoveOrgMember(suite.ctx, org.ID, "ada", Caller{UserID: "ada"})
 
 	assert.ErrorIs(suite.T(), err, ErrOwnMembership)
 	assert.Equal(suite.T(), permissionValidation.OrgAdmin, members.roleOf("members-leave", "ada"))

@@ -3,7 +3,6 @@ import {
   ORG_ROLE_LABELS,
   type OrgMember,
   type OrgRole,
-  type SetOrgMember,
   type UpdateOrg,
 } from '@core/interfaces/org'
 import { isOrgId } from '@core/managementConsole/orgAdministration/utils/isOrgId'
@@ -27,7 +26,8 @@ interface UpdateOrgParentArgs {
 }
 
 interface SetOrgMemberRoleArgs {
-  member: OrgMember
+  // A listed member, or a user picked from the search to add to the org
+  user: Pick<OrgMember, 'keycloakUserID' | 'username'>
   role: OrgRole
 }
 
@@ -69,48 +69,25 @@ export const useOrgMembers = (orgId: string) => {
   })
 }
 
-export const useSetOrgMember = (orgId: string) => {
+// Gives the user the org role by their Keycloak ID, adding them to the org if they are not a member
+// yet.
+export const useSetOrgMemberRole = (orgId: string) => {
   const { toast } = useToast()
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (member: SetOrgMember) => coreApi.orgs.setMember(orgId, member),
-    onSuccess: (member) => {
+    mutationFn: ({ user, role }: SetOrgMemberRoleArgs) =>
+      coreApi.orgs.setMemberRole(orgId, user.keycloakUserID, { role }),
+    onSuccess: (_data, { user, role }) => {
       toast({
         title: 'Member saved',
-        description: `${member.username} is now an org ${ORG_ROLE_LABELS[member.role]}.`,
+        description: `${user.username} is now an org ${ORG_ROLE_LABELS[role]}.`,
       })
       coreCache.orgMembersChanged(queryClient, orgId)
     },
     onError: (error) => {
       toast({
         title: 'Failed to save the member',
-        description: serverErrorMessage(error),
-        variant: 'destructive',
-      })
-    },
-  })
-}
-
-// Changes the role of a listed member by their Keycloak ID, which names exactly that user; their
-// university login could name another one.
-export const useSetOrgMemberRole = (orgId: string) => {
-  const { toast } = useToast()
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: ({ member, role }: SetOrgMemberRoleArgs) =>
-      coreApi.orgs.setMemberRole(orgId, member.keycloakUserID, { role }),
-    onSuccess: (_data, { member, role }) => {
-      toast({
-        title: 'Role changed',
-        description: `${member.username} is now an org ${ORG_ROLE_LABELS[role]}.`,
-      })
-      coreCache.orgMembersChanged(queryClient, orgId)
-    },
-    onError: (error) => {
-      toast({
-        title: 'Failed to change the role',
         description: serverErrorMessage(error),
         variant: 'destructive',
       })

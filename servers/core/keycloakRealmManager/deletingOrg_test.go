@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"path"
-	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -79,24 +78,6 @@ func (f *fakeKeycloak) start(t *testing.T) *KeycloakRealmService {
 			page = append(page, f.user(userID))
 		}
 		writeJSON(w, page)
-	})
-	// Like Keycloak, the search matches substrings unless exact=true is passed.
-	mux.HandleFunc("GET /admin/realms/prompt/users", func(w http.ResponseWriter, r *http.Request) {
-		query := r.URL.Query()
-		found := []gocloak.User{}
-		for _, user := range f.users {
-			if attribute, value, ok := strings.Cut(query.Get("q"), ":"); ok {
-				if slices.ContainsFunc(user.Attributes[attribute], func(v string) bool { return strings.Contains(v, value) }) {
-					found = append(found, user)
-				}
-				continue
-			}
-			username := query.Get("username")
-			if username != "" && (*user.Username == username || (query.Get("exact") != "true" && strings.Contains(*user.Username, username))) {
-				found = append(found, user)
-			}
-		}
-		writeJSON(w, found)
 	})
 	mux.HandleFunc("DELETE /admin/realms/prompt/", func(w http.ResponseWriter, r *http.Request) {
 		resource := strings.TrimPrefix(r.URL.Path, "/admin/realms/prompt/")

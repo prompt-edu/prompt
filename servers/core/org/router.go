@@ -42,7 +42,6 @@ func setupOrgRouter(router *gin.RouterGroup, s *OrgService, authMiddleware func(
 	org.DELETE("/:orgID", audit.Describe("Deleted an org"), permissionRoleMiddleware(permissionValidation.PromptAdmin), s.deleteOrg)
 
 	org.GET("/:orgID/members", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.OrgAdmin), s.getOrgMembers)
-	org.PUT("/:orgID/members", audit.Describe("Set the role of an org member"), permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.OrgAdmin), s.setOrgMember)
 	org.PUT("/:orgID/members/:userID", audit.Describe("Changed the role of an org member"), permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.OrgAdmin), s.updateOrgMemberRole)
 	org.DELETE("/:orgID/members/:userID", audit.Describe("Removed an org member"), permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.OrgAdmin), s.removeOrgMember)
 }
@@ -106,55 +105,9 @@ func (s *OrgService) getOrgMembers(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, members)
 }
 
-// setOrgMember godoc
-// @Summary Set the role of an org member
-// @Description Give the user with the university login the Admin or Member role of the org, adding them to the org if they are not a member yet. A user holds one org role at a time. Callers cannot change their own membership.
-// @Tags orgs
-// @Accept json
-// @Produce json
-// @Param orgID path string true "Org UUID"
-// @Param member body orgDTO.SetOrgMember true "University login and org role"
-// @Success 200 {object} keycloakRealmDTO.OrgMember
-// @Failure 400 {object} utils.ErrorResponse
-// @Failure 401 {object} utils.ErrorResponse
-// @Failure 404 {object} utils.ErrorResponse
-// @Failure 409 {object} utils.ErrorResponse
-// @Failure 500 {object} utils.ErrorResponse
-// @Security BearerAuth
-// @Router /orgs/{orgID}/members [put]
-func (s *OrgService) setOrgMember(c *gin.Context) {
-	id, err := uuid.Parse(c.Param("orgID"))
-	if err != nil {
-		sdkUtils.HandleError(c, http.StatusBadRequest, err)
-		return
-	}
-
-	var input orgDTO.SetOrgMember
-	if err := c.ShouldBindJSON(&input); err != nil {
-		sdkUtils.HandleError(c, http.StatusBadRequest, err)
-		return
-	}
-	if err := validateSetOrgMember(input); err != nil {
-		sdkUtils.HandleError(c, http.StatusBadRequest, err)
-		return
-	}
-	callerUserID, ok := callerID(c)
-	if !ok {
-		return
-	}
-
-	org, member, err := s.SetOrgMember(c, id, input, callerUserID)
-	if err != nil {
-		handleServiceError(c, err, "failed to set the org member's role")
-		return
-	}
-	recordOrgMemberAudit(c, org, member.KeycloakUserID, member.Role)
-	c.IndentedJSON(http.StatusOK, member)
-}
-
 // updateOrgMemberRole godoc
 // @Summary Change the role of an org member
-// @Description Give the user with the Keycloak ID the Admin or Member role of the org, adding them to the org if they are not a member yet. A user holds one org role at a time. Callers cannot change their own membership.
+// @Description Give the user with the Keycloak ID the Admin or Member role of the org, adding them to the org if they are not a member yet. A user holds one org role at a time. Only PROMPT admins can change their own membership.
 // @Tags orgs
 // @Accept json
 // @Param orgID path string true "Org UUID"
@@ -187,12 +140,12 @@ func (s *OrgService) updateOrgMemberRole(c *gin.Context) {
 		sdkUtils.HandleError(c, http.StatusBadRequest, err)
 		return
 	}
-	callerUserID, ok := callerID(c)
+	caller, ok := callerOf(c)
 	if !ok {
 		return
 	}
 
-	org, err := s.UpdateOrgMemberRole(c, id, userID, input.Role, callerUserID)
+	org, err := s.UpdateOrgMemberRole(c, id, userID, input.Role, caller)
 	if err != nil {
 		handleServiceError(c, err, "failed to change the org member's role")
 		return
@@ -203,7 +156,7 @@ func (s *OrgService) updateOrgMemberRole(c *gin.Context) {
 
 // removeOrgMember godoc
 // @Summary Remove a member from an org
-// @Description Take the user out of the org's Admin and Member groups. Removing a user who is not a member changes nothing. Callers cannot remove themselves.
+// @Description Take the user out of the org's Admin and Member groups. Removing a user who is not a member changes nothing. Only PROMPT admins can remove themselves.
 // @Tags orgs
 // @Param orgID path string true "Org UUID"
 // @Param userID path string true "Keycloak user ID"
@@ -224,12 +177,12 @@ func (s *OrgService) removeOrgMember(c *gin.Context) {
 	if !ok {
 		return
 	}
-	callerUserID, ok := callerID(c)
+	caller, ok := callerOf(c)
 	if !ok {
 		return
 	}
 
-	org, err := s.RemoveOrgMember(c, id, userID, callerUserID)
+	org, err := s.RemoveOrgMember(c, id, userID, caller)
 	if err != nil {
 		handleServiceError(c, err, "failed to remove the org member")
 		return
@@ -250,15 +203,16 @@ func memberID(c *gin.Context) (string, bool) {
 	return userID.String(), true
 }
 
-// callerID returns the caller's Keycloak user ID. Without it, the own-membership guard would not
-// hold, so the request is refused.
-func callerID(c *gin.Context) (string, bool) {
+// callerOf returns who makes the request. Without the caller's Keycloak user ID, the own-membership
+// guard would not hold, so the request is refused.
+func callerOf(c *gin.Context) (Caller, bool) {
 	callerUserID := c.GetString(keycloakTokenVerifier.CtxUserID)
 	if callerUserID == "" {
 		sdkUtils.HandleError(c, http.StatusUnauthorized, errors.New("missing caller identity"))
-		return "", false
+		return Caller{}, false
 	}
-	return callerUserID, true
+	userRoles, _ := c.Value(keycloakTokenVerifier.CtxUserRoles).(map[string]bool)
+	return Caller{UserID: callerUserID, IsPromptAdmin: userRoles[permissionValidation.PromptAdmin]}, true
 }
 
 // getAllOrgs godoc
@@ -461,11 +415,11 @@ func handleServiceError(c *gin.Context, err error, fallbackMessage string) {
 	switch {
 	case errors.Is(err, ErrOrgNotFound):
 		sdkUtils.HandleError(c, http.StatusNotFound, err)
-	case errors.Is(err, keycloakRealmManager.ErrUniversityLoginNotFound), errors.Is(err, keycloakRealmManager.ErrUserNotFound):
+	case errors.Is(err, keycloakRealmManager.ErrUserNotFound):
 		sdkUtils.HandleError(c, http.StatusNotFound, err)
 	case errors.Is(err, ErrParentOrgNotFound), errors.Is(err, ErrOrgCycle), errors.Is(err, ErrOwnMembership), errors.Is(err, keycloakRealmManager.ErrInvalidOrgRole):
 		sdkUtils.HandleError(c, http.StatusBadRequest, err)
-	case errors.Is(err, ErrDuplicateOrgSlug), errors.Is(err, ErrOrgHasChildOrgs), errors.Is(err, ErrOrgHasCourses), errors.Is(err, keycloakRealmManager.ErrAmbiguousUniversityLogin):
+	case errors.Is(err, ErrDuplicateOrgSlug), errors.Is(err, ErrOrgHasChildOrgs), errors.Is(err, ErrOrgHasCourses):
 		sdkUtils.HandleError(c, http.StatusConflict, err)
 	case errors.Is(err, ErrOrgMembersRemoved):
 		log.Error(err)

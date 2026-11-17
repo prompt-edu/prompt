@@ -48,12 +48,14 @@ An org has Admins and Members: the users in its Keycloak groups `/Orgs/<slug>/Ad
 groups directly. PROMPT administrators and the org's Admins see the card; Members see only the org's
 details, read-only.
 
-- **Add** a user by their university login and choose their role. A user without a university login
-  in Keycloak is found by their username. Adding a member again changes their role, since a user
-  holds one role in an org at a time.
-- **Change** a member's role or **remove** them from the org in their row.
-- Nobody can change their own membership, so an Admin can neither remove themselves nor give up the
-  Admin role. Ask another Admin of the org or a PROMPT administrator.
+- **Add Member** searches Keycloak's users by name, email, or username. Choose the role to add them
+  with, then pick the user from the results. Users who are already members are marked with their
+  role and cannot be added again.
+- **Change** a member's role or **remove** them from the org in their row. A user holds one role in
+  an org at a time.
+- An Admin cannot change their own membership, so they can neither remove themselves nor give up the
+  Admin role. Ask another Admin of the org or a PROMPT administrator. PROMPT administrators manage
+  every org anyway, so they can add and remove themselves.
 - A change takes effect once the user's session renews, at the latest at their next login.
 
 ## Editing and deleting

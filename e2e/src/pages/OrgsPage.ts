@@ -91,11 +91,22 @@ export class OrgDetailPage {
     return this.page.getByRole('button', { name: `Remove ${username} from the org` })
   }
 
-  async addMember(universityLogin: string, role: 'Admin' | 'Member') {
-    await this.page.getByLabel('Add a member').fill(universityLogin)
-    await this.page.getByRole('combobox', { name: 'Role of the new member' }).click()
+  // Opens the Add Member dialog and searches it for users
+  async searchUsersToAdd(search: string): Promise<Locator> {
+    await this.page.getByRole('button', { name: 'Add Member', exact: true }).click()
+    const dialog = this.page.getByRole('dialog')
+    await dialog.getByLabel('Search users').fill(search)
+    return dialog
+  }
+
+  async addMember(search: string, username: string, role: 'Admin' | 'Member') {
+    const dialog = await this.searchUsersToAdd(search)
+    await dialog.getByRole('combobox', { name: 'Role of the new member' }).click()
     await this.page.getByRole('option', { name: role, exact: true }).click()
-    await this.clickAndAwaitPut(MEMBERS_URL, 'Add')
+    await this.awaitMembersWrite('PUT', () =>
+      dialog.getByRole('button', { name: `Add ${username}`, exact: true }).click(),
+    )
+    await expect(dialog).toBeHidden()
   }
 
   async setMemberRole(username: string, role: 'Admin' | 'Member') {
@@ -108,7 +119,7 @@ export class OrgDetailPage {
   async removeMember(username: string) {
     await this.removeMemberButton(username).click()
     await this.awaitMembersWrite('DELETE', () =>
-      this.page.getByRole('alertdialog').getByRole('button', { name: 'Delete' }).click(),
+      this.page.getByRole('alertdialog').getByRole('button', { name: 'Remove' }).click(),
     )
   }
 

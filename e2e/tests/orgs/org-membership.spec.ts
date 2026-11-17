@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import { type APIRequestContext, expect, type Page } from '@playwright/test'
 import { SEEDED_ORG } from '../../src/data/constants'
 import type { Role } from '../../src/data/roles'
@@ -10,6 +11,10 @@ import { OrgDetailPage } from '../../src/pages/OrgsPage'
 const ADDED_USER = { username: 'student-passkey', universityLogin: 'no43tum' }
 
 const MEMBERS_PATH = `/api/orgs/${SEEDED_ORG.id}/members`
+
+interface UserSearchResults {
+  results: { keycloakUserID: string; username: string }[]
+}
 
 interface OrgMember {
   keycloakUserID: string
@@ -34,6 +39,17 @@ const asRole = async <T>(role: Role, run: (api: APIRequestContext) => Promise<T>
 
 const membersAs = (role: Role): Promise<OrgMember[]> =>
   asRole(role, async (api) => (await (await api.get(MEMBERS_PATH)).json()) as OrgMember[])
+
+// The Keycloak ID of a user, found through the search that the Add Member dialog uses
+const keycloakIDOf = (role: Role, username: string): Promise<string> =>
+  asRole(role, async (api) => {
+    const res = await api.get(`/api/keycloak/users/search?q=${encodeURIComponent(username)}`)
+    expect(res.status()).toBe(200)
+    const { results } = (await res.json()) as UserSearchResults
+    const user = results.find((result) => result.username === username)
+    expect(user, username).toBeDefined()
+    return user?.keycloakUserID ?? ''
+  })
 
 const removeAddedUser = () =>
   asRole('admin', async (admin) => {
@@ -89,7 +105,7 @@ test.describe('org membership', () => {
       await expect(detail.memberRow('or11adm')).toBeVisible()
       await expect(detail.memberRow('or12mem')).toBeVisible()
 
-      await detail.addMember(ADDED_USER.universityLogin, 'Member')
+      await detail.addMember(ADDED_USER.username, ADDED_USER.username, 'Member')
       const row = detail.memberRow(ADDED_USER.universityLogin)
       await expect(row).toBeVisible()
       await expect(detail.memberRoleSelect(ADDED_USER.username)).toHaveText('Member')
@@ -109,14 +125,13 @@ test.describe('org membership', () => {
       await expect(detail.memberRoleSelect('org-member')).toBeEnabled()
     })
 
-    test('gets a clear error for an unknown university login', async ({ page }) => {
+    test('finds existing members in the search but cannot add them again', async ({ page }) => {
       const detail = await openOwnOrgFromSidebar(page)
 
-      await page.getByLabel('Add a member').fill('zz99zzz')
-      await page.getByRole('button', { name: 'Add', exact: true }).click()
+      const dialog = await detail.searchUsersToAdd('org-member')
 
-      await expect(page.getByText('no user with this university login exists').first()).toBeVisible()
-      await expect(detail.memberRow('zz99zzz')).toBeHidden()
+      await expect(dialog.getByText('Already in the org as Member')).toBeVisible()
+      await expect(dialog.getByRole('button', { name: 'Add org-member', exact: true })).toBeDisabled()
     })
   })
 
@@ -160,67 +175,66 @@ test.describe('org membership', () => {
     })
 
     test('an org admin gives a user one role at a time and removes them', async () => {
+      const userID = await keycloakIDOf('org-admin', ADDED_USER.username)
+      const rolesOfAddedUser = async () =>
+        (await membersAs('org-admin'))
+          .filter((m) => m.keycloakUserID === userID)
+          .map((m) => m.role)
+
       await asRole('org-admin', async (orgAdmin) => {
-        const added = await orgAdmin.put(MEMBERS_PATH, {
-          data: { universityLogin: ADDED_USER.universityLogin, role: 'Member' },
-        })
-        expect(added.status()).toBe(200)
-        const member = (await added.json()) as OrgMember
-        expect(member.role).toBe('Member')
+        const added = await orgAdmin.put(`${MEMBERS_PATH}/${userID}`, { data: { role: 'Member' } })
+        expect(added.status()).toBe(204)
+        expect(await rolesOfAddedUser()).toEqual(['Member'])
+        const listed = (await membersAs('org-admin')).find((m) => m.keycloakUserID === userID)
+        expect(listed?.universityLogin).toBe(ADDED_USER.universityLogin)
 
-        const promoted = await orgAdmin.put(MEMBERS_PATH, {
-          data: { universityLogin: ADDED_USER.universityLogin, role: 'Admin' },
-        })
-        expect(promoted.status()).toBe(200)
-        const listed = (await membersAs('org-admin')).filter(
-          (m) => m.universityLogin === ADDED_USER.universityLogin,
-        )
-        expect(listed.map((m) => m.role)).toEqual(['Admin'])
+        const promoted = await orgAdmin.put(`${MEMBERS_PATH}/${userID}`, { data: { role: 'Admin' } })
+        expect(promoted.status()).toBe(204)
+        expect(await rolesOfAddedUser()).toEqual(['Admin'])
 
-        // A listed member's role changes by their Keycloak ID
-        const demoted = await orgAdmin.put(`${MEMBERS_PATH}/${member.keycloakUserID}`, {
-          data: { role: 'Member' },
-        })
-        expect(demoted.status()).toBe(204)
-        const relisted = (await membersAs('org-admin')).filter(
-          (m) => m.universityLogin === ADDED_USER.universityLogin,
-        )
-        expect(relisted.map((m) => m.role)).toEqual(['Member'])
-
-        const removed = await orgAdmin.delete(`${MEMBERS_PATH}/${member.keycloakUserID}`)
+        const removed = await orgAdmin.delete(`${MEMBERS_PATH}/${userID}`)
         expect(removed.status()).toBe(204)
-        const remaining = await membersAs('org-admin')
-        expect(remaining.some((m) => m.universityLogin === ADDED_USER.universityLogin)).toBe(false)
+        expect(await rolesOfAddedUser()).toEqual([])
       })
     })
 
-    test('an unknown university login is not found', async () => {
+    test('an unknown user is not found', async () => {
       await asRole('org-admin', async (orgAdmin) => {
-        const res = await orgAdmin.put(MEMBERS_PATH, {
-          data: { universityLogin: 'zz99zzz', role: 'Member' },
+        const res = await orgAdmin.put(`${MEMBERS_PATH}/${randomUUID()}`, {
+          data: { role: 'Member' },
         })
 
         expect(res.status()).toBe(404)
-        expect(await res.text()).toContain('no user with this university login exists')
       })
     })
 
-    test('nobody changes their own membership', async () => {
+    test('an org admin cannot change their own membership', async () => {
       const self = (await membersAs('org-admin')).find((m) => m.username === 'org-admin')
       expect(self).toBeDefined()
 
       await asRole('org-admin', async (orgAdmin) => {
-        const demoted = await orgAdmin.put(MEMBERS_PATH, {
-          data: { universityLogin: self?.universityLogin, role: 'Member' },
-        })
-        const demotedByID = await orgAdmin.put(`${MEMBERS_PATH}/${self?.keycloakUserID}`, {
+        const demoted = await orgAdmin.put(`${MEMBERS_PATH}/${self?.keycloakUserID}`, {
           data: { role: 'Member' },
         })
         const left = await orgAdmin.delete(`${MEMBERS_PATH}/${self?.keycloakUserID}`)
 
         expect(demoted.status()).toBe(400)
-        expect(demotedByID.status()).toBe(400)
         expect(left.status()).toBe(400)
+      })
+    })
+
+    test('a PROMPT admin may add and remove themselves', async () => {
+      const adminID = await keycloakIDOf('admin', 'admin')
+
+      await asRole('admin', async (admin) => {
+        try {
+          const joined = await admin.put(`${MEMBERS_PATH}/${adminID}`, { data: { role: 'Admin' } })
+          expect(joined.status()).toBe(204)
+          expect((await membersAs('admin')).some((m) => m.keycloakUserID === adminID)).toBe(true)
+        } finally {
+          const left = await admin.delete(`${MEMBERS_PATH}/${adminID}`)
+          expect(left.status()).toBe(204)
+        }
       })
     })
 
@@ -235,13 +249,15 @@ test.describe('org membership', () => {
       })
     })
 
-    test('an org member cannot manage members', async () => {
+    test('an org member can neither manage members nor search for users to add', async () => {
       await asRole('org-member', async (orgMember) => {
-        const res = await orgMember.put(MEMBERS_PATH, {
-          data: { universityLogin: ADDED_USER.universityLogin, role: 'Member' },
+        const added = await orgMember.put(`${MEMBERS_PATH}/${randomUUID()}`, {
+          data: { role: 'Member' },
         })
+        const searched = await orgMember.get('/api/keycloak/users/search?q=student')
 
-        expect(res.status()).toBe(403)
+        expect(added.status()).toBe(403)
+        expect(searched.status()).toBe(403)
       })
     })
 

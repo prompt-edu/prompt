@@ -51,11 +51,6 @@ export interface OrgMember {
   role: OrgRole
 }
 
-export interface SetOrgMember {
-  universityLogin: string
-  role: OrgRole
-}
-
 export interface UpdateOrgMemberRole {
   role: OrgRole
 }

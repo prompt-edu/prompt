@@ -5230,80 +5230,6 @@ const docTemplate = `{
                         }
                     }
                 }
-            },
-            "put": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Give the user with the university login the Admin or Member role of the org, adding them to the org if they are not a member yet. A user holds one org role at a time. Callers cannot change their own membership.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "orgs"
-                ],
-                "summary": "Set the role of an org member",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Org UUID",
-                        "name": "orgID",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "University login and org role",
-                        "name": "member",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/orgDTO.SetOrgMember"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/keycloakRealmDTO.OrgMember"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/utils.ErrorResponse"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/utils.ErrorResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/utils.ErrorResponse"
-                        }
-                    },
-                    "409": {
-                        "description": "Conflict",
-                        "schema": {
-                            "$ref": "#/definitions/utils.ErrorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/utils.ErrorResponse"
-                        }
-                    }
-                }
             }
         },
         "/orgs/{orgID}/members/{userID}": {
@@ -5313,7 +5239,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Give the user with the Keycloak ID the Admin or Member role of the org, adding them to the org if they are not a member yet. A user holds one org role at a time. Callers cannot change their own membership.",
+                "description": "Give the user with the Keycloak ID the Admin or Member role of the org, adding them to the org if they are not a member yet. A user holds one org role at a time. Only PROMPT admins can change their own membership.",
                 "consumes": [
                     "application/json"
                 ],
@@ -5382,7 +5308,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Take the user out of the org's Admin and Member groups. Removing a user who is not a member changes nothing. Callers cannot remove themselves.",
+                "description": "Take the user out of the org's Admin and Member groups. Removing a user who is not a member changes nothing. Only PROMPT admins can remove themselves.",
                 "tags": [
                     "orgs"
                 ],
@@ -9474,25 +9400,6 @@ const docTemplate = `{
                 "website": {
                     "type": "string",
                     "x-nullable": true
-                }
-            }
-        },
-        "orgDTO.SetOrgMember": {
-            "type": "object",
-            "required": [
-                "role",
-                "universityLogin"
-            ],
-            "properties": {
-                "role": {
-                    "type": "string",
-                    "enum": [
-                        "Admin",
-                        "Member"
-                    ]
-                },
-                "universityLogin": {
-                    "type": "string"
                 }
             }
         },

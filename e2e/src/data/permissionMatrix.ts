@@ -155,6 +155,15 @@ export const SURFACES: Surface[] = [
     },
   },
   {
+    // The picker that adds course staff and org members. Any course's Lecturer and any org's
+    // Admin may search, as the search has no course or org context.
+    name: 'keycloak user search',
+    api: {
+      path: () => '/api/keycloak/users/search?q=ad',
+      allowed: ['admin', 'lecturer', 'course-lecturer', 'org-admin'],
+    },
+  },
+  {
     name: 'course settings',
     browser: {
       path: (courseId) => `/management/course/${courseId}/settings`,

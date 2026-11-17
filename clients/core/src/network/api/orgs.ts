@@ -3,7 +3,6 @@ import type {
   Org,
   OrgMember,
   OwnOrg,
-  SetOrgMember,
   UpdateOrg,
   UpdateOrgMemberRole,
   UpdateOrgParent,
@@ -30,9 +29,6 @@ export const orgs = {
   remove: (orgID: string): Promise<void> => coreRequest.del(ofOrg(orgID)),
 
   members: (orgID: string): Promise<OrgMember[]> => coreRequest.get(`${ofOrg(orgID)}/members`),
-
-  setMember: (orgID: string, member: SetOrgMember): Promise<OrgMember> =>
-    coreRequest.put(`${ofOrg(orgID)}/members`, member),
 
   setMemberRole: (
     orgID: string,

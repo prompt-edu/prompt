@@ -6,22 +6,13 @@ import (
 	"fmt"
 	"net/http"
 	"slices"
-	"strings"
 
-	"github.com/Nerzal/gocloak/v14"
 	"github.com/prompt-edu/prompt/servers/core/keycloakRealmManager/keycloakRealmDTO"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 	log "github.com/sirupsen/logrus"
 )
 
-var (
-	ErrUniversityLoginNotFound  = errors.New("no user with this university login exists")
-	ErrAmbiguousUniversityLogin = errors.New("several users have this university login")
-	ErrInvalidOrgRole           = errors.New("org role must be Admin or Member")
-)
-
-// maxUniversityLoginMatches bounds a user lookup by university login, which should find one user.
-const maxUniversityLoginMatches = 10
+var ErrInvalidOrgRole = errors.New("org role must be Admin or Member")
 
 var orgRoles = []string{permissionValidation.OrgAdmin, permissionValidation.OrgMember}
 
@@ -64,63 +55,6 @@ func (s *KeycloakRealmService) GetOrgMembers(ctx context.Context, slug string) (
 		}
 	}
 	return members, nil
-}
-
-// FindUserByUniversityLogin resolves a university login to a Keycloak user: through the
-// university_login attribute that feeds the token claim, or, for users without it, through an equal
-// username.
-func (s *KeycloakRealmService) FindUserByUniversityLogin(ctx context.Context, universityLogin string) (keycloakRealmDTO.StaffMember, error) {
-	token, err := s.LoginClient(ctx)
-	if err != nil {
-		return keycloakRealmDTO.StaffMember{}, err
-	}
-
-	matches, err := s.findUsers(ctx, token.AccessToken,
-		gocloak.GetUsersParams{Q: gocloak.StringP(keycloakRealmDTO.UniversityLoginAttribute + ":" + universityLogin)},
-		func(user keycloakRealmDTO.StaffMember) bool {
-			return strings.EqualFold(user.UniversityLogin, universityLogin)
-		})
-	if err != nil {
-		return keycloakRealmDTO.StaffMember{}, err
-	}
-	if len(matches) == 0 {
-		matches, err = s.findUsers(ctx, token.AccessToken,
-			gocloak.GetUsersParams{Username: &universityLogin, Exact: gocloak.BoolP(true)},
-			func(user keycloakRealmDTO.StaffMember) bool { return strings.EqualFold(user.Username, universityLogin) })
-		if err != nil {
-			return keycloakRealmDTO.StaffMember{}, err
-		}
-	}
-
-	switch len(matches) {
-	case 0:
-		return keycloakRealmDTO.StaffMember{}, ErrUniversityLoginNotFound
-	case 1:
-		return matches[0], nil
-	default:
-		return keycloakRealmDTO.StaffMember{}, ErrAmbiguousUniversityLogin
-	}
-}
-
-// findUsers runs a user search and keeps the results that match exactly, since Keycloak may match
-// a search value as a substring.
-func (s *KeycloakRealmService) findUsers(ctx context.Context, accessToken string, params gocloak.GetUsersParams, matches func(keycloakRealmDTO.StaffMember) bool) ([]keycloakRealmDTO.StaffMember, error) {
-	// The full representation carries the user attributes, which hold the university login.
-	params.BriefRepresentation = gocloak.BoolP(false)
-	params.Max = gocloak.IntP(maxUniversityLoginMatches)
-	users, err := s.client.GetUsers(ctx, accessToken, s.Realm, params)
-	if err != nil {
-		return nil, fmt.Errorf("failed to search keycloak users: %w", err)
-	}
-
-	var result []keycloakRealmDTO.StaffMember
-	for _, user := range users {
-		member := keycloakRealmDTO.GetStaffMemberFromKeycloakUser(user)
-		if member.KeycloakUserID != "" && matches(member) {
-			result = append(result, member)
-		}
-	}
-	return result, nil
 }
 
 // SetOrgMemberRole gives the user exactly the given org role. It adds them to that role's group

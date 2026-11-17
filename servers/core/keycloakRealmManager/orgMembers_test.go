@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/Nerzal/gocloak/v14"
-	"github.com/prompt-edu/prompt/servers/core/keycloakRealmManager/keycloakRealmDTO"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -14,7 +13,7 @@ import (
 func keycloakUser(id, username, universityLogin string) gocloak.User {
 	user := gocloak.User{ID: gocloak.StringP(id), Username: gocloak.StringP(username)}
 	if universityLogin != "" {
-		user.Attributes = map[string][]string{keycloakRealmDTO.UniversityLoginAttribute: {universityLogin}}
+		user.Attributes = map[string][]string{"university_login": {universityLogin}}
 	}
 	return user
 }
@@ -57,72 +56,6 @@ func TestGetOrgMembersOfAnOrgWithoutMembersIsAnEmptyList(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotNil(t, members)
 	assert.Empty(t, members)
-}
-
-func TestFindUserByUniversityLogin(t *testing.T) {
-	tests := []struct {
-		name    string
-		users   []gocloak.User
-		login   string
-		wantID  string
-		wantErr error
-	}{
-		{
-			name:   "by the university login attribute",
-			users:  []gocloak.User{keycloakUser("ada", "ada.lovelace", "ad12min")},
-			login:  "ad12min",
-			wantID: "ada",
-		},
-		{
-			name:   "the attribute before an equal username",
-			users:  []gocloak.User{keycloakUser("other", "ad12min", ""), keycloakUser("ada", "ada.lovelace", "ad12min")},
-			login:  "ad12min",
-			wantID: "ada",
-		},
-		{
-			name:   "by the username for a user without the attribute",
-			users:  []gocloak.User{keycloakUser("ada", "ad12min", "")},
-			login:  "ad12min",
-			wantID: "ada",
-		},
-		{
-			name:    "never by a partial attribute match",
-			users:   []gocloak.User{keycloakUser("ada", "ada.lovelace", "ad12minx")},
-			login:   "ad12min",
-			wantErr: ErrUniversityLoginNotFound,
-		},
-		{
-			name:    "never by a partial username match",
-			users:   []gocloak.User{keycloakUser("ada", "ad12minx", "")},
-			login:   "ad12min",
-			wantErr: ErrUniversityLoginNotFound,
-		},
-		{
-			name:    "not when several users share the login",
-			users:   []gocloak.User{keycloakUser("ada", "ada", "ad12min"), keycloakUser("max", "max", "ad12min")},
-			login:   "ad12min",
-			wantErr: ErrAmbiguousUniversityLogin,
-		},
-		{
-			name:    "not for an unknown login",
-			login:   "ad12min",
-			wantErr: ErrUniversityLoginNotFound,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			keycloak := &fakeKeycloak{users: tt.users}
-
-			user, err := keycloak.start(t).FindUserByUniversityLogin(context.Background(), tt.login)
-
-			if tt.wantErr != nil {
-				assert.ErrorIs(t, err, tt.wantErr)
-				return
-			}
-			require.NoError(t, err)
-			assert.Equal(t, tt.wantID, user.KeycloakUserID)
-		})
-	}
 }
 
 func TestSetOrgMemberRoleAddsTheNewRoleBeforeRemovingTheOther(t *testing.T) {

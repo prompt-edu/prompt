@@ -43,14 +43,14 @@ func setupKeycloakRouter(router *gin.RouterGroup, s *KeycloakRealmService, authM
 	keycloak.PUT("/group/:groupName/members/:userID", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), s.addCourseStaffMember)
 	keycloak.DELETE("/group/:groupName/members/:userID", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), s.removeCourseStaffMember)
 
-	// Realm-wide Keycloak user search. Not nested under :courseID because the
-	// query has no course context; permissionValidation.CheckAccessControlByRole
-	// matches CourseLecturer against any role suffix, so "is a lecturer of some
-	// course" passes without needing a courseID. Don't refactor this back under
-	// :courseID without re-checking that comment.
+	// Realm-wide Keycloak user search, for adding course staff and org members. Not nested under
+	// :courseID because the query has no course context; permissionValidation.CheckAccessControlByRole
+	// matches CourseLecturer against any role suffix, so "is a lecturer of some course" passes
+	// without needing a courseID, and OrgAdmin passes for an Admin of any org. Don't refactor this
+	// back under :courseID without re-checking that comment.
 	realmWide := router.Group("/keycloak", authMiddleware())
 	realmWide.GET("/users/search",
-		permissionValidation.CheckAccessControlByRole(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer),
+		permissionValidation.CheckAccessControlByRole(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer, permissionValidation.OrgAdmin),
 		s.searchKeycloakUsers,
 	)
 	// Service-account health probe for the admin system-status page.

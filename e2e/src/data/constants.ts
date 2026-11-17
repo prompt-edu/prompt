@@ -112,12 +112,19 @@ export const TEAM_ALLOCATION_STUDENT_PHASE_ID = 'b3000003-0000-0000-0000-0000000
 // students must be rejected (negative auth fixture).
 export const TEAM_ALLOCATION_FOREIGN_PHASE_ID = 'b3000002-0000-0000-0000-000000000002'
 
-// Standalone Team Allocation phase on fullCourse where course-editor tutors
-// Team Lovelace (Stan + Selma) and Team Turing holds Niclas + Test Test. It
-// feeds ASSESSMENT_FIXTURE_PHASES.tutorScope, so specs must not change it.
+// Standalone Team Allocation phase on fullCourse behind TUTOR_SCOPE_PARTICIPANTS:
+// course-editor leads Team Lovelace (Stan + Selma) and Team Turing (Niclas) under
+// the tutor id ledTutorId, a coach also tutors Team Lovelace, and Team Hamilton
+// (Test Test) has no tutor. It feeds ASSESSMENT_FIXTURE_PHASES.tutorScope, so a
+// spec that changes the lead (tutor-teams.spec.ts) must restore it afterwards.
 export const TEAM_ALLOCATION_TUTOR_SCOPE = {
   phaseId: 'b3000004-0000-0000-0000-000000000004',
-  ownTeamId: '3a000003-0000-0000-0000-000000000003',
+  ledTutorId: 'a0000005-0000-0000-0000-000000000005',
+  teams: {
+    lovelace: { id: '3a000003-0000-0000-0000-000000000003', name: 'Team Lovelace' },
+    turing: { id: '3a000004-0000-0000-0000-000000000004', name: 'Team Turing' },
+    hamilton: { id: '3a000006-0000-0000-0000-000000000006', name: 'Team Hamilton' },
+  },
 }
 
 // Standalone Assessment phases on fullCourse (no graph edges, so they are not
@@ -165,18 +172,6 @@ export const TUTOR_SCOPE_PARTICIPANTS = {
     { name: 'Test Test', courseParticipationId: 'a0000004-0000-0000-0000-000000000004' },
     { name: 'New Test user', courseParticipationId: 'a0000006-0000-0000-0000-000000000006' },
   ],
-}
-
-// The standalone Team Allocation phase behind TUTOR_SCOPE_PARTICIPANTS. course-editor
-// leads two of its teams, under the tutor id ledTutorId; a coach tutors Team Lovelace.
-export const TEAM_ALLOCATION_TUTOR_SCOPE = {
-  phaseId: 'b3000004-0000-0000-0000-000000000004',
-  ledTutorId: 'a0000005-0000-0000-0000-000000000005',
-  teams: {
-    lovelace: { id: '3a000003-0000-0000-0000-000000000003', name: 'Team Lovelace' },
-    turing: { id: '3a000004-0000-0000-0000-000000000004', name: 'Team Turing' },
-    hamilton: { id: '3a000006-0000-0000-0000-000000000006', name: 'Team Hamilton' },
-  },
 }
 
 // Assessment phase on TestCourse with NO participants: requests by the e2e

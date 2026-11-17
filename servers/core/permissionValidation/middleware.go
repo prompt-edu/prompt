@@ -3,6 +3,7 @@ package permissionValidation
 import (
 	"errors"
 	"net/http"
+	"slices"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -30,15 +31,24 @@ func CheckAccessControlByID(checkPermission PermissionCheck, idParamName string,
 
 		// Check the user's permission for the given course with the provided roles.
 		hasAccess, err := checkPermission(c, id, allowedRoles...)
+		if errors.Is(err, errNotFound) {
+			if isAllowedPromptAdmin(c, allowedRoles) {
+				c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "Not found"})
+				return
+			}
+			handleAuthError(c)
+			return
+		}
 		if err != nil {
 			log.Error("Permission validation failed: ", err)
-			handleAuthError(c)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Permission validation failed"})
 			return
 		}
 
 		// If the user does not have access, abort the request.
 		if !hasAccess {
-			log.Debug("User does not have access. Required roles: ", allowedRoles, " provided roles: ", c.GetString("roles"))
+			userRoles, _ := userRolesFromContext(c)
+			log.Debug("User does not have access. Required roles: ", allowedRoles, " provided roles: ", userRoles)
 			handleAuthError(c)
 			return
 		}
@@ -46,6 +56,11 @@ func CheckAccessControlByID(checkPermission PermissionCheck, idParamName string,
 		// Otherwise, allow the request to proceed.
 		c.Next()
 	}
+}
+
+func isAllowedPromptAdmin(c *gin.Context, allowedRoles []string) bool {
+	userRoles, err := userRolesFromContext(c)
+	return err == nil && userRoles[PromptAdmin] && slices.Contains(allowedRoles, PromptAdmin)
 }
 
 // Check for Endpoints without an ID (i.e. create sth)

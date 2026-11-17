@@ -2,7 +2,14 @@ import { ShowForRole } from '@core/managementConsole/shared/components/ShowForRo
 import { useAuditLogEnabled } from '@core/network/hooks/useAuditLogStatus'
 import { useOwnOrgs } from '@core/network/hooks/useOrgs'
 import { Role } from '@tumaet/prompt-shared-state'
-import { SidebarGroup, SidebarGroupContent, SidebarMenu } from '@tumaet/prompt-ui-components'
+import {
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarMenuSkeleton,
+} from '@tumaet/prompt-ui-components'
 import {
   Activity,
   Archive,
@@ -11,6 +18,7 @@ import {
   FileText,
   GraduationCap,
   Megaphone,
+  RotateCw,
   ScrollText,
   Shield,
   Tag,
@@ -21,7 +29,8 @@ import { InsideSidebarMenuItem } from './components/InsideSidebarMenuItem'
 
 export const InsideGeneralSidebar = () => {
   const auditLogEnabled = useAuditLogEnabled()
-  const { data: ownOrgs = [] } = useOwnOrgs()
+  const ownOrgsQuery = useOwnOrgs()
+  const ownOrgs = ownOrgsQuery.data ?? []
 
   return (
     <SidebarMenu>
@@ -51,6 +60,25 @@ export const InsideGeneralSidebar = () => {
               />
             </ShowForRole>
           </InsideSidebarVisualGroup>
+          {/* isLoading, not isPending: the query stays pending for users without org roles */}
+          {ownOrgsQuery.isLoading && (
+            <InsideSidebarVisualGroup title='My Org'>
+              <SidebarMenuItem>
+                <SidebarMenuSkeleton showIcon />
+              </SidebarMenuItem>
+            </InsideSidebarVisualGroup>
+          )}
+          {ownOrgsQuery.isError && ownOrgsQuery.data === undefined && (
+            <InsideSidebarVisualGroup title='My Org'>
+              <p className='ml-2 text-xs text-muted-foreground'>Your orgs could not be loaded.</p>
+              <SidebarMenuItem>
+                <SidebarMenuButton onClick={() => ownOrgsQuery.refetch()}>
+                  <RotateCw />
+                  <span>Retry</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </InsideSidebarVisualGroup>
+          )}
           {ownOrgs.length > 0 && (
             <InsideSidebarVisualGroup title={ownOrgs.length === 1 ? 'My Org' : 'My Orgs'}>
               {ownOrgs.map((org) => (

@@ -1,6 +1,17 @@
-import type { Student, Team } from '@tumaet/prompt-shared-state'
+import type { Student } from '@tumaet/prompt-shared-state'
 import type { CourseStaffMember } from '../../../interfaces/courseStaff'
-import type { Tutor, TutorCandidate } from '../../../interfaces/tutor'
+import type { Tutor, TutorAssignment, TutorCandidate } from '../../../interfaces/tutor'
+
+// The teams each person already leads: by normalized login, and by the id the rows carry for a
+// person the import cannot find by login.
+export interface CurrentTutorTeams {
+  byLogin: Record<string, string[]>
+  byId: Record<string, string[]>
+}
+
+// Matches the server (tutorscope.NormalizeLogin), which identifies a tutor by this form of the login.
+export const normalizeLogin = (login: string | undefined): string =>
+  (login ?? '').trim().toLowerCase()
 
 export const studentToTutorCandidate = (student: Student): TutorCandidate => ({
   id: student.id ?? '',
@@ -19,31 +30,50 @@ export const staffMemberToTutorCandidate = (member: CourseStaffMember): TutorCan
 
 // Only someone with a university login can be scoped to their teams, so only they are selectable.
 export const isSelectableTutor = (candidate: TutorCandidate): boolean =>
-  !!candidate.id && !!candidate.universityLogin?.trim()
+  !!candidate.id && normalizeLogin(candidate.universityLogin) !== ''
+
+// The dialog selects a person by their normalized login, like the import identifies them, so the
+// same person offered under two ids is one selection.
+export const tutorKey = (candidate: TutorCandidate): string =>
+  normalizeLogin(candidate.universityLogin)
+
+export const currentTutorTeams = (assignments: TutorAssignment[]): CurrentTutorTeams => {
+  const current: CurrentTutorTeams = { byLogin: {}, byId: {} }
+  const add = (teams: Record<string, string[]>, key: string, teamID: string) => {
+    teams[key] = [...(teams[key] ?? []), teamID]
+  }
+  for (const assignment of assignments) {
+    const login = normalizeLogin(assignment.universityLogin)
+    if (login) add(current.byLogin, login, assignment.teamID)
+    add(current.byId, assignment.id, assignment.teamID)
+  }
+  return current
+}
+
+// An import replaces the teams of the tutor with the candidate's login, or, when nobody has that
+// login yet, the rows stored under the candidate's id. Those are the teams the person starts from.
+export const currentTeamsOf = (current: CurrentTutorTeams, candidate: TutorCandidate): string[] =>
+  current.byLogin[tutorKey(candidate)] ?? current.byId[candidate.id] ?? []
 
 export const buildTutorImport = (
   candidates: TutorCandidate[],
-  selectedIds: string[],
-  teamAssignments: Record<string, string[]>,
-): Tutor[] =>
-  candidates
-    .filter((candidate) => selectedIds.includes(candidate.id) && isSelectableTutor(candidate))
+  selectedKeys: string[],
+  teamsOf: (candidate: TutorCandidate) => string[],
+): Tutor[] => {
+  const seen = new Set<string>()
+  return candidates
+    .filter((candidate) => {
+      const key = tutorKey(candidate)
+      if (!isSelectableTutor(candidate) || !selectedKeys.includes(key) || seen.has(key))
+        return false
+      seen.add(key)
+      return true
+    })
     .map((candidate) => ({
       courseParticipationID: candidate.id,
       firstName: candidate.firstName,
       lastName: candidate.lastName,
       universityLogin: candidate.universityLogin ?? '',
-      teamIDs: teamAssignments[candidate.id] ?? [],
+      teamIDs: teamsOf(candidate),
     }))
-
-// The teams each person already leads, keyed by the id their tutor rows carry. An import replaces
-// a tutor's teams, so the dialog starts a selected person from these.
-export const currentTeamsByTutor = (teams: Team[]): Record<string, string[]> => {
-  const current: Record<string, string[]> = {}
-  for (const team of teams) {
-    for (const tutor of team.tutors ?? []) {
-      if (tutor.id) current[tutor.id] = [...(current[tutor.id] ?? []), team.id]
-    }
-  }
-  return current
 }

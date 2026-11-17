@@ -15,3 +15,11 @@ export interface TutorCandidate {
   lastName: string
   universityLogin?: string
 }
+
+// One team a tutor leads, as the lecturer-only tutor list returns it. id is the id the tutor is
+// stored under, universityLogin is empty for a row stored without one.
+export interface TutorAssignment {
+  id: string
+  universityLogin: string
+  teamID: string
+}

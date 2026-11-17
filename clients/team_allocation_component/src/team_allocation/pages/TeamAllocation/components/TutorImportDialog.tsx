@@ -14,14 +14,15 @@ import {
   TabsTrigger,
 } from '@tumaet/prompt-ui-components'
 import { isAxiosError } from 'axios'
-import { UserPlus } from 'lucide-react'
+import { Loader2, UserPlus } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import type { Tutor } from '../../../interfaces/tutor'
+import type { Tutor, TutorAssignment } from '../../../interfaces/tutor'
 import { teamAllocationCache, teamAllocationKeys } from '../../../network/cache'
 import { importTutors } from '../../../network/mutations/importTutors'
 import { getAllTeams } from '../../../network/queries/getAllTeams'
-import { currentTeamsByTutor } from '../utils/tutorImport'
+import { getTutorAssignments } from '../../../network/queries/getTutorAssignments'
+import { currentTutorTeams } from '../utils/tutorImport'
 import { TutorImportFromCourse } from './TutorImportFromCourse'
 import { TutorImportFromStaff } from './TutorImportFromStaff'
 import { TutorSearchStudents } from './TutorSearchStudents'
@@ -49,6 +50,17 @@ export function TutorImportDialog() {
     queryKey: teamAllocationKeys.teams(phaseId),
     queryFn: () => getAllTeams(phaseId ?? ''),
     enabled: !!phaseId,
+  })
+
+  // The team pickers take their starting value once, so the sources wait for the current tutors.
+  const {
+    data: tutorAssignments,
+    isPending: isTutorAssignmentsPending,
+    isError: isTutorAssignmentsError,
+  } = useQuery<TutorAssignment[]>({
+    queryKey: teamAllocationKeys.tutors(phaseId),
+    queryFn: () => getTutorAssignments(phaseId ?? ''),
+    enabled: !!phaseId && open,
   })
 
   const { mutate: mutateImportTutors } = useMutation({
@@ -85,7 +97,7 @@ export function TutorImportDialog() {
   }
 
   const teamOptions = (fetchedTeams ?? []).map((t) => ({ id: t.id, name: t.name }))
-  const currentTeams = useMemo(() => currentTeamsByTutor(fetchedTeams ?? []), [fetchedTeams])
+  const currentTeams = useMemo(() => currentTutorTeams(tutorAssignments ?? []), [tutorAssignments])
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -105,43 +117,57 @@ export function TutorImportDialog() {
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs defaultValue='course' onValueChange={() => setImportError(null)}>
-          <TabsList className={`grid w-full ${canSearchStudents ? 'grid-cols-3' : 'grid-cols-2'}`}>
-            <TabsTrigger value='course'>From Course</TabsTrigger>
-            <TabsTrigger value='staff'>Course Staff</TabsTrigger>
-            {canSearchStudents && <TabsTrigger value='search'>Search Students</TabsTrigger>}
-          </TabsList>
+        {isTutorAssignmentsError && (
+          <div className='text-red-500 text-sm'>
+            Error loading the current tutors. Please try again.
+          </div>
+        )}
+        {isTutorAssignmentsPending && !isTutorAssignmentsError && (
+          <div className='flex items-center justify-center py-4'>
+            <Loader2 className='h-5 w-5 animate-spin text-muted-foreground' />
+          </div>
+        )}
+        {tutorAssignments && (
+          <Tabs defaultValue='course' onValueChange={() => setImportError(null)}>
+            <TabsList
+              className={`grid w-full ${canSearchStudents ? 'grid-cols-3' : 'grid-cols-2'}`}
+            >
+              <TabsTrigger value='course'>From Course</TabsTrigger>
+              <TabsTrigger value='staff'>Course Staff</TabsTrigger>
+              {canSearchStudents && <TabsTrigger value='search'>Search Students</TabsTrigger>}
+            </TabsList>
 
-          <TabsContent value='course'>
-            <TutorImportFromCourse
-              teamOptions={teamOptions}
-              currentTeams={currentTeams}
-              isImporting={isImporting}
-              onImport={handleImport}
-            />
-          </TabsContent>
-
-          <TabsContent value='staff'>
-            <TutorImportFromStaff
-              courseId={courseId ?? ''}
-              teamOptions={teamOptions}
-              currentTeams={currentTeams}
-              isImporting={isImporting}
-              onImport={handleImport}
-            />
-          </TabsContent>
-
-          {canSearchStudents && (
-            <TabsContent value='search'>
-              <TutorSearchStudents
+            <TabsContent value='course'>
+              <TutorImportFromCourse
                 teamOptions={teamOptions}
                 currentTeams={currentTeams}
                 isImporting={isImporting}
                 onImport={handleImport}
               />
             </TabsContent>
-          )}
-        </Tabs>
+
+            <TabsContent value='staff'>
+              <TutorImportFromStaff
+                courseId={courseId ?? ''}
+                teamOptions={teamOptions}
+                currentTeams={currentTeams}
+                isImporting={isImporting}
+                onImport={handleImport}
+              />
+            </TabsContent>
+
+            {canSearchStudents && (
+              <TabsContent value='search'>
+                <TutorSearchStudents
+                  teamOptions={teamOptions}
+                  currentTeams={currentTeams}
+                  isImporting={isImporting}
+                  onImport={handleImport}
+                />
+              </TabsContent>
+            )}
+          </Tabs>
+        )}
 
         {importError && <div className='text-red-500 text-sm'>{importError}</div>}
       </DialogContent>

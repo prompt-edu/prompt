@@ -1,15 +1,16 @@
 import { Button, Checkbox, getStudentName, Label, MultiSelect } from '@tumaet/prompt-ui-components'
 import type { TutorCandidate } from '../../../interfaces/tutor'
-import { isSelectableTutor } from '../utils/tutorImport'
+import { isSelectableTutor, tutorKey } from '../utils/tutorImport'
 
 interface TutorSelectionProps {
   tutors: TutorCandidate[]
+  // The normalized logins of the selected people
   selectedTutors: string[]
-  onTutorToggle: (tutorId: string) => void
+  onTutorToggle: (key: string) => void
   onSelectAll: () => void
   teamOptions: { id: string; name: string }[]
-  teamAssignments: Record<string, string[]>
-  onTeamChange: (tutorId: string, teamIds: string[]) => void
+  teamsOf: (tutor: TutorCandidate) => string[]
+  onTeamChange: (key: string, teamIds: string[]) => void
 }
 
 export const TutorSelection = ({
@@ -18,10 +19,10 @@ export const TutorSelection = ({
   onTutorToggle,
   onSelectAll,
   teamOptions,
-  teamAssignments,
+  teamsOf,
   onTeamChange,
 }: TutorSelectionProps) => {
-  const selectableCount = tutors.filter(isSelectableTutor).length
+  const selectableCount = new Set(tutors.filter(isSelectableTutor).map(tutorKey)).size
   const options = teamOptions.map((team) => ({ label: team.name, value: team.id }))
   return (
     <div className='grid gap-2'>
@@ -36,7 +37,8 @@ export const TutorSelection = ({
       <div className='overflow-y-auto border rounded-md p-2 max-h-[300px]'>
         {tutors.map((tutor) => {
           const selectable = isSelectableTutor(tutor)
-          const selected = selectedTutors.includes(tutor.id)
+          const key = tutorKey(tutor)
+          const selected = selectable && selectedTutors.includes(key)
           return (
             <div key={tutor.id} className='flex flex-col gap-1 py-2'>
               <div className='flex items-center space-x-2'>
@@ -44,7 +46,7 @@ export const TutorSelection = ({
                   id={`tutor-${tutor.id}`}
                   checked={selected}
                   disabled={!selectable}
-                  onCheckedChange={() => selectable && onTutorToggle(tutor.id)}
+                  onCheckedChange={() => selectable && onTutorToggle(key)}
                 />
                 <Label
                   htmlFor={`tutor-${tutor.id}`}
@@ -59,8 +61,8 @@ export const TutorSelection = ({
                 <MultiSelect
                   aria-label={`Teams of ${getStudentName(tutor)}`}
                   options={options}
-                  defaultValue={teamAssignments[tutor.id] ?? []}
-                  onValueChange={(teamIds) => onTeamChange(tutor.id, teamIds)}
+                  defaultValue={teamsOf(tutor)}
+                  onValueChange={(teamIds) => onTeamChange(key, teamIds)}
                   placeholder='Assign teams'
                   maxCount={3}
                   modalPopover

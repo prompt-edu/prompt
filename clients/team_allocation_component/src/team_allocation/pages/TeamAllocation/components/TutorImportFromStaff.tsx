@@ -7,13 +7,13 @@ import type { Tutor } from '../../../interfaces/tutor'
 import { teamAllocationKeys } from '../../../network/cache'
 import { getCourseStaff } from '../../../network/queries/getCourseStaff'
 import { useTutorSelection } from '../hooks/useTutorSelection'
-import { staffMemberToTutorCandidate } from '../utils/tutorImport'
+import { type CurrentTutorTeams, staffMemberToTutorCandidate } from '../utils/tutorImport'
 import { TutorSelection } from './TutorSelection'
 
 interface TutorImportFromStaffProps {
   courseId: string
   teamOptions: { id: string; name: string }[]
-  currentTeams: Record<string, string[]>
+  currentTeams: CurrentTutorTeams
   isImporting: boolean
   onImport: (tutors: Tutor[]) => void
 }
@@ -66,7 +66,7 @@ export const TutorImportFromStaff = ({
           onTutorToggle={selection.toggleTutor}
           onSelectAll={() => selection.toggleAll(candidates)}
           teamOptions={teamOptions}
-          teamAssignments={selection.teamAssignments}
+          teamsOf={selection.teamsOf}
           onTeamChange={selection.setTeams}
         />
       )}

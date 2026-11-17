@@ -1,10 +1,12 @@
-import type { Student, Team } from '@tumaet/prompt-shared-state'
+import type { Student } from '@tumaet/prompt-shared-state'
 import { describe, expect, it } from 'vitest'
 import type { CourseStaffMember } from '../../../interfaces/courseStaff'
 import {
   buildTutorImport,
-  currentTeamsByTutor,
+  currentTeamsOf,
+  currentTutorTeams,
   isSelectableTutor,
+  normalizeLogin,
   staffMemberToTutorCandidate,
   studentToTutorCandidate,
 } from './tutorImport'
@@ -48,18 +50,21 @@ describe('tutor import', () => {
     expect(isSelectableTutor({ id: 'a', firstName: '', lastName: '' })).toBe(false)
   })
 
+  it('normalizes a login like the server does', () => {
+    expect(normalizeLogin(' CO69edt ')).toBe('co69edt')
+    expect(normalizeLogin(undefined)).toBe('')
+  })
+
   it('builds one entry per selected person with every team assigned to them', () => {
     const candidates = [
       staffMemberToTutorCandidate(editor),
       { id: 'st-1', firstName: 'Stan', lastName: 'Stan', universityLogin: 'no42tum' },
       { id: 'st-2', firstName: 'No', lastName: 'Login' },
     ]
+    const teams: Record<string, string[]> = { 'kc-1': ['team-a', 'team-b'], 'st-1': ['team-a'] }
 
     expect(
-      buildTutorImport(candidates, ['kc-1', 'st-2'], {
-        'kc-1': ['team-a', 'team-b'],
-        'st-1': ['team-a'],
-      }),
+      buildTutorImport(candidates, ['co69edt', ''], (candidate) => teams[candidate.id] ?? []),
     ).toEqual([
       {
         courseParticipationID: 'kc-1',
@@ -71,21 +76,60 @@ describe('tutor import', () => {
     ])
   })
 
-  it('lists the teams each tutor already leads', () => {
-    const team = (id: string, tutorIDs: string[]) =>
-      ({
-        id,
-        name: id,
-        members: [],
-        tutors: tutorIDs.map((tutorID) => ({ id: tutorID, firstName: '', lastName: '' })),
-      }) as Team
+  it('imports a person offered twice under the same login once', () => {
+    const candidates = [
+      { id: 'st-1', firstName: 'Stan', lastName: 'Stan', universityLogin: 'no42tum' },
+      { id: 'st-9', firstName: 'Stan', lastName: 'Stan', universityLogin: 'NO42TUM' },
+    ]
 
     expect(
-      currentTeamsByTutor([
-        team('lovelace', ['kc-1']),
-        team('turing', ['kc-1', 'st-1']),
-        team('hamilton', []),
-      ]),
-    ).toEqual({ 'kc-1': ['lovelace', 'turing'], 'st-1': ['turing'] })
+      buildTutorImport(candidates, ['no42tum'], () => ['team-a']).map(
+        (t) => t.courseParticipationID,
+      ),
+    ).toEqual(['st-1'])
+  })
+
+  describe('current teams', () => {
+    const current = currentTutorTeams([
+      { id: 'a0000005', universityLogin: 'co69edt', teamID: 'lovelace' },
+      { id: 'a0000005', universityLogin: 'co69edt', teamID: 'turing' },
+      { id: 'ce000001', universityLogin: 'cc12oac', teamID: 'lovelace' },
+      { id: 'legacy-1', universityLogin: '', teamID: 'hamilton' },
+    ])
+
+    it('finds a person by login when their rows carry a different id', () => {
+      // Course Staff offers Eduard under his Keycloak id, his rows carry a course participation id.
+      expect(currentTeamsOf(current, staffMemberToTutorCandidate(editor))).toEqual([
+        'lovelace',
+        'turing',
+      ])
+    })
+
+    it('ignores the case and surrounding whitespace of the login', () => {
+      const candidate = { id: 'st-5', firstName: 'Carla', lastName: 'Coach' }
+      expect(currentTeamsOf(current, { ...candidate, universityLogin: ' CC12OAC ' })).toEqual([
+        'lovelace',
+      ])
+    })
+
+    it('falls back to the id for rows stored without a login', () => {
+      const candidate = {
+        id: 'legacy-1',
+        firstName: 'Bob',
+        lastName: 'B',
+        universityLogin: 'bo01bbb',
+      }
+      expect(currentTeamsOf(current, candidate)).toEqual(['hamilton'])
+    })
+
+    it('starts someone who leads no team with none', () => {
+      const candidate = {
+        id: 'st-7',
+        firstName: 'New',
+        lastName: 'Tutor',
+        universityLogin: 'nt01uto',
+      }
+      expect(currentTeamsOf(current, candidate)).toEqual([])
+    })
   })
 })

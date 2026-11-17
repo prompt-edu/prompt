@@ -2,6 +2,7 @@ type Id = string | undefined
 
 export const teamAllocationKeys = {
   teams: (phaseId: Id) => ['team_allocation_team', phaseId] as const,
+  tutors: (phaseId: Id) => ['team_allocation_tutors', phaseId] as const,
   skills: (phaseId: Id) => ['team_allocation_skill', phaseId] as const,
   allocations: (phaseId: Id) => ['team_allocations', phaseId] as const,
   config: (phaseId: Id) => ['team_allocation_config', phaseId] as const,

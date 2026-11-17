@@ -100,9 +100,11 @@ func (s *EvaluationService) GetStudentEvaluationResults(ctx context.Context, cou
 }
 
 // BuildTutorEvaluationResults anonymizes the tutor evaluations written about one tutor: averages
-// per competency rated by at least MinTutorRaters students, and the feedback texts only once at
-// least MinTutorRaters students wrote some. The texts are sorted by type and text, so their order
-// does not hint at who wrote them or when.
+// per competency rated by at least MinTutorRaters students, and the feedback texts of a type
+// (positive or negative) only once at least MinTutorRaters students wrote that type. The floor
+// applies per type because the tutor sees the types apart, so a type written by one student only
+// would point to them. The texts are sorted by type and text, so their order does not hint at who
+// wrote them or when.
 func BuildTutorEvaluationResults(coursePhaseID, tutorID uuid.UUID, evals []evaluationDTO.Evaluation, feedbackItems []db.FeedbackItem) evaluationDTO.TutorEvaluationResults {
 	evaluators := make(map[uuid.UUID]struct{})
 	for _, eval := range evals {
@@ -119,15 +121,18 @@ func BuildTutorEvaluationResults(coursePhaseID, tutorID uuid.UUID, evals []evalu
 		FeedbackItems:  []evaluationDTO.AnonymousFeedbackItem{},
 	}
 
-	feedbackAuthors := make(map[uuid.UUID]struct{})
+	authorsByType := make(map[db.FeedbackType]map[uuid.UUID]struct{})
 	for _, item := range feedbackItems {
-		feedbackAuthors[item.AuthorCourseParticipationID] = struct{}{}
-	}
-	if len(feedbackAuthors) < MinTutorRaters {
-		return results
+		if authorsByType[item.FeedbackType] == nil {
+			authorsByType[item.FeedbackType] = make(map[uuid.UUID]struct{})
+		}
+		authorsByType[item.FeedbackType][item.AuthorCourseParticipationID] = struct{}{}
 	}
 
 	for _, item := range feedbackItems {
+		if len(authorsByType[item.FeedbackType]) < MinTutorRaters {
+			continue
+		}
 		results.FeedbackItems = append(results.FeedbackItems, evaluationDTO.AnonymousFeedbackItem{
 			FeedbackType: item.FeedbackType,
 			FeedbackText: item.FeedbackText,

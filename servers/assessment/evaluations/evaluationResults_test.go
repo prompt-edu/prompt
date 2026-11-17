@@ -123,12 +123,31 @@ func TestBuildTutorEvaluationResultsSortsFeedbackWithoutAuthors(t *testing.T) {
 	results := BuildTutorEvaluationResults(uuid.New(), uuid.New(), nil, []db.FeedbackItem{
 		tutorFeedback(firstAuthor, db.FeedbackTypePositive, "Patient"),
 		tutorFeedback(secondAuthor, db.FeedbackTypeNegative, "Unclear deadlines"),
+		tutorFeedback(firstAuthor, db.FeedbackTypeNegative, "Slow replies"),
 		tutorFeedback(secondAuthor, db.FeedbackTypePositive, "Helpful reviews"),
 	})
 
 	assert.Equal(t, []evaluationDTO.AnonymousFeedbackItem{
+		{FeedbackType: db.FeedbackTypeNegative, FeedbackText: "Slow replies"},
 		{FeedbackType: db.FeedbackTypeNegative, FeedbackText: "Unclear deadlines"},
 		{FeedbackType: db.FeedbackTypePositive, FeedbackText: "Helpful reviews"},
 		{FeedbackType: db.FeedbackTypePositive, FeedbackText: "Patient"},
 	}, results.FeedbackItems)
+}
+
+func TestBuildTutorEvaluationResultsHidesAFeedbackTypeOfASingleAuthor(t *testing.T) {
+	firstAuthor := uuid.New()
+	secondAuthor := uuid.New()
+
+	// Two students wrote feedback, but only one of them wrote negative feedback.
+	results := BuildTutorEvaluationResults(uuid.New(), uuid.New(), nil, []db.FeedbackItem{
+		tutorFeedback(firstAuthor, db.FeedbackTypePositive, "Patient"),
+		tutorFeedback(secondAuthor, db.FeedbackTypePositive, "Helpful reviews"),
+		tutorFeedback(secondAuthor, db.FeedbackTypeNegative, "Unclear deadlines"),
+	})
+
+	assert.Equal(t, []evaluationDTO.AnonymousFeedbackItem{
+		{FeedbackType: db.FeedbackTypePositive, FeedbackText: "Helpful reviews"},
+		{FeedbackType: db.FeedbackTypePositive, FeedbackText: "Patient"},
+	}, results.FeedbackItems, "a feedback type written by one student only would identify them")
 }

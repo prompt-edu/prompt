@@ -332,7 +332,7 @@ func evaluationErrorStatus(err error) int {
 
 // getMyTutorEvaluationResults godoc
 // @Summary Get own tutor evaluation results
-// @Description Get the anonymized results of the tutor evaluations written about the caller: averages per competency rated by at least two students, the number of evaluators, and the feedback texts without authors once at least two students wrote some. Only served once the tutor evaluation is enabled, the results are released, and the phase providing the teams lists the caller as a tutor.
+// @Description Get the anonymized results of the tutor evaluations written about the caller: averages per competency rated by at least two students, the number of evaluators, and the positive or negative feedback texts without authors once at least two students wrote feedback of that type. Only served once the tutor evaluation is enabled, the results are released, and the phase providing the teams lists the caller as a tutor.
 // @Tags evaluations
 // @Produce json
 // @Param coursePhaseID path string true "Course phase ID"

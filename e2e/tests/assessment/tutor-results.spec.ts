@@ -27,7 +27,10 @@ const SCHEMA_NAME = 'E2E Tutor Evaluation Rubric'
 const SHARED_COMPETENCY = 'Explains concepts clearly'
 // Rated by Stan only, so it stays hidden.
 const LONE_COMPETENCY = 'Reviews code thoroughly'
+// Both students praise the tutor, so both texts are shown.
 const PRAISE = 'Explains things patiently'
+const SECOND_PRAISE = 'Always prepared for the meetings'
+// Only Stan criticizes, so the text would point to him and stays hidden.
 const CRITIQUE = 'Could answer questions faster'
 
 const STUDENTS: { role: Role; courseParticipationId: string; name: string }[] = [
@@ -76,7 +79,7 @@ async function evaluateTutor(
   role: Role,
   authorId: string,
   scores: { competencyID: string; scoreLevel: string }[],
-  feedback: { feedbackType: 'positive' | 'negative'; feedbackText: string },
+  feedback: { feedbackType: 'positive' | 'negative'; feedbackText: string }[],
 ) {
   const student = await apiAsRole(role)
   try {
@@ -91,16 +94,18 @@ async function evaluateTutor(
       })
       expect(res.status(), await res.text()).toBe(201)
     }
-    const res = await student.post(assessmentUrl(PHASE_ID, 'evaluation/feedback-items'), {
-      data: {
-        ...feedback,
-        courseParticipationID: TUTOR_SCOPE_TUTOR.id,
-        coursePhaseID: PHASE_ID,
-        authorCourseParticipationID: authorId,
-        type: 'tutor',
-      },
-    })
-    expect(res.ok(), await res.text()).toBe(true)
+    for (const item of feedback) {
+      const res = await student.post(assessmentUrl(PHASE_ID, 'evaluation/feedback-items'), {
+        data: {
+          ...item,
+          courseParticipationID: TUTOR_SCOPE_TUTOR.id,
+          coursePhaseID: PHASE_ID,
+          authorCourseParticipationID: authorId,
+          type: 'tutor',
+        },
+      })
+      expect(res.ok(), await res.text()).toBe(true)
+    }
   } finally {
     await student.dispose()
   }
@@ -172,13 +177,16 @@ test.describe('assessment: tutors see their tutor evaluation results', () => {
         { competencyID: sharedCompetencyId, scoreLevel: 'veryGood' },
         { competencyID: loneCompetencyId, scoreLevel: 'good' },
       ],
-      { feedbackType: 'positive', feedbackText: PRAISE },
+      [
+        { feedbackType: 'positive', feedbackText: PRAISE },
+        { feedbackType: 'negative', feedbackText: CRITIQUE },
+      ],
     )
     await evaluateTutor(
       'student2',
       FULL_COURSE_STUDENT2.courseParticipationId,
       [{ competencyID: sharedCompetencyId, scoreLevel: 'good' }],
-      { feedbackType: 'negative', feedbackText: CRITIQUE },
+      [{ feedbackType: 'positive', feedbackText: SECOND_PRAISE }],
     )
   })
 
@@ -211,7 +219,7 @@ test.describe('assessment: tutors see their tutor evaluation results', () => {
       { competencyID: sharedCompetencyId, averageScoreNumeric: 1.5 },
     ])
     expect(results.feedbackItems).toEqual([
-      { feedbackType: 'negative', feedbackText: CRITIQUE },
+      { feedbackType: 'positive', feedbackText: SECOND_PRAISE },
       { feedbackType: 'positive', feedbackText: PRAISE },
     ])
     for (const { courseParticipationId } of STUDENTS) {
@@ -233,7 +241,8 @@ test.describe('assessment: tutors see their tutor evaluation results', () => {
     await expect(page.getByText(SHARED_COMPETENCY)).toBeVisible()
     await expect(page.getByText(LONE_COMPETENCY)).toHaveCount(0)
     await expect(page.getByText(PRAISE)).toBeVisible()
-    await expect(page.getByText(CRITIQUE)).toBeVisible()
+    await expect(page.getByText(SECOND_PRAISE)).toBeVisible()
+    await expect(page.getByText(CRITIQUE)).toHaveCount(0)
     for (const { name } of STUDENTS) {
       await expect(page.getByText(new RegExp(`\\b${name}\\b`))).toHaveCount(0)
     }

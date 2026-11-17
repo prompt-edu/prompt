@@ -331,6 +331,7 @@ func (suite *EvaluationRouterTestSuite) withTutorEvaluations(resultsReleased boo
 	_, err = conn.Exec(ctx, `
 		INSERT INTO feedback_items (id, feedback_type, feedback_text, course_participation_id, course_phase_id, author_course_participation_id, type)
 		VALUES (gen_random_uuid(), 'positive', 'Explains things well', $1, $2, $3, 'tutor'),
+		       (gen_random_uuid(), 'positive', 'Patient with questions', $1, $2, $4, 'tutor'),
 		       (gen_random_uuid(), 'negative', 'Answers late', $1, $2, $4, 'tutor')`,
 		evaluatedTutorID, suite.testCoursePhaseID, firstStudentID, secondStudentID)
 	suite.Require().NoError(err)
@@ -367,9 +368,10 @@ func (suite *EvaluationRouterTestSuite) TestMyTutorResultsAreAnonymousAverages()
 		assert.Equal(suite.T(), tutorCompetencyID, results.Results[0].CompetencyID)
 		assert.InDelta(suite.T(), 1.5, results.Results[0].AverageScoreNumeric, 0.0001)
 	}
+	// Only the second student wrote negative feedback, so it stays hidden.
 	assert.Equal(suite.T(), []evaluationDTO.AnonymousFeedbackItem{
-		{FeedbackType: db.FeedbackTypeNegative, FeedbackText: "Answers late"},
 		{FeedbackType: db.FeedbackTypePositive, FeedbackText: "Explains things well"},
+		{FeedbackType: db.FeedbackTypePositive, FeedbackText: "Patient with questions"},
 	}, results.FeedbackItems)
 	for _, author := range []uuid.UUID{firstStudentID, secondStudentID} {
 		assert.NotContains(suite.T(), w.Body.String(), author.String(), "the response must not name an evaluator")

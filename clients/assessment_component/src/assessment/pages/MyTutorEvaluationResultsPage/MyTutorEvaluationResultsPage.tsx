@@ -9,7 +9,7 @@ import {
   QueryGate,
 } from '@tumaet/prompt-ui-components'
 import { ArrowLeft, MessageCircle } from 'lucide-react'
-import { useMemo } from 'react'
+import { type ReactNode, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import { AssessmentType } from '../../interfaces/assessmentType'
@@ -21,7 +21,7 @@ import { useGetEvaluationCategoriesWithCompetencies } from '../hooks/useGetEvalu
 import { useGetMyTutorEvaluationResults } from '../hooks/useGetMyTutorEvaluationResults'
 import { getTutorLabel } from '../hooks/useTutorLabel'
 
-const NoticeCard = ({ children }: { children: React.ReactNode }) => (
+const NoticeCard = ({ children }: { children: ReactNode }) => (
   <Card>
     <CardContent className='p-6'>
       <p className='text-sm text-muted-foreground'>{children}</p>
@@ -130,8 +130,8 @@ export const MyTutorEvaluationResultsPage = () => {
                     ? '1 student evaluated you.'
                     : `${results.evaluatorCount} students evaluated you.`}{' '}
                   Scores are averaged across all of them, and competencies rated by only one student
-                  are not shown. Written feedback is shown without its authors once at least two
-                  students wrote some.
+                  are not shown. Positive and negative feedback are each shown without their authors
+                  once at least two students wrote some.
                 </p>
 
                 {categories.length > 0 ? (

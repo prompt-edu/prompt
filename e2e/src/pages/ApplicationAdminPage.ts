@@ -60,6 +60,47 @@ export class ApplicationAdminPage {
     await expect(this.page.getByRole('img', { name: HIDDEN_PICTURE_MARKER })).toHaveCount(0)
   }
 
+  // Once the header docks, the compact navigation shows the applicant's picture on its own.
+  // The collapsed profile stays in the DOM (at opacity 0), so only the navigation is checked.
+  async expectPictureHiddenInDockedHeader() {
+    await this.withDockedHeader(async (navigation) => {
+      await expect(navigation.getByRole('img', { name: HIDDEN_PICTURE_MARKER })).toBeVisible()
+    })
+  }
+
+  async expectPictureShownInDockedHeader() {
+    await this.withDockedHeader(async (navigation) => {
+      await expect(navigation).toBeVisible()
+      await expect(navigation.getByRole('img', { name: HIDDEN_PICTURE_MARKER })).toHaveCount(0)
+    })
+  }
+
+  private async withDockedHeader(check: (navigation: Locator) => Promise<void>) {
+    const viewport = this.page.viewportSize()
+    // Short enough that the application overflows, wide enough to keep the desktop layout.
+    await this.page.setViewportSize({ width: 1280, height: 480 })
+    const header = this.page.getByTestId('sticky-header')
+    // Scrolls whichever ancestor actually overflows; false when nothing does.
+    const scrollTo = (offset: 'bottom' | 'top') =>
+      header.evaluate((el, target) => {
+        let node: HTMLElement | null = el.parentElement
+        while (node && node.scrollHeight <= node.clientHeight) node = node.parentElement
+        if (!node) return false
+        node.scrollTop = target === 'bottom' ? node.scrollHeight : 0
+        return true
+      }, offset)
+    try {
+      expect(await scrollTo('bottom')).toBe(true)
+      await expect
+        .poll(() => header.evaluate((el) => getComputedStyle(el).position))
+        .toBe('fixed')
+      await check(header.getByRole('navigation', { name: 'Participant navigation' }))
+    } finally {
+      await scrollTo('top')
+      if (viewport) await this.page.setViewportSize(viewport)
+    }
+  }
+
   async gotoQuestions(courseId: string, phaseId: string) {
     await this.page.goto(`/management/course/${courseId}/${phaseId}/questions`)
     await expect(

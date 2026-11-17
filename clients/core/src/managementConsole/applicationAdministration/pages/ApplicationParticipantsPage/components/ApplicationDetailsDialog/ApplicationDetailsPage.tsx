@@ -45,6 +45,7 @@ export const ApplicationDetailsPage = () => {
   const status = participation?.passStatus
   const score = participation?.score ?? null
   const restrictedData = participation?.restrictedData ?? {}
+  const pictureHiddenReason = getApplicantPictureHiddenReason(hideUntilAccepted, status)
   const participationById = useMemo(
     () => new Map(participations.map((p) => [p.courseParticipationID, p])),
     [participations],
@@ -137,7 +138,7 @@ export const ApplicationDetailsPage = () => {
             <StudentProfile
               student={fetchedApplication.student}
               status={status}
-              pictureHiddenReason={getApplicantPictureHiddenReason(hideUntilAccepted, status)}
+              pictureHiddenReason={pictureHiddenReason}
             />
           )
         }
@@ -149,6 +150,7 @@ export const ApplicationDetailsPage = () => {
             onNavigate={(p) => navigateToParticipation(p.courseParticipationID)}
             colorByStatus
             compact={docked}
+            pictureHiddenReason={pictureHiddenReason}
           >
             {status && getApplicationStatusBadge(status)}
             {score !== null && (

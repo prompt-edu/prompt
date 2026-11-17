@@ -93,10 +93,12 @@ test.describe('application: applicant journey', () => {
 
       await admin.openApplication(APPLICANT.email)
       await admin.expectPictureHiddenOnApplication()
+      await admin.expectPictureHiddenInDockedHeader()
       await admin.expectQuestionVisible(FULL_COURSE_APPLICATION_QUESTION.title)
       await admin.expectAnswerVisible(MOTIVATION_ANSWER)
       await admin.accept()
       await admin.expectPictureShownOnApplication()
+      await admin.expectPictureShownInDockedHeader()
 
       await admin.gotoParticipants(SEEDED_COURSES.fullCourse.id, PHASE_ID)
       await admin.expectStatus(APPLICANT.email, 'Accepted')

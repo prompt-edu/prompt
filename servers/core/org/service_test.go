@@ -705,28 +705,65 @@ func (suite *OrgServiceTestSuite) TestRemoveOrgMemberRejectsTheCallersOwnMembers
 	assert.Equal(suite.T(), permissionValidation.OrgAdmin, members.roleOf("members-leave", "ada"))
 }
 
+// awaitSignal waits until a goroutine signals, and fails the test when it returns first or never
+// signals, so a broken lock fails the test instead of hanging it.
+func (suite *OrgServiceTestSuite) awaitSignal(signal <-chan struct{}, done <-chan error, what string) {
+	select {
+	case <-signal:
+	case err := <-done:
+		suite.T().Fatalf("%s returned before it got there: %v", what, err)
+	case <-time.After(5 * time.Second):
+		suite.T().Fatalf("%s never got there", what)
+	}
+}
+
+// assertWaiting fails the test when the goroutine returns within a moment.
+func (suite *OrgServiceTestSuite) assertWaiting(done <-chan error, what string) {
+	select {
+	case err := <-done:
+		suite.T().Fatalf("%s did not wait: %v", what, err)
+	case <-time.After(200 * time.Millisecond):
+	}
+}
+
+// receive returns the result of a goroutine, and fails the test when it never returns.
+func (suite *OrgServiceTestSuite) receive(done <-chan error, what string) error {
+	select {
+	case err := <-done:
+		return err
+	case <-time.After(5 * time.Second):
+		suite.T().Fatalf("%s never returned", what)
+		return nil
+	}
+}
+
 func (suite *OrgServiceTestSuite) TestMembershipChangesWaitForADeletionInProgress() {
 	org := suite.createOrg("members-deleting", nil)
 	service, members := suite.withMembers(staffMember("ada", "ad12min"))
-	tx, err := suite.conn.Begin(suite.ctx)
-	require.NoError(suite.T(), err)
-	defer func() { _ = tx.Rollback(suite.ctx) }()
-	_, err = db.New(tx).DeleteOrg(suite.ctx, org.ID)
-	require.NoError(suite.T(), err)
+	inKeycloak, release := make(chan struct{}), make(chan struct{})
+	releaseDeletion := sync.OnceFunc(func() { close(release) })
+	defer releaseDeletion()
+	suite.keycloak.onDelete = func(string) {
+		close(inKeycloak)
+		<-release
+	}
 
+	deleted := make(chan error, 1)
+	go func() {
+		_, err := service.DeleteOrg(suite.ctx, org.ID)
+		deleted <- err
+	}()
+	suite.awaitSignal(inKeycloak, deleted, "the deletion")
 	changed := make(chan error, 1)
 	go func() {
 		_, err := service.UpdateOrgMemberRole(suite.ctx, org.ID, "ada", permissionValidation.OrgMember, caller)
 		changed <- err
 	}()
-	select {
-	case err := <-changed:
-		suite.T().Fatalf("the membership change did not wait for the deletion: %v", err)
-	case <-time.After(200 * time.Millisecond):
-	}
-	require.NoError(suite.T(), tx.Commit(suite.ctx))
+	suite.assertWaiting(changed, "the membership change")
+	releaseDeletion()
 
-	assert.ErrorIs(suite.T(), <-changed, ErrOrgNotFound)
+	require.NoError(suite.T(), suite.receive(deleted, "the deletion"))
+	assert.ErrorIs(suite.T(), suite.receive(changed, "the membership change"), ErrOrgNotFound)
 	assert.Empty(suite.T(), members.roleOf("members-deleting", "ada"))
 }
 
@@ -737,8 +774,7 @@ func (suite *OrgServiceTestSuite) TestDeletionWaitsForAMembershipChangeInKeycloa
 	service, members := suite.withMembers(staffMember("ada", "ad12min"))
 	require.NoError(suite.T(), members.SetOrgMemberRole(suite.ctx, "members-changing", "ada", permissionValidation.OrgMember))
 	inKeycloak, release := make(chan struct{}), make(chan struct{})
-	var releaseOnce sync.Once
-	releaseChange := func() { releaseOnce.Do(func() { close(release) }) }
+	releaseChange := sync.OnceFunc(func() { close(release) })
 	defer releaseChange()
 	members.beforeWrite = func() {
 		close(inKeycloak)
@@ -750,22 +786,81 @@ func (suite *OrgServiceTestSuite) TestDeletionWaitsForAMembershipChangeInKeycloa
 		_, err := service.RemoveOrgMember(suite.ctx, org.ID, "ada", caller)
 		changed <- err
 	}()
-	<-inKeycloak
+	suite.awaitSignal(inKeycloak, changed, "the membership change")
 	deleted := make(chan error, 1)
 	go func() {
 		_, err := service.DeleteOrg(suite.ctx, org.ID)
 		deleted <- err
 	}()
-	select {
-	case err := <-deleted:
-		suite.T().Fatalf("the deletion did not wait for the membership change: %v", err)
-	case <-time.After(200 * time.Millisecond):
-	}
+	suite.assertWaiting(deleted, "the deletion")
 	releaseChange()
 
-	require.NoError(suite.T(), <-changed)
-	require.NoError(suite.T(), <-deleted)
+	require.NoError(suite.T(), suite.receive(changed, "the membership change"))
+	require.NoError(suite.T(), suite.receive(deleted, "the deletion"))
 	assert.Equal(suite.T(), []string{"members-changing"}, suite.keycloak.deleted)
+}
+
+// A failed commit releases the deletion's own locks before it re-adds the members it found, so a
+// change made in between would be undone by that restore.
+func (suite *OrgServiceTestSuite) TestMembershipChangesWaitForTheRestoreOfAFailedDeletion() {
+	org := suite.createOrg("members-restoring", nil)
+	service, members := suite.withMembers(staffMember("ada", "ad12min"))
+	require.NoError(suite.T(), members.SetOrgMemberRole(suite.ctx, "members-restoring", "ada", permissionValidation.OrgMember))
+	suite.keycloak.members = orgMembers{permissionValidation.OrgMember: {"ada"}}
+	suite.failCommitOn("DELETE", "OLD", "members-restoring")
+	changed := make(chan error, 1)
+	suite.keycloak.onDelete = func(string) {
+		go func() {
+			_, err := service.RemoveOrgMember(suite.ctx, org.ID, "ada", caller)
+			changed <- err
+		}()
+		suite.assertWaiting(changed, "the membership change")
+	}
+	// The restore recreates the groups before it re-adds the members
+	suite.keycloak.onCreate = func(string) { suite.assertWaiting(changed, "the membership change during the restore") }
+
+	_, err := service.DeleteOrg(suite.ctx, org.ID)
+
+	assert.ErrorContains(suite.T(), err, "commit rejected")
+	assert.Len(suite.T(), suite.keycloak.added, 1, "the restore re-added the members")
+	require.NoError(suite.T(), suite.receive(changed, "the membership change"))
+}
+
+// A role change adds the new role before it removes the other one, so two overlapping changes of a
+// user could leave them with neither.
+func (suite *OrgServiceTestSuite) TestMembershipChangesOfAnOrgTakeTurns() {
+	org := suite.createOrg("members-turns", nil)
+	service, members := suite.withMembers(staffMember("ada", "ad12min"))
+	writes, release := make(chan struct{}, 2), make(chan struct{})
+	releaseWrites := sync.OnceFunc(func() { close(release) })
+	defer releaseWrites()
+	members.beforeWrite = func() {
+		writes <- struct{}{}
+		<-release
+	}
+
+	first, second := make(chan error, 1), make(chan error, 1)
+	go func() {
+		_, err := service.UpdateOrgMemberRole(suite.ctx, org.ID, "ada", permissionValidation.OrgAdmin, caller)
+		first <- err
+	}()
+	suite.awaitSignal(writes, first, "the first membership change")
+	go func() {
+		_, err := service.UpdateOrgMemberRole(suite.ctx, org.ID, "ada", permissionValidation.OrgMember, caller)
+		second <- err
+	}()
+	select {
+	case <-writes:
+		suite.T().Fatal("the second membership change wrote to Keycloak while the first one did")
+	case err := <-second:
+		suite.T().Fatalf("the second membership change did not wait: %v", err)
+	case <-time.After(200 * time.Millisecond):
+	}
+	releaseWrites()
+
+	require.NoError(suite.T(), suite.receive(first, "the first membership change"))
+	require.NoError(suite.T(), suite.receive(second, "the second membership change"))
+	assert.Equal(suite.T(), permissionValidation.OrgMember, members.roleOf("members-turns", "ada"))
 }
 
 func TestOrgServiceTestSuite(t *testing.T) {

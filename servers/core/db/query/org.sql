@@ -9,10 +9,10 @@ UPDATE org SET created_at = clock_timestamp() WHERE id = $1 RETURNING *;
 -- name: GetOrgByID :one
 SELECT * FROM org WHERE id = $1;
 
--- name: LockOrgForMembershipChange :one
--- Holds off the org's deletion until the transaction ends, and waits for a deletion in progress.
--- KEY SHARE conflicts with DELETE only, so details edits and other membership changes go ahead.
-SELECT * FROM org WHERE id = $1 FOR KEY SHARE;
+-- name: LockOrgMembership :exec
+-- Serializes the membership changes of one org with each other and with the org's deletion until
+-- the transaction ends. Details edits take no part in it.
+SELECT pg_advisory_xact_lock(hashtextextended('org_membership:' || sqlc.arg(org_id)::uuid::text, 0));
 
 -- name: GetOrgIDBySlug :one
 SELECT id FROM org WHERE slug = $1;

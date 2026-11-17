@@ -170,25 +170,31 @@ func (s *OrgService) RemoveOrgMember(ctx context.Context, orgID uuid.UUID, userI
 	})
 }
 
-// changeMembership applies a change to the user's membership in Keycloak while it holds off the
-// org's deletion. A deletion re-adds the members it found if it fails, so a change made while it
-// runs would be undone. Nobody but a PROMPT admin changes their own membership, so an Org Admin
-// cannot lock themselves out of the org; PROMPT admins manage every org anyway.
+// changeMembership applies a change to the user's membership in Keycloak under the org's membership
+// lock. The lock makes the changes of one org take turns: a role change adds the new role before it
+// removes the other one, so two overlapping changes could leave the user with neither. It also
+// holds the change off while the org is deleted, see DeleteOrg. Nobody but a PROMPT admin changes
+// their own membership, so an Org Admin cannot lock themselves out of the org; PROMPT admins manage
+// every org anyway.
 func (s *OrgService) changeMembership(ctx context.Context, orgID uuid.UUID, userID string, caller Caller, change func(ctx context.Context, slug string) error) (orgDTO.Org, error) {
 	tx, err := s.conn.Begin(ctx)
 	if err != nil {
 		return orgDTO.Org{}, err
 	}
 	defer promptSDK.DeferDBRollback(tx, ctx)
+	qtx := s.queries.WithTx(tx)
 
-	locked, err := s.queries.WithTx(tx).LockOrgForMembershipChange(ctx, orgID)
+	if err := qtx.LockOrgMembership(ctx, orgID); err != nil {
+		return orgDTO.Org{}, fmt.Errorf("failed to lock the membership of the org: %w", err)
+	}
+	found, err := qtx.GetOrgByID(ctx, orgID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return orgDTO.Org{}, ErrOrgNotFound
 	}
 	if err != nil {
-		return orgDTO.Org{}, fmt.Errorf("failed to lock the org: %w", err)
+		return orgDTO.Org{}, err
 	}
-	org := orgDTO.GetOrgDTOFromDBModel(locked)
+	org := orgDTO.GetOrgDTOFromDBModel(found)
 	if userID == caller.UserID && !caller.IsPromptAdmin {
 		return orgDTO.Org{}, ErrOwnMembership
 	}
@@ -332,7 +338,31 @@ func (s *OrgService) UpdateOrgParent(ctx context.Context, id uuid.UUID, input or
 	return orgDTO.GetOrgDTOFromDBModel(updated), nil
 }
 
+// lockMembership holds the org's membership lock in a transaction of its own until release is
+// called, so the lock outlives another transaction that fails to commit.
+func (s *OrgService) lockMembership(ctx context.Context, orgID uuid.UUID) (release func(), err error) {
+	tx, err := s.conn.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	release = func() { promptSDK.DeferDBRollback(tx, context.WithoutCancel(ctx)) }
+	if err := s.queries.WithTx(tx).LockOrgMembership(ctx, orgID); err != nil {
+		release()
+		return nil, fmt.Errorf("failed to lock the membership of the org: %w", err)
+	}
+	return release, nil
+}
+
+// DeleteOrg deletes the org and its Keycloak groups and roles. When either fails, it puts the members
+// it found back. It holds the membership lock until then, also through a failed commit, so a
+// membership change waits instead of being undone by that restore.
 func (s *OrgService) DeleteOrg(ctx context.Context, id uuid.UUID) (string, error) {
+	releaseMembership, err := s.lockMembership(ctx, id)
+	if err != nil {
+		return "", err
+	}
+	defer releaseMembership()
+
 	tx, err := s.conn.Begin(ctx)
 	if err != nil {
 		return "", err

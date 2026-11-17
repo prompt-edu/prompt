@@ -70,7 +70,8 @@ const AnonymousFeedbackPanel = ({
 
 export const MyTutorEvaluationResultsPage = () => {
   const navigate = useNavigate()
-  const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
+  const coursePhaseConfigQuery = useGetCoursePhaseConfig()
+  const coursePhaseConfig = coursePhaseConfigQuery.data
   const tutorLabel = getTutorLabel(coursePhaseConfig)
 
   const resultsQuery = useGetMyTutorEvaluationResults()
@@ -103,62 +104,68 @@ export const MyTutorEvaluationResultsPage = () => {
           Back to overview
         </Button>
       </div>
-      <ManagementPageHeader>Your {tutorLabel.title} Evaluation Results</ManagementPageHeader>
+      <QueryGate queries={[coursePhaseConfigQuery]}>
+        {() => (
+          <>
+            <ManagementPageHeader>Your {tutorLabel.title} Evaluation Results</ManagementPageHeader>
 
-      {!enabled ? (
-        <NoticeCard>
-          {coursePhaseConfig?.tutorEvaluationEnabled
-            ? `${tutorLabel.title} evaluation results have not been released yet.`
-            : `This phase has no ${tutorLabel.text} evaluation.`}
-        </NoticeCard>
-      ) : (
-        <QueryGate queries={[resultsQuery]}>
-          {() => {
-            if (!results) {
-              return (
-                <NoticeCard>
-                  There are no {tutorLabel.text} evaluation results for you in this phase, because
-                  you are not listed as the {tutorLabel.text} of a team.
-                </NoticeCard>
-              )
-            }
+            {!enabled ? (
+              <NoticeCard>
+                {coursePhaseConfig?.tutorEvaluationEnabled
+                  ? `${tutorLabel.title} evaluation results have not been released yet.`
+                  : `This phase has no ${tutorLabel.text} evaluation.`}
+              </NoticeCard>
+            ) : (
+              <QueryGate queries={[resultsQuery]}>
+                {() => {
+                  if (!results) {
+                    return (
+                      <NoticeCard>
+                        There are no {tutorLabel.text} evaluation results for you in this phase,
+                        because you are not listed as the {tutorLabel.text} of a team.
+                      </NoticeCard>
+                    )
+                  }
 
-            return (
-              <div className='space-y-6'>
-                <p className='text-sm text-muted-foreground'>
-                  {results.evaluatorCount === 1
-                    ? '1 student evaluated you.'
-                    : `${results.evaluatorCount} students evaluated you.`}{' '}
-                  Scores are averaged across all of them, and competencies rated by only one student
-                  are not shown. Positive and negative feedback are each shown without their authors
-                  once at least two students wrote some.
-                </p>
+                  return (
+                    <div className='space-y-6'>
+                      <p className='text-sm text-muted-foreground'>
+                        {results.evaluatorCount === 1
+                          ? '1 student evaluated you.'
+                          : `${results.evaluatorCount} students evaluated you.`}{' '}
+                        Scores are averaged across all of them, and competencies rated by only one
+                        student are not shown. Positive and negative feedback are each shown without
+                        their authors once at least two students wrote some.
+                      </p>
 
-                {categories.length > 0 ? (
-                  <ResultCategoryList categories={categories} />
-                ) : (
-                  <NoticeCard>
-                    Not enough students evaluated you yet to show averaged scores.
-                  </NoticeCard>
-                )}
+                      {categories.length > 0 ? (
+                        <ResultCategoryList categories={categories} />
+                      ) : (
+                        <NoticeCard>
+                          Not enough students evaluated you yet to show averaged scores.
+                        </NoticeCard>
+                      )}
 
-                {results.feedbackItems.length > 0 && (
-                  <div className='grid grid-cols-1 gap-4 lg:grid-cols-2'>
-                    <AnonymousFeedbackPanel
-                      feedbackItems={results.feedbackItems}
-                      feedbackType='negative'
-                    />
-                    <AnonymousFeedbackPanel
-                      feedbackItems={results.feedbackItems}
-                      feedbackType='positive'
-                    />
-                  </div>
-                )}
-              </div>
-            )
-          }}
-        </QueryGate>
-      )}
+                      {results.feedbackItems.length > 0 && (
+                        <div className='grid grid-cols-1 gap-4 lg:grid-cols-2'>
+                          <AnonymousFeedbackPanel
+                            feedbackItems={results.feedbackItems}
+                            feedbackType='negative'
+                          />
+                          <AnonymousFeedbackPanel
+                            feedbackItems={results.feedbackItems}
+                            feedbackType='positive'
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )
+                }}
+              </QueryGate>
+            )}
+          </>
+        )}
+      </QueryGate>
     </div>
   )
 }

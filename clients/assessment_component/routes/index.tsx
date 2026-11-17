@@ -56,11 +56,7 @@ const routes: ExtendedRouteObject[] = [
   },
   {
     path: '/tutor-results',
-    element: (
-      <EvaluationDataShell>
-        <MyTutorEvaluationResultsPage />
-      </EvaluationDataShell>
-    ),
+    element: <MyTutorEvaluationResultsPage />,
     requiredPermissions: EDITOR_ROLES,
   },
   {

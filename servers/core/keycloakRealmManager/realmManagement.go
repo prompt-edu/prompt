@@ -297,12 +297,25 @@ func (s *KeycloakRealmService) AddStudentIDsToKeycloakGroup(ctx context.Context,
 	return succeededStudents, failedStudents, nil
 }
 
-// GetGroupMembers returns the users that belong to the given group.
+// groupMembersPageSize is how many users GetGroupMembers asks Keycloak for at a time.
+const groupMembersPageSize = 100
+
+// GetGroupMembers returns every user in the given group. Keycloak returns the members a page at a
+// time, so it reads pages until one comes back short.
 func (s *KeycloakRealmService) GetGroupMembers(ctx context.Context, accessToken, groupID string) ([]*gocloak.User, error) {
-	members, err := s.client.GetGroupMembers(ctx, accessToken, s.Realm, groupID, gocloak.GetGroupsParams{})
-	if err != nil {
-		log.Error("failed to get group members: ", err)
-		return nil, err
+	var members []*gocloak.User
+	for first := 0; ; first += groupMembersPageSize {
+		page, err := s.client.GetGroupMembers(ctx, accessToken, s.Realm, groupID, gocloak.GetGroupsParams{
+			First: gocloak.IntP(first),
+			Max:   gocloak.IntP(groupMembersPageSize),
+		})
+		if err != nil {
+			log.Error("failed to get group members: ", err)
+			return nil, err
+		}
+		members = append(members, page...)
+		if len(page) < groupMembersPageSize {
+			return members, nil
+		}
 	}
-	return members, nil
 }

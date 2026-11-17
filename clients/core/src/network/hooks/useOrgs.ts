@@ -5,6 +5,7 @@ import {
   type OrgRole,
   type UpdateOrg,
 } from '@core/interfaces/org'
+import { useKeycloak } from '@core/keycloak/useKeycloak'
 import { isOrgId } from '@core/managementConsole/orgAdministration/utils/isOrgId'
 import { orgRolesOf } from '@core/managementConsole/shared/utils/orgRoles'
 import { coreApi } from '@core/network/api'
@@ -48,16 +49,20 @@ export const useOrgs = () => {
   })
 }
 
-// The orgs whose roles the caller's token holds. The list is keyed by those roles, so a token refresh
-// that changes them loads it anew, and a caller without org roles never requests it.
+// The orgs whose roles the caller's token holds. The list is keyed by those roles and the token's
+// issue time, so every new token loads it anew, and a caller without org roles never requests it.
+// The previous list stays shown while a new token's list loads, unless the token holds no org roles
+// any more.
 export const useOwnOrgs = () => {
   const { permissions } = useAuthStore()
+  const { tokenIssuedAt } = useKeycloak()
   const orgRoles = orgRolesOf(permissions)
 
   return useQuery({
-    queryKey: coreKeys.orgs.own(orgRoles),
+    queryKey: coreKeys.orgs.own(orgRoles, tokenIssuedAt),
     queryFn: coreApi.orgs.own,
     enabled: orgRoles.length > 0,
+    placeholderData: (previous) => (orgRoles.length > 0 ? previous : undefined),
   })
 }
 

@@ -148,7 +148,12 @@ describe('coreKeys', () => {
   it('puts each org under the org list, so one invalidation reaches both', () => {
     expect(coreKeys.orgs.all()).toEqual(['orgs'])
     expect(coreKeys.orgs.byId('org-1')).toEqual(['orgs', 'org-1'])
-    expect(coreKeys.orgs.own(['org-ase-Admin'])).toEqual(['orgs', 'own', ['org-ase-Admin']])
+    expect(coreKeys.orgs.own(['org-ase-Admin'], 1_700_000_000)).toEqual([
+      'orgs',
+      'own',
+      ['org-ase-Admin'],
+      1_700_000_000,
+    ])
     expect(coreKeys.orgs.members('org-1')).toEqual(['orgs', 'org-1', 'members'])
   })
 

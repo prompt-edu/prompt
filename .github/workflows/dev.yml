@@ -121,7 +121,8 @@ jobs:
   # workflow reports under its own name (`build-clients`), never the nested
   # names (`build-clients / core / merge`), so requiring those left docs-only
   # PRs waiting forever. Code changes need every job to succeed; docs-only
-  # changes need them all skipped.
+  # changes need them all skipped. It runs even on a cancelled run: GitHub treats
+  # a skipped required check as passed, and the script fails on `cancelled`.
   ci-passed:
     needs:
       - changes
@@ -131,7 +132,7 @@ jobs:
       - quality-clients
       - e2e-tests
       - build-clients
-    if: ${{ !cancelled() }}
+    if: ${{ always() }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

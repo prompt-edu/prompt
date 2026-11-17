@@ -80,10 +80,14 @@ runs the unit tests (`cd api-stress && uv run pytest`), boots this stack, and ru
 `--smoke-only --intensity gentle --fail-on P0 --public-summary <dir>`. So the job
 fails on P0 findings, or when the fuzzer crashed and the report lacks its auth and
 IDOR results. P1/P2 findings appear in the job summary and the
-`api-stress-public-findings` artifact.
+`api-stress-public-findings` artifact. The `ci-passed` gate (#2414) waits for the job,
+so a failure blocks the merge; on PRs that only change docs it is skipped.
 
 The repository is public, so the job never publishes P0 details: the summary only
-counts them. When it fails, reproduce the run locally as above and read `report.md`.
+counts them. When it fails, reproduce the run locally as above and read `report.md`,
+and treat a real P0 as a private security advisory. While a known P0 is being fixed
+in the advisory, it fails every PR, so an admin may bypass the check to merge
+unrelated PRs.
 For a longer pass, dispatch the workflow from the Actions tab with a higher
 `intensity` and more `scenarios`.
 

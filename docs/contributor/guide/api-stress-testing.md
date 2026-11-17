@@ -101,6 +101,9 @@ builds and boots the isolated stack, and runs a smoke + fuzz pass:
 api-stress/run.sh --smoke-only --intensity gentle --fail-on P0 --public-summary <dir>
 ```
 
+- **It blocks the merge.** The job is one of the jobs the `ci-passed` gate waits for
+  (#2414), and `ci-passed` is the check the `main` ruleset requires. Like the other
+  test jobs, it is skipped on PRs that only change docs.
 - **It fails only on P0.** P1/P2 findings are listed in the job summary and the
   `api-stress-public-findings` artifact, so they never block a PR. A fuzzer crash
   fails the job too, because the report would then lack every auth and IDOR result.
@@ -108,7 +111,9 @@ api-stress/run.sh --smoke-only --intensity gentle --fail-on P0 --public-summary 
   artifacts. `--public-summary` writes a `summary.md` and `findings.json` that only
   count P0 findings, and the full reports never leave the runner. When the job fails,
   reproduce the run locally and read `report.md`; treat a real P0 as a security issue
-  (private advisory, not a public issue).
+  (private advisory, not a public issue). The suite tests the whole API, so a known P0
+  fails every PR until its fix lands. While that fix is in progress privately in the
+  advisory, an admin may bypass the check to merge unrelated PRs.
 - **Longer passes are manual.** Dispatch the workflow from the Actions tab and pick a
   higher `intensity` and more `scenarios` (e.g. `smoke load spike soak`).
   `exhaustion` floods the shared runner, so keep it for local runs.

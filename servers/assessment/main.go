@@ -19,6 +19,7 @@ import (
 	"github.com/prompt-edu/prompt/servers/assessment/competencies"
 	"github.com/prompt-edu/prompt/servers/assessment/copy"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
+	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseDeletion"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/assessment/evaluations"
 	"github.com/prompt-edu/prompt/servers/assessment/evaluations/evaluationCompletion"
@@ -64,6 +65,7 @@ func main() {
 			promptTypes.CapabilityPrivacyDeletion: true,
 			promptTypes.CapabilityPhaseCopy:       true,
 			promptTypes.CapabilityPhaseConfig:     true,
+			promptTypes.CapabilityPhaseDeletion:   true,
 		},
 		RegisterRoutes: registerRoutes,
 	})
@@ -117,11 +119,13 @@ func registerRoutes(api, coursePhaseApi *gin.RouterGroup, conn *pgxpool.Pool) er
 
 	copyService := copy.NewCopyService(*query, conn)
 	privacyService := privacy.NewPrivacyService(*query, conn)
+	coursePhaseDeletionService := coursePhaseDeletion.NewCoursePhaseDeletionService(*query, conn)
 
 	// The SDK registrar owns the POST /copy route itself and has no per-route
 	// slot for the audit label, so it is attached through a group. An empty
 	// relative path leaves the registered route path unchanged.
 	copy.RegisterRoutes(api.Group("", audit.Describe(copy.AuditCopyAction)), copyService)
 	privacy.RegisterRoutes(api, privacyService)
+	coursePhaseDeletion.RegisterRoutes(coursePhaseApi, coursePhaseDeletionService)
 	return nil
 }

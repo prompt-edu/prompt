@@ -88,6 +88,32 @@ test.describe('assessment: tutors only reach their own team', () => {
     }
   })
 
+  test('steps previous / next only through the tutor team', async ({ page }) => {
+    const phase = new AssessmentPage(page)
+    await phase.goto(SEEDED_COURSES.fullCourse.id, PHASE_ID, '/participants')
+    await phase.expectParticipantsLoaded()
+
+    // Sorted by last name, ascending: Second, then Stan.
+    const [selma, stan] = [ownTeam[1], ownTeam[0]]
+    await phase.columnHeader('Last name').getByRole('button').click()
+    const rows = page.locator('tbody').getByRole('row')
+    await expect(rows).toHaveCount(ownTeam.length)
+    await expect(rows.first()).toHaveAccessibleName(new RegExp(selma.name))
+
+    await rows.first().click()
+    // The participant page keeps the scroll offset of the table, which can dock the header.
+    await phase.scrollToTop()
+    await phase.expectOpenedParticipant(selma.name, 1, ownTeam.length)
+    await expect(phase.previousParticipantButton()).toBeDisabled()
+    await expect(phase.nextParticipantButton()).toHaveAccessibleName(
+      `Next participant: ${stan.name}`,
+    )
+
+    await phase.nextParticipantButton().click()
+    await phase.expectOpenedParticipant(stan.name, 2, ownTeam.length)
+    await expect(phase.nextParticipantButton()).toBeDisabled()
+  })
+
   test('shows an editor who tutors no team an empty participant list', async ({ page }) => {
     const stan = ownTeam[0]
     expect(await participationIds('lecturer', OTHER_TUTOR_PHASE_ID)).toEqual([

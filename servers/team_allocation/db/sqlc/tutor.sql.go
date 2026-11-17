@@ -31,6 +31,40 @@ func (q *Queries) DeleteTutorAssignments(ctx context.Context, arg DeleteTutorAss
 	return err
 }
 
+const getTutorAssignmentsByCoursePhase = `-- name: GetTutorAssignmentsByCoursePhase :many
+SELECT course_participation_id, university_login, team_id
+FROM tutor
+WHERE course_phase_id = $1
+ORDER BY university_login, course_participation_id, team_id
+`
+
+type GetTutorAssignmentsByCoursePhaseRow struct {
+	CourseParticipationID uuid.UUID   `json:"course_participation_id"`
+	UniversityLogin       pgtype.Text `json:"university_login"`
+	TeamID                uuid.UUID   `json:"team_id"`
+}
+
+// One row per tutor and team, with the login that identifies the tutor across import sources.
+func (q *Queries) GetTutorAssignmentsByCoursePhase(ctx context.Context, coursePhaseID uuid.UUID) ([]GetTutorAssignmentsByCoursePhaseRow, error) {
+	rows, err := q.db.Query(ctx, getTutorAssignmentsByCoursePhase, coursePhaseID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetTutorAssignmentsByCoursePhaseRow
+	for rows.Next() {
+		var i GetTutorAssignmentsByCoursePhaseRow
+		if err := rows.Scan(&i.CourseParticipationID, &i.UniversityLogin, &i.TeamID); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getTutorIDByLogin = `-- name: GetTutorIDByLogin :one
 SELECT course_participation_id
 FROM tutor

@@ -4,14 +4,17 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"maps"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"testing"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
+	promptSDK "github.com/prompt-edu/prompt-sdk"
 	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt-sdk/promptTypes"
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
@@ -45,10 +48,32 @@ func tutorAuthMiddleware(login string) func(allowedRoles ...string) gin.HandlerF
 	}
 }
 
+// roleAuthMiddleware sets tokenUser and answers 403 unless the route admits one of the roles the
+// user holds, as the SDK's authorization middleware does for the course roles.
+func roleAuthMiddleware(tokenUser keycloakTokenVerifier.TokenUser) func(allowedRoles ...string) gin.HandlerFunc {
+	return func(allowedRoles ...string) gin.HandlerFunc {
+		return func(c *gin.Context) {
+			admits := func(role string, held bool) bool { return held && slices.Contains(allowedRoles, role) }
+			if !admits(promptSDK.CourseLecturer, tokenUser.IsLecturer) &&
+				!admits(promptSDK.CourseEditor, tokenUser.IsEditor) &&
+				!admits(promptSDK.CourseStudent, tokenUser.IsStudentOfCourse) {
+				c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Access denied"})
+				return
+			}
+			keycloakTokenVerifier.SetTokenUser(c, tokenUser)
+			c.Next()
+		}
+	}
+}
+
 func (suite *TeamRouterTestSuite) routerAs(login string) *gin.Engine {
+	return suite.routerWith(tutorAuthMiddleware(login))
+}
+
+func (suite *TeamRouterTestSuite) routerWith(authMiddleware func(allowedRoles ...string) gin.HandlerFunc) *gin.Engine {
 	router := gin.New()
 	api := router.Group("/api/course_phase/:coursePhaseID")
-	RegisterRoutes(api, suite.teamService, tutorAuthMiddleware(login))
+	RegisterRoutes(api, suite.teamService, authMiddleware)
 	return router
 }
 
@@ -477,6 +502,55 @@ func (suite *TeamRouterTestSuite) TestImportTutorsRejectsInvalidRequests() {
 	}
 
 	assert.Empty(suite.T(), suite.tutorTeams(coursePhaseID, foreignTeam.CourseParticipationID.String()), "a refused import writes nothing")
+}
+
+func (suite *TeamRouterTestSuite) getTutorAssignments(authMiddleware func(allowedRoles ...string) gin.HandlerFunc) *httptest.ResponseRecorder {
+	req, _ := http.NewRequest("GET", "/api/course_phase/4179d58a-d00d-4fa7-94a5-397bc69fab02/team/tutors", nil)
+	resp := httptest.NewRecorder()
+	suite.routerWith(authMiddleware).ServeHTTP(resp, req)
+	return resp
+}
+
+func (suite *TeamRouterTestSuite) TestGetTutorAssignmentsListsEachTeamWithTheTutorLogin() {
+	coursePhaseID := "4179d58a-d00d-4fa7-94a5-397bc69fab02"
+	// A row stored without a login is listed under its id with an empty login.
+	loginlessID := uuid.MustParse("99999999-9999-9999-9999-9999999999c1")
+	assert.NoError(suite.T(), suite.teamService.queries.InsertTutor(suite.suiteCtx, db.InsertTutorParams{
+		CoursePhaseID:         uuid.MustParse(coursePhaseID),
+		CourseParticipationID: loginlessID,
+		FirstName:             "Lena",
+		LastName:              "Less",
+		TeamID:                uuid.MustParse(teamGammaID),
+	}))
+
+	resp := suite.getTutorAssignments(roleAuthMiddleware(keycloakTokenVerifier.TokenUser{IsLecturer: true}))
+	assert.Equal(suite.T(), http.StatusOK, resp.Code)
+
+	var assignments []map[string]string
+	assert.NoError(suite.T(), json.Unmarshal(resp.Body.Bytes(), &assignments))
+	byTutor := map[string][]map[string]string{}
+	for _, assignment := range assignments {
+		assert.ElementsMatch(suite.T(), []string{"id", "universityLogin", "teamID"}, slices.Collect(maps.Keys(assignment)))
+		byTutor[assignment["id"]] = append(byTutor[assignment["id"]], assignment)
+	}
+	assert.ElementsMatch(suite.T(), []map[string]string{
+		{"id": projectLeadID, "universityLogin": projectLeadLogin, "teamID": teamAlphaID},
+		{"id": projectLeadID, "universityLogin": projectLeadLogin, "teamID": teamGammaID},
+	}, byTutor[projectLeadID])
+	assert.Equal(suite.T(), []map[string]string{
+		{"id": loginlessID.String(), "universityLogin": "", "teamID": teamGammaID},
+	}, byTutor[loginlessID.String()])
+}
+
+func (suite *TeamRouterTestSuite) TestGetTutorAssignmentsIsForLecturersOnly() {
+	for name, tokenUser := range map[string]keycloakTokenVerifier.TokenUser{
+		"tutor":   {IsEditor: true, UniversityLogin: projectLeadLogin},
+		"student": {IsStudentOfCourse: true, UniversityLogin: "st01ude"},
+	} {
+		resp := suite.getTutorAssignments(roleAuthMiddleware(tokenUser))
+		assert.Equal(suite.T(), http.StatusForbidden, resp.Code, name)
+		assert.NotContains(suite.T(), resp.Body.String(), projectLeadLogin, name)
+	}
 }
 
 func TestTeamRouterTestSuite(t *testing.T) {

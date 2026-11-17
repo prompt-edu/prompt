@@ -28,6 +28,8 @@ func RegisterRoutes(routerGroup *gin.RouterGroup, service *TeamsService, authMid
 
 	teamRouter.POST("/student-names", audit.Describe("Added student names to team allocations"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.addStudentNamesToTeams)
 
+	// Lecturers only, since it carries the tutors' logins: GET /team also serves students and tutors.
+	teamRouter.GET("/tutors", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.getTutorAssignments)
 	teamRouter.POST("/tutors", audit.Describe("Imported tutors"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.importTutors)
 
 	// required for inter-phase communication protocol
@@ -268,6 +270,36 @@ func (s *TeamsService) addStudentNamesToTeams(c *gin.Context) {
 	}
 
 	c.Status(http.StatusOK)
+}
+
+// getTutorAssignments godoc
+// @Summary List tutor assignments
+// @Description List every team each tutor of the course phase leads, one entry per tutor and team, with the tutor's id and university login (empty for a tutor stored without one).
+// @Tags team
+// @Produce json
+// @Param coursePhaseID path string true "Course Phase UUID"
+// @Success 200 {array} teamDTO.TutorAssignment
+// @Failure 400 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Security ApiKeyAuth
+// @Router /course_phase/{coursePhaseID}/team/tutors [get]
+func (s *TeamsService) getTutorAssignments(c *gin.Context) {
+	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
+	if err != nil {
+		log.Error("Error parsing coursePhaseID: ", err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	assignments, err := s.GetTutorAssignments(c, coursePhaseID)
+	if err != nil {
+		log.Error("Error getting tutor assignments: ", err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, assignments)
 }
 
 // importTutors godoc

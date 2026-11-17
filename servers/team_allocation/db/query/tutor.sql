@@ -24,3 +24,10 @@ FROM tutor t
 WHERE t.course_participation_id = $1
   AND t.course_phase_id = $2
 ORDER BY t.team_id;
+
+-- name: GetTutorAssignmentsByCoursePhase :many
+-- One row per tutor and team, with the login that identifies the tutor across import sources.
+SELECT course_participation_id, university_login, team_id
+FROM tutor
+WHERE course_phase_id = $1
+ORDER BY university_login, course_participation_id, team_id;

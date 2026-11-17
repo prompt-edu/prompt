@@ -143,6 +143,15 @@ func (s *TeamsService) AddStudentNamesToAllocations(ctx context.Context, courseP
 	return nil
 }
 
+// GetTutorAssignments lists every team each tutor of the phase leads, one entry per tutor and team.
+func (s *TeamsService) GetTutorAssignments(ctx context.Context, coursePhaseID uuid.UUID) ([]teamDTO.TutorAssignment, error) {
+	rows, err := s.queries.GetTutorAssignmentsByCoursePhase(ctx, coursePhaseID)
+	if err != nil {
+		return nil, fmt.Errorf("could not get the tutors of course phase %s: %w", coursePhaseID, err)
+	}
+	return teamDTO.GetTutorAssignmentsFromDBModels(rows), nil
+}
+
 // ImportTutors sets the teams of every listed tutor. A tutor is identified by their university
 // login: their previous assignments in the phase are replaced, and a tutor who already exists keeps
 // the id they carry, so evaluations other phases stored against it stay attached.

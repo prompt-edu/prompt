@@ -230,6 +230,15 @@ definitions:
       universityLogin:
         type: string
     type: object
+  teamDTO.TutorAssignment:
+    properties:
+      id:
+        type: string
+      teamID:
+        type: string
+      universityLogin:
+        type: string
+    type: object
   teamDTO.UpdateTeamRequest:
     properties:
       newTeamName:
@@ -1117,6 +1126,48 @@ paths:
       tags:
       - team
   /course_phase/{coursePhaseID}/team/tutors:
+    get:
+      description: List every team each tutor of the course phase leads, one entry
+        per tutor and team, with the tutor's id and university login (empty for a
+        tutor stored without one).
+      parameters:
+      - description: Course Phase UUID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/teamDTO.TutorAssignment'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: List tutor assignments
+      tags:
+      - team
     post:
       consumes:
       - application/json

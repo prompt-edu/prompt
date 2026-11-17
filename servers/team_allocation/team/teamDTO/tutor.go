@@ -3,6 +3,7 @@ package teamDTO
 import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
+	db "github.com/prompt-edu/prompt/servers/team_allocation/db/sqlc"
 )
 
 // Tutor is one person to import as a tutor of a course phase. The university login identifies the
@@ -22,4 +23,25 @@ func UniversityLoginParam(login string) pgtype.Text {
 		return pgtype.Text{Valid: false}
 	}
 	return pgtype.Text{String: login, Valid: true}
+}
+
+// TutorAssignment is one team a tutor leads. ID is the id the tutor is stored and evaluated under,
+// and UniversityLogin (empty for a row stored without one) identifies the tutor across import
+// sources, so the import dialog can start a person from the teams they already lead.
+type TutorAssignment struct {
+	ID              uuid.UUID `json:"id"`
+	UniversityLogin string    `json:"universityLogin"`
+	TeamID          uuid.UUID `json:"teamID"`
+}
+
+func GetTutorAssignmentsFromDBModels(rows []db.GetTutorAssignmentsByCoursePhaseRow) []TutorAssignment {
+	assignments := make([]TutorAssignment, 0, len(rows))
+	for _, row := range rows {
+		assignments = append(assignments, TutorAssignment{
+			ID:              row.CourseParticipationID,
+			UniversityLogin: row.UniversityLogin.String,
+			TeamID:          row.TeamID,
+		})
+	}
+	return assignments
 }

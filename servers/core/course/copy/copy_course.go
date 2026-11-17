@@ -1,11 +1,13 @@
 package copy
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/core/course"
@@ -99,6 +101,10 @@ func (s *CourseCopyService) copyCourseInternal(c *gin.Context, sourceCourseID uu
 
 	createdCourse, err := qtx.CreateCourse(c, createCourseParams)
 	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return courseDTO.Course{}, course.ErrDuplicateCourseIdentifier
+		}
 		return courseDTO.Course{}, fmt.Errorf("failed to create course in DB: %w", err)
 	}
 
@@ -147,7 +153,7 @@ func (s *CourseCopyService) copyCourseInternal(c *gin.Context, sourceCourseID uu
 		}
 	}
 
-	if err := course.ProvisionKeycloak(c, qtx, createdCourse, requesterID, s.createCourseGroupsAndRoles, s.cleanUpCourseGroupsAndRoles); err != nil {
+	if err := course.ProvisionKeycloak(c, createdCourse, requesterID, s.createCourseGroupsAndRoles, s.cleanUpCourseGroupsAndRoles); err != nil {
 		log.Error("failed to create keycloak roles for course: ", err)
 		return courseDTO.Course{}, err
 	}

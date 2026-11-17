@@ -71,7 +71,7 @@ func (s *CourseCopyService) copyCourse(c *gin.Context) {
 	}
 
 	newCourse, err := s.CopyCourse(c, originalCourseID, courseVariables, userID)
-	if errors.Is(err, course.ErrCourseIdentifierTaken) {
+	if errors.Is(err, course.ErrDuplicateCourseIdentifier) {
 		sdkUtils.HandleError(c, http.StatusConflict, err)
 		return
 	}

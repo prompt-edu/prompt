@@ -170,7 +170,7 @@ func (s *CourseService) createCourse(c *gin.Context) {
 
 	course, err := s.CreateCourse(c, newCourse, userID)
 	if err != nil {
-		if errors.Is(err, ErrDuplicateCourseIdentifier) || errors.Is(err, ErrCourseIdentifierTaken) {
+		if errors.Is(err, ErrDuplicateCourseIdentifier) {
 			sdkUtils.HandleError(c, http.StatusConflict, err)
 			return
 		}

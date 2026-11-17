@@ -49,28 +49,6 @@ func (q *Queries) ArchiveCourse(ctx context.Context, arg ArchiveCourseParams) (C
 	return i, err
 }
 
-const checkCourseIdentifierTaken = `-- name: CheckCourseIdentifierTaken :one
-SELECT EXISTS(
-    SELECT 1
-    FROM course
-    WHERE COALESCE(semester_tag, '') || '-' || name = $1::text
-      AND id <> $2::uuid
-) AS "exists"
-`
-
-type CheckCourseIdentifierTakenParams struct {
-	Identifier string    `json:"identifier"`
-	CourseID   uuid.UUID `json:"course_id"`
-}
-
-// The identifier is "<semester_tag>-<name>", as permissionValidation.CourseIdentifier builds it.
-func (q *Queries) CheckCourseIdentifierTaken(ctx context.Context, arg CheckCourseIdentifierTakenParams) (bool, error) {
-	row := q.db.QueryRow(ctx, checkCourseIdentifierTaken, arg.Identifier, arg.CourseID)
-	var exists bool
-	err := row.Scan(&exists)
-	return exists, err
-}
-
 const checkCoursePhasesBelongToCourse = `-- name: CheckCoursePhasesBelongToCourse :one
 WITH matched_phases AS (SELECT id
                         FROM course_phase
@@ -410,16 +388,6 @@ func (q *Queries) LockCourseForDeletion(ctx context.Context, id uuid.UUID) (uuid
 	var id_2 uuid.UUID
 	err := row.Scan(&id_2)
 	return id_2, err
-}
-
-const lockCourseIdentifier = `-- name: LockCourseIdentifier :exec
-SELECT pg_advisory_xact_lock(hashtextextended('course_identifier:' || $1::text, 0))
-`
-
-// Held until the transaction ends, so courses that share a Keycloak identifier are created one at a time.
-func (q *Queries) LockCourseIdentifier(ctx context.Context, identifier string) error {
-	_, err := q.db.Exec(ctx, lockCourseIdentifier, identifier)
-	return err
 }
 
 const updateCourse = `-- name: UpdateCourse :exec

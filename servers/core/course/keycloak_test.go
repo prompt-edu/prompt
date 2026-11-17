@@ -56,7 +56,6 @@ type CourseKeycloakTestSuite struct {
 	ctx      context.Context
 	cleanup  func()
 	conn     *pgxpool.Pool
-	queries  *db.Queries
 	keycloak *courseKeycloakSpy
 	service  *CourseService
 }
@@ -69,7 +68,6 @@ func (suite *CourseKeycloakTestSuite) SetupSuite() {
 	}
 	suite.cleanup = cleanup
 	suite.conn = testDB.Conn
-	suite.queries = testDB.Queries
 	suite.keycloak = &courseKeycloakSpy{}
 	suite.service = NewCourseService(*testDB.Queries, testDB.Conn, stubPhaseProvider{}, suite.keycloak.create, suite.keycloak.cleanUp,
 		func(context.Context, uuid.UUID) error { return nil })
@@ -100,29 +98,26 @@ func (suite *CourseKeycloakTestSuite) countCourses(name, semesterTag string) int
 	return count
 }
 
-// blocksOn reports whether another transaction has to wait for the given statement, which shows that
-// the creating transaction still holds what the statement needs.
-func (suite *CourseKeycloakTestSuite) blocksOn(statement func(tx *db.Queries) error) bool {
+// slotHeld reports whether inserting another course with the same name and semester tag has to wait,
+// which shows that the creating transaction still holds the course's unique slot.
+func (suite *CourseKeycloakTestSuite) slotHeld(name, semesterTag string) bool {
 	tx, err := suite.conn.Begin(suite.ctx)
 	require.NoError(suite.T(), err)
 	defer func() { _ = tx.Rollback(suite.ctx) }()
 
 	_, err = tx.Exec(suite.ctx, "SET LOCAL lock_timeout = '200ms'")
 	require.NoError(suite.T(), err)
-	err = statement(suite.queries.WithTx(tx))
+	_, err = tx.Exec(suite.ctx, "INSERT INTO course (id, name, semester_tag, course_type) VALUES ($1, $2, $3, 'practical course')",
+		uuid.New(), name, semesterTag)
 
 	var pgErr *pgconn.PgError
 	return errors.As(err, &pgErr) && pgErr.Code == "55P03"
 }
 
-func (suite *CourseKeycloakTestSuite) identifierLocked(identifier string) bool {
-	return suite.blocksOn(func(tx *db.Queries) error { return tx.LockCourseIdentifier(suite.ctx, identifier) })
-}
-
-func (suite *CourseKeycloakTestSuite) TestCreateCourseProvisionsKeycloakUnderTheIdentifierLock() {
-	identifierLocked, hadDeadline := false, false
-	suite.keycloak.onCreate = func(ctx context.Context, identifier string) {
-		identifierLocked = suite.identifierLocked(identifier)
+func (suite *CourseKeycloakTestSuite) TestCreateCourseProvisionsKeycloakWhileTheCourseSlotIsHeld() {
+	slotHeld, hadDeadline := false, false
+	suite.keycloak.onCreate = func(ctx context.Context, _ string) {
+		slotHeld = suite.slotHeld("provisioned", "ws24")
 		_, hadDeadline = ctx.Deadline()
 	}
 
@@ -131,23 +126,23 @@ func (suite *CourseKeycloakTestSuite) TestCreateCourseProvisionsKeycloakUnderThe
 	require.NoError(suite.T(), err)
 	assert.Equal(suite.T(), []string{"ws24-provisioned"}, suite.keycloak.created)
 	assert.Empty(suite.T(), suite.keycloak.cleanedUp)
-	assert.True(suite.T(), identifierLocked, "a course with a colliding identifier must wait until this one is committed")
+	assert.True(suite.T(), slotHeld, "a second creation of the same course must wait until this one is committed")
 	assert.True(suite.T(), hadDeadline, "the Keycloak calls must be bounded")
 	assert.Equal(suite.T(), 1, suite.countCourses("provisioned", "ws24"))
 }
 
 func (suite *CourseKeycloakTestSuite) TestCreateCourseCleansUpKeycloakBeforeTheRollback() {
 	suite.keycloak.createErr = errors.New("keycloak unavailable")
-	identifierLocked := false
-	suite.keycloak.onCleanUp = func(identifier string) {
-		identifierLocked = suite.identifierLocked(identifier)
+	slotHeld := false
+	suite.keycloak.onCleanUp = func(string) {
+		slotHeld = suite.slotHeld("held", "ws24")
 	}
 
 	_, err := suite.service.CreateCourse(suite.ctx, courseToCreate("held", "ws24"), "creator")
 
 	assert.ErrorIs(suite.T(), err, suite.keycloak.createErr)
 	assert.Equal(suite.T(), []string{"ws24-held"}, suite.keycloak.cleanedUp)
-	assert.True(suite.T(), identifierLocked, "the cleanup must run before the rollback releases the identifier")
+	assert.True(suite.T(), slotHeld, "the cleanup must run before the rollback releases the course's slot")
 	assert.Zero(suite.T(), suite.countCourses("held", "ws24"))
 }
 
@@ -186,24 +181,33 @@ func (suite *CourseKeycloakTestSuite) TestCreateCourseRejectsADuplicateBeforeKey
 	assert.Empty(suite.T(), suite.keycloak.cleanedUp)
 }
 
-// "ws24" with "ios-lab" and "ws24-ios" with "lab" are different courses in the database, but would
-// share the Keycloak groups and roles named "ws24-ios-lab".
-func (suite *CourseKeycloakTestSuite) TestCreateCourseRejectsAnIdentifierAnotherCourseHas() {
-	_, err := suite.service.CreateCourse(suite.ctx, courseToCreate("ios-lab", "ws24"), "first-creator")
-	require.NoError(suite.T(), err)
+// The router validates the name and semester tag first. The service refuses them again before
+// Keycloak, because the provisioning relies on them:
+//   - "ws24" with "ios-lab" and "ws24-ios" with "lab" would share the groups and roles "ws24-ios-lab".
+//   - Keycloak resolves "Prompt/ws24-ios/Lecturer" to the Lecturer group of the course "ws24-ios", so
+//     the course "ios/Lecturer" would be provisioned inside it and its creator inherit its role.
+func (suite *CourseKeycloakTestSuite) TestCreateCourseRejectsAHyphenOrASlashBeforeKeycloak() {
+	for _, invalid := range []struct{ name, semesterTag string }{
+		{"lab", "ws24-ios"},
+		{"ios-lab", "ws24"},
+		{"ios/Lecturer", "ws24"},
+		{"lab", "ws24/ios"},
+	} {
+		suite.Run(invalid.semesterTag+" "+invalid.name, func() {
+			*suite.keycloak = courseKeycloakSpy{}
 
-	_, err = suite.service.CreateCourse(suite.ctx, courseToCreate("lab", "ws24-ios"), "second-creator")
+			_, err := suite.service.CreateCourse(suite.ctx, courseToCreate(invalid.name, invalid.semesterTag), "creator")
 
-	assert.ErrorIs(suite.T(), err, ErrCourseIdentifierTaken)
-	assert.Equal(suite.T(), []string{"ws24-ios-lab"}, suite.keycloak.created, "Keycloak must not be touched for the second course")
-	assert.Empty(suite.T(), suite.keycloak.cleanedUp, "the first course's Keycloak groups must survive")
-	assert.Zero(suite.T(), suite.countCourses("lab", "ws24-ios"))
+			assert.ErrorIs(suite.T(), err, ErrInvalidCourseIdentifier)
+			assert.Empty(suite.T(), suite.keycloak.created)
+			assert.Empty(suite.T(), suite.keycloak.cleanedUp)
+			assert.Zero(suite.T(), suite.countCourses(invalid.name, invalid.semesterTag))
+		})
+	}
 }
 
-func (suite *CourseKeycloakTestSuite) TestCreateCourseAnswersAnIdentifierAnotherCourseHasWithConflict() {
-	_, err := suite.service.CreateCourse(suite.ctx, courseToCreate("router-lab", "ss25"), "first-creator")
-	require.NoError(suite.T(), err)
-	body, err := json.Marshal(courseToCreate("lab", "ss25-router"))
+func (suite *CourseKeycloakTestSuite) TestCreateCourseAnswersAHyphenWithBadRequest() {
+	body, err := json.Marshal(courseToCreate("lab", "ws24-ios"))
 	require.NoError(suite.T(), err)
 
 	req := httptest.NewRequest(http.MethodPost, "/api/courses/", bytes.NewReader(body))
@@ -211,8 +215,9 @@ func (suite *CourseKeycloakTestSuite) TestCreateCourseAnswersAnIdentifierAnother
 	resp := httptest.NewRecorder()
 	newAdminCourseRouter(suite.service).ServeHTTP(resp, req)
 
-	assert.Equal(suite.T(), http.StatusConflict, resp.Code)
-	assert.Contains(suite.T(), resp.Body.String(), "ss25-router-lab")
+	assert.Equal(suite.T(), http.StatusBadRequest, resp.Code)
+	assert.Contains(suite.T(), resp.Body.String(), "the semester tag must not contain")
+	assert.Empty(suite.T(), suite.keycloak.created)
 }
 
 func TestCourseKeycloakTestSuite(t *testing.T) {

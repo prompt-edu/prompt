@@ -89,19 +89,6 @@ INSERT INTO course (id, name, start_date, end_date, semester_tag, course_type, e
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 RETURNING *;
 
--- name: LockCourseIdentifier :exec
--- Held until the transaction ends, so courses that share a Keycloak identifier are created one at a time.
-SELECT pg_advisory_xact_lock(hashtextextended('course_identifier:' || sqlc.arg(identifier)::text, 0));
-
--- name: CheckCourseIdentifierTaken :one
--- The identifier is "<semester_tag>-<name>", as permissionValidation.CourseIdentifier builds it.
-SELECT EXISTS(
-    SELECT 1
-    FROM course
-    WHERE COALESCE(semester_tag, '') || '-' || name = sqlc.arg(identifier)::text
-      AND id <> sqlc.arg(course_id)::uuid
-) AS "exists";
-
 -- name: CheckCoursePhasesBelongToCourse :one
 WITH matched_phases AS (SELECT id
                         FROM course_phase

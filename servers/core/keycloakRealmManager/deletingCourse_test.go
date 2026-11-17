@@ -97,6 +97,21 @@ func TestDeleteCourseGroupsAndRolesByNameSucceedsWhenTheGroupIsAlreadyGone(t *te
 	assert.Empty(t, roles)
 }
 
+// The path "Prompt/ws24-ios/Lecturer" resolves to the Lecturer group of the course "ws24-ios", which
+// a course named "ios/Lecturer" must not delete.
+func TestDeleteCourseGroupsAndRolesByNameLeavesAnotherCoursesGroupForASlashInTheName(t *testing.T) {
+	realm := newFakeRealm()
+	realm.addGroup("Prompt/ws24-ios/Lecturer", "lecturer")
+	realm.addRole("ws24-ios-Lecturer", "Prompt/ws24-ios/Lecturer")
+
+	err := realm.start(t).DeleteCourseGroupsAndRolesByName(context.Background(), "ios/Lecturer", "ws24")
+
+	require.NoError(t, err)
+	groups, roles := realm.state()
+	assert.Equal(t, []string{"lecturer"}, groups["Prompt/ws24-ios/Lecturer"].Members)
+	assert.Equal(t, []string{"ws24-ios-Lecturer"}, roles)
+}
+
 // A transport error embeds the request URL, here one with "404" in the course identifier. It must
 // not read as "the group is already gone".
 func TestDeleteCourseGroupsAndRolesByNameFailsWhenKeycloakIsUnreachable(t *testing.T) {

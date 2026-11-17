@@ -186,17 +186,25 @@ func (suite *CopyCourseTestSuite) TestCopyCourseCleansUpKeycloakWhenProvisioning
 	assert.False(suite.T(), suite.courseExists("Failed Clone", "ws2526"), "the copy must be rolled back")
 }
 
-func (suite *CopyCourseTestSuite) TestCopyCourseRejectsAnIdentifierAnotherCourseHas() {
+// The router validates the name and semester tag first; the copy refuses them again before Keycloak.
+func (suite *CopyCourseTestSuite) TestCopyCourseRejectsAHyphenBeforeKeycloak() {
 	ginCtx, _ := gin.CreateTestContext(nil)
-	_, err := suite.courseCopyService.copyCourseInternal(ginCtx, suite.sourceCourse.ID, suite.copyRequest("ios-lab", "ws25"), "test_user")
+	_, err := suite.courseCopyService.copyCourseInternal(ginCtx, suite.sourceCourse.ID, suite.copyRequest("lab", "ws25-ios"), "test_user")
+
+	assert.ErrorIs(suite.T(), err, course.ErrInvalidCourseIdentifier)
+	assert.Empty(suite.T(), suite.keycloak.created)
+	assert.False(suite.T(), suite.courseExists("lab", "ws25-ios"))
+}
+
+func (suite *CopyCourseTestSuite) TestCopyCourseRejectsADuplicate() {
+	ginCtx, _ := gin.CreateTestContext(nil)
+	_, err := suite.courseCopyService.copyCourseInternal(ginCtx, suite.sourceCourse.ID, suite.copyRequest("Duplicate Clone", "ws25"), "test_user")
 	require.NoError(suite.T(), err)
 
-	_, err = suite.courseCopyService.copyCourseInternal(ginCtx, suite.sourceCourse.ID, suite.copyRequest("lab", "ws25-ios"), "test_user")
+	_, err = suite.courseCopyService.copyCourseInternal(ginCtx, suite.sourceCourse.ID, suite.copyRequest("Duplicate Clone", "ws25"), "test_user")
 
-	assert.ErrorIs(suite.T(), err, course.ErrCourseIdentifierTaken)
-	assert.Equal(suite.T(), []string{"ios-lab"}, suite.keycloak.created, "Keycloak must not be touched for the second copy")
-	assert.Empty(suite.T(), suite.keycloak.cleanedUp, "the first copy's Keycloak groups must survive")
-	assert.False(suite.T(), suite.courseExists("lab", "ws25-ios"))
+	assert.ErrorIs(suite.T(), err, course.ErrDuplicateCourseIdentifier)
+	assert.Equal(suite.T(), []string{"Duplicate Clone"}, suite.keycloak.created, "Keycloak must not be touched for the duplicate")
 }
 
 func TestCopyCourseTestSuite(t *testing.T) {

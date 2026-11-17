@@ -113,6 +113,26 @@ func (suite *CourseCopyRouterTestSuite) TestCopyCourseRejectsUnknownCourseType()
 	assert.Equal(suite.T(), http.StatusBadRequest, resp.Code)
 }
 
+func (suite *CourseCopyRouterTestSuite) TestCopyCourseRejectsAHyphenInTheSemesterTag() {
+	courseID := "c1f8060d-7381-4b64-a6ea-5ba8e8ac88dd"
+
+	copyCourseRequest := courseCopyDTO.CopyCourseRequest{
+		Name:        "lab",
+		SemesterTag: pgtype.Text{String: "ws2526-ios", Valid: true},
+		StartDate:   pgtype.Date{Valid: true, Time: time.Now()},
+		EndDate:     pgtype.Date{Valid: true, Time: time.Now().Add(24 * time.Hour)},
+	}
+
+	body, _ := json.Marshal(copyCourseRequest)
+	req, _ := http.NewRequest("POST", "/api/courses/"+courseID+"/copy", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp := httptest.NewRecorder()
+
+	suite.router.ServeHTTP(resp, req)
+	assert.Equal(suite.T(), http.StatusBadRequest, resp.Code)
+	assert.Contains(suite.T(), resp.Body.String(), "the semester tag must not contain")
+}
+
 func TestCourseCopyRouterTestSuite(t *testing.T) {
 	suite.Run(t, new(CourseCopyRouterTestSuite))
 }

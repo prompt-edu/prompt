@@ -219,7 +219,7 @@ func (s *CourseService) CreateCourse(ctx context.Context, course courseDTO.Creat
 	}
 
 	// create keycloak roles - also add the requester to the course lecturer role
-	err = ProvisionKeycloak(ctx, qtx, createdCourse, requesterID, s.createCourseGroupsAndRoles, s.cleanUpCourseGroupsAndRoles)
+	err = ProvisionKeycloak(ctx, createdCourse, requesterID, s.createCourseGroupsAndRoles, s.cleanUpCourseGroupsAndRoles)
 	if err != nil {
 		log.Error("Failed to create keycloak roles for course: ", err)
 		return courseDTO.Course{}, err

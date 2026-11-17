@@ -210,6 +210,32 @@ func (suite *CourseTestSuite) TestValidateUpdateCourseData() {
 	}
 }
 
+func TestValidateCourseIdentifier(t *testing.T) {
+	tests := []struct {
+		name, courseName, semesterTag, expectedError string
+	}{
+		{"valid", "iPraktikum", "ios2425", ""},
+		{"spaces are allowed", "Agile Project Management", "ws2425", ""},
+		{"hyphen in the name", "ios-lab", "ws24", `invalid course name or semester tag: the name must not contain "-" or "/"`},
+		{"hyphen in the semester tag", "lab", "ws24-ios", `invalid course name or semester tag: the semester tag must not contain "-" or "/"`},
+		{"slash in the name", "ios/Lecturer", "ws24", `invalid course name or semester tag: the name must not contain "-" or "/"`},
+		{"slash in the semester tag", "lab", "ws24/ios", `invalid course name or semester tag: the semester tag must not contain "-" or "/"`},
+		{"empty name", "", "ws24", "invalid course name or semester tag: the name is required"},
+		{"empty semester tag", "lab", "", "invalid course name or semester tag: the semester tag is required"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := ValidateCourseIdentifier(tt.courseName, tt.semesterTag)
+			if tt.expectedError == "" {
+				assert.NoError(t, err)
+			} else {
+				assert.ErrorIs(t, err, ErrInvalidCourseIdentifier)
+				assert.EqualError(t, err, tt.expectedError)
+			}
+		})
+	}
+}
+
 func TestCourseTestSuite(t *testing.T) {
 	suite.Run(t, new(CourseTestSuite))
 }

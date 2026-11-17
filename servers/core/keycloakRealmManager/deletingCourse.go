@@ -41,10 +41,19 @@ func (s *KeycloakRealmService) deleteCourseGroupsAndRoles(ctx context.Context, c
 		return fmt.Errorf("failed to log in to Keycloak: %w", err)
 	}
 
-	groupPath := TOP_LEVEL_GROUP_NAME + "/" + courseGroupName
-	groupID, found, err := s.findGroupAtPath(ctx, token.AccessToken, groupPath)
-	if err != nil {
-		return err
+	// Keycloak splits a group path at every "/", so the path of a course named before course names
+	// were refused a "/" can resolve to another course's group, such as "ws24-ios/Lecturer".
+	groupID, found := "", false
+	if strings.Contains(courseGroupName, "/") {
+		log.Warnf("course %s group name contains a \"/\"; skipping group deletion", courseGroupName)
+	} else {
+		groupID, found, err = s.findGroupAtPath(ctx, token.AccessToken, TOP_LEVEL_GROUP_NAME+"/"+courseGroupName)
+		if err != nil {
+			return err
+		}
+		if !found {
+			log.Warnf("course %s group not found in Keycloak; skipping group deletion", courseGroupName)
+		}
 	}
 
 	// Group deletion only drops the group-role mappings, not the role definitions themselves.
@@ -53,7 +62,6 @@ func (s *KeycloakRealmService) deleteCourseGroupsAndRoles(ctx context.Context, c
 	}
 
 	if !found {
-		log.Warnf("course %s group not found in Keycloak; skipping group deletion", courseGroupName)
 		return nil
 	}
 	if err := s.client.DeleteGroup(ctx, token.AccessToken, s.Realm, groupID); err != nil && !hasStatus(err, http.StatusNotFound) {

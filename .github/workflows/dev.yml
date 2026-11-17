@@ -113,7 +113,8 @@ jobs:
     uses: ./.github/workflows/test-e2e.yml
     permissions:
       contents: read
-  # Not a deploy-dev dependency: a finding is reported on the PR, not held against the deploy.
+  # Blocks the PR through ci-passed, but is not a deploy-dev dependency: a finding
+  # does not hold back the deploy.
   api-stress-tests:
     needs: quality-servers
     uses: ./.github/workflows/test-api-stress.yml
@@ -137,6 +138,7 @@ jobs:
       - build-servers
       - quality-clients
       - e2e-tests
+      - api-stress-tests
       - build-clients
     if: ${{ always() }}
     runs-on: ubuntu-latest

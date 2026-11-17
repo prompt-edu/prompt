@@ -75,7 +75,7 @@ export const MyTutorEvaluationResultsPage = () => {
   const tutorLabel = getTutorLabel(coursePhaseConfig)
 
   const resultsQuery = useGetMyTutorEvaluationResults()
-  const { data: results, enabled } = resultsQuery
+  const { data: results, enabled, deadlinePassed } = resultsQuery
 
   const { data: tutorCategories } = useGetEvaluationCategoriesWithCompetencies(
     AssessmentType.TUTOR,
@@ -111,9 +111,11 @@ export const MyTutorEvaluationResultsPage = () => {
 
             {!enabled ? (
               <NoticeCard>
-                {coursePhaseConfig?.tutorEvaluationEnabled
-                  ? `${tutorLabel.title} evaluation results have not been released yet.`
-                  : `This phase has no ${tutorLabel.text} evaluation.`}
+                {!coursePhaseConfig?.tutorEvaluationEnabled
+                  ? `This phase has no ${tutorLabel.text} evaluation.`
+                  : !deadlinePassed
+                    ? `${tutorLabel.title} evaluation results are shown once the ${tutorLabel.text} evaluation deadline has passed.`
+                    : `${tutorLabel.title} evaluation results have not been released yet.`}
               </NoticeCard>
             ) : (
               <QueryGate queries={[resultsQuery]}>

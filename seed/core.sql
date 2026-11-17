@@ -497,6 +497,13 @@ INSERT INTO course_phase_participation (course_participation_id, course_phase_id
     VALUES ('a0000006-0000-0000-0000-000000000006', 'd0000018-0000-0000-0000-000000000018', '{}', 'not_assessed', '{}');
 INSERT INTO course_phase_participation (course_participation_id, course_phase_id, restricted_data, pass_status, student_readable_data)
     VALUES ('a0000001-0000-0000-0000-000000000001', 'd0000019-0000-0000-0000-000000000019', '{}', 'not_assessed', '{}');
+-- Stan + Selma also take part in the Team Allocation Tutor Scope phase itself:
+-- the tutor results spec has them evaluate their tutor, and assessment checks
+-- that target against the team phase with the student's own token.
+INSERT INTO course_phase_participation (course_participation_id, course_phase_id, restricted_data, pass_status, student_readable_data)
+    VALUES ('a0000001-0000-0000-0000-000000000001', 'b3000004-0000-0000-0000-000000000004', '{}', 'passed', '{}');
+INSERT INTO course_phase_participation (course_participation_id, course_phase_id, restricted_data, pass_status, student_readable_data)
+    VALUES ('ca000008-0000-4000-8000-000000000008', 'b3000004-0000-0000-0000-000000000004', '{}', 'passed', '{}');
 INSERT INTO course_phase_participation (course_participation_id, course_phase_id, restricted_data, pass_status, student_readable_data)
     VALUES ('a0000001-0000-0000-0000-000000000001', 'd000001a-0000-0000-0000-00000000001a', '{}', 'not_assessed', '{}');
 INSERT INTO course_phase_participation (course_participation_id, course_phase_id, restricted_data, pass_status, student_readable_data)

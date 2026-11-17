@@ -29,6 +29,11 @@ Once the assessment phase is set up, students and instructors can begin evaluati
    several students in the participants table and use **Mark as final** from the actions menu.
    Students with unassessed competencies or no grade suggestion are skipped. **Unmark final** reopens
    assessments until the deadline has passed.
+5. **Export Reports**: Select students in the participants table and use **Export JSON** or
+   **Export PDF** from the actions menu to download a zip with one file per student. The tutor
+   overview offers the same actions for tutor evaluations, with one file per tutor listing every
+   team they lead. The **Self Evaluations** and **Peer Evaluations** overviews offer **Export PDF**;
+   selected participants without any evaluations are skipped.
 
 > 💡 **Tip**: Regularly check for updates and communicate with your team to ensure timely submissions.
 
@@ -242,11 +247,15 @@ Competencies are individual skills within categories:
 
 Like other template changes, editing and reordering are disabled once assessment data has been submitted for the template.
 
+### Templates of a Deleted Phase
+
+Deleting an assessment phase permanently removes its configuration, assessments, evaluations, feedback, and action items. Templates the phase created are deleted with it, unless another phase still uses them. A copied course reuses the templates of the original course, for example. Such a template stays, and the phase using it (the one that starts first, if several do) becomes its owner and can keep editing it. The global default templates are never deleted.
+
 ### Exporting a Template
 
 Open the template from the Settings page and click **Export** above its categories:
 
-- **PDF / Print**: Prints the empty template in the same layout as an exported assessment, with every competency and its score level descriptions. Choose "Save as PDF" in the print dialog.
+- **PDF**: Downloads the empty template as a PDF in the same layout as an exported assessment, with every competency and its score level descriptions.
 - **JSON**: Downloads a machine-readable copy that **Import** accepts, for example to reuse the template in another phase.
 
 📺 **Video Tutorial**: Coming soon

@@ -10,8 +10,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const groupMembersPageSize = 100
-
 // DeleteOrgGroupsAndRoles deletes the org's roles and groups, and returns the Keycloak IDs of the
 // users who were in its Admin and Member groups, keyed by role, so that a deletion the database
 // rolls back can put them back. It changes nothing when the members cannot be read.
@@ -69,7 +67,7 @@ func (s *KeycloakRealmService) orgMemberIDs(ctx context.Context, accessToken, or
 }
 
 func (s *KeycloakRealmService) groupMemberIDs(ctx context.Context, accessToken, groupID string) ([]string, error) {
-	users, err := s.groupMembers(ctx, accessToken, groupID)
+	users, err := s.GetGroupMembers(ctx, accessToken, groupID)
 	if err != nil {
 		return nil, err
 	}

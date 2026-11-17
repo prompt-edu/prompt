@@ -48,7 +48,7 @@ func (s *KeycloakRealmService) GetOrgMembers(ctx context.Context, slug string) (
 			log.Warnf("org %s %s group not found in Keycloak; treating as empty", slug, orgRole)
 			continue
 		}
-		users, err := s.groupMembers(ctx, token.AccessToken, groupID)
+		users, err := s.GetGroupMembers(ctx, token.AccessToken, groupID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get the members of the %s group: %w", orgRole, err)
 		}
@@ -189,24 +189,4 @@ func (s *KeycloakRealmService) RemoveOrgMember(ctx context.Context, slug, userID
 		}
 	}
 	return nil
-}
-
-// groupMembers returns every user in the group, page by page.
-func (s *KeycloakRealmService) groupMembers(ctx context.Context, accessToken, groupID string) ([]*gocloak.User, error) {
-	var users []*gocloak.User
-	for first := 0; ; first += groupMembersPageSize {
-		page, err := s.client.GetGroupMembers(ctx, accessToken, s.Realm, groupID, gocloak.GetGroupsParams{
-			First: gocloak.IntP(first),
-			Max:   gocloak.IntP(groupMembersPageSize),
-			// The full representation carries the user attributes, which hold the university login.
-			BriefRepresentation: gocloak.BoolP(false),
-		})
-		if err != nil {
-			return nil, err
-		}
-		users = append(users, page...)
-		if len(page) < groupMembersPageSize {
-			return users, nil
-		}
-	}
 }

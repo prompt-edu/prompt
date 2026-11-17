@@ -116,17 +116,25 @@ export const LaunchTeaseDialog = () => {
           <Button variant='outline' onClick={() => setOpen(false)}>
             Cancel
           </Button>
-          <Button asChild>
-            <a
-              href={`/tease?coursePhaseId=${phaseId ?? ''}`}
-              target='_blank'
-              rel='noopener noreferrer'
-              onClick={() => setOpen(false)}
-            >
-              {hasWarnings ? 'Launch TEASE anyway' : 'Launch TEASE'}
+          {/* Launching waits for the data check, so the warnings show before TEASE opens. */}
+          {studentsQuery.isPending ? (
+            <Button disabled>
+              Launch TEASE
               <ArrowRight className='ml-2 h-4 w-4' />
-            </a>
-          </Button>
+            </Button>
+          ) : (
+            <Button asChild>
+              <a
+                href={`/tease?coursePhaseId=${phaseId ?? ''}`}
+                target='_blank'
+                rel='noopener noreferrer'
+                onClick={() => setOpen(false)}
+              >
+                {hasWarnings ? 'Launch TEASE anyway' : 'Launch TEASE'}
+                <ArrowRight className='ml-2 h-4 w-4' />
+              </a>
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

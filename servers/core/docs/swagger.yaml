@@ -5830,9 +5830,10 @@ paths:
     put:
       consumes:
       - application/json
-      description: Give the user with the Keycloak ID the Admin or Member role of
-        the org, adding them to the org if they are not a member yet. A user holds
-        one org role at a time. Only PROMPT admins can change their own membership.
+      description: Give the member with the Keycloak ID the Admin or Member role of
+        the org. A user who holds no role in the org is refused, so a stale selection
+        never adds them back. A user holds one org role at a time. Only PROMPT admins
+        can change their own membership.
       parameters:
       - description: Org UUID
         in: path

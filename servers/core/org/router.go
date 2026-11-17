@@ -129,7 +129,7 @@ func (s *OrgService) addOrgMember(c *gin.Context) {
 
 // updateOrgMemberRole godoc
 // @Summary Change the role of an org member
-// @Description Give the user with the Keycloak ID the Admin or Member role of the org, adding them to the org if they are not a member yet. A user holds one org role at a time. Only PROMPT admins can change their own membership.
+// @Description Give the member with the Keycloak ID the Admin or Member role of the org. A user who holds no role in the org is refused, so a stale selection never adds them back. A user holds one org role at a time. Only PROMPT admins can change their own membership.
 // @Tags orgs
 // @Accept json
 // @Param orgID path string true "Org UUID"
@@ -442,7 +442,7 @@ func handleServiceError(c *gin.Context, err error, fallbackMessage string) {
 	switch {
 	case errors.Is(err, ErrOrgNotFound):
 		sdkUtils.HandleError(c, http.StatusNotFound, err)
-	case errors.Is(err, keycloakRealmManager.ErrUserNotFound):
+	case errors.Is(err, keycloakRealmManager.ErrUserNotFound), errors.Is(err, ErrNotOrgMember):
 		sdkUtils.HandleError(c, http.StatusNotFound, err)
 	case errors.Is(err, ErrParentOrgNotFound), errors.Is(err, ErrOrgCycle), errors.Is(err, ErrOwnMembership), errors.Is(err, keycloakRealmManager.ErrInvalidOrgRole):
 		sdkUtils.HandleError(c, http.StatusBadRequest, err)

@@ -620,19 +620,16 @@ func (suite *OrgServiceTestSuite) TestGetOwnOrgsWithoutOrgRolesIsAnEmptyList() {
 
 var caller = Caller{UserID: "caller"}
 
-func (suite *OrgServiceTestSuite) TestUpdateOrgMemberRoleAddsAUserToTheOrg() {
-	org := suite.createOrg("members-add", nil)
-	ada := staffMember("ada", "ad12min")
-	service, members := suite.withMembers(ada)
+// A member changed from a stale list may have been removed since, so changing their role never adds
+// them back.
+func (suite *OrgServiceTestSuite) TestUpdateOrgMemberRoleNeverAddsAUserToTheOrg() {
+	org := suite.createOrg("members-update-removed", nil)
+	service, members := suite.withMembers(staffMember("ada", "ad12min"))
 
-	gotOrg, err := service.UpdateOrgMemberRole(suite.ctx, org.ID, "ada", permissionValidation.OrgAdmin, caller)
+	_, err := service.UpdateOrgMemberRole(suite.ctx, org.ID, "ada", permissionValidation.OrgAdmin, caller)
 
-	require.NoError(suite.T(), err)
-	assert.Equal(suite.T(), org.ID, gotOrg.ID)
-	assert.Equal(suite.T(), permissionValidation.OrgAdmin, members.roleOf("members-add", "ada"))
-	listed, err := service.GetOrgMembers(suite.ctx, org.ID)
-	require.NoError(suite.T(), err)
-	assert.Equal(suite.T(), []keycloakRealmDTO.OrgMember{{StaffMember: ada, Role: permissionValidation.OrgAdmin}}, listed)
+	assert.ErrorIs(suite.T(), err, ErrNotOrgMember)
+	assert.Empty(suite.T(), members.roleOf("members-update-removed", "ada"))
 }
 
 func (suite *OrgServiceTestSuite) TestMembershipOfAnUnknownOrgIsNotFound() {
@@ -709,13 +706,17 @@ func (suite *OrgServiceTestSuite) TestRemoveOrgMemberRejectsTheCallersOwnMembers
 
 func (suite *OrgServiceTestSuite) TestAddOrgMemberAddsAUserWithoutAnOrgRole() {
 	org := suite.createOrg("members-add-new", nil)
-	service, members := suite.withMembers(staffMember("ada", "ad12min"))
+	ada := staffMember("ada", "ad12min")
+	service, members := suite.withMembers(ada)
 
 	gotOrg, err := service.AddOrgMember(suite.ctx, org.ID, "ada", permissionValidation.OrgMember, caller)
 
 	require.NoError(suite.T(), err)
 	assert.Equal(suite.T(), org.ID, gotOrg.ID)
 	assert.Equal(suite.T(), permissionValidation.OrgMember, members.roleOf("members-add-new", "ada"))
+	listed, err := service.GetOrgMembers(suite.ctx, org.ID)
+	require.NoError(suite.T(), err)
+	assert.Equal(suite.T(), []keycloakRealmDTO.OrgMember{{StaffMember: ada, Role: permissionValidation.OrgMember}}, listed)
 }
 
 // A user picked from a stale list may have become a member since, so adding them never changes
@@ -866,6 +867,7 @@ func (suite *OrgServiceTestSuite) TestMembershipChangesWaitForTheRestoreOfAFaile
 func (suite *OrgServiceTestSuite) TestMembershipChangesOfAnOrgTakeTurns() {
 	org := suite.createOrg("members-turns", nil)
 	service, members := suite.withMembers(staffMember("ada", "ad12min"))
+	require.NoError(suite.T(), members.SetOrgMemberRole(suite.ctx, "members-turns", "ada", permissionValidation.OrgMember))
 	writes, release := make(chan struct{}, 2), make(chan struct{})
 	releaseWrites := sync.OnceFunc(func() { close(release) })
 	defer releaseWrites()

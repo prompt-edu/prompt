@@ -42,6 +42,7 @@ var (
 	ErrOrgMembersRemoved = errors.New("the org was not deleted, but not all of its members could be re-added to its Keycloak groups: the server log names them; re-add them, or delete the org again")
 	ErrOwnMembership     = errors.New("you cannot change your own org membership; ask another Org Admin or a PROMPT admin")
 	ErrAlreadyOrgMember  = errors.New("the user is already a member of the org; change their role instead")
+	ErrNotOrgMember      = errors.New("the user is not a member of the org; add them instead")
 )
 
 // orgMembers maps an org role to the Keycloak IDs of the users in its group.
@@ -170,10 +171,17 @@ func (s *OrgService) AddOrgMember(ctx context.Context, orgID uuid.UUID, userID, 
 	})
 }
 
-// UpdateOrgMemberRole gives the user with the Keycloak ID the org role, adding them to the org if
-// they are not a member yet.
+// UpdateOrgMemberRole gives a member of the org the org role. Unlike AddOrgMember, it never adds a
+// user to the org: a member changed from a stale list may have been removed since.
 func (s *OrgService) UpdateOrgMemberRole(ctx context.Context, orgID uuid.UUID, userID, orgRole string, caller Caller) (orgDTO.Org, error) {
 	return s.changeMembership(ctx, orgID, userID, caller, func(ctx context.Context, slug string) error {
+		currentRole, err := s.members.OrgRoleOf(ctx, slug, userID)
+		if err != nil {
+			return fmt.Errorf("failed to get the org role of user %s: %w", userID, err)
+		}
+		if currentRole == "" {
+			return ErrNotOrgMember
+		}
 		if err := s.members.SetOrgMemberRole(ctx, slug, userID, orgRole); err != nil {
 			return fmt.Errorf("failed to set the org role of user %s: %w", userID, err)
 		}

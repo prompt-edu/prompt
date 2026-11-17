@@ -47,8 +47,7 @@ type OwnOrg struct {
 	Role string `json:"role" enums:"Admin,Member"`
 }
 
-// UpdateOrgMemberRole gives the user in the URL an org role, adding them to the org if they are not
-// a member yet.
+// UpdateOrgMemberRole is the org role the user in the URL is added with or changed to.
 type UpdateOrgMemberRole struct {
 	Role string `json:"role" validate:"required" enums:"Admin,Member"`
 }

@@ -386,12 +386,20 @@ func (suite *OrgRouterTestSuite) addAdaPath(orgID uuid.UUID, slug string) func()
 	}
 }
 
+// The path makes ada a member of the org first, so every allowed actor changes the role of a member.
+func (suite *OrgRouterTestSuite) memberAdaPath(orgID uuid.UUID, slug string) func() string {
+	return func() string {
+		require.NoError(suite.T(), suite.members.SetOrgMemberRole(suite.ctx, slug, adaUserID, permissionValidation.OrgAdmin))
+		return memberPath(orgID, adaUserID)
+	}
+}
+
 func (suite *OrgRouterTestSuite) TestAddOrgMemberPermissions() {
 	suite.expectStatus(http.MethodPost, suite.addAdaPath(suite.org.ID, "ase"), roleBody(permissionValidation.OrgMember), http.StatusNoContent, promptAdmin, orgAdmin)
 }
 
 func (suite *OrgRouterTestSuite) TestUpdateOrgMemberRolePermissions() {
-	suite.expectStatus(http.MethodPut, func() string { return memberPath(suite.org.ID, adaUserID) }, roleBody(permissionValidation.OrgMember), http.StatusNoContent, promptAdmin, orgAdmin)
+	suite.expectStatus(http.MethodPut, suite.memberAdaPath(suite.org.ID, "ase"), roleBody(permissionValidation.OrgMember), http.StatusNoContent, promptAdmin, orgAdmin)
 }
 
 func (suite *OrgRouterTestSuite) TestRemoveOrgMemberPermissions() {
@@ -401,7 +409,7 @@ func (suite *OrgRouterTestSuite) TestRemoveOrgMemberPermissions() {
 func (suite *OrgRouterTestSuite) TestParentOrgAdminsCannotManageTheMembersOfChildOrgs() {
 	suite.expectStatus(http.MethodGet, func() string { return membersPath(suite.childOrg.ID) }, noBody, http.StatusOK, promptAdmin)
 	suite.expectStatus(http.MethodPost, suite.addAdaPath(suite.childOrg.ID, "ase-lab"), roleBody(permissionValidation.OrgMember), http.StatusNoContent, promptAdmin)
-	suite.expectStatus(http.MethodPut, func() string { return memberPath(suite.childOrg.ID, adaUserID) }, roleBody(permissionValidation.OrgMember), http.StatusNoContent, promptAdmin)
+	suite.expectStatus(http.MethodPut, suite.memberAdaPath(suite.childOrg.ID, "ase-lab"), roleBody(permissionValidation.OrgMember), http.StatusNoContent, promptAdmin)
 	suite.expectStatus(http.MethodDelete, func() string { return memberPath(suite.childOrg.ID, adaUserID) }, noBody, http.StatusNoContent, promptAdmin)
 }
 
@@ -415,7 +423,8 @@ func (suite *OrgRouterTestSuite) TestAddOrgMemberRefusesAMember() {
 	assert.Equal(suite.T(), permissionValidation.OrgAdmin, suite.members.roleOf("ase", adaUserID))
 }
 
-func (suite *OrgRouterTestSuite) TestUpdateOrgMemberRoleGivesTheUserTheRole() {
+func (suite *OrgRouterTestSuite) TestUpdateOrgMemberRoleGivesTheMemberTheRole() {
+	require.NoError(suite.T(), suite.members.SetOrgMemberRole(suite.ctx, "ase", adaUserID, permissionValidation.OrgMember))
 	router := suite.routerFor(orgAdmin.roles...)
 
 	w := serve(router, http.MethodPut, memberPath(suite.org.ID, adaUserID), orgDTO.UpdateOrgMemberRole{Role: permissionValidation.OrgAdmin})
@@ -425,6 +434,16 @@ func (suite *OrgRouterTestSuite) TestUpdateOrgMemberRoleGivesTheUserTheRole() {
 	w = serve(router, http.MethodPut, memberPath(suite.org.ID, adaUserID), orgDTO.UpdateOrgMemberRole{Role: permissionValidation.OrgMember})
 	require.Equal(suite.T(), http.StatusNoContent, w.Code)
 	assert.Equal(suite.T(), permissionValidation.OrgMember, suite.members.roleOf("ase", adaUserID))
+}
+
+func (suite *OrgRouterTestSuite) TestUpdateOrgMemberRoleRefusesAUserWhoIsNotAMember() {
+	require.NoError(suite.T(), suite.members.RemoveOrgMember(suite.ctx, "ase", adaUserID))
+
+	w := serve(suite.routerFor(orgAdmin.roles...), http.MethodPut, memberPath(suite.org.ID, adaUserID), orgDTO.UpdateOrgMemberRole{Role: permissionValidation.OrgMember})
+
+	assert.Equal(suite.T(), http.StatusNotFound, w.Code)
+	assert.True(suite.T(), json.Valid(w.Body.Bytes()))
+	assert.Empty(suite.T(), suite.members.roleOf("ase", adaUserID))
 }
 
 func (suite *OrgRouterTestSuite) TestUpdateOrgMemberRoleValidatesInput() {

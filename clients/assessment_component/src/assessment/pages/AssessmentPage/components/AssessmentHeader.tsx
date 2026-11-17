@@ -24,7 +24,11 @@ export const AssessmentHeader = ({
     <StickyHeader
       floating
       expandedContent={
-        <ParticipantProfile participant={participant}>
+        <ParticipantProfile
+          courseParticipationId={participant.courseParticipationID}
+          person={participant.student}
+          studyDetails={participant.student}
+        >
           {getStatusBadge(participant.passStatus)}
           <StudentAssessmentBadges
             studentAssessment={studentAssessment}

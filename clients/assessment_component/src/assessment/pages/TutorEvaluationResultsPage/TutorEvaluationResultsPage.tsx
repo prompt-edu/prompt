@@ -3,11 +3,9 @@ import {
   Button,
   Card,
   CardContent,
-  CardHeader,
   ErrorPage,
   getStudentName,
   ParticipantNavigation,
-  ProfilePicture,
   QueryGate,
   StickyHeader,
 } from '@tumaet/prompt-ui-components'
@@ -17,6 +15,7 @@ import { useParams } from 'react-router-dom'
 import { AssessmentType } from '../../interfaces/assessmentType'
 import { ScoreBadges } from '../components/EvaluationScore'
 import { FeedbackItemDisplayPanel } from '../components/FeedbackItemDisplayPanel/FeedbackItemDisplayPanel'
+import { ParticipantProfile } from '../components/ParticipantProfile'
 import { PrintReport } from '../components/PrintReport/PrintReport'
 import { useGetAllTeams } from '../hooks/useGetAllTeams'
 import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
@@ -98,7 +97,6 @@ export const TutorEvaluationResultsPage = () => {
         }
 
         const tutorName = getStudentName(tutor)
-        const pageTitle = `${tutorLabel.title} Evaluation Results`
         const badges = (
           <>
             {tutor.teamNames.map((teamName) => (
@@ -118,20 +116,13 @@ export const TutorEvaluationResultsPage = () => {
               <StickyHeader
                 floating
                 expandedContent={
-                  // Tutors have no participation in this phase, so only name and teams.
-                  <Card>
-                    <CardHeader className='flex-row flex-wrap items-center gap-2 space-y-0'>
-                      <ProfilePicture
-                        courseParticipationId={tutor.id}
-                        firstName={tutor.firstName}
-                        lastName={tutor.lastName}
-                        size='lg'
-                        className='mr-2'
-                      />
-                      <h1 className='text-2xl font-bold'>{tutorName}</h1>
-                      {badges}
-                    </CardHeader>
-                  </Card>
+                  <ParticipantProfile
+                    courseParticipationId={tutor.id}
+                    person={tutor}
+                    label={`${tutorLabel.title} Evaluation`}
+                  >
+                    {badges}
+                  </ParticipantProfile>
                 }
               >
                 {(docked) => (
@@ -198,7 +189,7 @@ export const TutorEvaluationResultsPage = () => {
             </div>
 
             <PrintReport
-              title={`${pageTitle} for ${tutorName}`}
+              title={`${tutorLabel.title} Evaluation Results for ${tutorName}`}
               subtitle={tutor.teamNames.join(', ')}
               meta={
                 evaluatorCount > 1 ? (

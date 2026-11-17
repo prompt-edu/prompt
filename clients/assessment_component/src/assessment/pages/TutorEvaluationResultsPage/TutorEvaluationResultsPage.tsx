@@ -1,31 +1,28 @@
 import {
   Badge,
-  Button,
   Card,
   CardContent,
   ErrorPage,
-  getStudentName,
   ParticipantNavigation,
   QueryGate,
   StickyHeader,
 } from '@tumaet/prompt-ui-components'
-import { Printer } from 'lucide-react'
 import { useMemo } from 'react'
 import { useParams } from 'react-router-dom'
 import { AssessmentType } from '../../interfaces/assessmentType'
+import { DownloadPdfButton } from '../components/DownloadPdfButton'
 import { ScoreBadges } from '../components/EvaluationScore'
 import { FeedbackItemDisplayPanel } from '../components/FeedbackItemDisplayPanel/FeedbackItemDisplayPanel'
 import { ParticipantProfile } from '../components/ParticipantProfile'
-import { PrintReport } from '../components/PrintReport/PrintReport'
 import { useGetAllTeams } from '../hooks/useGetAllTeams'
 import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
 import { useGetEvaluationCategoriesWithCompetencies } from '../hooks/useGetEvaluationCategoriesWithCompetencies'
 import { getTutorLabel } from '../hooks/useTutorLabel'
+import { personFileBaseName } from '../utils/bulkExport/zipFiles'
 import { getScoreLevelsFromEvaluations } from '../utils/getScoreLevelsFromEvaluations'
-import { getTeamMemberName } from '../utils/getTeamMemberName'
 import { getTeamNamesOfTutor } from '../utils/getTutorRows'
-import { printPage } from '../utils/printPage'
 import { CategoryEvaluation } from './components/CategoryEvaluation'
+import { TutorEvaluationReport } from './components/TutorEvaluationReport'
 import { useGetEvaluationsForTutorInPhase } from './hooks/useGetEvaluationsForTutorInPhase'
 import { useGetFeedbackItemsForTutorInPhase } from './hooks/useGetFeedbackItemsForTutorInPhase'
 import { useTutorNavigation } from './hooks/useTutorNavigation'
@@ -74,21 +71,6 @@ export const TutorEvaluationResultsPage = () => {
     return feedbackItems.filter((item) => item.feedbackType === 'negative')
   }, [feedbackItems])
 
-  const reportScores = useMemo(
-    () =>
-      tutorEvaluations.map((evaluation) => ({
-        ...evaluation,
-        authorName: getTeamMemberName(teams, evaluation.authorCourseParticipationID),
-      })),
-    [teams, tutorEvaluations],
-  )
-
-  const evaluatorCount = useMemo(
-    () =>
-      new Set(tutorEvaluations.map((evaluation) => evaluation.authorCourseParticipationID)).size,
-    [tutorEvaluations],
-  )
-
   return (
     <QueryGate queries={[evaluationsQuery, feedbackItemsQuery]}>
       {() => {
@@ -96,7 +78,6 @@ export const TutorEvaluationResultsPage = () => {
           return <ErrorPage message={`The requested ${tutorLabel.text} could not be found.`} />
         }
 
-        const tutorName = getStudentName(tutor)
         const badges = (
           <>
             {tutor.teamNames.map((teamName) => (
@@ -180,27 +161,21 @@ export const TutorEvaluationResultsPage = () => {
 
               {tutorEvaluationCategories.length > 0 && (
                 <div className='flex justify-end pt-4'>
-                  <Button variant='outline' onClick={printPage} className='gap-2'>
-                    <Printer className='h-4 w-4' />
-                    PDF / Print
-                  </Button>
+                  <DownloadPdfButton
+                    fileName={`tutor_evaluation_${personFileBaseName(tutor)}.pdf`}
+                  />
                 </div>
               )}
             </div>
 
-            <PrintReport
-              title={`${tutorLabel.title} Evaluation Results for ${tutorName}`}
+            <TutorEvaluationReport
+              tutor={tutor}
               subtitle={tutor.teamNames.join(', ')}
-              meta={
-                evaluatorCount > 1 ? (
-                  <span>
-                    <strong>Evaluators:</strong> {evaluatorCount}
-                  </span>
-                ) : undefined
-              }
+              tutorTitle={tutorLabel.title}
               categories={tutorEvaluationCategories}
-              scores={reportScores}
+              evaluations={tutorEvaluations}
               feedbackItems={feedbackItems}
+              teams={teams}
             />
           </>
         )

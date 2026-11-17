@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
 import {
-  Button,
   Card,
   CardContent,
   ErrorPage,
@@ -9,12 +8,12 @@ import {
   QueryGate,
   StickyHeader,
 } from '@tumaet/prompt-ui-components'
-import { Printer } from 'lucide-react'
 import { type ReactNode, useMemo } from 'react'
 import { useParams } from 'react-router-dom'
 import { AssessmentType } from '../../interfaces/assessmentType'
 import { assessmentApi } from '../../network/api'
 import { assessmentKeys } from '../../network/cache'
+import { DownloadPdfButton } from '../components/DownloadPdfButton'
 import { ScoreBadges } from '../components/EvaluationScore'
 import { FeedbackItemDisplayPanel } from '../components/FeedbackItemDisplayPanel/FeedbackItemDisplayPanel'
 import { ParticipantProfile } from '../components/ParticipantProfile'
@@ -25,9 +24,9 @@ import { useGetCoursePhaseParticipations } from '../hooks/useGetCoursePhaseParti
 import { useGetEvaluationCategoriesWithCompetencies } from '../hooks/useGetEvaluationCategoriesWithCompetencies'
 import { useParticipantNavigation } from '../hooks/useParticipantNavigation'
 import { CategoryEvaluation } from '../TutorEvaluationResultsPage/components/CategoryEvaluation'
+import { personFileBaseName } from '../utils/bulkExport/zipFiles'
 import { getScoreLevelsFromEvaluations } from '../utils/getScoreLevelsFromEvaluations'
 import { getTeamMemberName } from '../utils/getTeamMemberName'
-import { printPage } from '../utils/printPage'
 
 interface EvaluationParticipantResultsPageProps {
   assessmentType: AssessmentType.SELF | AssessmentType.PEER
@@ -214,10 +213,9 @@ export const EvaluationParticipantResultsPage = ({
 
               {categories.length > 0 && (
                 <div className='flex justify-end pt-4'>
-                  <Button variant='outline' onClick={printPage} className='gap-2'>
-                    <Printer className='h-4 w-4' />
-                    PDF / Print
-                  </Button>
+                  <DownloadPdfButton
+                    fileName={`${assessmentType}_evaluation_${personFileBaseName(participant.student)}.pdf`}
+                  />
                 </div>
               )}
             </div>

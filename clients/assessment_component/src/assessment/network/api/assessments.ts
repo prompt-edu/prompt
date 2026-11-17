@@ -1,4 +1,5 @@
 import type { Assessment, CreateOrUpdateAssessmentRequest } from '../../interfaces/assessment'
+import type { AssessmentExport } from '../../interfaces/assessmentExport'
 import type { StudentAssessmentResults } from '../../interfaces/assessmentResults'
 import type { ScoreLevelWithParticipation } from '../../interfaces/scoreLevelWithParticipation'
 import type { StudentAssessment } from '../../interfaces/studentAssessment'
@@ -28,7 +29,7 @@ export const assessments = {
     coursePhaseID: string,
     courseParticipationID: string,
     format: AssessmentExportFormat,
-  ): Promise<unknown> =>
+  ): Promise<AssessmentExport> =>
     assessmentRequest.get(`${path(coursePhaseID)}/${courseParticipationID}/export`, { format }),
 
   save: (coursePhaseID: string, assessment: CreateOrUpdateAssessmentRequest): Promise<void> =>

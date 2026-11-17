@@ -65,6 +65,7 @@ Open <http://localhost:3000> and add a phase of type `example_component` to a co
 ## Creating your own phase from this component
 
 Prefer `make new-phase` (see above). To do it manually:
+
 1. `cp -R clients/example_component clients/<name>_component` and rename the inner
    `src/example_component` directory.
 2. Update `name` and `port` in `rspack.config.mjs`, `"name"` in `package.json`, and the root

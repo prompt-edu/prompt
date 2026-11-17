@@ -248,9 +248,8 @@ func (s *KeycloakRealmService) addCourseStaffMember(c *gin.Context) {
 	}
 
 	groupName := c.Param("groupName")
-	targetUserID := c.Param("userID")
-	if targetUserID == "" {
-		sdkUtils.HandleError(c, http.StatusBadRequest, errors.New("userID is required"))
+	targetUserID, ok := staffMemberID(c)
+	if !ok {
 		return
 	}
 
@@ -290,9 +289,8 @@ func (s *KeycloakRealmService) removeCourseStaffMember(c *gin.Context) {
 	}
 
 	groupName := c.Param("groupName")
-	targetUserID := c.Param("userID")
-	if targetUserID == "" {
-		sdkUtils.HandleError(c, http.StatusBadRequest, errors.New("userID is required"))
+	targetUserID, ok := staffMemberID(c)
+	if !ok {
 		return
 	}
 
@@ -311,6 +309,19 @@ func (s *KeycloakRealmService) removeCourseStaffMember(c *gin.Context) {
 	}
 
 	c.Status(http.StatusNoContent)
+}
+
+// staffMemberID returns the Keycloak user ID in the URL in its canonical form, or refuses the
+// request. Keycloak user IDs are UUIDs, so only a well-formed one is passed on to Keycloak. The
+// canonical form also keeps the self-removal guard from missing an uppercase spelling of the
+// caller's ID.
+func staffMemberID(c *gin.Context) (string, bool) {
+	userID, err := uuid.Parse(c.Param("userID"))
+	if err != nil {
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
+		return "", false
+	}
+	return userID.String(), true
 }
 
 // searchKeycloakUsers godoc

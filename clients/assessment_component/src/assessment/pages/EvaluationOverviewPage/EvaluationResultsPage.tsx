@@ -8,12 +8,11 @@ import {
   CardContent,
   ManagementPageHeader,
 } from '@tumaet/prompt-ui-components'
-import { ArrowLeft, Info, Printer } from 'lucide-react'
+import { ArrowLeft, Info } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-
+import { DownloadPdfButton } from '../components/DownloadPdfButton'
 import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
-import { printPage } from '../utils/printPage'
 
 import { AssessmentResultsSection } from './components/AssessmentResultsSection'
 import { EvaluationResultsSection } from './components/EvaluationResultsSection'
@@ -73,10 +72,9 @@ export const EvaluationResultsPage = () => {
 
       {resultsReleased && reportReady && (
         <div className='flex justify-end pt-4 print:hidden'>
-          <Button variant='outline' onClick={printPage} className='gap-2'>
-            <Printer className='h-4 w-4' />
-            PDF / Print
-          </Button>
+          <DownloadPdfButton
+            fileName={`${assessmentEnabled ? 'assessment' : 'evaluation'}_results.pdf`}
+          />
         </div>
       )}
     </div>

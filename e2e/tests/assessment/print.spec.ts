@@ -185,15 +185,18 @@ test.describe('assessment: print report', () => {
       PHASE_ID,
       `/self-evaluations/${FULL_COURSE_STUDENT.courseParticipationId}`,
     )
-    await expect(
-      page.getByRole('heading', { name: `Self Evaluation Results for ${STUDENT_NAME}` }),
-    ).toBeVisible({ timeout: 15_000 })
+    // The participant card names the student and labels which results page this is.
+    await expect(page.getByRole('heading', { name: STUDENT_NAME, exact: true })).toBeVisible({
+      timeout: 15_000,
+    })
+    await expect(page.getByText('Self Evaluation', { exact: true })).toBeVisible()
     await expect(page.getByRole('button', { name: 'PDF / Print' })).toBeVisible()
 
     // The report is a purpose-built twin, not the interactive tree: it carries
     // the rubric description instead of the five-option score selector.
     await phase.expectPrintReportFillsPage()
-    await expect(phase.printReport()).toContainText(STUDENT_NAME)
+    // The report keeps "Results" in its title, unlike the label on the page.
+    await expect(phase.printReport()).toContainText(`Self Evaluation Results for ${STUDENT_NAME}`)
     await expect(phase.printReport()).toContainText(SELF_COMPETENCY_NAME)
   })
 

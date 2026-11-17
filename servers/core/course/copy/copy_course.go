@@ -8,6 +8,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
+	"github.com/prompt-edu/prompt/servers/core/course"
 	"github.com/prompt-edu/prompt/servers/core/course/copy/courseCopyDTO"
 	"github.com/prompt-edu/prompt/servers/core/course/courseDTO"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
@@ -146,9 +147,9 @@ func (s *CourseCopyService) copyCourseInternal(c *gin.Context, sourceCourseID uu
 		}
 	}
 
-	if err := s.createCourseGroupsAndRoles(c, createdCourse.Name, createdCourse.SemesterTag.String, requesterID); err != nil {
+	if err := course.ProvisionKeycloak(c, qtx, createdCourse, requesterID, s.createCourseGroupsAndRoles, s.cleanUpCourseGroupsAndRoles); err != nil {
 		log.Error("failed to create keycloak roles for course: ", err)
-		return courseDTO.Course{}, fmt.Errorf("failed to create keycloak roles/groups: %w", err)
+		return courseDTO.Course{}, err
 	}
 
 	if err := tx.Commit(c); err != nil {

@@ -3,6 +3,7 @@ package keycloakRealmManager
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/Nerzal/gocloak/v14"
@@ -12,36 +13,53 @@ import (
 )
 
 // DeleteCourseGroupsAndRoles removes the Keycloak artifacts created by
-// CreateCourseGroupsAndRoles: the course group (Keycloak cascades its
-// Lecturer/Editor/CustomGroups subgroups) and the client roles named after the
-// course. It must run before the course row is removed from the database, since
-// the group name is derived from it. A group that is already gone is treated as
-// success so the operation stays idempotent.
+// CreateCourseGroupsAndRoles: the client roles named after the course and the
+// course group (Keycloak cascades its Lecturer/Editor/CustomGroups subgroups).
+// It must run before the course row is removed from the database, since the
+// group name is derived from it.
 func (s *KeycloakRealmService) DeleteCourseGroupsAndRoles(ctx context.Context, courseID uuid.UUID) error {
-	token, err := s.LoginClient(ctx)
-	if err != nil {
-		return err
-	}
-
 	courseGroupName, err := s.GetCourseGroupName(ctx, courseID)
 	if err != nil {
 		return fmt.Errorf("failed to get course group name: %w", err)
 	}
+	return s.deleteCourseGroupsAndRoles(ctx, courseGroupName)
+}
 
-	// 1. Delete the course group; Keycloak cascades subgroups and role mappings.
-	group, err := s.GetCourseGroup(ctx, token.AccessToken, courseID)
+// DeleteCourseGroupsAndRolesByName does what DeleteCourseGroupsAndRoles does for a course that is
+// identified by its name and semester instead, such as one whose creating transaction has not
+// committed yet and whose row other connections therefore cannot read.
+func (s *KeycloakRealmService) DeleteCourseGroupsAndRolesByName(ctx context.Context, courseName, iterationName string) error {
+	return s.deleteCourseGroupsAndRoles(ctx, permissionValidation.CourseIdentifier(iterationName, courseName))
+}
+
+// deleteCourseGroupsAndRoles deletes the roles first and the group last, so a failure part way
+// through keeps the group and its memberships. Anything already gone counts as deleted, so a
+// retry is safe.
+func (s *KeycloakRealmService) deleteCourseGroupsAndRoles(ctx context.Context, courseGroupName string) error {
+	token, err := s.LoginClient(ctx)
 	if err != nil {
-		if !strings.Contains(err.Error(), "404") {
-			return fmt.Errorf("failed to resolve course group: %w", err)
-		}
-		log.Warnf("course %s group not found in Keycloak; skipping group deletion", courseID)
-	} else if err := s.client.DeleteGroup(ctx, token.AccessToken, s.Realm, *group.ID); err != nil {
-		return fmt.Errorf("failed to delete course group: %w", err)
+		return fmt.Errorf("failed to log in to Keycloak: %w", err)
 	}
 
-	// 2. Delete the client roles. Group deletion only drops the group-role
-	// mapping, not the role definitions themselves.
-	return s.deleteCourseClientRoles(ctx, token.AccessToken, courseGroupName)
+	groupPath := TOP_LEVEL_GROUP_NAME + "/" + courseGroupName
+	groupID, found, err := s.findGroupAtPath(ctx, token.AccessToken, groupPath)
+	if err != nil {
+		return err
+	}
+
+	// Group deletion only drops the group-role mappings, not the role definitions themselves.
+	if err := s.deleteCourseClientRoles(ctx, token.AccessToken, courseGroupName); err != nil {
+		return err
+	}
+
+	if !found {
+		log.Warnf("course %s group not found in Keycloak; skipping group deletion", courseGroupName)
+		return nil
+	}
+	if err := s.client.DeleteGroup(ctx, token.AccessToken, s.Realm, groupID); err != nil && !hasStatus(err, http.StatusNotFound) {
+		return fmt.Errorf("failed to delete course group: %w", err)
+	}
+	return nil
 }
 
 func (s *KeycloakRealmService) deleteCourseClientRoles(ctx context.Context, accessToken, courseGroupName string) error {
@@ -54,7 +72,7 @@ func (s *KeycloakRealmService) deleteCourseClientRoles(ctx context.Context, acce
 		if role == nil || role.Name == nil || !isCourseClientRole(*role.Name, courseGroupName) {
 			continue
 		}
-		if err := s.client.DeleteClientRole(ctx, accessToken, s.Realm, s.idOfClient, *role.Name); err != nil {
+		if err := s.client.DeleteClientRole(ctx, accessToken, s.Realm, s.idOfClient, *role.Name); err != nil && !hasStatus(err, http.StatusNotFound) {
 			return fmt.Errorf("failed to delete client role %s: %w", *role.Name, err)
 		}
 	}

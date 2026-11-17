@@ -39,7 +39,7 @@ func (suite *CourseTestSuite) SetupSuite() {
 
 	suite.cleanup = cleanup
 	coursePhaseService := coursePhase.NewCoursePhaseService(*testDB.Queries, testDB.Conn, resolution.NewResolutionService("localhost:8080"))
-	suite.courseService = NewCourseService(*testDB.Queries, testDB.Conn, coursePhaseService, nil, nil)
+	suite.courseService = NewCourseService(*testDB.Queries, testDB.Conn, coursePhaseService, nil, nil, nil)
 	suite.router = gin.Default()
 }
 

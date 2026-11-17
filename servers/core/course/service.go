@@ -46,8 +46,9 @@ type CourseService struct {
 	conn         *pgxpool.Pool
 	coursePhases CoursePhaseProvider
 	// use dependency injection for keycloak to allow mocking
-	createCourseGroupsAndRoles func(ctx context.Context, courseName, iterationName, userID string) error
-	deleteCourseGroupsAndRoles func(ctx context.Context, courseID uuid.UUID) error
+	createCourseGroupsAndRoles  func(ctx context.Context, courseName, iterationName, userID string) error
+	cleanUpCourseGroupsAndRoles func(ctx context.Context, courseName, iterationName string) error
+	deleteCourseGroupsAndRoles  func(ctx context.Context, courseID uuid.UUID) error
 }
 
 func NewCourseService(
@@ -55,14 +56,16 @@ func NewCourseService(
 	conn *pgxpool.Pool,
 	coursePhases CoursePhaseProvider,
 	createCourseGroupsAndRoles func(ctx context.Context, courseName, iterationName, userID string) error,
+	cleanUpCourseGroupsAndRoles func(ctx context.Context, courseName, iterationName string) error,
 	deleteCourseGroupsAndRoles func(ctx context.Context, courseID uuid.UUID) error,
 ) *CourseService {
 	return &CourseService{
-		queries:                    queries,
-		conn:                       conn,
-		coursePhases:               coursePhases,
-		createCourseGroupsAndRoles: createCourseGroupsAndRoles,
-		deleteCourseGroupsAndRoles: deleteCourseGroupsAndRoles,
+		queries:                     queries,
+		conn:                        conn,
+		coursePhases:                coursePhases,
+		createCourseGroupsAndRoles:  createCourseGroupsAndRoles,
+		cleanUpCourseGroupsAndRoles: cleanUpCourseGroupsAndRoles,
+		deleteCourseGroupsAndRoles:  deleteCourseGroupsAndRoles,
 	}
 }
 
@@ -216,7 +219,7 @@ func (s *CourseService) CreateCourse(ctx context.Context, course courseDTO.Creat
 	}
 
 	// create keycloak roles - also add the requester to the course lecturer role
-	err = s.createCourseGroupsAndRoles(ctx, createdCourse.Name, createdCourse.SemesterTag.String, requesterID)
+	err = ProvisionKeycloak(ctx, qtx, createdCourse, requesterID, s.createCourseGroupsAndRoles, s.cleanUpCourseGroupsAndRoles)
 	if err != nil {
 		log.Error("Failed to create keycloak roles for course: ", err)
 		return courseDTO.Course{}, err

@@ -47,7 +47,9 @@ func (suite *CourseCopyRouterTestSuite) SetupSuite() {
 
 	suite.cleanup = cleanup
 	coursePhaseService := coursePhase.NewCoursePhaseService(*testDB.Queries, testDB.Conn, resolution.NewResolutionService("localhost:8080"))
-	suite.courseCopyService = NewCourseCopyService(*testDB.Queries, testDB.Conn, coursePhaseService, mockCreateGroupsAndRoles)
+	suite.courseCopyService = NewCourseCopyService(*testDB.Queries, testDB.Conn, coursePhaseService, mockCreateGroupsAndRoles, func(ctx context.Context, courseName, iterationName string) error {
+		return nil
+	})
 
 	// Initialize router
 	suite.router = gin.Default()

@@ -45,13 +45,16 @@ func (suite *CourseRouterTestSuite) SetupSuite() {
 		// No-op or add assertions for test
 		return nil
 	}
+	mockCleanUpGroupsAndRoles := func(ctx context.Context, courseName, iterationName string) error {
+		return nil
+	}
 	mockDeleteGroupsAndRoles := func(ctx context.Context, courseID uuid.UUID) error {
 		return nil
 	}
 
 	suite.cleanup = cleanup
 	coursePhaseService := coursePhase.NewCoursePhaseService(*testDB.Queries, testDB.Conn, resolution.NewResolutionService("localhost:8080"))
-	suite.courseService = NewCourseService(*testDB.Queries, testDB.Conn, coursePhaseService, mockCreateGroupsAndRoles, mockDeleteGroupsAndRoles)
+	suite.courseService = NewCourseService(*testDB.Queries, testDB.Conn, coursePhaseService, mockCreateGroupsAndRoles, mockCleanUpGroupsAndRoles, mockDeleteGroupsAndRoles)
 
 	// Initialize router
 	suite.router = gin.Default()

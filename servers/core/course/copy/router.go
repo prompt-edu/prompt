@@ -1,12 +1,14 @@
 package copy
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
+	"github.com/prompt-edu/prompt/servers/core/course"
 	"github.com/prompt-edu/prompt/servers/core/course/copy/courseCopyDTO"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 	log "github.com/sirupsen/logrus"
@@ -45,6 +47,7 @@ func setupCourseCopyRouter(router *gin.RouterGroup, s *CourseCopyService, authMi
 // @Param uuid path string true "Course UUID"
 // @Success 201 {object} courseDTO.Course
 // @Failure 400 {object} utils.ErrorResponse
+// @Failure 409 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /courses/{uuid}/copy [post]
 func (s *CourseCopyService) copyCourse(c *gin.Context) {
@@ -68,6 +71,10 @@ func (s *CourseCopyService) copyCourse(c *gin.Context) {
 	}
 
 	newCourse, err := s.CopyCourse(c, originalCourseID, courseVariables, userID)
+	if errors.Is(err, course.ErrCourseIdentifierTaken) {
+		sdkUtils.HandleError(c, http.StatusConflict, err)
+		return
+	}
 	if err != nil {
 		log.Error("Copy course failed: ", err)
 		sdkUtils.HandleError(c, http.StatusInternalServerError, err)

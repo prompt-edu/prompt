@@ -54,35 +54,9 @@ func (s *KeycloakRealmService) CreateChildGroup(ctx context.Context, accessToken
 	childGroupID, err := s.client.CreateChildGroup(ctx, accessToken, s.Realm, parentGroupID, group)
 	if err != nil {
 		log.Error("failed to create child group: ", err)
-		return "", errors.New("failed to create Keycloak group")
+		return "", fmt.Errorf("failed to create Keycloak group %s: %w", groupName, err)
 	}
 	return childGroupID, nil
-}
-
-// GetOrCreatePromptGroup tries to find a top-level group exactly named TOP_LEVEL_GROUP_NAME.
-// If it doesn’t exist, it creates it. Returns the group ID either way.
-func (s *KeycloakRealmService) GetOrCreatePromptGroup(ctx context.Context, accessToken string) (string, error) {
-	exact := true
-	groups, err := s.client.GetGroups(ctx, accessToken, s.Realm, gocloak.GetGroupsParams{
-		Search: &TOP_LEVEL_GROUP_NAME,
-		Exact:  &exact,
-	})
-	if err != nil {
-		return "", fmt.Errorf("failed to get groups from Keycloak: %w", err)
-	}
-
-	if len(groups) == 1 && groups[0].Name != nil && *groups[0].Name == TOP_LEVEL_GROUP_NAME {
-		return *groups[0].ID, nil
-	}
-
-	// If not found, create the group
-	group := gocloak.Group{Name: &TOP_LEVEL_GROUP_NAME}
-	baseGroupID, err := s.client.CreateGroup(ctx, accessToken, s.Realm, group)
-	if err != nil {
-		log.Error("failed to create base group: ", err)
-		return "", errors.New("failed to create keycloak group")
-	}
-	return baseGroupID, nil
 }
 
 // GetCourseGroupName fetches the course from DB and constructs its Keycloak group name.
@@ -143,7 +117,7 @@ func (s *KeycloakRealmService) GetOrCreateCustomTopLevelGroup(ctx context.Contex
 	if err == nil && group.Name != nil && *group.Name == CUSTOM_GROUPS_NAME {
 		// Found existing group
 		return *group.ID, nil
-	} else if err != nil && !strings.Contains(err.Error(), "404") {
+	} else if err != nil && !hasStatus(err, http.StatusNotFound) {
 		// If we hit an error other than 404, it’s a real error
 		log.Errorf("failed to get group from Keycloak for path [%s]: %v", groupPath, err)
 		return "", fmt.Errorf("failed to get group from Keycloak: %w", err)
@@ -186,7 +160,7 @@ func (s *KeycloakRealmService) GetOrCreateCustomGroup(ctx context.Context, acces
 	if err == nil && group.Name != nil && *group.Name == groupName {
 		// Found existing subgroup
 		return *group.ID, nil
-	} else if err != nil && !strings.Contains(err.Error(), "404") {
+	} else if err != nil && !hasStatus(err, http.StatusNotFound) {
 		log.Errorf("failed to get group from Keycloak for path [%s]: %v", groupPath, err)
 		return "", fmt.Errorf("failed to get group: %w", err)
 	}

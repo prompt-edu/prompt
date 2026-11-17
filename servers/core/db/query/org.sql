@@ -14,6 +14,14 @@ SELECT * FROM org WHERE id = $1;
 -- the transaction ends. Details edits take no part in it.
 SELECT pg_advisory_xact_lock(hashtextextended('org_membership:' || sqlc.arg(org_id)::uuid::text, 0));
 
+-- name: LockOrgMembershipForSession :exec
+-- Takes the lock of LockOrgMembership until UnlockOrgMembership, so it outlives a transaction of the
+-- same connection that fails to commit.
+SELECT pg_advisory_lock(hashtextextended('org_membership:' || sqlc.arg(org_id)::uuid::text, 0));
+
+-- name: UnlockOrgMembership :one
+SELECT pg_advisory_unlock(hashtextextended('org_membership:' || sqlc.arg(org_id)::uuid::text, 0));
+
 -- name: GetOrgIDBySlug :one
 SELECT id FROM org WHERE slug = $1;
 

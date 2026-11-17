@@ -359,37 +359,29 @@ func (s *OrgService) UpdateOrgParent(ctx context.Context, id uuid.UUID, input or
 	return orgDTO.GetOrgDTOFromDBModel(updated), nil
 }
 
-// lockMembership holds the org's membership lock in a transaction of its own until release is
-// called, so the lock outlives another transaction that fails to commit.
-func (s *OrgService) lockMembership(ctx context.Context, orgID uuid.UUID) (release func(), err error) {
-	tx, err := s.conn.Begin(ctx)
-	if err != nil {
-		return nil, err
-	}
-	release = func() { promptSDK.DeferDBRollback(tx, context.WithoutCancel(ctx)) }
-	if err := s.queries.WithTx(tx).LockOrgMembership(ctx, orgID); err != nil {
-		release()
-		return nil, fmt.Errorf("failed to lock the membership of the org: %w", err)
-	}
-	return release, nil
-}
-
 // DeleteOrg deletes the org and its Keycloak groups and roles. When either fails, it puts the members
 // it found back. It holds the membership lock until then, also through a failed commit, so a
-// membership change waits instead of being undone by that restore.
+// membership change waits instead of being undone by that restore. The lock, the deletion and the
+// restore share one connection, so a deletion holding the lock never waits for the pool, where the
+// membership changes it holds off may hold every other connection.
 func (s *OrgService) DeleteOrg(ctx context.Context, id uuid.UUID) (string, error) {
-	releaseMembership, err := s.lockMembership(ctx, id)
+	conn, err := s.conn.Acquire(ctx)
 	if err != nil {
 		return "", err
 	}
-	defer releaseMembership()
+	defer conn.Release()
+	queries := db.New(conn)
+	if err := queries.LockOrgMembershipForSession(ctx, id); err != nil {
+		return "", fmt.Errorf("failed to lock the membership of the org: %w", err)
+	}
+	defer unlockMembership(ctx, conn, id)
 
-	tx, err := s.conn.Begin(ctx)
+	tx, err := conn.Begin(ctx)
 	if err != nil {
 		return "", err
 	}
 	defer promptSDK.DeferDBRollback(tx, ctx)
-	qtx := s.queries.WithTx(tx)
+	qtx := queries.WithTx(tx)
 
 	slug, err := qtx.DeleteOrg(ctx, id)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -409,9 +401,23 @@ func (s *OrgService) DeleteOrg(ctx context.Context, id uuid.UUID) (string, error
 	}
 
 	if err := tx.Commit(ctx); err != nil {
-		return s.reconcileFailedDeleteCommit(ctx, id, slug, members, fmt.Errorf("failed to commit transaction: %w", err))
+		return s.reconcileFailedDeleteCommit(ctx, queries, id, slug, members, fmt.Errorf("failed to commit transaction: %w", err))
 	}
 	return slug, nil
+}
+
+// unlockMembership releases the lock that DeleteOrg took for the connection's session. A connection
+// that may still hold it is closed, so the pool never hands the lock to another request.
+func unlockMembership(ctx context.Context, conn *pgxpool.Conn, orgID uuid.UUID) {
+	unlockCtx, cancel := db.GetTimeoutContext(context.WithoutCancel(ctx))
+	defer cancel()
+	unlocked, err := db.New(conn).UnlockOrgMembership(unlockCtx, orgID)
+	if err != nil || !unlocked {
+		log.Error("failed to unlock the membership of org ", orgID, ", closing its connection: ", err)
+		if err := conn.Conn().Close(unlockCtx); err != nil {
+			log.Error("failed to close the connection: ", err)
+		}
+	}
 }
 
 func (s *OrgService) reconcileFailedKeycloakDelete(ctx context.Context, slug string, members orgMembers, deleteErr error) error {
@@ -431,10 +437,11 @@ func (s *OrgService) reconcileFailedKeycloakDelete(ctx context.Context, slug str
 	return deleteErr
 }
 
-func (s *OrgService) reconcileFailedDeleteCommit(ctx context.Context, id uuid.UUID, slug string, members orgMembers, commitErr error) (string, error) {
+// reconcileFailedDeleteCommit checks on the deletion's own connection, see DeleteOrg.
+func (s *OrgService) reconcileFailedDeleteCommit(ctx context.Context, queries *db.Queries, id uuid.UUID, slug string, members orgMembers, commitErr error) (string, error) {
 	checkCtx, cancel := db.GetTimeoutContext(context.WithoutCancel(ctx))
 	defer cancel()
-	_, err := s.queries.GetOrgByID(checkCtx, id)
+	_, err := queries.GetOrgByID(checkCtx, id)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return slug, nil
 	}

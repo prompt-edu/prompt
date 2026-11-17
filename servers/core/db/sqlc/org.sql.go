@@ -220,6 +220,17 @@ func (q *Queries) LockOrgMembership(ctx context.Context, orgID uuid.UUID) error 
 	return err
 }
 
+const lockOrgMembershipForSession = `-- name: LockOrgMembershipForSession :exec
+SELECT pg_advisory_lock(hashtextextended('org_membership:' || $1::uuid::text, 0))
+`
+
+// Takes the lock of LockOrgMembership until UnlockOrgMembership, so it outlives a transaction of the
+// same connection that fails to commit.
+func (q *Queries) LockOrgMembershipForSession(ctx context.Context, orgID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, lockOrgMembershipForSession, orgID)
+	return err
+}
+
 const stampOrgCreatedAt = `-- name: StampOrgCreatedAt :one
 UPDATE org SET created_at = clock_timestamp() WHERE id = $1 RETURNING id, parent_org_id, name, slug, school, university, website, contact_email, created_at
 `
@@ -239,6 +250,17 @@ func (q *Queries) StampOrgCreatedAt(ctx context.Context, id uuid.UUID) (Org, err
 		&i.CreatedAt,
 	)
 	return i, err
+}
+
+const unlockOrgMembership = `-- name: UnlockOrgMembership :one
+SELECT pg_advisory_unlock(hashtextextended('org_membership:' || $1::uuid::text, 0))
+`
+
+func (q *Queries) UnlockOrgMembership(ctx context.Context, orgID uuid.UUID) (bool, error) {
+	row := q.db.QueryRow(ctx, unlockOrgMembership, orgID)
+	var pg_advisory_unlock bool
+	err := row.Scan(&pg_advisory_unlock)
+	return pg_advisory_unlock, err
 }
 
 const updateOrg = `-- name: UpdateOrg :one

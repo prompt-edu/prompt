@@ -898,6 +898,37 @@ func (suite *OrgServiceTestSuite) TestMembershipChangesOfAnOrgTakeTurns() {
 	assert.Equal(suite.T(), permissionValidation.OrgMember, members.roleOf("members-turns", "ada"))
 }
 
+// The membership changes a deletion holds off may hold every other connection of the pool, so a
+// deletion that needs a second connection while it holds the lock would wait for them forever.
+func (suite *OrgServiceTestSuite) TestDeleteOrgNeedsOneConnection() {
+	config, err := pgxpool.ParseConfig(suite.conn.Config().ConnString())
+	require.NoError(suite.T(), err)
+	config.MaxConns = 1
+	pool, err := pgxpool.NewWithConfig(suite.ctx, config)
+	require.NoError(suite.T(), err)
+	defer pool.Close()
+	service := *suite.service
+	service.conn = pool
+	service.queries = *db.New(pool)
+
+	deleted := suite.createOrg("one-connection", nil)
+	restored := suite.createOrg("one-connection-restored", nil)
+	suite.failCommitOn("DELETE", "OLD", "one-connection-restored")
+	ctx, cancel := context.WithTimeout(suite.ctx, 5*time.Second)
+	defer cancel()
+
+	slug, err := service.DeleteOrg(ctx, deleted.ID)
+	require.NoError(suite.T(), err)
+	assert.Equal(suite.T(), "one-connection", slug)
+	_, err = service.DeleteOrg(ctx, restored.ID)
+	assert.ErrorContains(suite.T(), err, "commit rejected")
+	assert.Equal(suite.T(), 1, suite.countOrgs("one-connection-restored"))
+	// The lock is released: a membership change on another connection goes ahead
+	other, _ := suite.withMembers()
+	_, err = other.UpdateOrgMemberRole(ctx, restored.ID, "nobody", permissionValidation.OrgMember, caller)
+	assert.ErrorIs(suite.T(), err, keycloakRealmManager.ErrUserNotFound)
+}
+
 func TestOrgServiceTestSuite(t *testing.T) {
 	suite.Run(t, new(OrgServiceTestSuite))
 }

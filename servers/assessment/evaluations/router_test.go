@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -32,6 +33,14 @@ type EvaluationRouterTestSuite struct {
 	mockCoreCleanup   func()
 	evaluationService *EvaluationService
 	testCoursePhaseID uuid.UUID
+	ownTutorID        uuid.UUID
+	ownTutorFound     bool
+	ownTutorErr       error
+}
+
+// resolveOwnTutor stands in for the team phase lookup, so each test decides who the caller is.
+func (suite *EvaluationRouterTestSuite) resolveOwnTutor(string, uuid.UUID) (uuid.UUID, bool, error) {
+	return suite.ownTutorID, suite.ownTutorFound, suite.ownTutorErr
 }
 
 func (suite *EvaluationRouterTestSuite) SetupSuite() {
@@ -48,7 +57,7 @@ func (suite *EvaluationRouterTestSuite) SetupSuite() {
 	coursePhaseConfigService := coursePhaseConfig.NewCoursePhaseConfigService(*testDB.Queries, testDB.Conn, assessmentSchemas.NewAssessmentSchemaService(*testDB.Queries, testDB.Conn))
 	suite.evaluationService = NewEvaluationService(*testDB.Queries, testDB.Conn,
 		evaluationCompletion.NewEvaluationCompletionService(*testDB.Queries, testDB.Conn, coursePhaseConfig.GetTeamsForCoursePhase, coursePhaseConfigService),
-		coursePhaseConfigService)
+		coursePhaseConfigService, suite.resolveOwnTutor)
 
 	suite.testCoursePhaseID = uuid.MustParse("4179d58a-d00d-4fa7-94a5-397bc69fab02")
 
@@ -299,4 +308,115 @@ func (suite *EvaluationRouterTestSuite) TestInvalidEvaluationID() {
 	err := json.Unmarshal(w.Body.Bytes(), &errResp)
 	assert.NoError(suite.T(), err)
 	assert.Contains(suite.T(), errResp, "error")
+}
+
+var (
+	evaluatedTutorID  = uuid.MustParse("0a234567-1234-1234-1234-123456789012")
+	tutorCompetencyID = uuid.MustParse("ca234567-1234-1234-1234-123456789012")
+	firstStudentID    = uuid.MustParse("01234567-1234-1234-1234-123456789012")
+	secondStudentID   = uuid.MustParse("02234567-1234-1234-1234-123456789012")
+)
+
+// withTutorEvaluations stores two students' tutor evaluations and feedback about evaluatedTutorID,
+// sets the release state, and undoes both when the test ends.
+func (suite *EvaluationRouterTestSuite) withTutorEvaluations(resultsReleased bool) {
+	ctx := suite.suiteCtx
+	conn := suite.evaluationService.conn
+	_, err := conn.Exec(ctx, `
+		INSERT INTO evaluation (id, course_participation_id, course_phase_id, competency_id, score_level, author_course_participation_id, type)
+		VALUES (gen_random_uuid(), $1, $2, $3, 'very_good', $4, 'tutor'),
+		       (gen_random_uuid(), $1, $2, $3, 'good', $5, 'tutor')`,
+		evaluatedTutorID, suite.testCoursePhaseID, tutorCompetencyID, firstStudentID, secondStudentID)
+	suite.Require().NoError(err)
+	_, err = conn.Exec(ctx, `
+		INSERT INTO feedback_items (id, feedback_type, feedback_text, course_participation_id, course_phase_id, author_course_participation_id, type)
+		VALUES (gen_random_uuid(), 'positive', 'Explains things well', $1, $2, $3, 'tutor'),
+		       (gen_random_uuid(), 'negative', 'Answers late', $1, $2, $4, 'tutor')`,
+		evaluatedTutorID, suite.testCoursePhaseID, firstStudentID, secondStudentID)
+	suite.Require().NoError(err)
+	_, err = conn.Exec(ctx, `UPDATE course_phase_config SET results_released = $2 WHERE course_phase_id = $1`, suite.testCoursePhaseID, resultsReleased)
+	suite.Require().NoError(err)
+
+	suite.T().Cleanup(func() {
+		_, _ = conn.Exec(ctx, `DELETE FROM evaluation WHERE course_participation_id = $1`, evaluatedTutorID)
+		_, _ = conn.Exec(ctx, `DELETE FROM feedback_items WHERE course_participation_id = $1`, evaluatedTutorID)
+		_, _ = conn.Exec(ctx, `UPDATE course_phase_config SET results_released = false WHERE course_phase_id = $1`, suite.testCoursePhaseID)
+		suite.ownTutorID, suite.ownTutorFound, suite.ownTutorErr = uuid.Nil, false, nil
+	})
+}
+
+func (suite *EvaluationRouterTestSuite) getMyTutorResults(coursePhaseID uuid.UUID) *httptest.ResponseRecorder {
+	req, _ := http.NewRequest("GET", "/assessment/api/course_phase/"+coursePhaseID.String()+"/evaluation/my-tutor-results", nil)
+	w := httptest.NewRecorder()
+	suite.router.ServeHTTP(w, req)
+	return w
+}
+
+func (suite *EvaluationRouterTestSuite) TestMyTutorResultsAreAnonymousAverages() {
+	suite.withTutorEvaluations(true)
+	suite.ownTutorID, suite.ownTutorFound = evaluatedTutorID, true
+
+	w := suite.getMyTutorResults(suite.testCoursePhaseID)
+
+	assert.Equal(suite.T(), http.StatusOK, w.Code)
+	var results evaluationDTO.TutorEvaluationResults
+	assert.NoError(suite.T(), json.Unmarshal(w.Body.Bytes(), &results))
+	assert.Equal(suite.T(), evaluatedTutorID, results.TutorID)
+	assert.Equal(suite.T(), 2, results.EvaluatorCount)
+	if assert.Len(suite.T(), results.Results, 1) {
+		assert.Equal(suite.T(), tutorCompetencyID, results.Results[0].CompetencyID)
+		assert.InDelta(suite.T(), 1.5, results.Results[0].AverageScoreNumeric, 0.0001)
+	}
+	assert.Equal(suite.T(), []evaluationDTO.AnonymousFeedbackItem{
+		{FeedbackType: db.FeedbackTypeNegative, FeedbackText: "Answers late"},
+		{FeedbackType: db.FeedbackTypePositive, FeedbackText: "Explains things well"},
+	}, results.FeedbackItems)
+	for _, author := range []uuid.UUID{firstStudentID, secondStudentID} {
+		assert.NotContains(suite.T(), w.Body.String(), author.String(), "the response must not name an evaluator")
+	}
+}
+
+func (suite *EvaluationRouterTestSuite) TestMyTutorResultsNoContentUntilReleased() {
+	suite.withTutorEvaluations(false)
+	suite.ownTutorID, suite.ownTutorFound = evaluatedTutorID, true
+
+	w := suite.getMyTutorResults(suite.testCoursePhaseID)
+
+	assert.Equal(suite.T(), http.StatusNoContent, w.Code)
+	assert.Empty(suite.T(), w.Body.String())
+}
+
+func (suite *EvaluationRouterTestSuite) TestMyTutorResultsNoContentForNonTutor() {
+	suite.withTutorEvaluations(true)
+	suite.ownTutorFound = false
+
+	w := suite.getMyTutorResults(suite.testCoursePhaseID)
+
+	assert.Equal(suite.T(), http.StatusNoContent, w.Code)
+}
+
+func (suite *EvaluationRouterTestSuite) TestMyTutorResultsNoContentWithoutTutorEvaluation() {
+	// The second phase of the dump has the tutor evaluation disabled.
+	otherPhaseID := uuid.MustParse("5179d58a-d00d-4fa7-94a5-397bc69fab03")
+	conn := suite.evaluationService.conn
+	_, err := conn.Exec(suite.suiteCtx, `UPDATE course_phase_config SET results_released = true WHERE course_phase_id = $1`, otherPhaseID)
+	suite.Require().NoError(err)
+	suite.T().Cleanup(func() {
+		_, _ = conn.Exec(suite.suiteCtx, `UPDATE course_phase_config SET results_released = false WHERE course_phase_id = $1`, otherPhaseID)
+		suite.ownTutorID, suite.ownTutorFound = uuid.Nil, false
+	})
+	suite.ownTutorID, suite.ownTutorFound = evaluatedTutorID, true
+
+	w := suite.getMyTutorResults(otherPhaseID)
+
+	assert.Equal(suite.T(), http.StatusNoContent, w.Code)
+}
+
+func (suite *EvaluationRouterTestSuite) TestMyTutorResultsBadGatewayWhenTeamPhaseFails() {
+	suite.withTutorEvaluations(true)
+	suite.ownTutorErr = errors.New("team phase unavailable")
+
+	w := suite.getMyTutorResults(suite.testCoursePhaseID)
+
+	assert.Equal(suite.T(), http.StatusBadGateway, w.Code)
 }

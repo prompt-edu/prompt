@@ -2861,6 +2861,68 @@
                 }
             }
         },
+        "/course_phase/{coursePhaseID}/evaluation/my-tutor-results": {
+            "get": {
+                "description": "Get the anonymized results of the tutor evaluations written about the caller: averages per competency rated by at least two students, the number of evaluators, and the feedback texts without authors once at least two students wrote some. Only served once the tutor evaluation is enabled, the results are released, and the phase providing the teams lists the caller as a tutor.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "evaluations"
+                ],
+                "summary": "Get own tutor evaluation results",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Course phase ID",
+                        "name": "coursePhaseID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/evaluationDTO.TutorEvaluationResults"
+                        }
+                    },
+                    "204": {
+                        "description": "No Content",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "502": {
+                        "description": "Bad Gateway",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/course_phase/{coursePhaseID}/evaluation/peer/{courseParticipationID}": {
             "get": {
                 "description": "List peer evaluations for a course participation in a course phase.",
@@ -6137,6 +6199,17 @@
                 }
             }
         },
+        "evaluationDTO.AnonymousFeedbackItem": {
+            "type": "object",
+            "properties": {
+                "feedbackText": {
+                    "type": "string"
+                },
+                "feedbackType": {
+                    "$ref": "#/definitions/db.FeedbackType"
+                }
+            }
+        },
         "evaluationDTO.CreateOrUpdateEvaluationRequest": {
             "type": "object",
             "required": [
@@ -6245,6 +6318,32 @@
                     "items": {
                         "$ref": "#/definitions/evaluationDTO.SelfEvaluationResult"
                     }
+                }
+            }
+        },
+        "evaluationDTO.TutorEvaluationResults": {
+            "type": "object",
+            "properties": {
+                "coursePhaseID": {
+                    "type": "string"
+                },
+                "evaluatorCount": {
+                    "type": "integer"
+                },
+                "feedbackItems": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/evaluationDTO.AnonymousFeedbackItem"
+                    }
+                },
+                "results": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/evaluationDTO.AggregatedEvaluationResult"
+                    }
+                },
+                "tutorID": {
+                    "type": "string"
                 }
             }
         },

@@ -5437,6 +5437,9 @@ paths:
       - keycloak
   /keycloak/users/search:
     get:
+      description: Match the name, email and username as Keycloak's search does, and
+        the university login exactly, ignoring case. The user with that login is listed
+        first.
       parameters:
       - description: Search query (>=2 characters)
         in: query
@@ -5462,7 +5465,7 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/utils.ErrorResponse'
-      summary: Search Keycloak users by name, email, or username
+      summary: Search Keycloak users by name, email, username, or university login
       tags:
       - keycloak
   /mailing/{coursePhaseID}:

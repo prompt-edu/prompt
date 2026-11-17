@@ -325,7 +325,8 @@ func staffMemberID(c *gin.Context) (string, bool) {
 }
 
 // searchKeycloakUsers godoc
-// @Summary Search Keycloak users by name, email, or username
+// @Summary Search Keycloak users by name, email, username, or university login
+// @Description Match the name, email and username as Keycloak's search does, and the university login exactly, ignoring case. The user with that login is listed first.
 // @Tags keycloak
 // @Produce json
 // @Param q query string true "Search query (>=2 characters)"

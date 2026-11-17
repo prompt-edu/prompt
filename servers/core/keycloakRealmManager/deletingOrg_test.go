@@ -7,6 +7,7 @@ import (
 	"maps"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"path"
 	"slices"
 	"strconv"
@@ -21,7 +22,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// fakeKeycloak serves the admin endpoints the org functions call and records the writes.
+// fakeKeycloak serves the admin endpoints the org functions and the user search call and records
+// the writes.
 type fakeKeycloak struct {
 	mu              sync.Mutex
 	groupIDs        map[string]string   // group path → group ID
@@ -81,6 +83,9 @@ func (f *fakeKeycloak) start(t *testing.T) *KeycloakRealmService {
 		}
 		writeJSON(w, page)
 	})
+	mux.HandleFunc("GET /admin/realms/prompt/users", func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, f.searchUsers(r.URL.Query()))
+	})
 	mux.HandleFunc("GET /admin/realms/prompt/users/{user}/groups", func(w http.ResponseWriter, r *http.Request) {
 		userID := r.PathValue("user")
 		if f.unknownUsers[userID] {
@@ -134,6 +139,32 @@ func (f *fakeKeycloak) start(t *testing.T) *KeycloakRealmService {
 	server := httptest.NewServer(mux)
 	t.Cleanup(server.Close)
 	return NewKeycloakRealmService(server.URL, "prompt", "prompt-server", "secret", "client-uuid", db.Queries{})
+}
+
+// searchUsers answers a user listing as Keycloak does: search matches the username as a substring,
+// and q matches an attribute, exactly only with exact=true, ignoring case either way.
+func (f *fakeKeycloak) searchUsers(query url.Values) []gocloak.User {
+	matches := func(value, wanted string) bool {
+		return strings.Contains(strings.ToLower(value), strings.ToLower(wanted))
+	}
+	if query.Get("exact") == "true" {
+		matches = strings.EqualFold
+	}
+	found := []gocloak.User{}
+	for _, user := range f.users {
+		if search := query.Get("search"); search != "" && matches(*user.Username, search) {
+			found = append(found, user)
+		}
+		if attribute, value, ok := strings.Cut(query.Get("q"), ":"); ok {
+			if values := user.Attributes[attribute]; len(values) > 0 && matches(values[0], value) {
+				found = append(found, user)
+			}
+		}
+	}
+	if pageSize, err := strconv.Atoi(query.Get("max")); err == nil {
+		found = found[:min(pageSize, len(found))]
+	}
+	return found
 }
 
 func (f *fakeKeycloak) writes() (deleted, added []string) {

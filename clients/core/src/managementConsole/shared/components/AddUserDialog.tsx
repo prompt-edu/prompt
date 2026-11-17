@@ -65,7 +65,7 @@ export const AddUserDialog = ({
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>
-            Search for a Keycloak user by name, email, or username.
+            Search for a Keycloak user by name, email, username, or exact university login.
           </DialogDescription>
         </DialogHeader>
 

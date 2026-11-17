@@ -12,7 +12,7 @@
     "check-performance": "rspack --mode=production --env NODE_ENV=production --env BUNDLE_SIZE=true"
   },
   "dependencies": {
-    "html2canvas-pro": "2.5.4",
+    "html2canvas-pro": "2.6.3",
     "jspdf": "^4.2.1",
     "jszip": "^3.10.2",
     "papaparse": "^5.7.0"

@@ -58,9 +58,10 @@ keep it to one or two commands and use `GH_PAGER=cat` on `gh` calls to avoid pag
    ```
 
    With screenshots, pass `--body-file .playwright-mcp/pr-screenshots/<branch>/body.md` and one
-   `--attach .playwright-mcp/pr-screenshots/<branch>/<file>.png` per shot the body references.
-   `gh` uploads each and rewrites its `./<file>.png` reference to the upload; it appends a shot the
-   body does not reference at the end, so attach only referenced ones. When an upload fails, the
+   `--attach .playwright-mcp/pr-screenshots/<branch>/<file>.png` per shot the body references as
+   `./<file>.png`. `gh` uploads each and rewrites that reference to the upload; it appends a shot
+   the body does not reference that way at the end. So attach only shots referenced as
+   `./<file>.png`, never ones whose reference is already an uploaded URL. When an upload fails, the
    command exits non-zero, and its output tells whether a PR exists:
    - **Output has a PR URL** (some shots uploaded): repair it with `GH_PAGER=cat gh pr edit`,
      passing the same `--body-file` and every `--attach` again, never a second `gh pr create`.

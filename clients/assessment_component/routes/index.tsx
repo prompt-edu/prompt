@@ -19,6 +19,7 @@ import { SelfEvaluationPage } from '../src/assessment/pages/EvaluationPages/Self
 import { TutorEvaluationPage } from '../src/assessment/pages/EvaluationPages/TutorEvaluationPage'
 import { EvaluationParticipantResultsPage } from '../src/assessment/pages/EvaluationParticipantResultsPage/EvaluationParticipantResultsPage'
 import { EvaluationParticipantsOverviewPage } from '../src/assessment/pages/EvaluationParticipantResultsPage/EvaluationParticipantsOverviewPage'
+import { MyTutorEvaluationResultsPage } from '../src/assessment/pages/MyTutorEvaluationResultsPage/MyTutorEvaluationResultsPage'
 import { SchemaConfigurationPage } from '../src/assessment/pages/SchemaConfigurationPage/SchemaConfigurationPage'
 import { SettingsPage } from '../src/assessment/pages/SettingsPage/SettingsPage'
 import { TutorEvaluationResultsPage } from '../src/assessment/pages/TutorEvaluationResultsPage/TutorEvaluationResultsPage'
@@ -52,6 +53,15 @@ const routes: ExtendedRouteObject[] = [
       Role.COURSE_EDITOR,
       Role.COURSE_STUDENT,
     ],
+  },
+  {
+    path: '/tutor-results',
+    element: (
+      <EvaluationDataShell>
+        <MyTutorEvaluationResultsPage />
+      </EvaluationDataShell>
+    ),
+    requiredPermissions: EDITOR_ROLES,
   },
   {
     path: '/results',

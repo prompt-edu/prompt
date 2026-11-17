@@ -94,12 +94,16 @@ export interface ConfigOverrides {
   selfEvaluationEnabled?: boolean
   selfEvaluationSchema?: string
   tutorEvaluationEnabled?: boolean
+  gradeSuggestionVisible?: boolean
+  actionItemsVisible?: boolean
+  gradingSheetVisible?: boolean
 }
 
 // PUT /config requires the full request body; start/deadline are set to a
 // generous open window so grading, completion, and (cleanup) unmarking work.
-// assessmentEnabled is only sent when overridden, because an omitted flag keeps
-// the phase's current mode (the behavior the settings card relies on).
+// assessmentEnabled and the result visibility flags are only sent when
+// overridden, because an omitted flag keeps the phase's current value (the
+// behavior the settings card relies on).
 export async function putConfig(
   api: APIRequestContext,
   phaseId: string,
@@ -131,6 +135,9 @@ export async function putConfig(
         tutorEvaluationStart: past,
         tutorEvaluationDeadline: future,
         evaluationResultsVisible: true,
+        gradeSuggestionVisible: overrides.gradeSuggestionVisible,
+        actionItemsVisible: overrides.actionItemsVisible,
+        gradingSheetVisible: overrides.gradingSheetVisible,
       },
     }),
     'PUT config',
@@ -285,6 +292,10 @@ export async function markAssessmentComplete(
 
 export async function releaseResults(api: APIRequestContext, phaseId: string): Promise<void> {
   await ok(api.post(assessmentUrl(phaseId, 'config/release')), 'POST release')
+}
+
+export async function unreleaseResults(api: APIRequestContext, phaseId: string): Promise<void> {
+  await ok(api.post(assessmentUrl(phaseId, 'config/unrelease')), 'POST unrelease')
 }
 
 // ── Cleanup ────────────────────────────────────────────────────────────────

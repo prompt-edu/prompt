@@ -2,15 +2,18 @@ import { Page, Locator, expect } from '@playwright/test'
 
 // /management/course/:id/audit-log (course-scoped) and /management/admin/audit-log
 // (platform-wide). Both render a page header plus a filterable table; the table
-// renders even when empty. The log is paged server-side one keyset page at a
-// time, navigated with the Newer/Older buttons.
+// renders even when empty. The log is searched, sorted and paged server-side one
+// keyset page at a time, navigated with the Newer/Older buttons, so the table's
+// own page-only search box, sortable headers and pagination bar stay hidden.
 export class AuditLogPage {
   readonly heading: Locator
   readonly accessDenied: Locator
   readonly rows: Locator
   readonly newer: Locator
   readonly older: Locator
-  readonly rowsPerPage: Locator
+  readonly tableSearch: Locator
+  readonly tablePagination: Locator
+  readonly sortableHeaders: Locator
   readonly deniedRows: Locator
 
   constructor(private readonly page: Page) {
@@ -19,7 +22,9 @@ export class AuditLogPage {
     this.rows = page.locator('table tbody tr')
     this.newer = page.getByRole('button', { name: 'Newer entries' })
     this.older = page.getByRole('button', { name: 'Older entries' })
-    this.rowsPerPage = page.locator('div', { hasText: /^Rows per page/ }).getByRole('combobox')
+    this.tableSearch = page.getByPlaceholder('Search ... (press Enter)')
+    this.tablePagination = page.getByText('Rows per page')
+    this.sortableHeaders = page.locator('table thead').getByRole('button')
     this.deniedRows = this.rows.filter({ hasText: 'denied' })
   }
 

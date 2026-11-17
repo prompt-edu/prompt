@@ -242,6 +242,10 @@ Competencies are individual skills within categories:
 
 Like other template changes, editing and reordering are disabled once assessment data has been submitted for the template.
 
+### Templates of a Deleted Phase
+
+Deleting an assessment phase permanently removes its configuration, assessments, evaluations, feedback, and action items. Templates the phase created are deleted with it, unless another phase still uses them. A copied course reuses the templates of the original course, for example. Such a template stays, and the phase using it (the one that starts first, if several do) becomes its owner and can keep editing it. The global default templates are never deleted.
+
 ### Exporting a Template
 
 Open the template from the Settings page and click **Export** above its categories:

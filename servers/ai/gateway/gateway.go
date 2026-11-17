@@ -85,13 +85,18 @@ func (g *Gateway) chatCompletions(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, sdkUtils.ErrorResponse{Error: "invalid course phase id"})
 		return
 	}
+	service, ok := serviceAuth.ServiceName(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, sdkUtils.ErrorResponse{Error: "invalid service credentials"})
+		return
+	}
 	user, _ := keycloakTokenVerifier.GetTokenUser(c)
 	request := calls.Request{
 		CoursePhaseID:   coursePhaseID,
 		ActorID:         user.ID,
 		ActorRole:       actorRole(user),
 		Issuer:          tokenIssuer(c.GetHeader("Authorization")),
-		CallerService:   serviceAuth.ServiceName(c),
+		CallerService:   service,
 		Feature:         c.GetHeader(FeatureHeader),
 		Template:        c.GetHeader("X-Prompt-Template"),
 		TemplateVersion: c.GetHeader("X-Prompt-Template-Version"),

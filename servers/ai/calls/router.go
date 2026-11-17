@@ -82,8 +82,13 @@ func (s *Service) addEvent(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, sdkUtils.ErrorResponse{Error: "type must be shown, accepted, edited or rejected"})
 		return
 	}
+	service, ok := serviceAuth.ServiceName(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, sdkUtils.ErrorResponse{Error: "invalid service credentials"})
+		return
+	}
 	user, _ := keycloakTokenVerifier.GetTokenUser(c)
-	event, err := s.AddEvent(c.Request.Context(), coursePhaseID, callID, user.ID, serviceAuth.ServiceName(c), user.Roles[promptSDK.PromptAdmin], request)
+	event, err := s.AddEvent(c.Request.Context(), coursePhaseID, callID, user.ID, service, user.Roles[promptSDK.PromptAdmin], request)
 	switch {
 	case errors.Is(err, ErrInvalidEvent):
 		c.JSON(http.StatusBadRequest, sdkUtils.ErrorResponse{Error: err.Error()})

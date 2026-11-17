@@ -8,6 +8,7 @@ prompt-stress stack.
   -> python fuzzer (inputs, authz, idor, files, slowloris)
   -> build prioritized report (report.md / report.html / findings.json)
   -> teardown the courses this run created (unless --keep-fixtures)
+  -> optional: public summary (--public-summary) and exit-code gate (--fail-on)
 
 This is the Python port of the former run.sh orchestration; run.sh is now a thin
 shim over this entry point, so `./run.sh …` and `uv run api-stress-test …` are
@@ -25,6 +26,9 @@ from datetime import datetime
 from pathlib import Path
 
 import httpx
+
+# Highest severity first: --fail-on P1 also fails on P0.
+PRIORITIES = ("P0", "P1", "P2")
 
 CORE_URL = "http://localhost:18089"
 KC_URL = "http://localhost:18081"
@@ -90,6 +94,19 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--keep-fixtures",
         action="store_true",
         help="do not delete the courses this run created.",
+    )
+    p.add_argument(
+        "--fail-on",
+        choices=PRIORITIES,
+        help="exit 1 if the run has a finding of this priority or a higher one "
+        "(default: always exit 0 once the report is built).",
+    )
+    p.add_argument(
+        "--public-summary",
+        metavar="DIR",
+        type=Path,
+        help="also write summary.md and findings.json with P0 details removed, "
+        "safe to publish (e.g. as CI output).",
     )
     return p.parse_args(argv)
 
@@ -231,6 +248,26 @@ def run_k6(k6_bin: str, scenario: str, script: Path, run_dir: Path, intensity: s
     print(f"    exit={rc} log={log}")
 
 
+def count_at_or_above(findings: list[dict], threshold: str) -> int:
+    """Number of findings whose priority is `threshold` or more severe."""
+    gated = PRIORITIES[: PRIORITIES.index(threshold) + 1]
+    return sum(1 for f in findings if f.get("priority") in gated)
+
+
+def gate(run_dir: Path, threshold: str) -> int:
+    """Exit code for --fail-on. Prints counts only, never finding details."""
+    findings_path = run_dir / "findings.json"
+    if not findings_path.exists():
+        print(f"==> gate: no findings.json, failing (--fail-on {threshold})")
+        return 1
+    hits = count_at_or_above(json.loads(findings_path.read_text()), threshold)
+    if hits:
+        print(f"==> gate: {hits} finding(s) at {threshold} or above, failing")
+        return 1
+    print(f"==> gate: no finding at {threshold} or above")
+    return 0
+
+
 def teardown(run_dir: Path) -> None:
     print("==> teardown (delete this run's courses)")
     admin = json.loads((run_dir / "tokens.json").read_text())["tokens"].get("admin", "")
@@ -310,6 +347,13 @@ def main(argv: list[str] | None = None) -> int:
     print("==> build report")
     subprocess.run([PY, "report/build_report.py", str(run_dir)], cwd=STRESS_DIR)
 
+    if args.public_summary:
+        print("==> public summary (P0 redacted)")
+        run_step(
+            ["report/public_summary.py", str(run_dir), str(args.public_summary.resolve())],
+            "public summary failed",
+        )
+
     if not args.keep_fixtures:
         teardown(run_dir)
 
@@ -318,7 +362,7 @@ def main(argv: list[str] | None = None) -> int:
     print(f"Report:   {run_dir}/report.md")
     print(f"Findings: {run_dir}/findings.json")
     print(f"HTML:     {run_dir}/report.html")
-    return 0
+    return gate(run_dir, args.fail_on) if args.fail_on else 0
 
 
 if __name__ == "__main__":

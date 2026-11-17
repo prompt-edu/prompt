@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -234,6 +235,44 @@ func (suite *CoursePhaseDeletionServiceTestSuite) TestKeepsGlobalTemplates() {
 	suite.deletePhase(deletedCoursePhaseID)
 
 	suite.Equal(before, countTemplates(), "Expected every global template to be kept and stay global")
+}
+
+// Migration 0020 gave the default schemas an owner wherever a config selected them, and every new
+// course phase config still falls back to them. Migration 0032 takes that owner away again, so
+// deleting every phase that owns or uses the defaults keeps them.
+func (suite *CoursePhaseDeletionServiceTestSuite) TestKeepsDefaultSchemasOwnedBeforeMigration0032() {
+	queries := db.New(suite.conn)
+	defaultUser := uuid.New()
+	suite.Require().NoError(queries.CreateDefaultCoursePhaseConfig(suite.suiteCtx, defaultUser))
+
+	var defaultSchemaIDs [4]uuid.UUID
+	err := suite.conn.QueryRow(suite.suiteCtx, `
+		SELECT assessment_schema_id, self_evaluation_schema, peer_evaluation_schema, tutor_evaluation_schema
+		FROM course_phase_config
+		WHERE course_phase_id = $1`, defaultUser).
+		Scan(&defaultSchemaIDs[0], &defaultSchemaIDs[1], &defaultSchemaIDs[2], &defaultSchemaIDs[3])
+	suite.Require().NoError(err)
+
+	_, err = suite.conn.Exec(suite.suiteCtx, "UPDATE assessment_schema SET source_phase_id = $1 WHERE id = ANY($2)",
+		deletedCoursePhaseID, defaultSchemaIDs[:])
+	suite.Require().NoError(err)
+
+	migration, err := os.ReadFile("../db/migration/0032_unown_default_assessment_schemas.up.sql")
+	suite.Require().NoError(err)
+	_, err = suite.conn.Exec(suite.suiteCtx, string(migration))
+	suite.Require().NoError(err)
+
+	for _, coursePhaseID := range []uuid.UUID{deletedCoursePhaseID, defaultUser, retainedCoursePhaseID, earlierCoursePhaseID} {
+		suite.deletePhase(coursePhaseID)
+	}
+
+	for _, schemaID := range defaultSchemaIDs {
+		owner, exists := suite.schemaOwner(schemaID)
+		suite.True(exists, "Expected default schema %s to be kept", schemaID)
+		suite.False(owner.Valid, "Expected default schema %s to belong to no phase", schemaID)
+	}
+	suite.NoError(queries.CreateDefaultCoursePhaseConfig(suite.suiteCtx, uuid.New()),
+		"Expected a new course phase to get a config with the default schemas")
 }
 
 // Deleting the new owner afterwards must clean up the schema it was handed, so no schema outlives

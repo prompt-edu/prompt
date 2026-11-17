@@ -14,11 +14,18 @@ import { getAllocations } from './helpers'
 // them in the Editor group of iPraktikumFull.
 const { phaseId: PHASE_ID, ledTutorId, teams } = TEAM_ALLOCATION_TUTOR_SCOPE
 const EDITOR_NAME = 'Eduard Eduard'
+const EDITOR_LOGIN = 'co69edt'
 
 interface TeamWithTutors {
   id: string
   name: string
   tutors: { id: string; firstName: string; lastName: string }[]
+}
+
+interface TutorAssignment {
+  id: string
+  universityLogin: string
+  teamID: string
 }
 
 const teamUrl = (path = '') =>
@@ -45,7 +52,7 @@ async function restoreSeededLead() {
           courseParticipationID: ledTutorId,
           firstName: 'Eduard',
           lastName: 'Eduard',
-          universityLogin: 'co69edt',
+          universityLogin: EDITOR_LOGIN,
           teamIDs: [teams.lovelace.id, teams.turing.id],
         },
       ],
@@ -83,12 +90,39 @@ test.describe('team allocation: a tutor leading several teams', () => {
     }
   })
 
+  test('lists the tutor logins to lecturers only', async () => {
+    const lecturer = await apiContextFor('course-lecturer')
+    try {
+      const res = await lecturer.get(teamUrl('/tutors'))
+      expect(res.status()).toBe(200)
+      const assignments = (await res.json()) as TutorAssignment[]
+      expect(
+        assignments
+          .filter((a) => a.id === ledTutorId)
+          .map((a) => a.teamID)
+          .sort(),
+      ).toEqual([teams.lovelace.id, teams.turing.id].sort())
+      for (const assignment of assignments.filter((a) => a.id === ledTutorId)) {
+        expect(assignment.universityLogin).toBe(EDITOR_LOGIN)
+      }
+    } finally {
+      await lecturer.dispose()
+    }
+
+    for (const role of ['course-editor', 'student'] as const) {
+      const api = await apiContextFor(role)
+      try {
+        expect((await api.get(teamUrl('/tutors'))).status(), role).toBe(403)
+      } finally {
+        await api.dispose()
+      }
+    }
+  })
+
   test.describe('as the lecturer', () => {
     test.use({ role: 'course-lecturer' })
 
-    test('imports a course editor from the course staff as the lead of several teams', async ({
-      page,
-    }) => {
+    test('adds a team to a course editor who already leads several', async ({ page }) => {
       const phase = new TeamAllocationPage(page)
       await phase.goto(SEEDED_COURSES.fullCourse.id, PHASE_ID, '/allocations')
       await phase.expectAllocationsLoaded()
@@ -97,10 +131,16 @@ test.describe('team allocation: a tutor leading several teams', () => {
       const dialog = page.getByRole('dialog', { name: 'Import Tutors' })
       await dialog.getByRole('tab', { name: 'Course Staff' }).click()
 
+      // Course Staff offers the editor under their Keycloak id while their rows carry ledTutorId,
+      // so the picker finds the teams they lead by login.
       await dialog.getByRole('checkbox', { name: EDITOR_NAME }).click()
-      await dialog.getByRole('button', { name: `Teams of ${EDITOR_NAME}` }).click()
+      const picker = dialog.getByRole('button', { name: `Teams of ${EDITOR_NAME}` })
+      await expect(picker).toContainText(teams.lovelace.name)
+      await expect(picker).toContainText(teams.turing.name)
+      await expect(picker).not.toContainText(teams.hamilton.name)
+
+      await picker.click()
       const options = page.getByRole('listbox')
-      await options.getByRole('option', { name: teams.lovelace.name }).click()
       await options.getByRole('option', { name: teams.hamilton.name }).click()
       await options.getByRole('option', { name: 'Close' }).click()
 
@@ -112,6 +152,7 @@ test.describe('team allocation: a tutor leading several teams', () => {
       expect(editorTeams.map((t) => t.name).sort()).toEqual([
         teams.hamilton.name,
         teams.lovelace.name,
+        teams.turing.name,
       ])
       const hamilton = (await teamsAs('course-lecturer')).find((t) => t.id === teams.hamilton.id)
       expect(hamilton?.tutors.map((t) => t.id)).toEqual([ledTutorId])

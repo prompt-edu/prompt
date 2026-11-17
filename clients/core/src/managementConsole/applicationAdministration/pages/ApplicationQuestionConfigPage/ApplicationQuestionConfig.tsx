@@ -26,6 +26,7 @@ import {
   getApplicationCsvExportSettings,
   shouldExportQuestionToCsv,
 } from '../../utils/applicationCsvExportSettings'
+import { getPreviewProfilePicture } from '../../utils/profilePictureSettings'
 import { useApplicationStore } from '../../zustand/useApplicationStore'
 import { AddQuestionMenu } from './components/AddQuestionMenu'
 import {
@@ -235,6 +236,7 @@ export const ApplicationQuestionConfig = () => {
                 (question) => 'allowedFileTypes' in question,
               )}
               welcomeText={coursePhase?.restrictedData?.welcomeText}
+              profilePicture={getPreviewProfilePicture(coursePhase?.restrictedData)}
             />
             <AddQuestionMenu
               setApplicationQuestions={setApplicationQuestions}

@@ -11,7 +11,7 @@ import { useRef } from 'react'
 
 import type { AssessmentType } from '../../../../../interfaces/assessmentType'
 import type { CategoryWithCompetencies } from '../../../../../interfaces/category'
-import { printPage } from '../../../../utils/printPage'
+import { useDownloadReportPdf } from '../../../../hooks/useDownloadReportPdf'
 import { triggerTextDownload } from '../../../../utils/triggerTextDownload'
 import {
   type AssessmentSchemaTemplate,
@@ -51,6 +51,8 @@ export const SchemaTemplateButtons = ({
     assessmentSchemaID,
     assessmentType,
   )
+
+  const { downloadPdf, isDownloading } = useDownloadReportPdf()
 
   const handleExport = () => {
     const template = buildAssessmentSchemaTemplate(categories, {
@@ -134,13 +136,17 @@ export const SchemaTemplateButtons = ({
       />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant='outline' size='sm' disabled={categories.length === 0}>
+          <Button variant='outline' size='sm' disabled={categories.length === 0 || isDownloading}>
             <Download className='mr-2 h-4 w-4' />
             Export
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align='end'>
-          <DropdownMenuItem onSelect={printPage}>PDF / Print</DropdownMenuItem>
+          <DropdownMenuItem
+            onSelect={() => downloadPdf(`${toFilenameSlug(schemaName)}-template.pdf`)}
+          >
+            PDF
+          </DropdownMenuItem>
           <DropdownMenuItem onSelect={handleExport}>JSON</DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

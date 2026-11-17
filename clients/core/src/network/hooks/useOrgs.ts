@@ -109,7 +109,6 @@ export const useSetOrgMemberRole = (orgId: string) => {
         title: 'Role changed',
         description: `${user.username} is now an org ${ORG_ROLE_LABELS[role]}.`,
       })
-      coreCache.orgMembersChanged(queryClient, orgId)
     },
     onError: (error) => {
       toast({
@@ -118,6 +117,8 @@ export const useSetOrgMemberRole = (orgId: string) => {
         variant: 'destructive',
       })
     },
+    // Also after an error: a role change that fails halfway has already added the new role
+    onSettled: () => coreCache.orgMembersChanged(queryClient, orgId),
   })
 }
 
@@ -129,7 +130,6 @@ export const useRemoveOrgMember = (orgId: string) => {
     mutationFn: (keycloakUserID: string) => coreApi.orgs.removeMember(orgId, keycloakUserID),
     onSuccess: () => {
       toast({ title: 'Member removed' })
-      coreCache.orgMembersChanged(queryClient, orgId)
     },
     onError: (error) => {
       toast({
@@ -138,6 +138,8 @@ export const useRemoveOrgMember = (orgId: string) => {
         variant: 'destructive',
       })
     },
+    // Also after an error: a removal that fails halfway has already left one of the groups
+    onSettled: () => coreCache.orgMembersChanged(queryClient, orgId),
   })
 }
 

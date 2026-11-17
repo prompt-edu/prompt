@@ -4,12 +4,20 @@ import { StudentNotesAndHistory } from '@core/managementConsole/shared/component
 import { coreApi } from '@core/network/api'
 import { coreKeys } from '@core/network/cache'
 import { useQuery } from '@tanstack/react-query'
-import { ErrorPage, ParticipantNavigation, StudentProfile } from '@tumaet/prompt-ui-components'
-import { Loader2 } from 'lucide-react'
+import {
+  Badge,
+  ErrorPage,
+  ParticipantNavigation,
+  resolveNavigationOrder,
+  StickyHeader,
+  StudentProfile,
+} from '@tumaet/prompt-ui-components'
+import { FileUserIcon, Loader2 } from 'lucide-react'
 import { useMemo } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import type { ApplicationForm } from '../../../../interfaces/form/applicationForm'
 import { ApplicationAnswers } from '../applicationAnswers/ApplicationAnswers'
+import { getApplicationStatusBadge } from '../table/getApplicationStatusBadge'
 import { ApplicationDetailPageLayout } from './components/ApplicationDetailPageLayout'
 import { AssessmentCard } from './components/AssessmentCard'
 import { CustomScoresCard } from './components/CustomScoresCard'
@@ -36,18 +44,15 @@ export const ApplicationDetailsPage = () => {
     () => new Map(participations.map((p) => [p.courseParticipationID, p])),
     [participations],
   )
-  const navigationOrder = useMemo(() => {
-    const candidateIds = filteredApplicationIds ?? []
-    const validUniqueIds = candidateIds.filter(
-      (id, index) => Boolean(id) && participationById.has(id) && candidateIds.indexOf(id) === index,
-    )
-
-    if (validUniqueIds.length > 0) {
-      return validUniqueIds
-    }
-
-    return participations.map((p) => p.courseParticipationID)
-  }, [filteredApplicationIds, participationById, participations])
+  const navigationOrder = useMemo(
+    () =>
+      resolveNavigationOrder(
+        filteredApplicationIds,
+        participations.map((p) => p.courseParticipationID),
+        participationId,
+      ),
+    [filteredApplicationIds, participations, participationId],
+  )
   const orderedParticipations = useMemo(
     () => navigationOrder.flatMap((id) => participationById.get(id) ?? []),
     [navigationOrder, participationById],
@@ -119,16 +124,31 @@ export const ApplicationDetailsPage = () => {
 
   return (
     <div className='space-y-6'>
-      <ParticipantNavigation
-        participants={orderedParticipations}
-        currentId={participationId}
-        onNavigate={(p) => navigateToParticipation(p.courseParticipationID)}
-        colorByStatus
-      />
-
-      {fetchedApplication?.student && status && (
-        <StudentProfile student={fetchedApplication.student} status={status} />
-      )}
+      <StickyHeader
+        floating
+        expandedContent={
+          fetchedApplication?.student &&
+          status && <StudentProfile student={fetchedApplication.student} status={status} />
+        }
+      >
+        {(docked) => (
+          <ParticipantNavigation
+            participants={orderedParticipations}
+            currentId={participationId}
+            onNavigate={(p) => navigateToParticipation(p.courseParticipationID)}
+            colorByStatus
+            compact={docked}
+          >
+            {status && getApplicationStatusBadge(status)}
+            {score !== null && (
+              <Badge variant='outline' className='gap-1' title='Application score'>
+                <FileUserIcon className='h-3 w-3' />
+                {score}
+              </Badge>
+            )}
+          </ParticipantNavigation>
+        )}
+      </StickyHeader>
 
       <ApplicationDetailPageLayout
         left={

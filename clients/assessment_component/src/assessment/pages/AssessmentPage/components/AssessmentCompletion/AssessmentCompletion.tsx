@@ -7,6 +7,7 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
+  cn,
   DeleteConfirmation,
   getStudentName,
   Textarea,
@@ -26,6 +27,7 @@ import { useCreateOrUpdateAssessmentCompletion } from './hooks/useCreateOrUpdate
 import { useDeleteAssessmentCompletion } from './hooks/useDeleteAssessmentCompletion'
 import { useMarkAssessmentAsComplete } from './hooks/useMarkAssessmentAsComplete'
 import { useUnmarkAssessmentAsCompleted } from './hooks/useUnmarkAssessmentAsCompleted'
+import { getVisibleSummaryCards } from './utils/getVisibleSummaryCards'
 
 interface AssessmentCompletionProps {
   readOnly?: boolean
@@ -154,45 +156,61 @@ export const AssessmentCompletion = ({
 
   const isCompleted = readOnly || (assessmentCompletion?.completed ?? false)
 
+  const visibleCards = getVisibleSummaryCards(readOnly, coursePhaseConfig)
+  const hasRemarksOrGrade = visibleCards.generalRemarks || visibleCards.grade
+
   return (
     <div className='space-y-4'>
       <h1 className='text-xl font-semibold tracking-tight'>Assessment Summary</h1>
 
-      <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
-        <div className='grid grid-cols-1 gap-4'>
-          <Card className='flex flex-col grow'>
-            <CardHeader>
-              <CardTitle>General Remarks</CardTitle>
-              {coursePhaseConfig?.actionItemsVisible && !readOnly && (
-                <p className='text-xs text-gray-500 dark:text-gray-400 mt-1'>
-                  These remarks will be visible to the student once results are released.
-                </p>
-              )}
-            </CardHeader>
-            <CardContent className='flex flex-col grow'>
-              <Textarea
-                ref={textareaRef}
-                placeholder='What did this person do particularly well?'
-                className='w-full resize-none min-h-[100px] overflow-hidden'
-                rows={4}
-                value={generalRemarks}
-                onChange={(e) => setGeneralRemarks(e.target.value)}
-                onBlur={() => handleSaveFormData(generalRemarks, gradeSuggestion)}
-                disabled={isCompleted}
+      <div
+        className={cn(
+          'grid grid-cols-1 gap-4',
+          hasRemarksOrGrade && visibleCards.actionItems && 'lg:grid-cols-2',
+        )}
+      >
+        {hasRemarksOrGrade && (
+          <div className='grid grid-cols-1 gap-4'>
+            {visibleCards.generalRemarks && (
+              <Card className='flex flex-col grow'>
+                <CardHeader>
+                  <CardTitle>General Remarks</CardTitle>
+                  {coursePhaseConfig?.actionItemsVisible && !readOnly && (
+                    <p className='text-xs text-gray-500 dark:text-gray-400 mt-1'>
+                      These remarks will be visible to the student once results are released.
+                    </p>
+                  )}
+                </CardHeader>
+                <CardContent className='flex flex-col grow'>
+                  <Textarea
+                    ref={textareaRef}
+                    placeholder='What did this person do particularly well?'
+                    className='w-full resize-none min-h-[100px] overflow-hidden'
+                    rows={4}
+                    value={generalRemarks}
+                    onChange={(e) => setGeneralRemarks(e.target.value)}
+                    onBlur={() => handleSaveFormData(generalRemarks, gradeSuggestion)}
+                    disabled={isCompleted}
+                  />
+                </CardContent>
+              </Card>
+            )}
+
+            {visibleCards.grade && (
+              <GradeSuggestion
+                onGradeSuggestionChange={(value) => {
+                  setGradeSuggestion(value)
+                  handleSaveFormData(generalRemarks, value)
+                }}
+                readOnly={readOnly}
               />
-            </CardContent>
-          </Card>
+            )}
+          </div>
+        )}
 
-          <GradeSuggestion
-            onGradeSuggestionChange={(value) => {
-              setGradeSuggestion(value)
-              handleSaveFormData(generalRemarks, value)
-            }}
-            readOnly={readOnly}
-          />
-        </div>
-
-        <ActionItemPanel readOnly={readOnly} actionItems={actionItems} />
+        {visibleCards.actionItems && (
+          <ActionItemPanel readOnly={readOnly} actionItems={actionItems} />
+        )}
       </div>
 
       {error && !dialogOpen && !readOnly && (

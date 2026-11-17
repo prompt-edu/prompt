@@ -1,0 +1,2 @@
+-- Intentional no-op. Giving the default schemas their former owners back would let one phase edit
+-- the schemas every new phase starts with and let deleting that phase remove them again.

@@ -1092,13 +1092,75 @@ const docTemplate = `{
             }
         },
         "/course_phase/{coursePhaseID}/team/tutors": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "List every team each tutor of the course phase leads, one entry per tutor and team, with the tutor's id and university login (empty for a tutor stored without one).",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "team"
+                ],
+                "summary": "List tutor assignments",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Course Phase UUID",
+                        "name": "coursePhaseID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/teamDTO.TutorAssignment"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
             "post": {
                 "security": [
                     {
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Import tutors for teams in a course phase",
+                "description": "Set the teams of each listed tutor. A tutor is identified by their university login, which is required: their previous assignments in the phase are replaced, and an existing tutor keeps their id.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1143,15 +1205,6 @@ const docTemplate = `{
                             }
                         }
                     },
-                    "409": {
-                        "description": "Conflict",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -1164,24 +1217,21 @@ const docTemplate = `{
                 }
             }
         },
-        "/course_phase/{coursePhaseID}/team/tutors/{universityLogin}": {
-            "put": {
+        "/course_phase/{coursePhaseID}/team/tutors/me": {
+            "get": {
                 "security": [
                     {
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "Reassign a tutor to a different team by their university login",
-                "consumes": [
-                    "application/json"
-                ],
+                "description": "Get the tutor that the caller's university login belongs to in this course phase, so other phases can match the caller to a team's tutors",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "team"
                 ],
-                "summary": "Update tutor team assignment",
+                "summary": "Get the caller's tutor record",
                 "parameters": [
                     {
                         "type": "string",
@@ -1189,30 +1239,26 @@ const docTemplate = `{
                         "name": "coursePhaseID",
                         "in": "path",
                         "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Tutor university login (trimmed and lowercased; used as a lookup key, not format-validated)",
-                        "name": "universityLogin",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "New team ID",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/teamDTO.UpdateTutorTeamRequest"
-                        }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK"
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/promptTypes.Person"
+                        }
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -1695,6 +1741,10 @@ const docTemplate = `{
         "promptTypes.Person": {
             "type": "object",
             "properties": {
+                "email": {
+                    "description": "Email is the person's contact email address. It is empty when the source does not provide it.",
+                    "type": "string"
+                },
                 "firstName": {
                     "description": "FirstName stores the first name as provided during initial application or profile updates.",
                     "type": "string"
@@ -1705,6 +1755,10 @@ const docTemplate = `{
                 },
                 "lastName": {
                     "description": "LastName stores the last name as provided during initial application or profile updates.",
+                    "type": "string"
+                },
+                "universityLogin": {
+                    "description": "UniversityLogin is the person's username for university systems and services.\nIt is empty when the source does not provide it.",
                     "type": "string"
                 }
             }
@@ -1957,13 +2011,27 @@ const docTemplate = `{
                 "courseParticipationID": {
                     "type": "string"
                 },
-                "coursePhaseID": {
-                    "type": "string"
-                },
                 "firstName": {
                     "type": "string"
                 },
                 "lastName": {
+                    "type": "string"
+                },
+                "teamIDs": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "universityLogin": {
+                    "type": "string"
+                }
+            }
+        },
+        "teamDTO.TutorAssignment": {
+            "type": "object",
+            "properties": {
+                "id": {
                     "type": "string"
                 },
                 "teamID": {
@@ -1978,17 +2046,6 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "newTeamName": {
-                    "type": "string"
-                }
-            }
-        },
-        "teamDTO.UpdateTutorTeamRequest": {
-            "type": "object",
-            "required": [
-                "teamID"
-            ],
-            "properties": {
-                "teamID": {
                     "type": "string"
                 }
             }

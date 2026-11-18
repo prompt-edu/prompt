@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
@@ -18,9 +19,13 @@ import (
 )
 
 var (
-	ErrTutorNotFound       = errors.New("tutor not found")
-	ErrDuplicateLogin      = errors.New("university login already assigned to another tutor in this phase")
+	ErrMissingLogin        = errors.New("every tutor needs a university login")
+	ErrMissingTutorID      = errors.New("every tutor needs a courseParticipationID")
+	ErrDuplicateLogin      = errors.New("university login is listed more than once")
+	ErrDuplicateTutorID    = errors.New("courseParticipationID is listed for more than one login")
+	ErrNoTeams             = errors.New("tutor needs at least one team")
 	ErrInvalidTeamForPhase = errors.New("team does not belong to this course phase")
+	ErrTutorNotFound       = errors.New("tutor not found")
 )
 
 type TeamsService struct {
@@ -140,7 +145,23 @@ func (s *TeamsService) AddStudentNamesToAllocations(ctx context.Context, courseP
 	return nil
 }
 
+// GetTutorAssignments lists every team each tutor of the phase leads, one entry per tutor and team.
+func (s *TeamsService) GetTutorAssignments(ctx context.Context, coursePhaseID uuid.UUID) ([]teamDTO.TutorAssignment, error) {
+	rows, err := s.queries.GetTutorAssignmentsByCoursePhase(ctx, coursePhaseID)
+	if err != nil {
+		return nil, fmt.Errorf("could not get the tutors of course phase %s: %w", coursePhaseID, err)
+	}
+	return teamDTO.GetTutorAssignmentsFromDBModels(rows), nil
+}
+
+// ImportTutors sets the teams of every listed tutor. A tutor is identified by their university
+// login: their previous assignments in the phase are replaced, and a tutor who already exists keeps
+// the id they carry, so evaluations other phases stored against it stay attached.
 func (s *TeamsService) ImportTutors(ctx context.Context, coursePhaseID uuid.UUID, tutors []teamDTO.Tutor) error {
+	if err := validateTutorImport(tutors); err != nil {
+		return err
+	}
+
 	tx, err := s.conn.Begin(ctx)
 	if err != nil {
 		return err
@@ -148,22 +169,47 @@ func (s *TeamsService) ImportTutors(ctx context.Context, coursePhaseID uuid.UUID
 	defer sdkUtils.DeferRollback(tx, ctx)
 	qtx := s.queries.WithTx(tx)
 
+	if err := qtx.LockTutorImport(ctx, coursePhaseID); err != nil {
+		return err
+	}
+
 	for _, tutor := range tutors {
-		normalizedLogin := tutorscope.NormalizeLogin(tutor.UniversityLogin)
-		err := qtx.UpsertTutor(ctx, db.UpsertTutorParams{
-			CoursePhaseID:         coursePhaseID,
-			CourseParticipationID: tutor.CourseParticipationID,
-			FirstName:             tutor.FirstName,
-			LastName:              tutor.LastName,
-			TeamID:                tutor.TeamID,
-			UniversityLogin:       teamDTO.UniversityLoginParam(normalizedLogin),
+		login := teamDTO.UniversityLoginParam(tutorscope.NormalizeLogin(tutor.UniversityLogin))
+
+		tutorID, err := qtx.GetTutorIDByLogin(ctx, db.GetTutorIDByLoginParams{
+			CoursePhaseID:   coursePhaseID,
+			UniversityLogin: login,
 		})
-		if err != nil {
-			var pgErr *pgconn.PgError
-			if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-				return fmt.Errorf("%q: %w", normalizedLogin, ErrDuplicateLogin)
-			}
+		if errors.Is(err, pgx.ErrNoRows) {
+			tutorID = tutor.CourseParticipationID
+		} else if err != nil {
 			return err
+		}
+
+		if err := qtx.DeleteTutorAssignments(ctx, db.DeleteTutorAssignmentsParams{
+			CoursePhaseID:         coursePhaseID,
+			UniversityLogin:       login,
+			CourseParticipationID: tutorID,
+		}); err != nil {
+			return err
+		}
+
+		for _, teamID := range uniqueTeamIDs(tutor.TeamIDs) {
+			err := qtx.InsertTutor(ctx, db.InsertTutorParams{
+				CoursePhaseID:         coursePhaseID,
+				CourseParticipationID: tutorID,
+				FirstName:             tutor.FirstName,
+				LastName:              tutor.LastName,
+				TeamID:                teamID,
+				UniversityLogin:       login,
+			})
+			var pgErr *pgconn.PgError
+			if errors.As(err, &pgErr) && pgErr.Code == "23503" {
+				return ErrInvalidTeamForPhase
+			}
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -175,21 +221,66 @@ func (s *TeamsService) ImportTutors(ctx context.Context, coursePhaseID uuid.UUID
 	return nil
 }
 
-func (s *TeamsService) UpdateTutorTeam(ctx context.Context, coursePhaseID uuid.UUID, universityLogin string, teamID uuid.UUID) error {
-	rows, err := s.queries.UpdateTutorTeam(ctx, db.UpdateTutorTeamParams{
-		CoursePhaseID:   coursePhaseID,
-		UniversityLogin: teamDTO.UniversityLoginParam(universityLogin),
-		TeamID:          teamID,
-	})
-	if err != nil {
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == "23503" {
-			return ErrInvalidTeamForPhase
+func validateTutorImport(tutors []teamDTO.Tutor) error {
+	seenLogins := make(map[string]bool, len(tutors))
+	seenIDs := make(map[uuid.UUID]bool, len(tutors))
+	for _, tutor := range tutors {
+		login := tutorscope.NormalizeLogin(tutor.UniversityLogin)
+		if login == "" {
+			return ErrMissingLogin
 		}
-		return err
-	}
-	if rows == 0 {
-		return ErrTutorNotFound
+		if seenLogins[login] {
+			return fmt.Errorf("%q: %w", login, ErrDuplicateLogin)
+		}
+		seenLogins[login] = true
+
+		if tutor.CourseParticipationID == uuid.Nil {
+			return ErrMissingTutorID
+		}
+		if seenIDs[tutor.CourseParticipationID] {
+			return fmt.Errorf("%s: %w", tutor.CourseParticipationID, ErrDuplicateTutorID)
+		}
+		seenIDs[tutor.CourseParticipationID] = true
+		if len(tutor.TeamIDs) == 0 {
+			return fmt.Errorf("%q: %w", login, ErrNoTeams)
+		}
 	}
 	return nil
+}
+
+func uniqueTeamIDs(teamIDs []uuid.UUID) []uuid.UUID {
+	seen := make(map[uuid.UUID]bool, len(teamIDs))
+	unique := make([]uuid.UUID, 0, len(teamIDs))
+	for _, teamID := range teamIDs {
+		if !seen[teamID] {
+			seen[teamID] = true
+			unique = append(unique, teamID)
+		}
+	}
+	return unique
+}
+
+// GetTutorByUniversityLogin returns the tutor a university login belongs to, so another phase can
+// tell which of a team's tutors the caller is.
+func (s *TeamsService) GetTutorByUniversityLogin(ctx context.Context, coursePhaseID uuid.UUID, universityLogin string) (promptTypes.Person, error) {
+	if universityLogin == "" {
+		return promptTypes.Person{}, ErrTutorNotFound
+	}
+
+	tutor, err := s.queries.GetTutorByUniversityLogin(ctx, db.GetTutorByUniversityLoginParams{
+		CoursePhaseID:   coursePhaseID,
+		UniversityLogin: teamDTO.UniversityLoginParam(universityLogin),
+	})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return promptTypes.Person{}, ErrTutorNotFound
+	}
+	if err != nil {
+		return promptTypes.Person{}, fmt.Errorf("failed to get tutor by university login: %w", err)
+	}
+
+	return promptTypes.Person{
+		ID:        tutor.CourseParticipationID,
+		FirstName: tutor.FirstName,
+		LastName:  tutor.LastName,
+	}, nil
 }

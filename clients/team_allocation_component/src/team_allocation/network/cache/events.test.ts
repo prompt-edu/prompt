@@ -105,13 +105,18 @@ describe('surveyTimeframeChanged', () => {
 })
 
 describe('tutorsImported', () => {
-  it('invalidates the team caches, which carry the tutors', () => {
-    seed(teamAllocationKeys.teams(PHASE), teamAllocationKeys.tease.teams(PHASE))
+  it('invalidates the team caches and the tutor list, which carry the tutors', () => {
+    seed(
+      teamAllocationKeys.teams(PHASE),
+      teamAllocationKeys.tease.teams(PHASE),
+      teamAllocationKeys.tutors(PHASE),
+    )
 
     teamAllocationCache.tutorsImported(queryClient, PHASE)
 
     expect(isInvalidated(teamAllocationKeys.teams(PHASE))).toBe(true)
     expect(isInvalidated(teamAllocationKeys.tease.teams(PHASE))).toBe(true)
+    expect(isInvalidated(teamAllocationKeys.tutors(PHASE))).toBe(true)
   })
 
   it('leaves the allocations and the survey alone', () => {

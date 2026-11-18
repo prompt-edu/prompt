@@ -7,6 +7,7 @@ const PHASE = 'phase-1'
 describe('teamAllocationKeys', () => {
   it('builds the phase keys', () => {
     expect(teamAllocationKeys.teams(PHASE)).toEqual(['team_allocation_team', PHASE])
+    expect(teamAllocationKeys.tutors(PHASE)).toEqual(['team_allocation_tutors', PHASE])
     expect(teamAllocationKeys.skills(PHASE)).toEqual(['team_allocation_skill', PHASE])
     expect(teamAllocationKeys.allocations(PHASE)).toEqual(['team_allocations', PHASE])
     expect(teamAllocationKeys.config(PHASE)).toEqual(['team_allocation_config', PHASE])
@@ -41,6 +42,10 @@ describe('teamAllocationKeys', () => {
   it('builds the tutor import keys, including the one shared with Self Team Allocation', () => {
     expect(teamAllocationKeys.tutorImport.studentsOfPhase(PHASE)).toEqual(['students', PHASE])
     expect(teamAllocationKeys.tutorImport.studentSearch('ab')).toEqual(['student-search', 'ab'])
+    expect(teamAllocationKeys.tutorImport.courseStaff('course-1')).toEqual([
+      'team_allocation_course_staff',
+      'course-1',
+    ])
   })
 
   it('reproduces the key owned by the shared state package', () => {

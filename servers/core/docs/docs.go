@@ -5240,7 +5240,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Give the member with the Keycloak ID the Admin or Member role of the org. A user who holds no role in the org is refused, so a stale selection never adds them back. A user holds one org role at a time. Only PROMPT admins can change their own membership.",
+                "description": "Give the member with the Keycloak ID the Admin or Member role of the org. A user who holds no role in the org is refused, so a stale selection never adds them back. A user holds one org role at a time. Refused with 409 while another change to the org's members or its deletion is in progress. Only PROMPT admins can change their own membership.",
                 "consumes": [
                     "application/json"
                 ],
@@ -5295,6 +5295,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/utils.ErrorResponse"
                         }
                     },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -5309,7 +5315,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Give the user with the Keycloak ID the Admin or Member role of the org. A user who already holds a role in the org is refused, so a stale selection never changes their role. Only PROMPT admins can add themselves.",
+                "description": "Give the user with the Keycloak ID the Admin or Member role of the org. A user who already holds a role in the org is refused, so a stale selection never changes their role. Refused with 409 while another change to the org's members or its deletion is in progress. Only PROMPT admins can add themselves.",
                 "consumes": [
                     "application/json"
                 ],
@@ -5384,7 +5390,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Take the user out of the org's Admin and Member groups. Removing a user who is not a member changes nothing. Only PROMPT admins can remove themselves.",
+                "description": "Take the user out of the org's Admin and Member groups. Removing a user who is not a member changes nothing. Refused with 409 while another change to the org's members or its deletion is in progress. Only PROMPT admins can remove themselves.",
                 "tags": [
                     "orgs"
                 ],
@@ -5423,6 +5429,12 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
                         "schema": {
                             "$ref": "#/definitions/utils.ErrorResponse"
                         }

@@ -9,14 +9,15 @@ UPDATE org SET created_at = clock_timestamp() WHERE id = $1 RETURNING *;
 -- name: GetOrgByID :one
 SELECT * FROM org WHERE id = $1;
 
--- name: LockOrgMembership :exec
+-- name: TryLockOrgMembership :one
 -- Serializes the membership changes of one org with each other and with the org's deletion until
--- the transaction ends. Details edits take no part in it.
-SELECT pg_advisory_xact_lock(hashtextextended('org_membership:' || sqlc.arg(org_id)::uuid::text, 0));
+-- the transaction ends, or returns false at once while either holds the lock. Details edits take no
+-- part in it.
+SELECT pg_try_advisory_xact_lock(hashtextextended('org_membership:' || sqlc.arg(org_id)::uuid::text, 0));
 
 -- name: LockOrgMembershipForSession :exec
--- Takes the lock of LockOrgMembership until UnlockOrgMembership, so it outlives a transaction of the
--- same connection that fails to commit.
+-- Waits for the lock of TryLockOrgMembership and holds it until UnlockOrgMembership, so it outlives a
+-- transaction of the same connection that fails to commit.
 SELECT pg_advisory_lock(hashtextextended('org_membership:' || sqlc.arg(org_id)::uuid::text, 0));
 
 -- name: UnlockOrgMembership :one

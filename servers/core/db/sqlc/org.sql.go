@@ -209,23 +209,12 @@ func (q *Queries) LockOrgHierarchy(ctx context.Context) error {
 	return err
 }
 
-const lockOrgMembership = `-- name: LockOrgMembership :exec
-SELECT pg_advisory_xact_lock(hashtextextended('org_membership:' || $1::uuid::text, 0))
-`
-
-// Serializes the membership changes of one org with each other and with the org's deletion until
-// the transaction ends. Details edits take no part in it.
-func (q *Queries) LockOrgMembership(ctx context.Context, orgID uuid.UUID) error {
-	_, err := q.db.Exec(ctx, lockOrgMembership, orgID)
-	return err
-}
-
 const lockOrgMembershipForSession = `-- name: LockOrgMembershipForSession :exec
 SELECT pg_advisory_lock(hashtextextended('org_membership:' || $1::uuid::text, 0))
 `
 
-// Takes the lock of LockOrgMembership until UnlockOrgMembership, so it outlives a transaction of the
-// same connection that fails to commit.
+// Waits for the lock of TryLockOrgMembership and holds it until UnlockOrgMembership, so it outlives a
+// transaction of the same connection that fails to commit.
 func (q *Queries) LockOrgMembershipForSession(ctx context.Context, orgID uuid.UUID) error {
 	_, err := q.db.Exec(ctx, lockOrgMembershipForSession, orgID)
 	return err
@@ -250,6 +239,20 @@ func (q *Queries) StampOrgCreatedAt(ctx context.Context, id uuid.UUID) (Org, err
 		&i.CreatedAt,
 	)
 	return i, err
+}
+
+const tryLockOrgMembership = `-- name: TryLockOrgMembership :one
+SELECT pg_try_advisory_xact_lock(hashtextextended('org_membership:' || $1::uuid::text, 0))
+`
+
+// Serializes the membership changes of one org with each other and with the org's deletion until
+// the transaction ends, or returns false at once while either holds the lock. Details edits take no
+// part in it.
+func (q *Queries) TryLockOrgMembership(ctx context.Context, orgID uuid.UUID) (bool, error) {
+	row := q.db.QueryRow(ctx, tryLockOrgMembership, orgID)
+	var pg_try_advisory_xact_lock bool
+	err := row.Scan(&pg_try_advisory_xact_lock)
+	return pg_try_advisory_xact_lock, err
 }
 
 const unlockOrgMembership = `-- name: UnlockOrgMembership :one

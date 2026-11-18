@@ -446,6 +446,26 @@ func (suite *OrgRouterTestSuite) TestUpdateOrgMemberRoleRefusesAUserWhoIsNotAMem
 	assert.Empty(suite.T(), suite.members.roleOf("ase", adaUserID))
 }
 
+func (suite *OrgRouterTestSuite) TestMembershipChangesOfABusyOrgAreConflicts() {
+	require.NoError(suite.T(), suite.members.SetOrgMemberRole(suite.ctx, "ase", adaUserID, permissionValidation.OrgMember))
+	conn, err := suite.service.conn.Acquire(suite.ctx)
+	require.NoError(suite.T(), err)
+	defer conn.Release()
+	require.NoError(suite.T(), db.New(conn).LockOrgMembershipForSession(suite.ctx, suite.org.ID))
+	defer unlockMembership(suite.ctx, conn, suite.org.ID)
+	router := suite.routerFor(orgAdmin.roles...)
+
+	added := serve(router, http.MethodPost, memberPath(suite.org.ID, adaUserID), orgDTO.UpdateOrgMemberRole{Role: permissionValidation.OrgAdmin})
+	changed := serve(router, http.MethodPut, memberPath(suite.org.ID, adaUserID), orgDTO.UpdateOrgMemberRole{Role: permissionValidation.OrgAdmin})
+	removed := serve(router, http.MethodDelete, memberPath(suite.org.ID, adaUserID), nil)
+
+	for _, w := range []*httptest.ResponseRecorder{added, changed, removed} {
+		assert.Equal(suite.T(), http.StatusConflict, w.Code)
+		assert.Contains(suite.T(), w.Body.String(), ErrMembershipBusy.Error())
+	}
+	assert.Equal(suite.T(), permissionValidation.OrgMember, suite.members.roleOf("ase", adaUserID))
+}
+
 func (suite *OrgRouterTestSuite) TestUpdateOrgMemberRoleValidatesInput() {
 	for _, tc := range []struct {
 		name   string

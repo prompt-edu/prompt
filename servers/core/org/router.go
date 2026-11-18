@@ -109,7 +109,7 @@ func (s *OrgService) getOrgMembers(c *gin.Context) {
 
 // addOrgMember godoc
 // @Summary Add a member to an org
-// @Description Give the user with the Keycloak ID the Admin or Member role of the org. A user who already holds a role in the org is refused, so a stale selection never changes their role. Only PROMPT admins can add themselves.
+// @Description Give the user with the Keycloak ID the Admin or Member role of the org. A user who already holds a role in the org is refused, so a stale selection never changes their role. Refused with 409 while another change to the org's members or its deletion is in progress. Only PROMPT admins can add themselves.
 // @Tags orgs
 // @Accept json
 // @Param orgID path string true "Org UUID"
@@ -129,7 +129,7 @@ func (s *OrgService) addOrgMember(c *gin.Context) {
 
 // updateOrgMemberRole godoc
 // @Summary Change the role of an org member
-// @Description Give the member with the Keycloak ID the Admin or Member role of the org. A user who holds no role in the org is refused, so a stale selection never adds them back. A user holds one org role at a time. Only PROMPT admins can change their own membership.
+// @Description Give the member with the Keycloak ID the Admin or Member role of the org. A user who holds no role in the org is refused, so a stale selection never adds them back. A user holds one org role at a time. Refused with 409 while another change to the org's members or its deletion is in progress. Only PROMPT admins can change their own membership.
 // @Tags orgs
 // @Accept json
 // @Param orgID path string true "Org UUID"
@@ -139,6 +139,7 @@ func (s *OrgService) addOrgMember(c *gin.Context) {
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 401 {object} utils.ErrorResponse
 // @Failure 404 {object} utils.ErrorResponse
+// @Failure 409 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Security BearerAuth
 // @Router /orgs/{orgID}/members/{userID} [put]
@@ -183,7 +184,7 @@ func (s *OrgService) writeOrgMemberRole(c *gin.Context, write func(ctx context.C
 
 // removeOrgMember godoc
 // @Summary Remove a member from an org
-// @Description Take the user out of the org's Admin and Member groups. Removing a user who is not a member changes nothing. Only PROMPT admins can remove themselves.
+// @Description Take the user out of the org's Admin and Member groups. Removing a user who is not a member changes nothing. Refused with 409 while another change to the org's members or its deletion is in progress. Only PROMPT admins can remove themselves.
 // @Tags orgs
 // @Param orgID path string true "Org UUID"
 // @Param userID path string true "Keycloak user ID"
@@ -191,6 +192,7 @@ func (s *OrgService) writeOrgMemberRole(c *gin.Context, write func(ctx context.C
 // @Failure 400 {object} utils.ErrorResponse
 // @Failure 401 {object} utils.ErrorResponse
 // @Failure 404 {object} utils.ErrorResponse
+// @Failure 409 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Security BearerAuth
 // @Router /orgs/{orgID}/members/{userID} [delete]
@@ -446,7 +448,7 @@ func handleServiceError(c *gin.Context, err error, fallbackMessage string) {
 		sdkUtils.HandleError(c, http.StatusNotFound, err)
 	case errors.Is(err, ErrParentOrgNotFound), errors.Is(err, ErrOrgCycle), errors.Is(err, ErrOwnMembership), errors.Is(err, keycloakRealmManager.ErrInvalidOrgRole):
 		sdkUtils.HandleError(c, http.StatusBadRequest, err)
-	case errors.Is(err, ErrDuplicateOrgSlug), errors.Is(err, ErrOrgHasChildOrgs), errors.Is(err, ErrOrgHasCourses), errors.Is(err, ErrAlreadyOrgMember):
+	case errors.Is(err, ErrDuplicateOrgSlug), errors.Is(err, ErrOrgHasChildOrgs), errors.Is(err, ErrOrgHasCourses), errors.Is(err, ErrAlreadyOrgMember), errors.Is(err, ErrMembershipBusy):
 		sdkUtils.HandleError(c, http.StatusConflict, err)
 	case errors.Is(err, ErrOrgMembersRemoved):
 		log.Error(err)

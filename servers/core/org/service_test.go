@@ -773,33 +773,18 @@ func (suite *OrgServiceTestSuite) receive(done <-chan error, what string) error 
 	}
 }
 
-func (suite *OrgServiceTestSuite) TestMembershipChangesWaitForADeletionInProgress() {
+func (suite *OrgServiceTestSuite) TestMembershipChangesAreRefusedWhileTheOrgIsDeleted() {
 	org := suite.createOrg("members-deleting", nil)
 	service, members := suite.withMembers(staffMember("ada", "ad12min"))
-	inKeycloak, release := make(chan struct{}), make(chan struct{})
-	releaseDeletion := sync.OnceFunc(func() { close(release) })
-	defer releaseDeletion()
+	var changeErr error
 	suite.keycloak.onDelete = func(string) {
-		close(inKeycloak)
-		<-release
+		_, changeErr = service.AddOrgMember(suite.ctx, org.ID, "ada", permissionValidation.OrgMember, caller)
 	}
 
-	deleted := make(chan error, 1)
-	go func() {
-		_, err := service.DeleteOrg(suite.ctx, org.ID)
-		deleted <- err
-	}()
-	suite.awaitSignal(inKeycloak, deleted, "the deletion")
-	changed := make(chan error, 1)
-	go func() {
-		_, err := service.UpdateOrgMemberRole(suite.ctx, org.ID, "ada", permissionValidation.OrgMember, caller)
-		changed <- err
-	}()
-	suite.assertWaiting(changed, "the membership change")
-	releaseDeletion()
+	_, err := service.DeleteOrg(suite.ctx, org.ID)
 
-	require.NoError(suite.T(), suite.receive(deleted, "the deletion"))
-	assert.ErrorIs(suite.T(), suite.receive(changed, "the membership change"), ErrOrgNotFound)
+	require.NoError(suite.T(), err)
+	assert.ErrorIs(suite.T(), changeErr, ErrMembershipBusy)
 	assert.Empty(suite.T(), members.roleOf("members-deleting", "ada"))
 }
 
@@ -838,37 +823,42 @@ func (suite *OrgServiceTestSuite) TestDeletionWaitsForAMembershipChangeInKeycloa
 
 // A failed commit releases the deletion's own locks before it re-adds the members it found, so a
 // change made in between would be undone by that restore.
-func (suite *OrgServiceTestSuite) TestMembershipChangesWaitForTheRestoreOfAFailedDeletion() {
+func (suite *OrgServiceTestSuite) TestMembershipChangesAreRefusedDuringTheRestoreOfAFailedDeletion() {
 	org := suite.createOrg("members-restoring", nil)
 	service, members := suite.withMembers(staffMember("ada", "ad12min"))
 	require.NoError(suite.T(), members.SetOrgMemberRole(suite.ctx, "members-restoring", "ada", permissionValidation.OrgMember))
 	suite.keycloak.members = orgMembers{permissionValidation.OrgMember: {"ada"}}
 	suite.failCommitOn("DELETE", "OLD", "members-restoring")
-	changed := make(chan error, 1)
-	suite.keycloak.onDelete = func(string) {
-		go func() {
-			_, err := service.RemoveOrgMember(suite.ctx, org.ID, "ada", caller)
-			changed <- err
-		}()
-		suite.assertWaiting(changed, "the membership change")
+	removeAda := func() error {
+		_, err := service.RemoveOrgMember(suite.ctx, org.ID, "ada", caller)
+		return err
 	}
+	var duringDeletion, duringRestore error
+	suite.keycloak.onDelete = func(string) { duringDeletion = removeAda() }
 	// The restore recreates the groups before it re-adds the members
-	suite.keycloak.onCreate = func(string) { suite.assertWaiting(changed, "the membership change during the restore") }
+	suite.keycloak.onCreate = func(string) { duringRestore = removeAda() }
 
 	_, err := service.DeleteOrg(suite.ctx, org.ID)
 
 	assert.ErrorContains(suite.T(), err, "commit rejected")
 	assert.Len(suite.T(), suite.keycloak.added, 1, "the restore re-added the members")
-	require.NoError(suite.T(), suite.receive(changed, "the membership change"))
+	assert.ErrorIs(suite.T(), duringDeletion, ErrMembershipBusy)
+	assert.ErrorIs(suite.T(), duringRestore, ErrMembershipBusy)
+	assert.Equal(suite.T(), permissionValidation.OrgMember, members.roleOf("members-restoring", "ada"))
+	require.NoError(suite.T(), removeAda(), "the restore released the lock")
+	assert.Empty(suite.T(), members.roleOf("members-restoring", "ada"))
 }
 
 // A role change adds the new role before it removes the other one, so two overlapping changes of a
-// user could leave them with neither.
-func (suite *OrgServiceTestSuite) TestMembershipChangesOfAnOrgTakeTurns() {
+// user could leave them with neither. A change that waited for the other one would hold a pool
+// connection meanwhile, so it is refused instead.
+func (suite *OrgServiceTestSuite) TestAMembershipChangeIsRefusedWhileAnotherOneOfTheOrgIsUnderWay() {
 	org := suite.createOrg("members-turns", nil)
-	service, members := suite.withMembers(staffMember("ada", "ad12min"))
+	otherOrg := suite.createOrg("members-turns-other", nil)
+	service, members := suite.withMembers(staffMember("ada", "ad12min"), staffMember("max", "ma12xim"))
 	require.NoError(suite.T(), members.SetOrgMemberRole(suite.ctx, "members-turns", "ada", permissionValidation.OrgMember))
-	writes, release := make(chan struct{}, 2), make(chan struct{})
+	require.NoError(suite.T(), members.SetOrgMemberRole(suite.ctx, "members-turns-other", "ada", permissionValidation.OrgMember))
+	writes, release := make(chan struct{}, 1), make(chan struct{})
 	releaseWrites := sync.OnceFunc(func() { close(release) })
 	defer releaseWrites()
 	members.beforeWrite = func() {
@@ -876,32 +866,28 @@ func (suite *OrgServiceTestSuite) TestMembershipChangesOfAnOrgTakeTurns() {
 		<-release
 	}
 
-	first, second := make(chan error, 1), make(chan error, 1)
+	first := make(chan error, 1)
 	go func() {
 		_, err := service.UpdateOrgMemberRole(suite.ctx, org.ID, "ada", permissionValidation.OrgAdmin, caller)
 		first <- err
 	}()
 	suite.awaitSignal(writes, first, "the first membership change")
-	go func() {
-		_, err := service.UpdateOrgMemberRole(suite.ctx, org.ID, "ada", permissionValidation.OrgMember, caller)
-		second <- err
-	}()
-	select {
-	case <-writes:
-		suite.T().Fatal("the second membership change wrote to Keycloak while the first one did")
-	case err := <-second:
-		suite.T().Fatalf("the second membership change did not wait: %v", err)
-	case <-time.After(200 * time.Millisecond):
-	}
+	members.beforeWrite = nil
+
+	_, err := service.UpdateOrgMemberRole(suite.ctx, org.ID, "max", permissionValidation.OrgAdmin, caller)
+	assert.ErrorIs(suite.T(), err, ErrMembershipBusy, "a change of the same org")
+	_, err = service.UpdateOrgMemberRole(suite.ctx, otherOrg.ID, "ada", permissionValidation.OrgAdmin, caller)
+	assert.NoError(suite.T(), err, "a change of another org")
 	releaseWrites()
 
 	require.NoError(suite.T(), suite.receive(first, "the first membership change"))
-	require.NoError(suite.T(), suite.receive(second, "the second membership change"))
-	assert.Equal(suite.T(), permissionValidation.OrgMember, members.roleOf("members-turns", "ada"))
+	assert.Equal(suite.T(), permissionValidation.OrgAdmin, members.roleOf("members-turns", "ada"))
+	assert.Empty(suite.T(), members.roleOf("members-turns", "max"))
+	assert.Equal(suite.T(), permissionValidation.OrgAdmin, members.roleOf("members-turns-other", "ada"))
 }
 
-// The membership changes a deletion holds off may hold every other connection of the pool, so a
-// deletion that needs a second connection while it holds the lock would wait for them forever.
+// Other requests may hold every other connection of the pool, so a deletion that needs a second
+// connection while it holds the lock would keep the org's membership locked until they let one go.
 func (suite *OrgServiceTestSuite) TestDeleteOrgNeedsOneConnection() {
 	config, err := pgxpool.ParseConfig(suite.conn.Config().ConnString())
 	require.NoError(suite.T(), err)

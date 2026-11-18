@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/Nerzal/gocloak/v14"
 	"github.com/google/uuid"
@@ -42,7 +41,7 @@ const childGroupsPageSize = 100
 // role of a course "ios-cg-team" created before course names were refused a "-". Until the group is
 // deleted, its Lecturer members keep the Lecturer role, so they can retry a deletion that failed.
 func (s *KeycloakRealmService) deleteCourseGroupsAndRoles(ctx context.Context, courseGroupName string) error {
-	if strings.ContainsAny(courseGroupName, permissionValidation.UnaddressableCharacters) {
+	if !permissionValidation.IsAddressableInKeycloak(courseGroupName) {
 		log.Warnf("course %s cannot be addressed in Keycloak; skipping the deletion of its groups and roles", courseGroupName)
 		return nil
 	}
@@ -102,7 +101,7 @@ func (s *KeycloakRealmService) customGroupRoleNames(ctx context.Context, accessT
 				continue
 			}
 			roleName := customGroupRoleName(courseGroupName, *customGroup.Name)
-			if strings.ContainsAny(roleName, permissionValidation.UnaddressableCharacters) {
+			if !permissionValidation.IsAddressableInKeycloak(roleName) {
 				log.Warnf("custom group role %s cannot be addressed in Keycloak; skipping its deletion", roleName)
 				continue
 			}

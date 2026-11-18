@@ -112,7 +112,7 @@ func TestDeleteCourseGroupsAndRolesByNameSucceedsWhenTheGroupIsAlreadyGone(t *te
 // A "/" splits the group path, a "%" makes the URL invalid, and a "?" or "#" cuts it short, so the
 // course "lab#1" would look up the group and roles of the course "lab".
 func TestDeleteCourseGroupsAndRolesByNameLeavesKeycloakAloneForAnUnaddressableName(t *testing.T) {
-	for _, name := range []string{"lab/Lecturer", "lab%1", "lab?1", "lab#1"} {
+	for _, name := range []string{"lab/Lecturer", "lab%1", "lab?1", "lab#1", "lab\t1"} {
 		t.Run(name, func(t *testing.T) {
 			realm := courseRealm("ws24")
 			groupsBefore, rolesBefore := realm.state()

@@ -211,13 +211,17 @@ func (suite *CourseTestSuite) TestValidateUpdateCourseData() {
 }
 
 func TestValidateCourseIdentifier(t *testing.T) {
-	const invalidName = `invalid course name or semester tag: the name must not contain "-", "/", "%", "?" or "#"`
-	const invalidSemesterTag = `invalid course name or semester tag: the semester tag must not contain "-", "/", "%", "?" or "#"`
+	const invalidName = `invalid course name or semester tag: the name must not contain "-", "/", "%", "?", "#" or control characters`
+	const invalidSemesterTag = `invalid course name or semester tag: the semester tag must not contain "-", "/", "%", "?", "#" or control characters`
 	tests := []struct {
 		name, courseName, semesterTag, expectedError string
 	}{
 		{"valid", "iPraktikum", "ios2425", ""},
 		{"spaces are allowed", "Agile Project Management", "ws2425", ""},
+		{"non-Latin letters are allowed", "Übung 日本語", "ws2425", ""},
+		{"tab in the name", "lab\t1", "ws24", invalidName},
+		{"line feed in the semester tag", "lab", "ws24\n", invalidSemesterTag},
+		{"delete character in the name", "lab\x7f", "ws24", invalidName},
 		{"hyphen in the name", "ios-lab", "ws24", invalidName},
 		{"hyphen in the semester tag", "lab", "ws24-ios", invalidSemesterTag},
 		{"slash in the name", "ios/Lecturer", "ws24", invalidName},

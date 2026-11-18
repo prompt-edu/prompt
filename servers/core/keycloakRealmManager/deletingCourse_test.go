@@ -128,6 +128,28 @@ func TestDeleteCourseGroupsAndRolesByNameLeavesKeycloakAloneForAnUnaddressableNa
 	}
 }
 
+func TestDeleteCourseGroupsAndRolesByNameKeepsARoleAGroupOfAnotherCourseMaps(t *testing.T) {
+	cases := []struct{ deleted, otherCourseGroup string }{
+		{deleted: "lab", otherCourseGroup: "Prompt/ws24-lab-cg-team/Lecturer"},
+		{deleted: "lab-cg-team", otherCourseGroup: "Prompt/ws24-lab/CustomGroups/team-Lecturer"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.deleted, func(t *testing.T) {
+			realm := courseRealm("ws24")
+			realm.addGroup("Prompt/ws24-lab/CustomGroups/team-Lecturer", "student")
+			realm.addRole("ws24-lab-cg-team-Lecturer", "Prompt/ws24-lab/CustomGroups/team-Lecturer")
+
+			err := realm.start(t).DeleteCourseGroupsAndRolesByName(context.Background(), tc.deleted, "ws24")
+
+			require.NoError(t, err)
+			groups, roles := realm.state()
+			assert.NotContains(t, groups, "Prompt/ws24-"+tc.deleted)
+			assert.Contains(t, roles, "ws24-lab-cg-team-Lecturer", "the custom group role of \"lab\" is the Lecturer role of \"lab-cg-team\"")
+			assert.Equal(t, []string{"ws24-lab-cg-team-Lecturer"}, groups[tc.otherCourseGroup].Roles)
+		})
+	}
+}
+
 func TestDeleteCourseGroupsAndRolesByNameSkipsAnUnaddressableCustomRole(t *testing.T) {
 	realm := courseRealm("ws24")
 	realm.addGroup("Prompt/ws24-lab/CustomGroups/team-Lecturer?x")

@@ -38,8 +38,10 @@ const childGroupsPageSize = 100
 //
 // A custom group role is found through the custom group it belongs to, never by its name alone:
 // "ws24-ios-cg-team-Lecturer" can be a custom group role of the course "ios" as well as the Lecturer
-// role of a course "ios-cg-team" created before course names were refused a "-". Until the group is
-// deleted, its Lecturer members keep the Lecturer role, so they can retry a deletion that failed.
+// role of a course "ios-cg-team" created before course names were refused a "-". Such a role can
+// even be both at once, so a role that a group of another course still maps is kept. Until the
+// group is deleted, its Lecturer members keep the Lecturer role, so they can retry a deletion that
+// failed.
 func (s *KeycloakRealmService) deleteCourseGroupsAndRoles(ctx context.Context, courseGroupName string) error {
 	if !permissionValidation.IsAddressableInKeycloak(courseGroupName) {
 		log.Warnf("course %s cannot be addressed in Keycloak; skipping the deletion of its groups and roles", courseGroupName)
@@ -62,7 +64,7 @@ func (s *KeycloakRealmService) deleteCourseGroupsAndRoles(ctx context.Context, c
 			return err
 		}
 		for _, roleName := range customRoleNames {
-			if err := s.deleteClientRole(ctx, token.AccessToken, roleName); err != nil {
+			if err := s.deleteCourseRole(ctx, token.AccessToken, courseGroupPath, roleName); err != nil {
 				return err
 			}
 		}
@@ -74,7 +76,7 @@ func (s *KeycloakRealmService) deleteCourseGroupsAndRoles(ctx context.Context, c
 	}
 
 	for _, staffRole := range []string{permissionValidation.CourseEditor, permissionValidation.CourseLecturer} {
-		if err := s.deleteClientRole(ctx, token.AccessToken, permissionValidation.CourseRoleName(courseGroupName, staffRole)); err != nil {
+		if err := s.deleteCourseRole(ctx, token.AccessToken, courseGroupPath, permissionValidation.CourseRoleName(courseGroupName, staffRole)); err != nil {
 			return err
 		}
 	}
@@ -113,7 +115,15 @@ func (s *KeycloakRealmService) customGroupRoleNames(ctx context.Context, accessT
 	}
 }
 
-func (s *KeycloakRealmService) deleteClientRole(ctx context.Context, accessToken, roleName string) error {
+func (s *KeycloakRealmService) deleteCourseRole(ctx context.Context, accessToken, courseGroupPath, roleName string) error {
+	otherCourseGroup, err := s.otherCourseGroupOfRole(ctx, accessToken, courseGroupPath, roleName)
+	if err != nil {
+		return err
+	}
+	if otherCourseGroup != "" {
+		log.Warnf("client role %s is mapped to the group %s of another course; keeping it", roleName, otherCourseGroup)
+		return nil
+	}
 	if err := s.client.DeleteClientRole(ctx, accessToken, s.Realm, s.idOfClient, roleName); err != nil && !hasStatus(err, http.StatusNotFound) {
 		return fmt.Errorf("failed to delete client role %s: %w", roleName, err)
 	}

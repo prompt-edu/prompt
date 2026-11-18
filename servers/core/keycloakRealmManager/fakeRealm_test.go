@@ -146,6 +146,10 @@ func (f *fakeRealm) recorded() []string {
 }
 
 func (f *fakeRealm) start(t *testing.T) *KeycloakRealmService {
+	return f.startWithQueries(t, db.Queries{})
+}
+
+func (f *fakeRealm) startWithQueries(t *testing.T, queries db.Queries) *KeycloakRealmService {
 	writeJSON := func(w http.ResponseWriter, status int, body any) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(status)
@@ -256,6 +260,20 @@ func (f *fakeRealm) start(t *testing.T) *KeycloakRealmService {
 		}
 		writeJSON(w, http.StatusOK, gocloak.Role{ID: gocloak.StringP("role-" + name), Name: &name})
 	})
+	handle("GET /admin/realms/prompt/clients/{client}/roles/{name}/groups", func(w http.ResponseWriter, r *http.Request) {
+		name := r.PathValue("name")
+		if !f.roles[name] {
+			notFound(w)
+			return
+		}
+		groups := []gocloak.Group{}
+		for _, group := range f.groups {
+			if slices.Contains(group.roles, name) {
+				groups = append(groups, gocloak.Group{ID: gocloak.StringP(group.id), Name: gocloak.StringP(group.name), Path: gocloak.StringP("/" + f.pathOf(group))})
+			}
+		}
+		writeJSON(w, http.StatusOK, groups)
+	})
 	handle("POST /admin/realms/prompt/clients/{client}/roles", func(w http.ResponseWriter, r *http.Request) {
 		var role gocloak.Role
 		_ = json.NewDecoder(r.Body).Decode(&role)
@@ -295,5 +313,5 @@ func (f *fakeRealm) start(t *testing.T) *KeycloakRealmService {
 
 	server := httptest.NewServer(mux)
 	t.Cleanup(server.Close)
-	return NewKeycloakRealmService(server.URL, "prompt", "prompt-server", "secret", "client-uuid", db.Queries{})
+	return NewKeycloakRealmService(server.URL, "prompt", "prompt-server", "secret", "client-uuid", queries)
 }

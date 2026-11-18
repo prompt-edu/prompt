@@ -191,6 +191,30 @@ func (s *KeycloakRealmService) GetCustomGroupID(ctx context.Context, accessToken
 	return *group.ID, nil
 }
 
+// otherCourseGroupOfRole returns the path of a group of another course that the client role is
+// mapped to, or "" when no such group exists. Groups of the course at courseGroupPath and groups
+// outside TOP_LEVEL_GROUP_NAME are not counted, and a role that does not exist has no groups.
+func (s *KeycloakRealmService) otherCourseGroupOfRole(ctx context.Context, accessToken, courseGroupPath, roleName string) (string, error) {
+	groups, err := s.client.GetGroupsByClientRole(ctx, accessToken, s.Realm, roleName, s.idOfClient)
+	if hasStatus(err, http.StatusNotFound) {
+		return "", nil
+	}
+	if err != nil {
+		return "", fmt.Errorf("failed to get the groups of client role %s: %w", roleName, err)
+	}
+	ownPath := "/" + courseGroupPath
+	for _, group := range groups {
+		if group == nil || group.Path == nil {
+			continue
+		}
+		groupPath := *group.Path
+		if strings.HasPrefix(groupPath, "/"+TOP_LEVEL_GROUP_NAME+"/") && groupPath != ownPath && !strings.HasPrefix(groupPath, ownPath+"/") {
+			return groupPath, nil
+		}
+	}
+	return "", nil
+}
+
 // GetOrCreateRealmRole fetches or creates a role for the Keycloak client identified by idOfClient.
 func (s *KeycloakRealmService) GetOrCreateRealmRole(ctx context.Context, accessToken, roleName string) (*gocloak.Role, error) {
 	// Trying to get (check if exists)

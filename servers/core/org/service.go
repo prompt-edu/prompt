@@ -42,7 +42,7 @@ var (
 	ErrOrgMembersRemoved = errors.New("the org was not deleted, but not all of its members could be re-added to its Keycloak groups: the server log names them; re-add them, or delete the org again")
 	ErrOwnMembership     = errors.New("you cannot change your own org membership; ask another Org Admin or a PROMPT admin")
 	ErrAlreadyOrgMember  = errors.New("the user is already a member of the org; change their role instead")
-	ErrNotOrgMember      = errors.New("the user is not a member of the org; add them instead")
+	ErrNotOrgMember      = errors.New("the user is not a member of the org")
 	ErrMembershipBusy    = errors.New("another change to the org's members or the org's deletion is in progress; try again in a moment")
 )
 
@@ -156,12 +156,8 @@ func (s *OrgService) GetOrgMembers(ctx context.Context, orgID uuid.UUID) ([]keyc
 // AddOrgMember gives the user with the Keycloak ID the org role if they hold none yet. Unlike
 // UpdateOrgMemberRole, it never changes the role of a member: a user picked from a stale list may
 // have become one since.
-func (s *OrgService) AddOrgMember(ctx context.Context, orgID uuid.UUID, userID, orgRole string, caller Caller) (orgDTO.Org, error) {
-	return s.changeMembership(ctx, orgID, userID, caller, func(ctx context.Context, slug string) error {
-		currentRole, err := s.members.OrgRoleOf(ctx, slug, userID)
-		if err != nil {
-			return fmt.Errorf("failed to get the org role of user %s: %w", userID, err)
-		}
+func (s *OrgService) AddOrgMember(ctx context.Context, orgID uuid.UUID, userID, orgRole string, caller Caller) (orgDTO.Org, string, error) {
+	return s.changeMembership(ctx, orgID, userID, caller, func(ctx context.Context, slug, currentRole string) error {
 		if currentRole != "" {
 			return ErrAlreadyOrgMember
 		}
@@ -174,12 +170,8 @@ func (s *OrgService) AddOrgMember(ctx context.Context, orgID uuid.UUID, userID, 
 
 // UpdateOrgMemberRole gives a member of the org the org role. Unlike AddOrgMember, it never adds a
 // user to the org: a member changed from a stale list may have been removed since.
-func (s *OrgService) UpdateOrgMemberRole(ctx context.Context, orgID uuid.UUID, userID, orgRole string, caller Caller) (orgDTO.Org, error) {
-	return s.changeMembership(ctx, orgID, userID, caller, func(ctx context.Context, slug string) error {
-		currentRole, err := s.members.OrgRoleOf(ctx, slug, userID)
-		if err != nil {
-			return fmt.Errorf("failed to get the org role of user %s: %w", userID, err)
-		}
+func (s *OrgService) UpdateOrgMemberRole(ctx context.Context, orgID uuid.UUID, userID, orgRole string, caller Caller) (orgDTO.Org, string, error) {
+	return s.changeMembership(ctx, orgID, userID, caller, func(ctx context.Context, slug, currentRole string) error {
 		if currentRole == "" {
 			return ErrNotOrgMember
 		}
@@ -190,9 +182,13 @@ func (s *OrgService) UpdateOrgMemberRole(ctx context.Context, orgID uuid.UUID, u
 	})
 }
 
-// RemoveOrgMember takes the user out of the org.
-func (s *OrgService) RemoveOrgMember(ctx context.Context, orgID uuid.UUID, userID string, caller Caller) (orgDTO.Org, error) {
-	return s.changeMembership(ctx, orgID, userID, caller, func(ctx context.Context, slug string) error {
+// RemoveOrgMember takes a member out of the org. A user who holds no role in it is refused, so a
+// removal from a stale list is not recorded as one.
+func (s *OrgService) RemoveOrgMember(ctx context.Context, orgID uuid.UUID, userID string, caller Caller) (orgDTO.Org, string, error) {
+	return s.changeMembership(ctx, orgID, userID, caller, func(ctx context.Context, slug, currentRole string) error {
+		if currentRole == "" {
+			return ErrNotOrgMember
+		}
 		if err := s.members.RemoveOrgMember(ctx, slug, userID); err != nil {
 			return fmt.Errorf("failed to remove user %s from org %s: %w", userID, slug, err)
 		}
@@ -207,44 +203,49 @@ func (s *OrgService) RemoveOrgMember(ctx context.Context, orgID uuid.UUID, userI
 // refused rather than queued: it would hold a pool connection while it waits, so a few changes to
 // one org during slow Keycloak calls could take every connection the rest of core needs. Nobody but
 // a PROMPT admin changes their own membership, so an Org Admin cannot lock themselves out of the
-// org; PROMPT admins manage every org anyway.
-func (s *OrgService) changeMembership(ctx context.Context, orgID uuid.UUID, userID string, caller Caller, change func(ctx context.Context, slug string) error) (orgDTO.Org, error) {
+// org; PROMPT admins manage every org anyway. The change gets the user's role in the org, or "" when
+// they hold none, and changeMembership returns it as the role they held before.
+func (s *OrgService) changeMembership(ctx context.Context, orgID uuid.UUID, userID string, caller Caller, change func(ctx context.Context, slug, currentRole string) error) (orgDTO.Org, string, error) {
 	tx, err := s.conn.Begin(ctx)
 	if err != nil {
-		return orgDTO.Org{}, err
+		return orgDTO.Org{}, "", err
 	}
 	defer promptSDK.DeferDBRollback(tx, ctx)
 	qtx := s.queries.WithTx(tx)
 
 	locked, err := qtx.TryLockOrgMembership(ctx, orgID)
 	if err != nil {
-		return orgDTO.Org{}, fmt.Errorf("failed to lock the membership of the org: %w", err)
+		return orgDTO.Org{}, "", fmt.Errorf("failed to lock the membership of the org: %w", err)
 	}
 	if !locked {
-		return orgDTO.Org{}, ErrMembershipBusy
+		return orgDTO.Org{}, "", ErrMembershipBusy
 	}
 	found, err := qtx.GetOrgByID(ctx, orgID)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return orgDTO.Org{}, ErrOrgNotFound
+		return orgDTO.Org{}, "", ErrOrgNotFound
 	}
 	if err != nil {
-		return orgDTO.Org{}, err
+		return orgDTO.Org{}, "", err
 	}
 	org := orgDTO.GetOrgDTOFromDBModel(found)
 	if userID == caller.UserID && !caller.IsPromptAdmin {
-		return orgDTO.Org{}, ErrOwnMembership
+		return orgDTO.Org{}, "", ErrOwnMembership
 	}
 
 	keycloakCtx, cancel := context.WithTimeout(ctx, keycloakTimeout)
 	defer cancel()
-	if err := change(keycloakCtx, org.Slug); err != nil {
-		return orgDTO.Org{}, err
+	currentRole, err := s.members.OrgRoleOf(keycloakCtx, org.Slug, userID)
+	if err != nil {
+		return orgDTO.Org{}, "", fmt.Errorf("failed to get the org role of user %s: %w", userID, err)
+	}
+	if err := change(keycloakCtx, org.Slug, currentRole); err != nil {
+		return orgDTO.Org{}, "", err
 	}
 	// The transaction only holds the lock and writes nothing, so a failed commit just ends the lock.
 	if err := tx.Commit(ctx); err != nil {
 		log.Error("failed to release the membership lock of org ", org.Slug, ": ", err)
 	}
-	return org, nil
+	return org, currentRole, nil
 }
 
 func (s *OrgService) CreateOrg(ctx context.Context, input orgDTO.CreateOrg) (orgDTO.Org, error) {

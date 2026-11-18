@@ -148,7 +148,7 @@ func (s *OrgService) updateOrgMemberRole(c *gin.Context) {
 }
 
 // writeOrgMemberRole gives the user in the URL the org role in the body through write.
-func (s *OrgService) writeOrgMemberRole(c *gin.Context, write func(ctx context.Context, orgID uuid.UUID, userID, orgRole string, caller Caller) (orgDTO.Org, error), fallbackMessage string) {
+func (s *OrgService) writeOrgMemberRole(c *gin.Context, write func(ctx context.Context, orgID uuid.UUID, userID, orgRole string, caller Caller) (orgDTO.Org, string, error), fallbackMessage string) {
 	id, err := uuid.Parse(c.Param("orgID"))
 	if err != nil {
 		sdkUtils.HandleError(c, http.StatusBadRequest, err)
@@ -173,18 +173,18 @@ func (s *OrgService) writeOrgMemberRole(c *gin.Context, write func(ctx context.C
 		return
 	}
 
-	org, err := write(c, id, userID, input.Role, caller)
+	org, previousRole, err := write(c, id, userID, input.Role, caller)
 	if err != nil {
 		handleServiceError(c, err, fallbackMessage)
 		return
 	}
-	recordOrgMemberAudit(c, org, userID, input.Role)
+	recordOrgMemberAudit(c, org, userID, input.Role, previousRole)
 	c.Status(http.StatusNoContent)
 }
 
 // removeOrgMember godoc
 // @Summary Remove a member from an org
-// @Description Take the user out of the org's Admin and Member groups. Removing a user who is not a member changes nothing. Refused with 409 while another change to the org's members or its deletion is in progress. Only PROMPT admins can remove themselves.
+// @Description Take the member out of the org's Admin and Member groups. A user who holds no role in the org is refused, so a stale selection is not recorded as a removal. Refused with 409 while another change to the org's members or its deletion is in progress. Only PROMPT admins can remove themselves.
 // @Tags orgs
 // @Param orgID path string true "Org UUID"
 // @Param userID path string true "Keycloak user ID"
@@ -211,12 +211,12 @@ func (s *OrgService) removeOrgMember(c *gin.Context) {
 		return
 	}
 
-	org, err := s.RemoveOrgMember(c, id, userID, caller)
+	org, previousRole, err := s.RemoveOrgMember(c, id, userID, caller)
 	if err != nil {
 		handleServiceError(c, err, "failed to remove the org member")
 		return
 	}
-	recordOrgMemberAudit(c, org, userID, "")
+	recordOrgMemberAudit(c, org, userID, "", previousRole)
 	c.Status(http.StatusNoContent)
 }
 
@@ -431,11 +431,15 @@ func recordOrgAudit(c *gin.Context, orgID uuid.UUID, slug string) {
 	audit.Record(c, audit.Event{EntityType: "org", EntityID: orgID.String(), EntityName: slug})
 }
 
-// recordOrgMemberAudit names the org and the member; role is empty for a removal.
-func recordOrgMemberAudit(c *gin.Context, org orgDTO.Org, userID, role string) {
+// recordOrgMemberAudit names the org, the member, and their role after and before the change; role
+// is empty for a removal, previousRole for an addition.
+func recordOrgMemberAudit(c *gin.Context, org orgDTO.Org, userID, role, previousRole string) {
 	metadata := map[string]any{"keycloakUserID": userID}
 	if role != "" {
 		metadata["role"] = role
+	}
+	if previousRole != "" {
+		metadata["previousRole"] = previousRole
 	}
 	audit.Record(c, audit.Event{EntityType: "org", EntityID: org.ID.String(), EntityName: org.Slug, Metadata: metadata})
 }

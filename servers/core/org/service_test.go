@@ -626,7 +626,7 @@ func (suite *OrgServiceTestSuite) TestUpdateOrgMemberRoleNeverAddsAUserToTheOrg(
 	org := suite.createOrg("members-update-removed", nil)
 	service, members := suite.withMembers(staffMember("ada", "ad12min"))
 
-	_, err := service.UpdateOrgMemberRole(suite.ctx, org.ID, "ada", permissionValidation.OrgAdmin, caller)
+	_, _, err := service.UpdateOrgMemberRole(suite.ctx, org.ID, "ada", permissionValidation.OrgAdmin, caller)
 
 	assert.ErrorIs(suite.T(), err, ErrNotOrgMember)
 	assert.Empty(suite.T(), members.roleOf("members-update-removed", "ada"))
@@ -637,11 +637,11 @@ func (suite *OrgServiceTestSuite) TestMembershipOfAnUnknownOrgIsNotFound() {
 
 	_, err := service.GetOrgMembers(suite.ctx, uuid.New())
 	assert.ErrorIs(suite.T(), err, ErrOrgNotFound)
-	_, err = service.AddOrgMember(suite.ctx, uuid.New(), "ada", permissionValidation.OrgMember, caller)
+	_, _, err = service.AddOrgMember(suite.ctx, uuid.New(), "ada", permissionValidation.OrgMember, caller)
 	assert.ErrorIs(suite.T(), err, ErrOrgNotFound)
-	_, err = service.UpdateOrgMemberRole(suite.ctx, uuid.New(), "ada", permissionValidation.OrgMember, caller)
+	_, _, err = service.UpdateOrgMemberRole(suite.ctx, uuid.New(), "ada", permissionValidation.OrgMember, caller)
 	assert.ErrorIs(suite.T(), err, ErrOrgNotFound)
-	_, err = service.RemoveOrgMember(suite.ctx, uuid.New(), "ada", caller)
+	_, _, err = service.RemoveOrgMember(suite.ctx, uuid.New(), "ada", caller)
 	assert.ErrorIs(suite.T(), err, ErrOrgNotFound)
 }
 
@@ -653,10 +653,11 @@ func (suite *OrgServiceTestSuite) TestUpdateOrgMemberRoleChangesTheRoleOfExactly
 	service, members := suite.withMembers(ada, max)
 	require.NoError(suite.T(), members.SetOrgMemberRole(suite.ctx, "members-role", "max", permissionValidation.OrgMember))
 
-	gotOrg, err := service.UpdateOrgMemberRole(suite.ctx, org.ID, "max", permissionValidation.OrgAdmin, caller)
+	gotOrg, previousRole, err := service.UpdateOrgMemberRole(suite.ctx, org.ID, "max", permissionValidation.OrgAdmin, caller)
 
 	require.NoError(suite.T(), err)
 	assert.Equal(suite.T(), org.ID, gotOrg.ID)
+	assert.Equal(suite.T(), permissionValidation.OrgMember, previousRole)
 	assert.Equal(suite.T(), permissionValidation.OrgAdmin, members.roleOf("members-role", "max"))
 	assert.Empty(suite.T(), members.roleOf("members-role", "ada"))
 }
@@ -666,7 +667,7 @@ func (suite *OrgServiceTestSuite) TestUpdateOrgMemberRoleRejectsTheCallersOwnMem
 	service, members := suite.withMembers(staffMember("ada", "ad12min"))
 	require.NoError(suite.T(), members.SetOrgMemberRole(suite.ctx, "members-self-role", "ada", permissionValidation.OrgAdmin))
 
-	_, err := service.UpdateOrgMemberRole(suite.ctx, org.ID, "ada", permissionValidation.OrgMember, Caller{UserID: "ada"})
+	_, _, err := service.UpdateOrgMemberRole(suite.ctx, org.ID, "ada", permissionValidation.OrgMember, Caller{UserID: "ada"})
 
 	assert.ErrorIs(suite.T(), err, ErrOwnMembership)
 	assert.Equal(suite.T(), permissionValidation.OrgAdmin, members.roleOf("members-self-role", "ada"))
@@ -676,7 +677,7 @@ func (suite *OrgServiceTestSuite) TestUpdateOrgMemberRoleOfAnUnknownUser() {
 	org := suite.createOrg("members-ghost", nil)
 	service, _ := suite.withMembers()
 
-	_, err := service.UpdateOrgMemberRole(suite.ctx, org.ID, "ghost", permissionValidation.OrgMember, caller)
+	_, _, err := service.UpdateOrgMemberRole(suite.ctx, org.ID, "ghost", permissionValidation.OrgMember, caller)
 
 	assert.ErrorIs(suite.T(), err, keycloakRealmManager.ErrUserNotFound)
 }
@@ -686,11 +687,24 @@ func (suite *OrgServiceTestSuite) TestRemoveOrgMemberTakesTheUserOutOfTheOrg() {
 	service, members := suite.withMembers(staffMember("ada", "ad12min"))
 	require.NoError(suite.T(), members.SetOrgMemberRole(suite.ctx, "members-remove", "ada", permissionValidation.OrgMember))
 
-	gotOrg, err := service.RemoveOrgMember(suite.ctx, org.ID, "ada", caller)
+	gotOrg, previousRole, err := service.RemoveOrgMember(suite.ctx, org.ID, "ada", caller)
 
 	require.NoError(suite.T(), err)
 	assert.Equal(suite.T(), org.ID, gotOrg.ID)
+	assert.Equal(suite.T(), permissionValidation.OrgMember, previousRole)
 	assert.Empty(suite.T(), members.roleOf("members-remove", "ada"))
+}
+
+func (suite *OrgServiceTestSuite) TestRemoveOrgMemberRefusesAUserWhoIsNotAMember() {
+	org := suite.createOrg("members-remove-twice", nil)
+	service, members := suite.withMembers(staffMember("ada", "ad12min"))
+	writes := 0
+	members.beforeWrite = func() { writes++ }
+
+	_, _, err := service.RemoveOrgMember(suite.ctx, org.ID, "ada", caller)
+
+	assert.ErrorIs(suite.T(), err, ErrNotOrgMember)
+	assert.Zero(suite.T(), writes)
 }
 
 func (suite *OrgServiceTestSuite) TestRemoveOrgMemberRejectsTheCallersOwnMembership() {
@@ -698,7 +712,7 @@ func (suite *OrgServiceTestSuite) TestRemoveOrgMemberRejectsTheCallersOwnMembers
 	service, members := suite.withMembers(staffMember("ada", "ad12min"))
 	require.NoError(suite.T(), members.SetOrgMemberRole(suite.ctx, "members-leave", "ada", permissionValidation.OrgAdmin))
 
-	_, err := service.RemoveOrgMember(suite.ctx, org.ID, "ada", Caller{UserID: "ada"})
+	_, _, err := service.RemoveOrgMember(suite.ctx, org.ID, "ada", Caller{UserID: "ada"})
 
 	assert.ErrorIs(suite.T(), err, ErrOwnMembership)
 	assert.Equal(suite.T(), permissionValidation.OrgAdmin, members.roleOf("members-leave", "ada"))
@@ -709,10 +723,11 @@ func (suite *OrgServiceTestSuite) TestAddOrgMemberAddsAUserWithoutAnOrgRole() {
 	ada := staffMember("ada", "ad12min")
 	service, members := suite.withMembers(ada)
 
-	gotOrg, err := service.AddOrgMember(suite.ctx, org.ID, "ada", permissionValidation.OrgMember, caller)
+	gotOrg, previousRole, err := service.AddOrgMember(suite.ctx, org.ID, "ada", permissionValidation.OrgMember, caller)
 
 	require.NoError(suite.T(), err)
 	assert.Equal(suite.T(), org.ID, gotOrg.ID)
+	assert.Empty(suite.T(), previousRole)
 	assert.Equal(suite.T(), permissionValidation.OrgMember, members.roleOf("members-add-new", "ada"))
 	listed, err := service.GetOrgMembers(suite.ctx, org.ID)
 	require.NoError(suite.T(), err)
@@ -726,7 +741,7 @@ func (suite *OrgServiceTestSuite) TestAddOrgMemberNeverChangesTheRoleOfAMember()
 	service, members := suite.withMembers(staffMember("ada", "ad12min"))
 	require.NoError(suite.T(), members.SetOrgMemberRole(suite.ctx, "members-add-existing", "ada", permissionValidation.OrgAdmin))
 
-	_, err := service.AddOrgMember(suite.ctx, org.ID, "ada", permissionValidation.OrgMember, caller)
+	_, _, err := service.AddOrgMember(suite.ctx, org.ID, "ada", permissionValidation.OrgMember, caller)
 
 	assert.ErrorIs(suite.T(), err, ErrAlreadyOrgMember)
 	assert.Equal(suite.T(), permissionValidation.OrgAdmin, members.roleOf("members-add-existing", "ada"))
@@ -736,7 +751,7 @@ func (suite *OrgServiceTestSuite) TestAddOrgMemberOfAnUnknownUser() {
 	org := suite.createOrg("members-add-ghost", nil)
 	service, _ := suite.withMembers()
 
-	_, err := service.AddOrgMember(suite.ctx, org.ID, "ghost", permissionValidation.OrgMember, caller)
+	_, _, err := service.AddOrgMember(suite.ctx, org.ID, "ghost", permissionValidation.OrgMember, caller)
 
 	assert.ErrorIs(suite.T(), err, keycloakRealmManager.ErrUserNotFound)
 }
@@ -778,7 +793,7 @@ func (suite *OrgServiceTestSuite) TestMembershipChangesAreRefusedWhileTheOrgIsDe
 	service, members := suite.withMembers(staffMember("ada", "ad12min"))
 	var changeErr error
 	suite.keycloak.onDelete = func(string) {
-		_, changeErr = service.AddOrgMember(suite.ctx, org.ID, "ada", permissionValidation.OrgMember, caller)
+		_, _, changeErr = service.AddOrgMember(suite.ctx, org.ID, "ada", permissionValidation.OrgMember, caller)
 	}
 
 	_, err := service.DeleteOrg(suite.ctx, org.ID)
@@ -804,7 +819,7 @@ func (suite *OrgServiceTestSuite) TestDeletionWaitsForAMembershipChangeInKeycloa
 
 	changed := make(chan error, 1)
 	go func() {
-		_, err := service.RemoveOrgMember(suite.ctx, org.ID, "ada", caller)
+		_, _, err := service.RemoveOrgMember(suite.ctx, org.ID, "ada", caller)
 		changed <- err
 	}()
 	suite.awaitSignal(inKeycloak, changed, "the membership change")
@@ -830,7 +845,7 @@ func (suite *OrgServiceTestSuite) TestMembershipChangesAreRefusedDuringTheRestor
 	suite.keycloak.members = orgMembers{permissionValidation.OrgMember: {"ada"}}
 	suite.failCommitOn("DELETE", "OLD", "members-restoring")
 	removeAda := func() error {
-		_, err := service.RemoveOrgMember(suite.ctx, org.ID, "ada", caller)
+		_, _, err := service.RemoveOrgMember(suite.ctx, org.ID, "ada", caller)
 		return err
 	}
 	var duringDeletion, duringRestore error
@@ -868,15 +883,15 @@ func (suite *OrgServiceTestSuite) TestAMembershipChangeIsRefusedWhileAnotherOneO
 
 	first := make(chan error, 1)
 	go func() {
-		_, err := service.UpdateOrgMemberRole(suite.ctx, org.ID, "ada", permissionValidation.OrgAdmin, caller)
+		_, _, err := service.UpdateOrgMemberRole(suite.ctx, org.ID, "ada", permissionValidation.OrgAdmin, caller)
 		first <- err
 	}()
 	suite.awaitSignal(writes, first, "the first membership change")
 	members.beforeWrite = nil
 
-	_, err := service.UpdateOrgMemberRole(suite.ctx, org.ID, "max", permissionValidation.OrgAdmin, caller)
+	_, _, err := service.UpdateOrgMemberRole(suite.ctx, org.ID, "max", permissionValidation.OrgAdmin, caller)
 	assert.ErrorIs(suite.T(), err, ErrMembershipBusy, "a change of the same org")
-	_, err = service.UpdateOrgMemberRole(suite.ctx, otherOrg.ID, "ada", permissionValidation.OrgAdmin, caller)
+	_, _, err = service.UpdateOrgMemberRole(suite.ctx, otherOrg.ID, "ada", permissionValidation.OrgAdmin, caller)
 	assert.NoError(suite.T(), err, "a change of another org")
 	releaseWrites()
 
@@ -913,7 +928,7 @@ func (suite *OrgServiceTestSuite) TestDeleteOrgNeedsOneConnection() {
 	assert.Equal(suite.T(), 1, suite.countOrgs("one-connection-restored"))
 	// The lock is released: a membership change on another connection goes ahead
 	other, _ := suite.withMembers()
-	_, err = other.UpdateOrgMemberRole(ctx, restored.ID, "nobody", permissionValidation.OrgMember, caller)
+	_, _, err = other.UpdateOrgMemberRole(ctx, restored.ID, "nobody", permissionValidation.OrgMember, caller)
 	assert.ErrorIs(suite.T(), err, keycloakRealmManager.ErrUserNotFound)
 }
 

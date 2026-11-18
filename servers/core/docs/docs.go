@@ -5390,7 +5390,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Take the user out of the org's Admin and Member groups. Removing a user who is not a member changes nothing. Refused with 409 while another change to the org's members or its deletion is in progress. Only PROMPT admins can remove themselves.",
+                "description": "Take the member out of the org's Admin and Member groups. A user who holds no role in the org is refused, so a stale selection is not recorded as a removal. Refused with 409 while another change to the org's members or its deletion is in progress. Only PROMPT admins can remove themselves.",
                 "tags": [
                     "orgs"
                 ],

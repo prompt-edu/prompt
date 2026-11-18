@@ -16,17 +16,20 @@ import (
 )
 
 // fakeRealm is an in-memory Keycloak realm. It serves the admin endpoints that provision and delete
-// the groups and roles of a course, records the route pattern of every request, and answers the
-// failing pattern with a 500 or closes the connection of the dropping pattern without an answer.
+// the groups and roles of a course, and records the route pattern and the method and path of every
+// request. It answers the failing pattern, and the failingRequest-th request counted from 1, with a
+// 500, and closes the connection of the dropping pattern without an answer.
 type fakeRealm struct {
-	mu        sync.Mutex
-	groups    map[string]*fakeGroup // group ID → group
-	roles     map[string]bool       // client role names
-	userRoles map[string][]string
-	nextID    int
-	requests  []string
-	failing   string
-	dropping  string
+	mu             sync.Mutex
+	groups         map[string]*fakeGroup // group ID → group
+	roles          map[string]bool       // client role names
+	userRoles      map[string][]string
+	nextID         int
+	requests       []string
+	calls          []string
+	failing        string
+	failingRequest int
+	dropping       string
 }
 
 type fakeGroup struct {
@@ -145,6 +148,12 @@ func (f *fakeRealm) recorded() []string {
 	return slices.Clone(f.requests)
 }
 
+func (f *fakeRealm) recordedCalls() []string {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return slices.Clone(f.calls)
+}
+
 func (f *fakeRealm) start(t *testing.T) *KeycloakRealmService {
 	return f.startWithQueries(t, db.Queries{})
 }
@@ -169,13 +178,14 @@ func (f *fakeRealm) startWithQueries(t *testing.T, queries db.Queries) *Keycloak
 			f.mu.Lock()
 			defer f.mu.Unlock()
 			f.requests = append(f.requests, pattern)
-			switch pattern {
-			case f.dropping:
+			f.calls = append(f.calls, r.Method+" "+r.URL.Path)
+			if pattern == f.dropping {
 				if conn, _, err := w.(http.Hijacker).Hijack(); err == nil {
 					_ = conn.Close()
 				}
 				return
-			case f.failing:
+			}
+			if pattern == f.failing || len(f.calls) == f.failingRequest {
 				writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "unavailable"})
 				return
 			}

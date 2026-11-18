@@ -2,6 +2,7 @@ package keycloakRealmManager
 
 import (
 	"context"
+	"fmt"
 	"maps"
 	"net/http"
 	"slices"
@@ -88,39 +89,35 @@ func TestCreateCourseGroupsAndRolesFindsThePromptGroupByPath(t *testing.T) {
 }
 
 func TestCreateCourseGroupsAndRolesKeepsTheCauseOfEveryFailure(t *testing.T) {
-	steps := []struct {
-		pattern  string
-		leftover bool
-	}{
-		{pattern: "POST /realms/prompt/protocol/openid-connect/token"},
-		{pattern: "GET /admin/realms/prompt/group-by-path/{path...}"},
-		{pattern: "GET /admin/realms/prompt/groups/{id}/children", leftover: true},
-		{pattern: "DELETE /admin/realms/prompt/clients/{client}/roles/{name}", leftover: true},
-		{pattern: "DELETE /admin/realms/prompt/groups/{id}", leftover: true},
-		{pattern: "POST /admin/realms/prompt/groups"},
-		{pattern: "POST /admin/realms/prompt/groups/{id}/children"},
-		{pattern: "GET /admin/realms/prompt/clients/{client}/roles/{name}"},
-		{pattern: "POST /admin/realms/prompt/clients/{client}/roles"},
-		{pattern: "POST /admin/realms/prompt/groups/{id}/role-mappings/clients/{client}"},
-		{pattern: "PUT /admin/realms/prompt/users/{user}/groups/{group}"},
-	}
-	for _, step := range steps {
-		t.Run(step.pattern, func(t *testing.T) {
+	scenarios := map[string]func() *fakeRealm{
+		"empty realm": newFakeRealm,
+		"leftover course": func() *fakeRealm {
 			realm := newFakeRealm()
-			if step.leftover {
-				realm.addGroup("Prompt/ws24-ios/Lecturer", "old-lecturer")
-				realm.addGroup("Prompt/ws24-ios/CustomGroups/team-a")
-				realm.addRole("ws24-ios-cg-team-a", "Prompt/ws24-ios/CustomGroups/team-a")
-			}
-			realm.failing = step.pattern
+			realm.addGroup("Prompt/ws24-ios/Lecturer", "old-lecturer")
+			realm.addGroup("Prompt/ws24-ios/Editor", "old-editor")
+			realm.addGroup("Prompt/ws24-ios/CustomGroups/team-a", "old-student")
+			realm.addRole("ws24-ios-Lecturer", "Prompt/ws24-ios/Lecturer")
+			realm.addRole("ws24-ios-Editor", "Prompt/ws24-ios/Editor")
+			realm.addRole("ws24-ios-cg-team-a", "Prompt/ws24-ios/CustomGroups/team-a")
+			return realm
+		},
+	}
+	for scenario, newRealm := range scenarios {
+		succeeding := newRealm()
+		require.NoError(t, succeeding.start(t).CreateCourseGroupsAndRoles(context.Background(), "ios", "ws24", "creator"))
+		for i, call := range succeeding.recordedCalls() {
+			t.Run(fmt.Sprintf("%s/%02d %s", scenario, i+1, call), func(t *testing.T) {
+				realm := newRealm()
+				realm.failingRequest = i + 1
 
-			err := realm.start(t).CreateCourseGroupsAndRoles(context.Background(), "ios", "ws24", "creator")
+				err := realm.start(t).CreateCourseGroupsAndRoles(context.Background(), "ios", "ws24", "creator")
 
-			var apiErr *gocloak.APIError
-			require.ErrorAs(t, err, &apiErr)
-			assert.Equal(t, http.StatusInternalServerError, apiErr.Code)
-			assert.Contains(t, realm.recorded(), step.pattern, "the failing step must have been reached")
-		})
+				var apiErr *gocloak.APIError
+				require.ErrorAs(t, err, &apiErr)
+				assert.Equal(t, http.StatusInternalServerError, apiErr.Code)
+				assert.Len(t, realm.recordedCalls(), i+1, "provisioning stops at the failing request")
+			})
+		}
 	}
 }
 

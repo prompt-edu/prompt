@@ -1,0 +1,12 @@
+# External S3: both credentials must be supplied, SeaweedFS is not deployed.
+global:
+  host: prompt.ci.example.com
+  objectStorage:
+    mode: external
+    external:
+      endpoint: https://s3.eu-central-1.amazonaws.com
+      publicEndpoint: https://s3.eu-central-1.amazonaws.com
+  appSecrets:
+    data:
+      S3_ACCESS_KEY: ci-s3-access
+      S3_SECRET_KEY: ci-s3-secret

@@ -1,0 +1,8 @@
+apiVersion: v2
+name: infrastructure
+description: >-
+  Cross-cutting infrastructure for PROMPT: CloudNativePG cluster + databases,
+  SeaweedFS object storage, Gateway API + cert-manager TLS, and optional
+  in-cluster Keycloak. Shared ConfigMap/Secret consumed by every component.
+type: application
+version: 0.1.0

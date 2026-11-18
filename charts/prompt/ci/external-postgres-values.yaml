@@ -1,0 +1,13 @@
+# External PostgreSQL: one account for every logical database, TLS on by default.
+global:
+  host: prompt.ci.example.com
+  postgresql:
+    mode: external
+    external:
+      host: postgres.ci.example.com
+      port: "5432"
+      user: prompt
+      password: ci-db-password
+  appSecrets:
+    data:
+      S3_SECRET_KEY: ci-s3-secret

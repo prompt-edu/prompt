@@ -62,10 +62,11 @@ test.describe('team allocation API auth', () => {
   })
 })
 
-// course-editor tutors one team of the tutor scope phase. Allocations are the
-// lecturer's decision: the tutor reads their own team but writes nothing.
+// course-editor leads two teams of the tutor scope phase. Allocations are the
+// lecturer's decision: the tutor reads the teams they lead but writes nothing.
 test.describe('team allocation API tutor access', () => {
-  const { phaseId, ownTeamId } = TEAM_ALLOCATION_TUTOR_SCOPE
+  const { phaseId, teams } = TEAM_ALLOCATION_TUTOR_SCOPE
+  const ownTeamId = teams.lovelace.id
   const ownTeamParticipationIds = TUTOR_SCOPE_PARTICIPANTS.ownTeam.map(
     (p) => p.courseParticipationId,
   )

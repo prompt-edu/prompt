@@ -1,4 +1,11 @@
 import type { CourseType } from '@tumaet/prompt-shared-state'
+import type { ProfilePictureRequirement } from '@tumaet/prompt-ui-components'
+
+export interface ApplicationProfilePictureConfig {
+  requirement: ProfilePictureRequirement
+  explanation?: string
+  hiddenUntilAccepted: boolean
+}
 
 export interface OpenApplicationDetails {
   id: string
@@ -13,4 +20,5 @@ export interface OpenApplicationDetails {
   shortDescription?: string | null
   longDescription?: string | null
   welcomeText?: string | null
+  profilePicture?: ApplicationProfilePictureConfig
 }

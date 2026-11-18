@@ -185,9 +185,10 @@ jobs:
           retention-days: 14
           if-no-files-found: ignore
 
-  # Stable name for the branch-protection required check (`e2e-tests / e2e`).
-  # The matrix job reports one check per shard, so its names track shards.json;
-  # this one does not, and so survives adding or renaming a suite.
+  # One stable result for the whole suite, which dev.yml's `ci-passed` gate (the
+  # ruleset's required check) depends on. The matrix job reports one check per
+  # shard, so its names track shards.json; this one does not, and so survives
+  # adding or renaming a suite.
   e2e:
     needs: [partition, shard, merge]
     if: ${{ !cancelled() }}

@@ -29,19 +29,25 @@ type coursePhaseConfigProvider interface {
 	GetStoredCoursePhaseConfig(ctx context.Context, coursePhaseID uuid.UUID) (coursePhaseConfigDTO.CoursePhaseConfig, error)
 }
 
+// OwnTutorResolver returns the tutor id the caller has in the phase providing the teams, and
+// whether the caller is a tutor there at all.
+type OwnTutorResolver func(authHeader string, coursePhaseID uuid.UUID) (tutorID uuid.UUID, found bool, err error)
+
 type EvaluationService struct {
 	queries              db.Queries
 	conn                 *pgxpool.Pool
 	evaluationCompletion evaluationCompletionProvider
 	coursePhaseConfig    coursePhaseConfigProvider
+	resolveOwnTutor      OwnTutorResolver
 }
 
-func NewEvaluationService(queries db.Queries, conn *pgxpool.Pool, evaluationCompletion evaluationCompletionProvider, coursePhaseConfig coursePhaseConfigProvider) *EvaluationService {
+func NewEvaluationService(queries db.Queries, conn *pgxpool.Pool, evaluationCompletion evaluationCompletionProvider, coursePhaseConfig coursePhaseConfigProvider, resolveOwnTutor OwnTutorResolver) *EvaluationService {
 	return &EvaluationService{
 		queries:              queries,
 		conn:                 conn,
 		evaluationCompletion: evaluationCompletion,
 		coursePhaseConfig:    coursePhaseConfig,
+		resolveOwnTutor:      resolveOwnTutor,
 	}
 }
 

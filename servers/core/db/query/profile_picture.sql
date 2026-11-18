@@ -13,6 +13,12 @@ SET university_login = EXCLUDED.university_login,
     updated_at       = CURRENT_TIMESTAMP
 RETURNING *;
 
+-- name: SyncProfilePictureUniversityLogin :exec
+UPDATE profile_picture
+SET university_login = sqlc.arg(university_login)
+WHERE user_id = sqlc.arg(user_id)
+  AND university_login IS DISTINCT FROM sqlc.arg(university_login);
+
 -- name: DeleteProfilePictureByUserID :exec
 DELETE FROM profile_picture
 WHERE user_id = $1;

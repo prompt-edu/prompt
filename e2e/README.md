@@ -109,8 +109,10 @@ fans it out for wall-clock:
    occasionally drops a single blob mid-download, so the download gets one clean
    retry; a second miss fails the job.
 4. An **e2e** job fails unless all of the above succeeded. It exists purely to
-   give branch protection one required check (`e2e-tests / e2e`) whose name does
-   not change when a shard is added or renamed. `deploy-dev` waits on this
+   give the suite one result (`e2e-tests / e2e`) whose name does not change when
+   a shard is added or renamed. The `ci-passed` job in `dev.yml`, the one check
+   the `main` ruleset requires, fails unless this job succeeded (or the PR
+   touches only docs, which skips the suite). `deploy-dev` waits on this
    workflow, so a red suite stops the dev deployment.
 
 There is deliberately **no build-once job** in front of the shards. Serializing a

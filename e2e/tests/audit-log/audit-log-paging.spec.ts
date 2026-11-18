@@ -41,11 +41,8 @@ test.describe('audit log: server-side paging', () => {
     await auditLog.gotoCourse(courseId!)
     await auditLog.expectLoaded()
 
-    // Exactly one server page is rendered, and the table's own page size is a
-    // constant its control can display (it used to be derived from the row
-    // count, which left the control blank).
+    // Exactly one server page is rendered as one table page.
     await expect(auditLog.rows).toHaveCount(PAGE_SIZE)
-    await expect(auditLog.rowsPerPage).toHaveText(String(PAGE_SIZE))
     await expect(auditLog.deniedRows).toHaveCount(0)
     await expect(auditLog.newer).toBeDisabled()
     await expect(auditLog.older).toBeEnabled()
@@ -59,6 +56,21 @@ test.describe('audit log: server-side paging', () => {
     await auditLog.newer.click()
     await expect(auditLog.rows).toHaveCount(PAGE_SIZE)
     await expect(auditLog.deniedRows).toHaveCount(0)
+  })
+
+  test('the table offers no page-only search, sorting or pagination', async ({ page }) => {
+    const auditLog = new AuditLogPage(page)
+    await auditLog.gotoCourse(courseId!)
+    await auditLog.expectLoaded()
+    await expect(auditLog.rows).toHaveCount(PAGE_SIZE)
+
+    // The filter bar searches the whole log. A second search box, sortable
+    // headers or a pagination bar from the table would act on the loaded page
+    // only, so a match on an older page would read as missing.
+    await expect(auditLog.tableSearch).toBeHidden()
+    await expect(auditLog.tablePagination).toBeHidden()
+    await expect(auditLog.sortableHeaders).toHaveCount(0)
+    await expect(page.locator('table thead')).toContainText('Time')
   })
 
   test('changing a filter returns to the newest page', async ({ page }) => {

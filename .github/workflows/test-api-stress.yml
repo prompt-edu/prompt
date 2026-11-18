@@ -10,7 +10,12 @@ name: API Stress Tests
 # from --public-summary, which reduces P0 findings to a count.
 
 on:
-  workflow_call: {}
+  workflow_call:
+    inputs:
+      servers:
+        description: "JSON array of changed server directories; an empty array skips the run"
+        required: true
+        type: string
   # Run a longer pass on demand from the Actions tab.
   workflow_dispatch:
     inputs:
@@ -45,6 +50,7 @@ env:
 
 jobs:
   api-stress:
+    if: inputs.servers != '[]'
     runs-on: ubuntu-latest
     # Build + boot + the default smoke run take ~10 min; a dispatched full run longer.
     timeout-minutes: 45

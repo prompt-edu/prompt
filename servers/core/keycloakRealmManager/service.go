@@ -4,9 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/Nerzal/gocloak/v14"
+	"github.com/go-resty/resty/v2"
 	"github.com/google/uuid"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/core/keycloakRealmManager/keycloakRealmDTO"
@@ -26,14 +28,31 @@ type KeycloakRealmService struct {
 }
 
 func NewKeycloakRealmService(baseURL, realm, clientID, clientSecret, idOfClient string, queries db.Queries) *KeycloakRealmService {
+	client := gocloak.NewClient(baseURL)
+	client.RestyClient().OnAfterResponse(explainAdminAPIUnauthorized)
 	return &KeycloakRealmService{
-		client:       gocloak.NewClient(baseURL),
+		client:       client,
 		Realm:        realm,
 		ClientID:     clientID,
 		ClientSecret: clientSecret,
 		idOfClient:   idOfClient,
 		queries:      queries,
 	}
+}
+
+// adminAPIScopeDocsURL points at the admin guide section on the kc-admin-api client scope.
+const adminAPIScopeDocsURL = "https://prompt-edu.github.io/prompt/admin/keycloak-prod#required-client-scope-keycloak-2682"
+
+// explainAdminAPIUnauthorized turns a bare 401 from the Keycloak Admin REST API
+// into an error that says what to fix. Since Keycloak 26.8.2 the Admin API
+// rejects every token that lacks the kc-admin-api client scope, and all an admin
+// would otherwise see is "401 Unauthorized". A 401 from the token endpoint means
+// a wrong client secret and is left alone.
+func explainAdminAPIUnauthorized(_ *resty.Client, resp *resty.Response) error {
+	if resp.StatusCode() != http.StatusUnauthorized || !strings.Contains(resp.Request.URL, "/admin/realms/") {
+		return nil
+	}
+	return fmt.Errorf("401 Unauthorized from the Keycloak Admin REST API: the service-account client is probably missing the kc-admin-api client scope, which Keycloak requires since 26.8.2. See %s", adminAPIScopeDocsURL)
 }
 
 var TOP_LEVEL_GROUP_NAME = "Prompt"

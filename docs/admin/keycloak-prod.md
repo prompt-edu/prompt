@@ -160,6 +160,8 @@ Keycloak 26.8.2 answers every Admin REST API call with `401 Unauthorized` unless
 
 Open `Clients > prompt-server > Client scopes`, click **Add client scope**, select `kc-admin-api`, and add it as **Default**. Do this for existing realms after upgrading Keycloak as well: check the client even if the scope already exists in the realm. The bundled `keycloakConfig.json` already assigns it.
 
+If the scope is missing, the core server logs and returns `401 Unauthorized from the Keycloak Admin REST API: the service-account client is probably missing the kc-admin-api client scope` together with a link to this section. The User Management page, course creation, and group sync fail until the scope is assigned. A core restart is not needed afterwards.
+
 ### Verifying the Configuration
 
 The fastest way to confirm the service account is set up correctly is the **System Status** page in the PROMPT admin console:

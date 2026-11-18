@@ -43,8 +43,9 @@ export function TutorImportDialog() {
     if (!open) {
       setImportError(null)
       setIsImporting(false)
+      queryClient.removeQueries({ queryKey: teamAllocationKeys.tutors(phaseId) })
     }
-  }, [open])
+  }, [open, queryClient, phaseId])
 
   const { data: fetchedTeams } = useQuery<Team[]>({
     queryKey: teamAllocationKeys.teams(phaseId),
@@ -52,7 +53,7 @@ export function TutorImportDialog() {
     enabled: !!phaseId,
   })
 
-  // The team pickers take their starting value once, so the sources wait for the current tutors.
+  // The team pickers take their starting value once, so each opening waits for a fresh fetch.
   const {
     data: tutorAssignments,
     isPending: isTutorAssignmentsPending,

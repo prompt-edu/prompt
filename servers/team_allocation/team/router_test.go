@@ -471,6 +471,26 @@ func (suite *TeamRouterTestSuite) TestImportTutorsReplacesTheRowsOfATutorStoredW
 	assert.Equal(suite.T(), []string{teamAlphaID}, suite.tutorTeams(coursePhaseID, tutorID))
 }
 
+func (suite *TeamRouterTestSuite) TestImportTutorsKeepsTheTeamsOfAnotherLoginWithTheSameID() {
+	coursePhaseID := "4179d58a-d00d-4fa7-94a5-397bc69fab02"
+	sharedID := "99999999-9999-9999-9999-9999999999c1"
+	owner := teamDTO.Tutor{
+		CourseParticipationID: uuid.MustParse(sharedID),
+		FirstName:             "Olga",
+		LastName:              "Owner",
+		UniversityLogin:       "ow01ner",
+		TeamIDs:               []uuid.UUID{uuid.MustParse(teamAlphaID)},
+	}
+	assert.Equal(suite.T(), http.StatusCreated, suite.postTutors(coursePhaseID, []teamDTO.Tutor{owner}))
+
+	other := owner
+	other.UniversityLogin = "ot01her"
+	other.TeamIDs = []uuid.UUID{uuid.MustParse(teamGammaID)}
+	assert.Equal(suite.T(), http.StatusCreated, suite.postTutors(coursePhaseID, []teamDTO.Tutor{other}))
+
+	assert.ElementsMatch(suite.T(), []string{teamAlphaID, teamGammaID}, suite.tutorTeams(coursePhaseID, sharedID), "the owner keeps their team")
+}
+
 func (suite *TeamRouterTestSuite) TestImportTutorsRejectsInvalidRequests() {
 	coursePhaseID := "4179d58a-d00d-4fa7-94a5-397bc69fab02"
 	valid := func(login string) teamDTO.Tutor {
@@ -490,6 +510,10 @@ func (suite *TeamRouterTestSuite) TestImportTutorsRejectsInvalidRequests() {
 	noID.CourseParticipationID = uuid.Nil
 	foreignTeam := valid("ft01eam")
 	foreignTeam.TeamIDs = []uuid.UUID{uuid.MustParse("dddddddd-dddd-dddd-dddd-dddddddddddd")}
+	sharedID := valid("si02dup")
+	sharedID.CourseParticipationID = noTeams.CourseParticipationID
+	noTeams2 := noTeams
+	noTeams2.TeamIDs = []uuid.UUID{uuid.MustParse(teamAlphaID)}
 
 	for name, tutors := range map[string][]teamDTO.Tutor{
 		"missing login":         {noLogin},
@@ -497,6 +521,7 @@ func (suite *TeamRouterTestSuite) TestImportTutorsRejectsInvalidRequests() {
 		"missing id":            {noID},
 		"team of another phase": {foreignTeam},
 		"login listed twice":    {valid("dp01lic"), valid("DP01LIC")},
+		"id of two logins":      {noTeams2, sharedID},
 	} {
 		assert.Equal(suite.T(), http.StatusBadRequest, suite.postTutors(coursePhaseID, tutors), name)
 	}

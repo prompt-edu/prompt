@@ -7,12 +7,16 @@ WHERE course_phase_id = $1
 ORDER BY course_participation_id
 LIMIT 1;
 
+-- name: LockTutorImport :exec
+SELECT pg_advisory_xact_lock(hashtextextended(CAST(sqlc.arg(course_phase_id) AS uuid)::text, 0));
+
 -- name: DeleteTutorAssignments :exec
--- Removes every team assignment of one tutor, matched by login or by id, so an import replaces them.
+-- Removes every team assignment of one tutor, matched by login or, for rows stored without one, by id.
 DELETE
 FROM tutor
 WHERE course_phase_id = @course_phase_id
-  AND (university_login = @university_login OR course_participation_id = @course_participation_id);
+  AND (university_login = @university_login
+    OR (university_login IS NULL AND course_participation_id = @course_participation_id));
 
 -- name: InsertTutor :exec
 INSERT INTO tutor (course_phase_id, course_participation_id, first_name, last_name, team_id, university_login)

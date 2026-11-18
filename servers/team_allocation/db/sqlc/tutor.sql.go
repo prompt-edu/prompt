@@ -16,7 +16,8 @@ const deleteTutorAssignments = `-- name: DeleteTutorAssignments :exec
 DELETE
 FROM tutor
 WHERE course_phase_id = $1
-  AND (university_login = $2 OR course_participation_id = $3)
+  AND (university_login = $2
+    OR (university_login IS NULL AND course_participation_id = $3))
 `
 
 type DeleteTutorAssignmentsParams struct {
@@ -25,7 +26,7 @@ type DeleteTutorAssignmentsParams struct {
 	CourseParticipationID uuid.UUID   `json:"course_participation_id"`
 }
 
-// Removes every team assignment of one tutor, matched by login or by id, so an import replaces them.
+// Removes every team assignment of one tutor, matched by login or, for rows stored without one, by id.
 func (q *Queries) DeleteTutorAssignments(ctx context.Context, arg DeleteTutorAssignmentsParams) error {
 	_, err := q.db.Exec(ctx, deleteTutorAssignments, arg.CoursePhaseID, arg.UniversityLogin, arg.CourseParticipationID)
 	return err
@@ -177,5 +178,14 @@ func (q *Queries) InsertTutor(ctx context.Context, arg InsertTutorParams) error 
 		arg.TeamID,
 		arg.UniversityLogin,
 	)
+	return err
+}
+
+const lockTutorImport = `-- name: LockTutorImport :exec
+SELECT pg_advisory_xact_lock(hashtextextended(CAST($1 AS uuid)::text, 0))
+`
+
+func (q *Queries) LockTutorImport(ctx context.Context, coursePhaseID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, lockTutorImport, coursePhaseID)
 	return err
 }

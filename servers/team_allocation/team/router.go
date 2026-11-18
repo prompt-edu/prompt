@@ -334,6 +334,7 @@ func (s *TeamsService) importTutors(c *gin.Context) {
 
 	if err := s.ImportTutors(c, coursePhaseID, tutors); err != nil {
 		if errors.Is(err, ErrMissingLogin) || errors.Is(err, ErrMissingTutorID) || errors.Is(err, ErrDuplicateLogin) ||
+			errors.Is(err, ErrDuplicateTutorID) ||
 			errors.Is(err, ErrNoTeams) || errors.Is(err, ErrInvalidTeamForPhase) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return

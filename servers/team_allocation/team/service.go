@@ -22,6 +22,7 @@ var (
 	ErrMissingLogin        = errors.New("every tutor needs a university login")
 	ErrMissingTutorID      = errors.New("every tutor needs a courseParticipationID")
 	ErrDuplicateLogin      = errors.New("university login is listed more than once")
+	ErrDuplicateTutorID    = errors.New("courseParticipationID is listed for more than one login")
 	ErrNoTeams             = errors.New("tutor needs at least one team")
 	ErrInvalidTeamForPhase = errors.New("team does not belong to this course phase")
 	ErrTutorNotFound       = errors.New("tutor not found")
@@ -168,6 +169,10 @@ func (s *TeamsService) ImportTutors(ctx context.Context, coursePhaseID uuid.UUID
 	defer sdkUtils.DeferRollback(tx, ctx)
 	qtx := s.queries.WithTx(tx)
 
+	if err := qtx.LockTutorImport(ctx, coursePhaseID); err != nil {
+		return err
+	}
+
 	for _, tutor := range tutors {
 		login := teamDTO.UniversityLoginParam(tutorscope.NormalizeLogin(tutor.UniversityLogin))
 
@@ -218,6 +223,7 @@ func (s *TeamsService) ImportTutors(ctx context.Context, coursePhaseID uuid.UUID
 
 func validateTutorImport(tutors []teamDTO.Tutor) error {
 	seenLogins := make(map[string]bool, len(tutors))
+	seenIDs := make(map[uuid.UUID]bool, len(tutors))
 	for _, tutor := range tutors {
 		login := tutorscope.NormalizeLogin(tutor.UniversityLogin)
 		if login == "" {
@@ -231,6 +237,10 @@ func validateTutorImport(tutors []teamDTO.Tutor) error {
 		if tutor.CourseParticipationID == uuid.Nil {
 			return ErrMissingTutorID
 		}
+		if seenIDs[tutor.CourseParticipationID] {
+			return fmt.Errorf("%s: %w", tutor.CourseParticipationID, ErrDuplicateTutorID)
+		}
+		seenIDs[tutor.CourseParticipationID] = true
 		if len(tutor.TeamIDs) == 0 {
 			return fmt.Errorf("%q: %w", login, ErrNoTeams)
 		}

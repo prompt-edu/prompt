@@ -89,13 +89,17 @@ test.describe('assessment: student result visibility', () => {
       }
 
       // After release: grade suggestion and remarks are visible to Selma. The
-      // remarks render as a (read-only) textarea VALUE, so assert on the value;
-      // the grade select renders the option label "Good - 1.7" as text.
+      // remarks render as a (read-only) textarea VALUE, so assert on the value.
+      // The grade is a plain value under the student-facing label, without the
+      // tutor's wording or grade dropdown.
       await phase.gotoResults(SEEDED_COURSES.fullCourse.id, PHASE_ID)
       await expect(
         page.getByPlaceholder('What did this person do particularly well?'),
       ).toHaveValue(REMARKS)
+      await expect(page.getByText('Suggested grade', { exact: true })).toBeVisible()
       await expect(page.getByText('Good - 1.7')).toBeVisible()
+      await expect(page.getByText('Your Grade Suggestion')).toHaveCount(0)
+      await expect(page.getByRole('combobox')).toHaveCount(0)
       const after = await selmaApi.get(assessmentUrl(PHASE_ID, 'student-assessment/my-results'))
       expect(after.status()).toBe(200)
       const results = (await after.json()) as { assessmentCompletion: { gradeSuggestion: number } }

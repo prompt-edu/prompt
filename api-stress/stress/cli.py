@@ -8,6 +8,7 @@ prompt-stress stack.
   -> python fuzzer (inputs, authz, idor, files, slowloris)
   -> build prioritized report (report.md / report.html / findings.json)
   -> teardown the courses this run created (unless --keep-fixtures)
+  -> optional: public summary (--public-summary) and exit-code gate (--fail-on)
 
 This is the Python port of the former run.sh orchestration; run.sh is now a thin
 shim over this entry point, so `./run.sh …` and `uv run api-stress-test …` are
@@ -21,10 +22,15 @@ import json
 import os
 import subprocess
 import sys
+import time
+from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
 
 import httpx
+
+# Highest severity first: --fail-on P1 also fails on P0.
+PRIORITIES = ("P0", "P1", "P2")
 
 CORE_URL = "http://localhost:18089"
 KC_URL = "http://localhost:18081"
@@ -41,6 +47,11 @@ PREFLIGHT_URLS = [
     "http://localhost:18088/certificate/api/info",
     f"{KC_URL}/realms/prompt/.well-known/openid-configuration",
 ]
+
+# No server defines a Docker healthcheck, so `docker compose up --wait` returns
+# once the containers run, before the servers listen. Preflight polls instead.
+PREFLIGHT_TIMEOUT_S = 90
+PREFLIGHT_INTERVAL_S = 2
 
 
 def stress_dir() -> Path:
@@ -91,6 +102,28 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         action="store_true",
         help="do not delete the courses this run created.",
     )
+    p.add_argument(
+        "--fail-on",
+        choices=PRIORITIES,
+        help="exit 1 if the run has a finding of this priority or a higher one, "
+        "or if the fuzzer did not finish (default: always exit 0 once the report "
+        "is built).",
+    )
+    p.add_argument(
+        "--preflight-timeout",
+        type=float,
+        default=PREFLIGHT_TIMEOUT_S,
+        metavar="SECONDS",
+        help="how long preflight waits for the stack to become healthy "
+        f"(default: {PREFLIGHT_TIMEOUT_S}).",
+    )
+    p.add_argument(
+        "--public-summary",
+        metavar="DIR",
+        type=Path,
+        help="also write summary.md and findings.json with P0 details removed, "
+        "safe to publish (e.g. as CI output).",
+    )
     return p.parse_args(argv)
 
 
@@ -127,22 +160,44 @@ def run_step(argv: list[str], err: str) -> None:
         sys.exit(err)
 
 
-def preflight() -> None:
-    print("==> preflight")
-    ok = True
-    with httpx.Client(timeout=5) as client:
-        for url in PREFLIGHT_URLS:
+def wait_until_healthy(
+    client: httpx.Client,
+    urls: list[str],
+    timeout: float,
+    interval: float = PREFLIGHT_INTERVAL_S,
+    sleep: Callable[[float], None] = time.sleep,
+    clock: Callable[[], float] = time.monotonic,
+) -> dict[str, int]:
+    """Poll each URL until it answers 200 or the shared deadline passes.
+
+    Returns the last status code per URL (0 = no connection). The deadline is
+    shared because the services boot in parallel: a broken stack fails after
+    `timeout` seconds, not after `timeout` seconds per URL.
+    """
+    deadline = clock() + timeout
+    codes: dict[str, int] = {}
+    for url in urls:
+        while True:
             try:
                 code = client.get(url).status_code
             except httpx.HTTPError:
                 code = 0
-            if code == 200:
-                print(f"  ok: {url}")
-            else:
-                print(f"  UNHEALTHY ({code}): {url}")
-                ok = False
-    if not ok:
-        print("Stack not healthy. Bring it up with:")
+            if code == 200 or clock() >= deadline:
+                break
+            sleep(interval)
+        codes[url] = code
+        print(f"  ok: {url}" if code == 200 else f"  UNHEALTHY ({code}): {url}")
+    return codes
+
+
+def preflight(timeout: float) -> None:
+    print(f"==> preflight (waiting up to {timeout:g}s for the stack)")
+    with httpx.Client(timeout=5) as client:
+        codes = wait_until_healthy(client, PREFLIGHT_URLS, timeout)
+    unhealthy = [url for url, code in codes.items() if code != 200]
+    if unhealthy:
+        print(f"Stack not healthy after {timeout:g}s: {len(unhealthy)} URL(s) did not answer 200.")
+        print("Bring it up with:")
         print(
             "  docker compose --env-file api-stress/stress.env -f docker-compose.yml "
             "-f api-stress/docker-compose.stress.yml -p prompt-stress up -d"
@@ -231,6 +286,33 @@ def run_k6(k6_bin: str, scenario: str, script: Path, run_dir: Path, intensity: s
     print(f"    exit={rc} log={log}")
 
 
+def count_at_or_above(findings: list[dict], threshold: str) -> int:
+    """Number of findings whose priority is `threshold` or more severe."""
+    gated = PRIORITIES[: PRIORITIES.index(threshold) + 1]
+    return sum(1 for f in findings if f.get("priority") in gated)
+
+
+def gate(run_dir: Path, threshold: str, fuzz_returncode: int = 0) -> int:
+    """Exit code for --fail-on. Prints counts only, never finding details.
+
+    An incomplete run fails too: build_report.py writes findings.json even when
+    the fuzzer crashed, and that report silently lacks every auth and IDOR result.
+    """
+    if fuzz_returncode != 0:
+        print(f"==> gate: fuzz exited {fuzz_returncode}, failing (--fail-on {threshold})")
+        return 1
+    for name in ("fuzz_findings.json", "findings.json"):
+        if not (run_dir / name).exists():
+            print(f"==> gate: no {name}, failing (--fail-on {threshold})")
+            return 1
+    hits = count_at_or_above(json.loads((run_dir / "findings.json").read_text()), threshold)
+    if hits:
+        print(f"==> gate: {hits} finding(s) at {threshold} or above, failing")
+        return 1
+    print(f"==> gate: no finding at {threshold} or above")
+    return 0
+
+
 def teardown(run_dir: Path) -> None:
     print("==> teardown (delete this run's courses)")
     admin = json.loads((run_dir / "tokens.json").read_text())["tokens"].get("admin", "")
@@ -256,7 +338,7 @@ def main(argv: list[str] | None = None) -> int:
     print("==> regenerate endpoint catalog from partials")
     run_step(["catalog/merge_catalog.py"], "catalog merge failed")
 
-    preflight()
+    preflight(args.preflight_timeout)
     ensure_long_token_lifespan()
     raise_fd_limit()
 
@@ -310,6 +392,13 @@ def main(argv: list[str] | None = None) -> int:
     print("==> build report")
     subprocess.run([PY, "report/build_report.py", str(run_dir)], cwd=STRESS_DIR)
 
+    if args.public_summary:
+        print("==> public summary (P0 redacted)")
+        run_step(
+            ["report/public_summary.py", str(run_dir), str(args.public_summary.resolve())],
+            "public summary failed",
+        )
+
     if not args.keep_fixtures:
         teardown(run_dir)
 
@@ -318,7 +407,7 @@ def main(argv: list[str] | None = None) -> int:
     print(f"Report:   {run_dir}/report.md")
     print(f"Findings: {run_dir}/findings.json")
     print(f"HTML:     {run_dir}/report.html")
-    return 0
+    return gate(run_dir, args.fail_on, fuzz.returncode) if args.fail_on else 0
 
 
 if __name__ == "__main__":

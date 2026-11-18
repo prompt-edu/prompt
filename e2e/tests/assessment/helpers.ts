@@ -94,6 +94,8 @@ export interface ConfigOverrides {
   selfEvaluationEnabled?: boolean
   selfEvaluationSchema?: string
   tutorEvaluationEnabled?: boolean
+  tutorEvaluationSchema?: string
+  tutorEvaluationDeadline?: string
 }
 
 // PUT /config requires the full request body; start/deadline are set to a
@@ -127,9 +129,9 @@ export async function putConfig(
         peerEvaluationStart: past,
         peerEvaluationDeadline: future,
         tutorEvaluationEnabled: overrides.tutorEvaluationEnabled ?? false,
-        tutorEvaluationSchema: current.tutorEvaluationSchema,
+        tutorEvaluationSchema: overrides.tutorEvaluationSchema ?? current.tutorEvaluationSchema,
         tutorEvaluationStart: past,
-        tutorEvaluationDeadline: future,
+        tutorEvaluationDeadline: overrides.tutorEvaluationDeadline ?? future,
         evaluationResultsVisible: true,
       },
     }),
@@ -332,6 +334,7 @@ export async function resetAssessmentPhase(
     for (const endpoint of [
       'category/assessment/with-competencies',
       'category/self/with-competencies',
+      'category/tutor/with-competencies',
     ]) {
       const res = await admin.get(assessmentUrl(phaseId, endpoint))
       if (!res.ok()) continue
@@ -345,6 +348,7 @@ export async function resetAssessmentPhase(
       assessmentEnabled: true,
       assessmentSchemaId: schemas.find((s) => s.name === DEFAULT_SCHEMAS.assessment)?.id,
       selfEvaluationSchema: schemas.find((s) => s.name === DEFAULT_SCHEMAS.self)?.id,
+      tutorEvaluationSchema: schemas.find((s) => s.name === DEFAULT_SCHEMAS.tutor)?.id,
     })
     for (const name of options.schemaNames ?? []) {
       const schema = schemas.find((s) => s.name === name)

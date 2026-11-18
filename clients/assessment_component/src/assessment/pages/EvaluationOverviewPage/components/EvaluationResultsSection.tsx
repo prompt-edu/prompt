@@ -7,53 +7,16 @@ import { useParams } from 'react-router-dom'
 import { AssessmentType } from '../../../interfaces/assessmentType'
 import type { CategoryWithCompetencies } from '../../../interfaces/category'
 import type { StudentEvaluationResults } from '../../../interfaces/evaluationResults'
-import { ScoreChip } from '../../components/PrintReport/ScoreChip'
+import { buildResultCategories, ResultCategoryList } from '../../components/ResultCategoryList'
 import { useGetCoursePhaseConfig } from '../../hooks/useGetCoursePhaseConfig'
 import { useGetEvaluationCategoriesWithCompetencies } from '../../hooks/useGetEvaluationCategoriesWithCompetencies'
 import { buildExampleEvaluationResults } from '../../utils/exampleResults'
-import { getScoreLevelDescription } from '../../utils/getScoreLevelDescription'
 import { useGetMyEvaluationResults } from '../hooks/useGetMyEvaluationResults'
 import { EvaluationPrintReport, type EvaluationPrintSection } from './EvaluationPrintReport'
 
 interface EvaluationResultsSectionProps {
   onReadyChange?: (ready: boolean) => void
 }
-
-interface EvaluationResultRow {
-  competencyID: string
-  name: string
-  description: string
-  scoreLevel: ScoreLevel
-}
-
-export interface EvaluationResultCategory {
-  id: string
-  name: string
-  rows: EvaluationResultRow[]
-}
-
-const buildCategories = (
-  categories: CategoryWithCompetencies[],
-  levelByCompetency: Map<string, ScoreLevel>,
-): EvaluationResultCategory[] =>
-  categories
-    .map((category) => ({
-      id: category.id,
-      name: category.name,
-      rows: category.competencies.flatMap((competency) => {
-        const scoreLevel = levelByCompetency.get(competency.id)
-        if (!scoreLevel) return []
-        return [
-          {
-            competencyID: competency.id,
-            name: competency.name,
-            description: getScoreLevelDescription(scoreLevel, competency),
-            scoreLevel,
-          },
-        ]
-      }),
-    }))
-    .filter((category) => category.rows.length > 0)
 
 const buildPrintSection = (
   categories: CategoryWithCompetencies[],
@@ -80,30 +43,6 @@ const buildPrintSection = (
 const EvaluationResultsLoader = () => (
   <div className='flex h-64 items-center justify-center'>
     <Loader2 className='h-12 w-12 animate-spin text-primary' />
-  </div>
-)
-
-const ResultCategoryList = ({ categories }: { categories: EvaluationResultCategory[] }) => (
-  <div className='space-y-4'>
-    {categories.map((category) => (
-      <Card key={category.id}>
-        <CardContent className='space-y-3 p-4'>
-          <h3 className='text-sm font-semibold'>{category.name}</h3>
-          {category.rows.map((row) => (
-            <div
-              key={row.competencyID}
-              className='flex flex-wrap items-start justify-between gap-2 border-b border-border pb-2 last:border-0 last:pb-0'
-            >
-              <div className='min-w-0 flex-1'>
-                <p className='text-sm font-medium'>{row.name}</p>
-                <p className='text-sm text-muted-foreground'>{row.description}</p>
-              </div>
-              <ScoreChip scoreLevel={row.scoreLevel} />
-            </div>
-          ))}
-        </CardContent>
-      </Card>
-    ))}
   </div>
 )
 
@@ -158,12 +97,12 @@ export const EvaluationResultsSection = ({ onReadyChange }: EvaluationResultsSec
   )
 
   const selfSections = useMemo(
-    () => buildCategories(selfCategories, selfLevels),
+    () => buildResultCategories(selfCategories, selfLevels),
     [selfCategories, selfLevels],
   )
 
   const peerSections = useMemo(
-    () => buildCategories(peerCategories, peerLevels),
+    () => buildResultCategories(peerCategories, peerLevels),
     [peerCategories, peerLevels],
   )
 

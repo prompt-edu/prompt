@@ -1,6 +1,6 @@
 module github.com/prompt-edu/prompt/servers/infrastructure_setup
 
-go 1.27.3
+go 1.27.4
 
 require (
 	github.com/getsentry/sentry-go v0.50.0

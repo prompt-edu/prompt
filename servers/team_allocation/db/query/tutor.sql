@@ -24,3 +24,10 @@ UPDATE tutor
 SET team_id = $3
 WHERE course_phase_id = $1
   AND university_login = $2;
+
+-- name: GetTutorByUniversityLogin :one
+SELECT t.course_participation_id, t.first_name, t.last_name
+FROM tutor t
+WHERE t.course_phase_id = $1
+  AND t.university_login = $2
+LIMIT 1;

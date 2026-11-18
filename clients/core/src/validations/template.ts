@@ -1,16 +1,11 @@
 import * as z from 'zod'
+import { courseIdentifierPart } from './courseIdentifier'
 
 export const templateFormSchema = z.object({
-  name: z
-    .string()
-    .min(1, 'Course name is required')
-    .refine((val) => !/[-/]/.test(val), 'Course name cannot contain "-" or "/"'),
+  name: courseIdentifierPart('Course name'),
   courseType: z.string().min(1, 'Course type is required'),
   ects: z.number().min(0, 'ECTS must be a positive number'),
-  semesterTag: z
-    .string()
-    .min(1, 'Semester tag is required')
-    .refine((val) => !/[-/]/.test(val), 'Semester tag cannot contain "-" or "/"'),
+  semesterTag: courseIdentifierPart('Semester tag'),
   shortDescription: z
     .string()
     .min(1, 'Short description is required')

@@ -1,10 +1,8 @@
 import * as z from 'zod'
+import { courseIdentifierPart } from './courseIdentifier'
 
 export const copyCourseSchema = z.object({
-  name: z
-    .string()
-    .min(1, 'Course name is required')
-    .refine((val) => !/[-/]/.test(val), 'Course name cannot contain "-" or "/"'),
+  name: courseIdentifierPart('Course name'),
   dateRange: z
     .object({
       from: z.date(),
@@ -14,10 +12,7 @@ export const copyCourseSchema = z.object({
       message: 'End date must be after start date',
       path: ['to'],
     }),
-  semesterTag: z
-    .string()
-    .min(1, 'Semester tag is required')
-    .refine((val) => !/[-/]/.test(val), 'Semester tag cannot contain "-" or "/"'),
+  semesterTag: courseIdentifierPart('Semester tag'),
   courseType: z.string().min(1, 'Course type is required'),
   shortDescription: z
     .string()

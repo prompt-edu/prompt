@@ -211,15 +211,21 @@ func (suite *CourseTestSuite) TestValidateUpdateCourseData() {
 }
 
 func TestValidateCourseIdentifier(t *testing.T) {
+	const invalidName = `invalid course name or semester tag: the name must not contain "-", "/", "%", "?" or "#"`
+	const invalidSemesterTag = `invalid course name or semester tag: the semester tag must not contain "-", "/", "%", "?" or "#"`
 	tests := []struct {
 		name, courseName, semesterTag, expectedError string
 	}{
 		{"valid", "iPraktikum", "ios2425", ""},
 		{"spaces are allowed", "Agile Project Management", "ws2425", ""},
-		{"hyphen in the name", "ios-lab", "ws24", `invalid course name or semester tag: the name must not contain "-" or "/"`},
-		{"hyphen in the semester tag", "lab", "ws24-ios", `invalid course name or semester tag: the semester tag must not contain "-" or "/"`},
-		{"slash in the name", "ios/Lecturer", "ws24", `invalid course name or semester tag: the name must not contain "-" or "/"`},
-		{"slash in the semester tag", "lab", "ws24/ios", `invalid course name or semester tag: the semester tag must not contain "-" or "/"`},
+		{"hyphen in the name", "ios-lab", "ws24", invalidName},
+		{"hyphen in the semester tag", "lab", "ws24-ios", invalidSemesterTag},
+		{"slash in the name", "ios/Lecturer", "ws24", invalidName},
+		{"slash in the semester tag", "lab", "ws24/ios", invalidSemesterTag},
+		{"percent sign in the name", "100% Lab", "ws24", invalidName},
+		{"question mark in the name", "lab?1", "ws24", invalidName},
+		{"number sign in the name", "lab#1", "ws28", invalidName},
+		{"number sign in the semester tag", "lab", "ws#28", invalidSemesterTag},
 		{"empty name", "", "ws24", "invalid course name or semester tag: the name is required"},
 		{"empty semester tag", "lab", "", "invalid course name or semester tag: the semester tag is required"},
 	}

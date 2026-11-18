@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/prompt-edu/prompt/servers/core/course/courseDTO"
+	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -18,7 +19,7 @@ const (
 )
 
 // ErrInvalidCourseIdentifier is returned when a new course's name or semester tag is empty or
-// contains a "-" or a "/".
+// contains one of the characters "-", "/", "%", "?" or "#".
 var ErrInvalidCourseIdentifier = errors.New("invalid course name or semester tag")
 
 // ValidateCourseIdentifier checks the name and semester tag of a new course, which join to the
@@ -27,15 +28,16 @@ var ErrInvalidCourseIdentifier = errors.New("invalid course name or semester tag
 //     with "lab". Without one, the identifier splits back into its semester tag and name in exactly
 //     one way, and the database keeps (name, semester_tag) unique. Courses created before this rule
 //     can contain a "-", but their identifiers then hold more than one and differ from a new one.
-//   - Keycloak splits a group path at every "/", so "ws24" with "ios/Lecturer" would resolve to the
-//     Lecturer group of the course "ws24-ios".
+//   - Keycloak cannot address the groups and roles of an identifier with one of the
+//     permissionValidation.UnaddressableCharacters: "ws24" with "ios/Lecturer" would resolve to the
+//     Lecturer group of the course "ws24-ios", and "lab#1" would look up "lab".
 func ValidateCourseIdentifier(name, semesterTag string) error {
 	for _, part := range []struct{ label, value string }{{"name", name}, {"semester tag", semesterTag}} {
 		if part.value == "" {
 			return fmt.Errorf("%w: the %s is required", ErrInvalidCourseIdentifier, part.label)
 		}
-		if strings.ContainsAny(part.value, "-/") {
-			return fmt.Errorf(`%w: the %s must not contain "-" or "/"`, ErrInvalidCourseIdentifier, part.label)
+		if strings.ContainsAny(part.value, "-"+permissionValidation.UnaddressableCharacters) {
+			return fmt.Errorf(`%w: the %s must not contain "-", "/", "%%", "?" or "#"`, ErrInvalidCourseIdentifier, part.label)
 		}
 	}
 	return nil

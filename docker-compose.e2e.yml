@@ -923,7 +923,7 @@ services:
       retries: 10
 
   keycloak:
-    image: quay.io/keycloak/keycloak:26.6.3
+    image: quay.io/keycloak/keycloak:26.8.2
     container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-e2e-keycloak
     command:
       - start-dev

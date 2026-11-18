@@ -154,6 +154,12 @@ Open `Clients > prompt-server > Service account roles`, click **Assign role**, f
 > [!NOTE]
 > `manage-users` is required because Keycloak treats group membership changes as user modifications. The service account does **not** need `manage-realm` or any global admin role - the User Management page only operates on the `/Prompt/{semesterTag}-{courseName}/(Lecturer|Editor)` subgroups, never on the realm itself.
 
+### Required Client Scope (Keycloak 26.8.2)
+
+Keycloak 26.8.2 answers every Admin REST API call with `401 Unauthorized` unless the token carries the Admin API audience. That audience comes from the built-in `kc-admin-api` client scope, and the role mappings above are not enough without it.
+
+Open `Clients > prompt-server > Client scopes`, click **Add client scope**, select `kc-admin-api`, and add it as **Default**. Do this for existing realms after upgrading Keycloak as well: check the client even if the scope already exists in the realm. The bundled `keycloakConfig.json` already assigns it.
+
 ### Verifying the Configuration
 
 The fastest way to confirm the service account is set up correctly is the **System Status** page in the PROMPT admin console:

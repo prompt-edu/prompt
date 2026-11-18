@@ -556,3 +556,32 @@ func (suite *TeamRouterTestSuite) TestGetTutorAssignmentsIsForLecturersOnly() {
 func TestTeamRouterTestSuite(t *testing.T) {
 	suite.Run(t, new(TeamRouterTestSuite))
 }
+
+func (suite *TeamRouterTestSuite) getMyTutor(login string) *httptest.ResponseRecorder {
+	coursePhaseID := "4179d58a-d00d-4fa7-94a5-397bc69fab02"
+	req, _ := http.NewRequest("GET", "/api/course_phase/"+coursePhaseID+"/team/tutors/me", nil)
+	resp := httptest.NewRecorder()
+	suite.routerAs(login).ServeHTTP(resp, req)
+	return resp
+}
+
+func (suite *TeamRouterTestSuite) TestGetMyTutorMatchesUniversityLogin() {
+	for _, login := range []string{scopedTutorLogin, " AB12CDE "} {
+		resp := suite.getMyTutor(login)
+
+		assert.Equal(suite.T(), http.StatusOK, resp.Code, "login %q", login)
+		var tutor promptTypes.Person
+		assert.NoError(suite.T(), json.Unmarshal(resp.Body.Bytes(), &tutor))
+		assert.Equal(suite.T(), "99999999-9999-9999-9999-999999999993", tutor.ID.String())
+		assert.Equal(suite.T(), "Alice", tutor.FirstName)
+		assert.Equal(suite.T(), "Johnson", tutor.LastName)
+	}
+}
+
+func (suite *TeamRouterTestSuite) TestGetMyTutorNotFoundForNonTutor() {
+	for _, login := range []string{"zz99zzz", ""} {
+		resp := suite.getMyTutor(login)
+
+		assert.Equal(suite.T(), http.StatusNotFound, resp.Code, "login %q", login)
+	}
+}

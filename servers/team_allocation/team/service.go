@@ -24,6 +24,7 @@ var (
 	ErrDuplicateLogin      = errors.New("university login is listed more than once")
 	ErrNoTeams             = errors.New("tutor needs at least one team")
 	ErrInvalidTeamForPhase = errors.New("team does not belong to this course phase")
+	ErrTutorNotFound       = errors.New("tutor not found")
 )
 
 type TeamsService struct {
@@ -247,4 +248,29 @@ func uniqueTeamIDs(teamIDs []uuid.UUID) []uuid.UUID {
 		}
 	}
 	return unique
+}
+
+// GetTutorByUniversityLogin returns the tutor a university login belongs to, so another phase can
+// tell which of a team's tutors the caller is.
+func (s *TeamsService) GetTutorByUniversityLogin(ctx context.Context, coursePhaseID uuid.UUID, universityLogin string) (promptTypes.Person, error) {
+	if universityLogin == "" {
+		return promptTypes.Person{}, ErrTutorNotFound
+	}
+
+	tutor, err := s.queries.GetTutorByUniversityLogin(ctx, db.GetTutorByUniversityLoginParams{
+		CoursePhaseID:   coursePhaseID,
+		UniversityLogin: teamDTO.UniversityLoginParam(universityLogin),
+	})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return promptTypes.Person{}, ErrTutorNotFound
+	}
+	if err != nil {
+		return promptTypes.Person{}, fmt.Errorf("failed to get tutor by university login: %w", err)
+	}
+
+	return promptTypes.Person{
+		ID:        tutor.CourseParticipationID,
+		FirstName: tutor.FirstName,
+		LastName:  tutor.LastName,
+	}, nil
 }

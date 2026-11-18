@@ -26,6 +26,7 @@ import (
 	"github.com/prompt-edu/prompt/servers/assessment/evaluations/feedbackItem"
 	"github.com/prompt-edu/prompt/servers/assessment/privacy"
 	"github.com/prompt-edu/prompt/servers/assessment/schemaModification"
+	"github.com/prompt-edu/prompt/servers/assessment/teamScope"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -93,7 +94,7 @@ func registerRoutes(api, coursePhaseApi *gin.RouterGroup, conn *pgxpool.Pool) er
 	categoryService := categories.NewCategoryService(*query, conn, assessmentSchemaService, schemaModificationService, coursePhaseConfigService)
 
 	evaluationCompletionService := evaluationCompletion.NewEvaluationCompletionService(*query, conn, coursePhaseConfig.GetTeamsForCoursePhase, coursePhaseConfigService)
-	evaluationService := evaluations.NewEvaluationService(*query, conn, evaluationCompletionService, coursePhaseConfigService)
+	evaluationService := evaluations.NewEvaluationService(*query, conn, evaluationCompletionService, coursePhaseConfigService, teamScope.ResolveOwnTutorID)
 	feedbackItemService := feedbackItem.NewFeedbackItemService(*query, conn, evaluationCompletionService)
 
 	assessmentCompletionService := assessmentCompletion.NewAssessmentCompletionService(*query, conn, coursePhaseConfigService, coursePhaseConfig.CheckParticipantInPhase)

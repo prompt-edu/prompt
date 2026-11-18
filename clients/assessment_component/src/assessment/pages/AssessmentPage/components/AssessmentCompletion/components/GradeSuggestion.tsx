@@ -16,7 +16,7 @@ import { StudentScoreBadge } from '../../../../components/badges'
 import { useGetCoursePhaseConfig } from '../../../../hooks/useGetCoursePhaseConfig'
 import { useGetEvaluationCategoriesWithCompetencies } from '../../../../hooks/useGetEvaluationCategoriesWithCompetencies'
 import { getWeightedScoreLevel } from '../../../../utils/getWeightedScoreLevel'
-import { GRADE_SELECT_OPTIONS } from '../../../../utils/gradeConfig'
+import { GRADE_SELECT_OPTIONS, getGradeLongLabel } from '../../../../utils/gradeConfig'
 
 interface GradeSuggestionProps {
   onGradeSuggestionChange: (value: string) => void
@@ -39,11 +39,11 @@ export const GradeSuggestion = ({
   const { studentScore, assessmentCompletion, selfEvaluations, peerEvaluations } =
     useStudentAssessmentStore()
   const showAverages = !readOnly && (coursePhaseConfig?.evaluationResultsVisible ?? false)
-  const isCompleted = readOnly || (assessmentCompletion?.completed ?? false)
-  const gradeSuggestionValue =
+  const isCompleted = assessmentCompletion?.completed ?? false
+  const gradeSuggestion =
     assessmentCompletion?.gradeSuggestion && assessmentCompletion.gradeSuggestion > 0
-      ? assessmentCompletion.gradeSuggestion.toFixed(1)
-      : ''
+      ? assessmentCompletion.gradeSuggestion
+      : undefined
 
   return (
     <Card>
@@ -94,32 +94,45 @@ export const GradeSuggestion = ({
           </div>
         )}
       </CardHeader>
-      <CardContent>
-        <p className='text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>
-          Your Grade Suggestion
-        </p>
-        {!readOnly && coursePhaseConfig?.gradeSuggestionVisible && (
-          <p className='text-xs text-gray-500 dark:text-gray-400 my-1'>
-            Your suggestion will be visible to the student once results are released.
+      {readOnly ? (
+        <CardContent>
+          <p className='text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>
+            Suggested grade
           </p>
-        )}
-        <Select
-          value={gradeSuggestionValue}
-          onValueChange={onGradeSuggestionChange}
-          disabled={isCompleted}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder='Select a Grade Suggestion for this Student ...' />
-          </SelectTrigger>
-          <SelectContent>
-            {GRADE_SELECT_OPTIONS.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </CardContent>
+          {gradeSuggestion ? (
+            <p className='text-lg font-semibold'>{getGradeLongLabel(gradeSuggestion)}</p>
+          ) : (
+            <p className='text-sm text-muted-foreground'>No grade suggested.</p>
+          )}
+        </CardContent>
+      ) : (
+        <CardContent>
+          <p className='text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>
+            Your Grade Suggestion
+          </p>
+          {coursePhaseConfig?.gradeSuggestionVisible && (
+            <p className='text-xs text-gray-500 dark:text-gray-400 my-1'>
+              Your suggestion will be visible to the student once results are released.
+            </p>
+          )}
+          <Select
+            value={gradeSuggestion?.toFixed(1) ?? ''}
+            onValueChange={onGradeSuggestionChange}
+            disabled={isCompleted}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder='Select a Grade Suggestion for this Student ...' />
+            </SelectTrigger>
+            <SelectContent>
+              {GRADE_SELECT_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </CardContent>
+      )}
     </Card>
   )
 }

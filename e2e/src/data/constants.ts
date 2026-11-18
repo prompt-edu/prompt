@@ -135,7 +135,9 @@ export const TEAM_ALLOCATION_TUTOR_SCOPE = {
 // `selfEvaluation` by the self-evaluation spec (Stan participates),
 // `print` by the print spec (Stan participates), `gradeExport` by the grade
 // export spec (Stan participates), and `evaluationOnly` by the evaluation-only
-// spec (Stan participates), which flips assessment_enabled off.
+// spec (Stan participates), which flips assessment_enabled off. `tutorResults`
+// belongs to the tutor results spec: Stan + Selma participate, and its teams come
+// from TEAM_ALLOCATION_TUTOR_SCOPE, so course-editor is their tutor.
 export const ASSESSMENT_FIXTURE_PHASES = {
   visibility: 'd0000006-0000-0000-0000-000000000006',
   selfEvaluation: 'd0000007-0000-0000-0000-000000000007',
@@ -144,6 +146,14 @@ export const ASSESSMENT_FIXTURE_PHASES = {
   evaluationOnly: 'd0000013-0000-0000-0000-000000000013',
   tutorScope: 'd0000018-0000-0000-0000-000000000018',
   otherTutor: 'd0000019-0000-0000-0000-000000000019',
+  tutorResults: 'd000001a-0000-0000-0000-00000000001a',
+}
+
+// The tutor record course-editor (Eduard Eduard, login co69edt) has in
+// TEAM_ALLOCATION_TUTOR_SCOPE: the id students evaluate as their tutor.
+export const TUTOR_SCOPE_TUTOR = {
+  name: 'Eduard Eduard',
+  id: 'a0000005-0000-0000-0000-000000000005',
 }
 
 // Participants of ASSESSMENT_FIXTURE_PHASES.tutorScope. Its teams come from the

@@ -1210,6 +1210,52 @@ paths:
       summary: Import tutors
       tags:
       - team
+  /course_phase/{coursePhaseID}/team/tutors/me:
+    get:
+      description: Get the tutor that the caller's university login belongs to in
+        this course phase, so other phases can match the caller to a team's tutors
+      parameters:
+      - description: Course Phase UUID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/promptTypes.Person'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get the caller's tutor record
+      tags:
+      - team
   /tease/course_phase/{coursePhaseID}/save:
     post:
       consumes:

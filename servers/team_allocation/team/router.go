@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	"github.com/prompt-edu/prompt-sdk/audit"
+	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt-sdk/promptTypes"
 	"github.com/prompt-edu/prompt-sdk/tutorscope"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
@@ -31,6 +32,7 @@ func RegisterRoutes(routerGroup *gin.RouterGroup, service *TeamsService, authMid
 	// Lecturers only, since it carries the tutors' logins: GET /team also serves students and tutors.
 	teamRouter.GET("/tutors", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.getTutorAssignments)
 	teamRouter.POST("/tutors", audit.Describe("Imported tutors"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.importTutors)
+	teamRouter.GET("/tutors/me", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.getMyTutor)
 
 	// required for inter-phase communication protocol
 	teamRouter.GET("/:teamID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.CourseStudent), scopingMW, service.getTeamByID)
@@ -342,4 +344,45 @@ func (s *TeamsService) importTutors(c *gin.Context) {
 	}
 
 	c.Status(http.StatusCreated)
+}
+
+// getMyTutor godoc
+// @Summary Get the caller's tutor record
+// @Description Get the tutor that the caller's university login belongs to in this course phase, so other phases can match the caller to a team's tutors
+// @Tags team
+// @Produce json
+// @Param coursePhaseID path string true "Course Phase UUID"
+// @Success 200 {object} promptTypes.Person
+// @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Security ApiKeyAuth
+// @Router /course_phase/{coursePhaseID}/team/tutors/me [get]
+func (s *TeamsService) getMyTutor(c *gin.Context) {
+	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
+	if err != nil {
+		log.Error("Error parsing coursePhaseID: ", err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	tokenUser, ok := keycloakTokenVerifier.GetTokenUser(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "authenticated user not found in context"})
+		return
+	}
+
+	tutor, err := s.GetTutorByUniversityLogin(c, coursePhaseID, tutorscope.NormalizeLogin(tokenUser.UniversityLogin))
+	if err != nil {
+		if errors.Is(err, ErrTutorNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "the caller is not a tutor in this course phase"})
+			return
+		}
+		log.Error("Error getting the caller's tutor record: ", err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, tutor)
 }

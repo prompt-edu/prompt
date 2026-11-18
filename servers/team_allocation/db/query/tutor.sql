@@ -31,3 +31,11 @@ SELECT course_participation_id, university_login, team_id
 FROM tutor
 WHERE course_phase_id = $1
 ORDER BY university_login, course_participation_id, team_id;
+
+-- name: GetTutorByUniversityLogin :one
+SELECT t.course_participation_id, t.first_name, t.last_name
+FROM tutor t
+WHERE t.course_phase_id = $1
+  AND t.university_login = $2
+ORDER BY t.course_participation_id
+LIMIT 1;

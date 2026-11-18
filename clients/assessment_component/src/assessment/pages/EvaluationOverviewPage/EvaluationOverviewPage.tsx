@@ -13,6 +13,7 @@ import { useGetMyParticipation } from '../hooks/useGetMyParticipation'
 import { getTutorLabel } from '../hooks/useTutorLabel'
 import { EvaluationInfoHeader } from './components/EvaluationInfoHeader'
 import { EvaluationSection } from './components/EvaluationSection'
+import { MyTutorResultsCard } from './components/MyTutorResultsCard'
 
 export const EvaluationOverviewPage = () => {
   const { isStudentOfCourse } = useCourseStore()
@@ -113,6 +114,8 @@ export const EvaluationOverviewPage = () => {
       </ManagementPageHeader>
 
       <div className='space-y-4'>
+        {!isStudent && <MyTutorResultsCard resultsLink={`${path}/tutor-results`} />}
+
         <EvaluationInfoHeader
           allEvaluationsCompleted={allEvaluationsCompleted}
           resultsLink={`${path}/results`}

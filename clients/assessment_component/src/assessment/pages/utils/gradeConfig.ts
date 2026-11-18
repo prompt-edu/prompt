@@ -17,9 +17,16 @@ export const GRADE_CONFIG = {
   'No Grade': { label: 'No Grade', color: '#d4d4d8', longLabel: 'No Grade' },
 } as const
 
+export const getGradeLongLabel = (grade: number): string => {
+  const gradeKey = grade.toFixed(1)
+  return gradeKey in GRADE_CONFIG
+    ? GRADE_CONFIG[gradeKey as keyof typeof GRADE_CONFIG].longLabel
+    : gradeKey
+}
+
 export const GRADE_SELECT_OPTIONS = VALID_GRADE_VALUES.map((value) => ({
   value: value.toFixed(1),
-  label: GRADE_CONFIG[value.toFixed(1) as keyof typeof GRADE_CONFIG].longLabel,
+  label: getGradeLongLabel(value),
 }))
 
 export const getGradeColor = (grade: number): string => {

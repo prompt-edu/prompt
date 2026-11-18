@@ -158,13 +158,18 @@ func (s *AuditLogService) listCourseAuditLog(c *gin.Context) {
 // authenticated service identity, never the body.
 func ingestAuditEvent(sink *DBSink) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// source_service is authoritative (from the matched key), never the body.
+		service, ok := serviceAuth.ServiceName(c)
+		if !ok {
+			c.JSON(http.StatusUnauthorized, sdkUtils.ErrorResponse{Error: "invalid service credentials"})
+			return
+		}
 		var e audit.Event
 		if err := c.ShouldBindJSON(&e); err != nil {
 			c.JSON(http.StatusBadRequest, sdkUtils.ErrorResponse{Error: err.Error()})
 			return
 		}
-		// source_service is authoritative (from the matched key), never the body.
-		e.SourceService = serviceAuth.ServiceName(c)
+		e.SourceService = service
 		if err := validateIngestEvent(e); err != nil {
 			// The event payload and the token never reach the log; only why the
 			// delivery was refused and which service it came from.

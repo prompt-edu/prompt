@@ -1,4 +1,5 @@
 import type { ScoreLevel } from '@tumaet/prompt-shared-state'
+import type { FeedbackType } from './feedbackItem'
 
 export interface SelfEvaluationResult {
   competencyID: string
@@ -15,4 +16,17 @@ export interface StudentEvaluationResults {
   coursePhaseID: string
   selfResults: SelfEvaluationResult[]
   peerResults: AggregatedEvaluationResult[]
+}
+
+export interface AnonymousFeedbackItem {
+  feedbackType: FeedbackType
+  feedbackText: string
+}
+
+export interface TutorEvaluationResults {
+  tutorID: string
+  coursePhaseID: string
+  evaluatorCount: number
+  results: AggregatedEvaluationResult[]
+  feedbackItems: AnonymousFeedbackItem[]
 }

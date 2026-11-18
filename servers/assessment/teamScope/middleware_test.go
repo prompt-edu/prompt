@@ -19,13 +19,16 @@ var (
 	teamPhaseID   = uuid.New()
 	member        = uuid.New()
 	outsider      = uuid.New()
+	tutor         = uuid.New()
 )
 
 type upstream struct {
-	hasTeamsInput  bool
-	teamsStatus    int
-	teamAuthHeader string
-	teamCalls      int
+	hasTeamsInput   bool
+	teamsStatus     int
+	teamAuthHeader  string
+	teamCalls       int
+	tutorStatus     int
+	tutorAuthHeader string
 }
 
 func startUpstream(t *testing.T, u *upstream) {
@@ -60,6 +63,14 @@ func startUpstream(t *testing.T, u *upstream) {
 			"name":    "Team",
 			"members": []gin.H{{"id": member, "firstName": "A", "lastName": "B"}},
 		}}})
+	})
+	router.GET("/team-phase/api/course_phase/"+teamPhaseID.String()+"/team/tutors/me", func(c *gin.Context) {
+		u.tutorAuthHeader = c.GetHeader("Authorization")
+		if u.tutorStatus != http.StatusOK {
+			c.Status(u.tutorStatus)
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"id": tutor, "firstName": "T", "lastName": "U"})
 	})
 }
 
@@ -197,4 +208,58 @@ func TestResolutionURLRejectsUnsafeTargets(t *testing.T) {
 		_, err := resolutionURL(resolution)
 		assert.Error(t, err, resolution.BaseURL+resolution.EndpointPath)
 	}
+}
+
+func TestResolveOwnTutorIDAsksTheTeamPhaseWithTheCallerToken(t *testing.T) {
+	u := &upstream{hasTeamsInput: true, tutorStatus: http.StatusOK}
+	startUpstream(t, u)
+
+	tutorID, found, err := ResolveOwnTutorID("Bearer caller", coursePhaseID)
+
+	assert.NoError(t, err)
+	assert.True(t, found)
+	assert.Equal(t, tutor, tutorID)
+	assert.Equal(t, "Bearer caller", u.tutorAuthHeader)
+}
+
+func TestResolveOwnTutorIDNotFound(t *testing.T) {
+	t.Run("no teams input", func(t *testing.T) {
+		u := &upstream{tutorStatus: http.StatusOK}
+		startUpstream(t, u)
+
+		_, found, err := ResolveOwnTutorID("Bearer caller", coursePhaseID)
+
+		assert.NoError(t, err)
+		assert.False(t, found)
+		assert.Empty(t, u.tutorAuthHeader, "the team phase must not be asked without a teams input")
+	})
+
+	for _, status := range []int{http.StatusNotFound, http.StatusForbidden} {
+		t.Run(http.StatusText(status), func(t *testing.T) {
+			startUpstream(t, &upstream{hasTeamsInput: true, tutorStatus: status})
+
+			_, found, err := ResolveOwnTutorID("Bearer caller", coursePhaseID)
+
+			assert.NoError(t, err)
+			assert.False(t, found)
+		})
+	}
+}
+
+func TestResolveOwnTutorIDTeamPhaseFailure(t *testing.T) {
+	startUpstream(t, &upstream{hasTeamsInput: true, tutorStatus: http.StatusInternalServerError})
+
+	_, found, err := ResolveOwnTutorID("Bearer caller", coursePhaseID)
+
+	assert.Error(t, err)
+	assert.False(t, found)
+}
+
+func TestResolutionURLAppendsSegments(t *testing.T) {
+	resolution := promptSDK.Resolution{BaseURL: "http://team-allocation/api", EndpointPath: "/team", CoursePhaseID: teamPhaseID}
+
+	got, err := resolutionURL(resolution, "tutors", "me")
+
+	assert.NoError(t, err)
+	assert.Equal(t, "http://team-allocation/api/course_phase/"+teamPhaseID.String()+"/team/tutors/me", got)
 }

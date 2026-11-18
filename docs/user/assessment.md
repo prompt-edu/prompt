@@ -34,6 +34,9 @@ Once the assessment phase is set up, students and instructors can begin evaluati
    overview offers the same actions for tutor evaluations, with one file per tutor listing every
    team they lead. The **Self Evaluations** and **Peer Evaluations** overviews offer **Export PDF**;
    selected participants without any evaluations are skipped.
+6. **Read Your Tutor Evaluation**: Once the tutor evaluation deadline has passed and the results
+   are released, tutors find what their students wrote about them on the phase page (see
+   [Tutors Seeing Their Tutor Evaluation Results](#tutors-seeing-their-tutor-evaluation-results)).
 
 > 💡 **Tip**: Regularly check for updates and communicate with your team to ensure timely submissions.
 
@@ -152,6 +155,24 @@ mail has a subject and content.
   are not mailed again automatically
 - Besides the usual student placeholders, `{{coursePhaseName}}` and `{{coursePhaseLink}}` are available
 
+#### Tutors Seeing Their Tutor Evaluation Results
+
+When the tutor evaluation is enabled, its deadline has passed, and you release the results, every
+tutor of a team sees a **Your Tutor Evaluation Results** card on the phase page. **View your results** opens a page with
+what their students wrote about them. PROMPT matches the signed-in staff member to a tutor by their
+university login in the team allocation phase that provides the teams, so the card only appears for
+tutors listed there.
+
+> 🔒 **Tutor results are anonymized.** A tutor sees the number of students who evaluated them, the
+> average score of each competency that at least two students rated, and the written feedback
+> without names. Positive and negative feedback are each shown only once at least two students wrote
+> that kind, so no text points to a single student. Unreleasing the results hides the page again.
+
+> ⏰ **Set a tutor evaluation deadline.** Tutors only see their results after the tutor evaluation
+> deadline, even when the results are already released. While students can still submit, a tutor
+> who reloads after each submission could otherwise tell from the changing averages and texts what
+> that student wrote. A phase without a tutor evaluation deadline never shows tutors their results.
+
 #### Evaluation-Only Phases
 
 Turning **Assessment Enabled** off keeps the self, peer and tutor evaluations but removes the
@@ -246,6 +267,10 @@ Competencies are individual skills within categories:
 - **Reorder**: Drag a category by its header to move it, or drag a competency card to change its position within its category or to move it into another category. Students, tutors, and exports show categories and competencies in this order. New categories and competencies are added at the end.
 
 Like other template changes, editing and reordering are disabled once assessment data has been submitted for the template.
+
+### Templates of a Deleted Phase
+
+Deleting an assessment phase permanently removes its configuration, assessments, evaluations, feedback, and action items. Templates the phase created are deleted with it, unless another phase still uses them. A copied course reuses the templates of the original course, for example. Such a template stays, and the phase using it (the one that starts first, if several do) becomes its owner and can keep editing it. The global default templates are never deleted.
 
 ### Exporting a Template
 

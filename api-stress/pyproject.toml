@@ -20,3 +20,15 @@ build-backend = "hatchling.build"
 # Only the orchestrator package is importable; the leaf scripts (catalog/, lib/,
 # fuzz/, report/, k6/) are invoked from the source tree by path at runtime.
 packages = ["stress"]
+
+[dependency-groups]
+# Unit tests for the orchestrator and report helpers; `uv run` installs this group
+# by default, so `uv run --project api-stress pytest api-stress` just works.
+dev = [
+    "pytest>=9.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# The report helpers are leaf scripts run by path, not an installed package.
+pythonpath = ["report"]

@@ -298,6 +298,17 @@ func TestAuditMiddlewareUsesDerivedLabels(t *testing.T) {
 	}
 }
 
+// The phase deletion route carries its own label: the module deletes only its own data, so the
+// derived "Deleted course phase" would mislead.
+func TestAuditMiddlewareRecordsPhaseDeletionRoute(t *testing.T) {
+	requireDeniedEvent(t, auditRouteCase{
+		method:    http.MethodDelete,
+		path:      auditCoursePhaseRoute,
+		action:    "Deleted the assessment phase data",
+		actionKey: "DELETE " + auditCoursePhaseTemplate,
+	})
+}
+
 func TestAuditMiddlewareIgnoresReads(t *testing.T) {
 	sink := &recordingSink{}
 	router, _, _ := newServiceRouter(t, sink)

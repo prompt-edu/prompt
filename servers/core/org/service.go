@@ -379,17 +379,15 @@ func (s *OrgService) UpdateOrgParent(ctx context.Context, id uuid.UUID, input or
 // it found back. It holds the membership lock until then, also through a failed commit, so a
 // membership change is refused instead of being undone by that restore. The lock, the deletion and
 // the restore share one connection, so a deletion holding the lock never waits for the pool, where
-// other requests may hold every other connection.
+// other requests may hold every other connection. Once Keycloak has let go of the org, the commit
+// and the check after it no longer follow the request's cancellation: a request that ends there
+// must not leave the org without its groups.
 func (s *OrgService) DeleteOrg(ctx context.Context, id uuid.UUID) (string, error) {
-	conn, err := s.conn.Acquire(ctx)
+	conn, err := s.lockMembershipForSession(ctx, id)
 	if err != nil {
 		return "", err
 	}
 	defer conn.Release()
-	queries := db.New(conn)
-	if err := queries.LockOrgMembershipForSession(ctx, id); err != nil {
-		return "", fmt.Errorf("failed to lock the membership of the org: %w", err)
-	}
 	defer unlockMembership(ctx, conn, id)
 
 	tx, err := conn.Begin(ctx)
@@ -397,7 +395,7 @@ func (s *OrgService) DeleteOrg(ctx context.Context, id uuid.UUID) (string, error
 		return "", err
 	}
 	defer promptSDK.DeferDBRollback(tx, ctx)
-	qtx := queries.WithTx(tx)
+	qtx := db.New(conn).WithTx(tx)
 
 	slug, err := qtx.DeleteOrg(ctx, id)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -416,15 +414,33 @@ func (s *OrgService) DeleteOrg(ctx context.Context, id uuid.UUID) (string, error
 		}
 	}
 
-	if err := tx.Commit(ctx); err != nil {
-		return s.reconcileFailedDeleteCommit(ctx, queries, id, slug, members, fmt.Errorf("failed to commit transaction: %w", err))
+	commitCtx, cancelCommit := db.GetTimeoutContext(context.WithoutCancel(ctx))
+	defer cancelCommit()
+	if err := tx.Commit(commitCtx); err != nil {
+		return s.reconcileFailedDeleteCommit(ctx, conn, id, slug, members, fmt.Errorf("failed to commit transaction: %w", err))
 	}
 	return slug, nil
 }
 
-// unlockMembership releases the lock that DeleteOrg took for the connection's session. A connection
-// that may still hold it is closed, so the pool never hands the lock to another request.
+func (s *OrgService) lockMembershipForSession(ctx context.Context, orgID uuid.UUID) (*pgxpool.Conn, error) {
+	conn, err := s.conn.Acquire(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err := db.New(conn).LockOrgMembershipForSession(ctx, orgID); err != nil {
+		conn.Release()
+		return nil, fmt.Errorf("failed to lock the membership of the org: %w", err)
+	}
+	return conn, nil
+}
+
+// unlockMembership releases the lock that lockMembershipForSession took. A closed connection's
+// session has ended, and its lock with it. A connection that may still hold the lock is closed, so
+// the pool never hands the lock to another request.
 func unlockMembership(ctx context.Context, conn *pgxpool.Conn, orgID uuid.UUID) {
+	if conn.Conn().IsClosed() {
+		return
+	}
 	unlockCtx, cancel := db.GetTimeoutContext(context.WithoutCancel(ctx))
 	defer cancel()
 	unlocked, err := db.New(conn).UnlockOrgMembership(unlockCtx, orgID)
@@ -453,11 +469,21 @@ func (s *OrgService) reconcileFailedKeycloakDelete(ctx context.Context, slug str
 	return deleteErr
 }
 
-// reconcileFailedDeleteCommit checks on the deletion's own connection, see DeleteOrg.
-func (s *OrgService) reconcileFailedDeleteCommit(ctx context.Context, queries *db.Queries, id uuid.UUID, slug string, members orgMembers, commitErr error) (string, error) {
+// reconcileFailedDeleteCommit checks on the deletion's own connection, see DeleteOrg, or, when the
+// failed commit closed it and so ended its lock, on a new connection that takes the lock again.
+func (s *OrgService) reconcileFailedDeleteCommit(ctx context.Context, conn *pgxpool.Conn, id uuid.UUID, slug string, members orgMembers, commitErr error) (string, error) {
 	checkCtx, cancel := db.GetTimeoutContext(context.WithoutCancel(ctx))
 	defer cancel()
-	_, err := queries.GetOrgByID(checkCtx, id)
+	if conn.Conn().IsClosed() {
+		relocked, err := s.lockMembershipForSession(checkCtx, id)
+		if err != nil {
+			return "", errors.Join(commitErr, fmt.Errorf("failed to check whether the org was deleted: %w", err))
+		}
+		defer relocked.Release()
+		defer unlockMembership(ctx, relocked, id)
+		conn = relocked
+	}
+	_, err := db.New(conn).GetOrgByID(checkCtx, id)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return slug, nil
 	}

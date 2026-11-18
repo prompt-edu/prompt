@@ -150,6 +150,19 @@ func (suite *OrgServiceTestSuite) failCommitOn(event, row, slug string) {
 	})
 }
 
+func (suite *OrgServiceTestSuite) endSessionOnCommit(slug string) {
+	_, err := suite.conn.Exec(suite.ctx, fmt.Sprintf(`
+		CREATE FUNCTION end_session() RETURNS trigger LANGUAGE plpgsql AS $fn$
+		BEGIN PERFORM pg_terminate_backend(pg_backend_pid()); PERFORM pg_sleep(5); RETURN NULL; END $fn$;
+		CREATE CONSTRAINT TRIGGER end_session AFTER DELETE ON org DEFERRABLE INITIALLY DEFERRED
+		FOR EACH ROW WHEN (OLD.slug = '%s') EXECUTE FUNCTION end_session();`, slug))
+	require.NoError(suite.T(), err)
+	suite.T().Cleanup(func() {
+		_, err := suite.conn.Exec(suite.ctx, "DROP TRIGGER end_session ON org; DROP FUNCTION end_session();")
+		require.NoError(suite.T(), err)
+	})
+}
+
 func (suite *OrgServiceTestSuite) TestCreateOrgStoresTrimmedInputAndProvisionsKeycloak() {
 	created, err := suite.service.CreateOrg(suite.ctx, orgDTO.CreateOrg{
 		Name:         "  Applied Software Engineering  ",
@@ -567,6 +580,43 @@ func (suite *OrgServiceTestSuite) TestDeleteOrgReportsMembersThatCouldNotBeReAdd
 	assert.ErrorIs(suite.T(), err, ErrOrgMembersRemoved)
 	assert.ErrorIs(suite.T(), err, suite.keycloak.addErr)
 	assert.Equal(suite.T(), 1, suite.countOrgs("re-add-fails"))
+}
+
+func (suite *OrgServiceTestSuite) TestDeleteOrgRestoresKeycloakWhenTheCommitEndsTheSession() {
+	org := suite.createOrg("delete-session-ends", nil)
+	suite.endSessionOnCommit("delete-session-ends")
+	suite.keycloak.members = orgMembers{permissionValidation.OrgAdmin: {"admin-1"}}
+	service, _ := suite.withMembers(staffMember("ada", "ad12min"))
+	addAda := func() error {
+		_, _, err := service.AddOrgMember(suite.ctx, org.ID, "ada", permissionValidation.OrgMember, caller)
+		return err
+	}
+	var duringRestore error
+	suite.keycloak.onCreate = func(string) { duringRestore = addAda() }
+
+	_, err := service.DeleteOrg(suite.ctx, org.ID)
+
+	assert.ErrorContains(suite.T(), err, "failed to commit transaction")
+	assert.NotErrorIs(suite.T(), err, ErrOrgMembersRemoved, "every member is back")
+	assert.Equal(suite.T(), 1, suite.countOrgs("delete-session-ends"))
+	assert.Equal(suite.T(), []string{"delete-session-ends", "delete-session-ends"}, suite.keycloak.created, "the failed commit is followed by a restore")
+	assert.Equal(suite.T(), []orgMembers{suite.keycloak.members}, suite.keycloak.added)
+	assert.ErrorIs(suite.T(), duringRestore, ErrMembershipBusy, "the restore holds the lock again")
+	assert.NoError(suite.T(), addAda(), "the restore released the lock")
+}
+
+func (suite *OrgServiceTestSuite) TestDeleteOrgCommitsWhenTheRequestEndsDuringKeycloak() {
+	org := suite.createOrg("delete-request-ends", nil)
+	ctx, cancel := context.WithCancel(suite.ctx)
+	defer cancel()
+	suite.keycloak.onDelete = func(string) { cancel() }
+
+	slug, err := suite.service.DeleteOrg(ctx, org.ID)
+
+	require.NoError(suite.T(), err)
+	assert.Equal(suite.T(), "delete-request-ends", slug)
+	assert.Zero(suite.T(), suite.countOrgs("delete-request-ends"))
+	assert.Equal(suite.T(), []string{"delete-request-ends"}, suite.keycloak.created, "nothing is restored")
 }
 
 func (suite *OrgServiceTestSuite) TestDeleteOrgNotFound() {

@@ -1,6 +1,6 @@
 import { request } from '@playwright/test'
 import { test, expect } from '../../src/fixtures/api'
-import { tokenFor } from '../../src/fixtures/api'
+import { apiContextFor, tokenFor } from '../../src/fixtures/api'
 import { CORE_API_URL } from '../../src/env'
 import { SEEDED_COURSES } from '../../src/data/constants'
 import { cleanupCourses, createCourseViaApi, uniqueSuffix } from '../courses/helpers'
@@ -32,6 +32,8 @@ interface UserSearchResults {
 }
 
 const COURSE_ID = SEEDED_COURSES.iPraktikum.id
+// A well-formed Keycloak user ID that belongs to nobody.
+const UNKNOWN_USER_ID = '00000000-0000-0000-0000-000000000000'
 
 // Decode the `sub` (Keycloak user ID) from a JWT without a verifying library.
 function subjectFromJwt(jwt: string): string {
@@ -125,6 +127,105 @@ test.describe('core API: keycloak course-staff of a provisioned course', () => {
     const editor = staff.editors.find((m) => m.keycloakUserID === editorSub)
     expect(editor?.username).toBe('course-editor')
     expect(editor?.universityLogin).toBe('co69edt')
+  })
+})
+
+test.describe('core API: keycloak course-staff membership changes', () => {
+  let courseId: string
+  let editorSub: string
+
+  test.beforeAll(async () => {
+    const admin = await apiContextFor('admin')
+    try {
+      const suffix = uniqueSuffix(test.info().workerIndex)
+      courseId = await createCourseViaApi(admin, {
+        name: `E2EStaffChange${suffix}`,
+        semesterTag: `e2estaffchange${suffix}`,
+      })
+    } finally {
+      await admin.dispose()
+    }
+    editorSub = subjectFromJwt(await tokenFor('course-editor'))
+  })
+
+  test.afterAll(async () => {
+    await cleanupCourses(courseId)
+  })
+
+  test('DELETE /keycloak/:courseID/group/:groupName/members removes a member', async ({
+    apiAs,
+  }) => {
+    const api = await apiAs('admin')
+    const memberUrl = `/api/keycloak/${courseId}/group/Editor/members/${editorSub}`
+    expect((await api.put(memberUrl)).status()).toBe(204)
+
+    const res = await api.delete(memberUrl)
+    expect(res.status()).toBe(204)
+
+    const staff = (await (
+      await api.get(`/api/keycloak/${courseId}/group/staff`)
+    ).json()) as CourseStaff
+    expect(staff.editors.map((m) => m.keycloakUserID)).not.toContain(editorSub)
+  })
+
+  test('PUT /keycloak/:courseID/group/:groupName/members is idempotent', async ({
+    apiAs,
+  }) => {
+    const api = await apiAs('admin')
+    const memberUrl = `/api/keycloak/${courseId}/group/Lecturer/members/${editorSub}`
+    expect((await api.put(memberUrl)).status()).toBe(204)
+    expect((await api.put(memberUrl)).status()).toBe(204)
+
+    const staff = (await (
+      await api.get(`/api/keycloak/${courseId}/group/staff`)
+    ).json()) as CourseStaff
+    expect(staff.lecturers.filter((m) => m.keycloakUserID === editorSub)).toHaveLength(1)
+  })
+
+  test('PUT /keycloak/:courseID/group/:groupName/members returns 404 for an unknown user', async ({
+    apiAs,
+  }) => {
+    const api = await apiAs('admin')
+    const res = await api.put(`/api/keycloak/${courseId}/group/Editor/members/${UNKNOWN_USER_ID}`)
+    expect(res.status()).toBe(404)
+    const body = (await res.json()) as { error: string }
+    expect(body.error).toMatch(/user not found/i)
+  })
+})
+
+test.describe('core API: keycloak course-staff changes need a course lecturer', () => {
+  // course-editor is an Editor of fullCourse, student a participant of iPraktikum:
+  // both are course members, and neither may change the staff.
+  const cases = [
+    { role: 'course-editor', courseId: SEEDED_COURSES.fullCourse.id },
+    { role: 'student', courseId: SEEDED_COURSES.iPraktikum.id },
+  ] as const
+
+  for (const { role, courseId } of cases) {
+    test(`PUT and DELETE members are forbidden for a ${role}`, async ({ apiAs }) => {
+      const api = await apiAs(role)
+      const memberUrl = `/api/keycloak/${courseId}/group/Editor/members/${UNKNOWN_USER_ID}`
+      expect((await api.put(memberUrl)).status()).toBe(403)
+      expect((await api.delete(memberUrl)).status()).toBe(403)
+    })
+  }
+})
+
+test.describe('core API: keycloak status', () => {
+  // The probes call the Keycloak Admin API with the prompt-server service account.
+  // A realm or Keycloak change that takes that access away shows up here first.
+  test('GET /keycloak/status reports a usable service account', async ({ apiAs }) => {
+    const api = await apiAs('admin')
+    const res = await api.get('/api/keycloak/status')
+    expect(res.ok()).toBeTruthy()
+    expect(await res.json()).toEqual({
+      healthy: true,
+      capabilities: {
+        'keycloak.login': true,
+        'keycloak.read_users': true,
+        'keycloak.read_groups': true,
+      },
+    })
   })
 })
 

@@ -95,10 +95,13 @@ function dependents(names) {
 function owner(file, shardPatterns) {
   for (const [name, module] of Object.entries(MODULES)) {
     if (module.server && file.startsWith(`servers/${module.server}/`))
-      return { module: name, part: 'server' }
+      return { modules: [name], part: 'server' }
     if (module.client && file.startsWith(`clients/${module.client}/`))
-      return { module: name, part: 'client' }
+      return { modules: [name], part: 'client' }
   }
+  // Shared files of one side (the lockfile, a Dockerfile, clients/shared) reach all its modules.
+  if (file.startsWith('servers/')) return { modules: Object.keys(MODULES), part: 'server' }
+  if (file.startsWith('clients/')) return { modules: Object.keys(MODULES), part: 'client' }
   if (file.startsWith('e2e/tests/')) {
     const spec = `/${file.slice('e2e/'.length)}`
     const shard = shardPatterns.find(({ patterns }) => patterns.some((p) => p.test(spec)))
@@ -120,9 +123,10 @@ export function select(files, shardPatterns = loadShardPatterns()) {
     const found = owner(file, shardPatterns)
     if (!found) return selectAll()
     if (found.shard) shards.add(found.shard)
-    if (found.part === 'server') servers.add(found.module)
-    if (found.part === 'client') clients.add(found.module)
-    if (found.module) changed.add(found.module)
+    for (const name of found.modules ?? []) {
+      ;(found.part === 'server' ? servers : clients).add(name)
+      changed.add(name)
+    }
   }
 
   const affected = changed.has('core') ? Object.keys(MODULES) : dependents(changed)
@@ -138,7 +142,7 @@ export function select(files, shardPatterns = loadShardPatterns()) {
 
 const pick = (names, part) =>
   Object.entries(MODULES)
-    .filter(([name]) => names.has(name))
+    .filter(([name, module]) => names.has(name) && module[part])
     .map(([, module]) => module[part])
 
 const inOrder = (shards) => all('shard').filter((shard) => shards.has(shard))

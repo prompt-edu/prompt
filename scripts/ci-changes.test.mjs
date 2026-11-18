@@ -20,19 +20,33 @@ describe('select', () => {
 
   it('runs everything for files outside any module', () => {
     for (const file of [
-      'clients/package.json',
-      'clients/yarn.lock',
-      'clients/shared/rspack/createRspackConfig.mjs',
-      'servers/Dockerfile',
       'e2e/src/fixtures.ts',
       'e2e/tests/assessment/helpers.ts',
       'seed/core.sql',
       'docker-compose.e2e.yml',
       '.github/workflows/dev.yml',
-      'clients/.gitignore',
-      'servers/new_phase/main.go',
+      'api-stress/uv.lock',
+      'keycloakConfig.json',
     ]) {
       assert.deepEqual(select(['servers/interview/main.go', file]), everything, file)
+    }
+  })
+
+  it('runs every client and shard but no server for shared client files', () => {
+    for (const file of [
+      'clients/package.json',
+      'clients/yarn.lock',
+      'clients/Dockerfile',
+      'clients/shared/rspack/createRspackConfig.mjs',
+      'clients/.gitignore',
+    ]) {
+      assert.deepEqual(select([file]), { ...everything, servers: [] }, file)
+    }
+  })
+
+  it('runs every server and shard but no client for shared server files', () => {
+    for (const file of ['servers/Dockerfile', 'servers/new_phase/main.go']) {
+      assert.deepEqual(select([file]), { ...everything, clients: [] }, file)
     }
   })
 

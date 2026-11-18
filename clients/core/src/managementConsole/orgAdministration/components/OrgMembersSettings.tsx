@@ -116,77 +116,79 @@ export const OrgMembersSettings = ({ org }: OrgMembersSettingsProps) => {
               )
             }
             return (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>University Login</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead className='w-40'>Role</TableHead>
-                    <TableHead className='w-12 text-right'>
-                      <span className='sr-only'>Actions</span>
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {members.map((member) => {
-                    const lockedSelf = isLockedSelf(member)
-                    const removeButton = (
-                      <Button
-                        variant='ghost'
-                        size='icon'
-                        aria-label={`Remove ${member.username} from the org`}
-                        disabled={lockedSelf || isBusy}
-                        onClick={() => setPendingRemoval(member)}
-                      >
-                        <Trash2 className='h-4 w-4' />
-                      </Button>
-                    )
-                    return (
-                      <TableRow key={member.keycloakUserID}>
-                        <TableCell className='font-medium'>
-                          <div className='flex items-center gap-2'>
-                            <ProfilePicture
-                              userId={member.keycloakUserID}
-                              firstName={member.firstName}
-                              lastName={member.lastName}
-                              size='sm'
+              <div className='overflow-x-auto'>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>University Login</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead className='w-40'>Role</TableHead>
+                      <TableHead className='w-12 text-right'>
+                        <span className='sr-only'>Actions</span>
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {members.map((member) => {
+                      const lockedSelf = isLockedSelf(member)
+                      const removeButton = (
+                        <Button
+                          variant='ghost'
+                          size='icon'
+                          aria-label={`Remove ${member.username} from the org`}
+                          disabled={lockedSelf || isBusy}
+                          onClick={() => setPendingRemoval(member)}
+                        >
+                          <Trash2 className='h-4 w-4' />
+                        </Button>
+                      )
+                      return (
+                        <TableRow key={member.keycloakUserID}>
+                          <TableCell className='font-medium'>
+                            <div className='flex items-center gap-2'>
+                              <ProfilePicture
+                                userId={member.keycloakUserID}
+                                firstName={member.firstName}
+                                lastName={member.lastName}
+                                size='sm'
+                              />
+                              {staffMemberFullName(member)}
+                            </div>
+                          </TableCell>
+                          <TableCell>{loginOf(member)}</TableCell>
+                          <TableCell>{member.email}</TableCell>
+                          <TableCell>
+                            <OrgRoleSelect
+                              value={member.role}
+                              ariaLabel={`Role of ${member.username}`}
+                              disabled={lockedSelf || isBusy}
+                              onChange={(role) => setMemberRole.mutate({ user: member, role })}
                             />
-                            {staffMemberFullName(member)}
-                          </div>
-                        </TableCell>
-                        <TableCell>{loginOf(member)}</TableCell>
-                        <TableCell>{member.email}</TableCell>
-                        <TableCell>
-                          <OrgRoleSelect
-                            value={member.role}
-                            ariaLabel={`Role of ${member.username}`}
-                            disabled={lockedSelf || isBusy}
-                            onChange={(role) => setMemberRole.mutate({ user: member, role })}
-                          />
-                        </TableCell>
-                        <TableCell className='text-right'>
-                          {lockedSelf ? (
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <span>{removeButton}</span>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  You cannot change your own membership. Ask another Admin of the
-                                  org or a PROMPT admin.
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          ) : (
-                            removeButton
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })}
-                </TableBody>
-              </Table>
+                          </TableCell>
+                          <TableCell className='text-right'>
+                            {lockedSelf ? (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span>{removeButton}</span>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    You cannot change your own membership. Ask another Admin of the
+                                    org or a PROMPT admin.
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            ) : (
+                              removeButton
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
             )
           }}
         </QueryGate>

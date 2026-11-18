@@ -24,9 +24,8 @@ on:
       - ".env.template"
       - ".env.dev.template"
       - "Makefile"
-      - ".github/workflows/quality-clients.yml"
-      - ".github/workflows/quality-servers.yml"
-      - ".github/workflows/test-servers.yml"
+      - "scripts/ci-changes.mjs"
+      - "scripts/ci-changes.test.mjs"
       - ".github/workflows/generator-smoke.yml"
 
 permissions:
@@ -66,6 +65,8 @@ jobs:
           grep -q '^  db-ci-smoke-server:$' docker-compose.stack.yml
           grep -q '^DB_SERVICES = .*db-ci-smoke-server' Makefile
           grep -q '^DB_HOST_CI_SMOKE_SERVER=db-ci-smoke-server$' .env.template
+      - name: Check the phase is registered for CI
+        run: node --test scripts/ci-changes.test.mjs
       - name: Check for leftover template tokens
         run: |
           # \b substitutions in rename_tokens do not fire inside compound

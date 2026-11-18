@@ -98,7 +98,11 @@ CI does **not** run the whole suite in one container. `.github/workflows/test-e2
 fans it out for wall-clock:
 
 1. A **partition** job verifies `shards.json` (see below) still claims every spec
-   exactly once, then emits the shard matrix for the next job.
+   exactly once, then emits the matrix of the shards the PR needs.
+   `scripts/ci-changes.mjs` picks them: the `core` shard always runs, plus the shard
+   of every changed module and of every module that depends on it. A change outside
+   the registered modules (e2e infrastructure, the seed, shared client code, CI)
+   runs every shard, and so does every push to `main`.
 2. A **matrix** of shards — **one per microservice** plus a `core` shard for the
    core-hosted tests — each builds the stack, boots its **own** fresh stack (so
    modules can't collide on shared data), and runs only its module's specs with
@@ -119,7 +123,8 @@ There is deliberately **no build-once job** in front of the shards. Serializing 
 full build ahead of shards that then rebuild anyway only adds wall-clock; what
 makes the rebuilds cheap is the **cross-run** GitHub Actions layer cache
 (`docker-compose.e2e.cache.yml` restores, `docker-compose.e2e.cache-write.yml`
-exports from the one shard flagged `cacheWriter`). Because that cache survives
+exports from the one shard flagged `cacheWriter`; a run that skips that shard
+leaves the cache as it was). Because that cache survives
 between runs, a PR that doesn't touch `yarn.lock` or `go.sum` restores the
 dependency and bundler layers instead of rebuilding them.
 
@@ -149,7 +154,10 @@ make test-e2e-shard SHARD=interview
 The `core` shard is the widest (all core-hosted modules); the per-microservice
 shards mirror the `tests/<module>/` layout plus that module's
 `tests/api/<module>.api.spec.ts`. When you add a **new** microservice suite, add
-an entry to `shards.json` and cache scopes to the two cache override files.
+an entry to `shards.json`, cache scopes to the two cache override files, and the
+shard name to the module's entry in `scripts/ci-changes.mjs`. If the suite reads
+another module's data at runtime (team resolutions, for example), list that module
+in `dependsOn` there, so a change to it reruns the suite.
 
 The `ai` shard sets `"aiEnabled": true`: its stack runs with `AI_ENABLED=true`
 and the compose profile `ai`, which adds the AI server, its database and aimock

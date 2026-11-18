@@ -19,13 +19,14 @@ import (
 // the groups and roles of a course, records the route pattern of every request, and answers the
 // failing pattern with a 500 or closes the connection of the dropping pattern without an answer.
 type fakeRealm struct {
-	mu       sync.Mutex
-	groups   map[string]*fakeGroup // group ID → group
-	roles    map[string]bool       // client role names
-	nextID   int
-	requests []string
-	failing  string
-	dropping string
+	mu        sync.Mutex
+	groups    map[string]*fakeGroup // group ID → group
+	roles     map[string]bool       // client role names
+	userRoles map[string][]string
+	nextID    int
+	requests  []string
+	failing   string
+	dropping  string
 }
 
 type fakeGroup struct {
@@ -42,7 +43,7 @@ type fakeGroupState struct {
 }
 
 func newFakeRealm() *fakeRealm {
-	return &fakeRealm{groups: map[string]*fakeGroup{}, roles: map[string]bool{}}
+	return &fakeRealm{groups: map[string]*fakeGroup{}, roles: map[string]bool{}, userRoles: map[string][]string{}}
 }
 
 // addGroup creates the group at groupPath with the given members, and every missing ancestor.
@@ -66,6 +67,16 @@ func (f *fakeRealm) addRole(roleName string, groupPaths ...string) {
 		group := f.groupAt(groupPath)
 		group.roles = append(group.roles, roleName)
 	}
+}
+
+func (f *fakeRealm) grantRole(roleName, userID string) {
+	f.userRoles[userID] = append(f.userRoles[userID], roleName)
+}
+
+func (f *fakeRealm) directRoles(userID string) []string {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return slices.Clone(f.userRoles[userID])
 }
 
 func (f *fakeRealm) newGroup(name, parentID string) *fakeGroup {
@@ -206,19 +217,21 @@ func (f *fakeRealm) start(t *testing.T) *KeycloakRealmService {
 		f.deleteGroup(r.PathValue("id"))
 		w.WriteHeader(http.StatusNoContent)
 	})
-	handle("GET /admin/realms/prompt/groups/{id}/members", func(w http.ResponseWriter, r *http.Request) {
-		group := f.groups[r.PathValue("id")]
-		if group == nil {
+	handle("GET /admin/realms/prompt/groups/{id}/children", func(w http.ResponseWriter, r *http.Request) {
+		if f.groups[r.PathValue("id")] == nil {
 			notFound(w)
 			return
 		}
+		children := []gocloak.Group{}
+		for _, group := range f.groups {
+			if group.parentID == r.PathValue("id") {
+				children = append(children, gocloak.Group{ID: gocloak.StringP(group.id), Name: gocloak.StringP(group.name)})
+			}
+		}
+		slices.SortFunc(children, func(a, b gocloak.Group) int { return strings.Compare(*a.Name, *b.Name) })
 		first, _ := strconv.Atoi(r.URL.Query().Get("first"))
 		pageSize, _ := strconv.Atoi(r.URL.Query().Get("max"))
-		page := []gocloak.User{}
-		for _, userID := range group.members[min(first, len(group.members)):min(first+pageSize, len(group.members))] {
-			page = append(page, gocloak.User{ID: gocloak.StringP(userID)})
-		}
-		writeJSON(w, http.StatusOK, page)
+		writeJSON(w, http.StatusOK, children[min(first, len(children)):min(first+pageSize, len(children))])
 	})
 	handle("POST /admin/realms/prompt/groups/{id}/role-mappings/clients/{client}", func(w http.ResponseWriter, r *http.Request) {
 		group := f.groups[r.PathValue("id")]
@@ -234,13 +247,6 @@ func (f *fakeRealm) start(t *testing.T) *KeycloakRealmService {
 			}
 		}
 		w.WriteHeader(http.StatusNoContent)
-	})
-	handle("GET /admin/realms/prompt/clients/{client}/roles", func(w http.ResponseWriter, _ *http.Request) {
-		roles := []gocloak.Role{}
-		for name := range f.roles {
-			roles = append(roles, gocloak.Role{Name: gocloak.StringP(name)})
-		}
-		writeJSON(w, http.StatusOK, roles)
 	})
 	handle("GET /admin/realms/prompt/clients/{client}/roles/{name}", func(w http.ResponseWriter, r *http.Request) {
 		name := r.PathValue("name")
@@ -270,6 +276,9 @@ func (f *fakeRealm) start(t *testing.T) *KeycloakRealmService {
 		for _, group := range f.groups {
 			group.roles = slices.DeleteFunc(group.roles, func(role string) bool { return role == name })
 		}
+		for userID, roles := range f.userRoles {
+			f.userRoles[userID] = slices.DeleteFunc(roles, func(role string) bool { return role == name })
+		}
 		w.WriteHeader(http.StatusNoContent)
 	})
 	handle("PUT /admin/realms/prompt/users/{user}/groups/{group}", func(w http.ResponseWriter, r *http.Request) {
@@ -281,15 +290,6 @@ func (f *fakeRealm) start(t *testing.T) *KeycloakRealmService {
 		if !slices.Contains(group.members, r.PathValue("user")) {
 			group.members = append(group.members, r.PathValue("user"))
 		}
-		w.WriteHeader(http.StatusNoContent)
-	})
-	handle("DELETE /admin/realms/prompt/users/{user}/groups/{group}", func(w http.ResponseWriter, r *http.Request) {
-		group := f.groups[r.PathValue("group")]
-		if group == nil {
-			notFound(w)
-			return
-		}
-		group.members = slices.DeleteFunc(group.members, func(userID string) bool { return userID == r.PathValue("user") })
 		w.WriteHeader(http.StatusNoContent)
 	})
 

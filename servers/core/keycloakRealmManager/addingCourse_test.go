@@ -27,53 +27,50 @@ func TestCreateCourseGroupsAndRolesProvisionsANewCourse(t *testing.T) {
 	assert.Equal(t, []string{"ws24-ios-Editor", "ws24-ios-Lecturer"}, roles)
 }
 
-func TestCreateCourseGroupsAndRolesChangesNothingTheSecondTime(t *testing.T) {
+func TestCreateCourseGroupsAndRolesEndsInTheSameStateTheSecondTime(t *testing.T) {
 	realm := newFakeRealm()
 	service := realm.start(t)
 	require.NoError(t, service.CreateCourseGroupsAndRoles(context.Background(), "ios", "ws24", "creator"))
 	groupsBefore, rolesBefore := realm.state()
-	requestsBefore := len(realm.recorded())
 
 	err := service.CreateCourseGroupsAndRoles(context.Background(), "ios", "ws24", "creator")
 
 	require.NoError(t, err)
 	groupsAfter, rolesAfter := realm.state()
-	assert.Equal(t, groupsBefore, groupsAfter)
+	assert.Equal(t, withoutIDs(groupsBefore), withoutIDs(groupsAfter))
 	assert.Equal(t, rolesBefore, rolesAfter)
-	creatingOrDeleting := []string{
-		"POST /admin/realms/prompt/groups",
-		"POST /admin/realms/prompt/groups/{id}/children",
-		"POST /admin/realms/prompt/clients/{client}/roles",
-		"DELETE /admin/realms/prompt/groups/{id}",
-		"DELETE /admin/realms/prompt/clients/{client}/roles/{name}",
-		"DELETE /admin/realms/prompt/users/{user}/groups/{group}",
-	}
-	for _, request := range realm.recorded()[requestsBefore:] {
-		assert.NotContains(t, creatingOrDeleting, request, "the second run must neither create nor delete anything")
-	}
 }
 
 // A course group can be left over from a creation whose commit failed, or from a course deleted
-// before deletions cleaned up Keycloak. None of its members may keep access to the new course.
-func TestCreateCourseGroupsAndRolesResetsALeftoverCourseGroup(t *testing.T) {
+// before deletions cleaned up Keycloak. Nobody may keep access to the new course through it, also
+// not through a leftover role granted outside the course group.
+func TestCreateCourseGroupsAndRolesDeletesTheLeftoversOfAnEarlierCourse(t *testing.T) {
 	realm := newFakeRealm()
-	courseGroupID := realm.addGroup("Prompt/ws24-ios")
+	leftoverGroupID := realm.addGroup("Prompt/ws24-ios")
 	realm.addGroup("Prompt/ws24-ios/Lecturer", "old-lecturer")
 	realm.addGroup("Prompt/ws24-ios/Editor", "old-editor")
 	realm.addGroup("Prompt/ws24-ios/CustomGroups/team-a", "old-student")
-	realm.addRole("ws24-ios-Lecturer", "Prompt/ws24-ios/Lecturer")
+	realm.addGroup("Other/staff", "outsider")
+	realm.addRole("ws24-ios-Lecturer", "Prompt/ws24-ios/Lecturer", "Other/staff")
 	realm.addRole("ws24-ios-Editor", "Prompt/ws24-ios/Editor")
 	realm.addRole("ws24-ios-cg-team-a", "Prompt/ws24-ios/CustomGroups/team-a")
+	realm.grantRole("ws24-ios-Lecturer", "student")
+	realm.grantRole("ws24-ios-cg-team-a", "old-student")
+	realm.addGroup("Prompt/ws24-ios-cg-team/Lecturer", "other-lecturer")
+	realm.addRole("ws24-ios-cg-team-Lecturer", "Prompt/ws24-ios-cg-team/Lecturer")
 
 	err := realm.start(t).CreateCourseGroupsAndRoles(context.Background(), "ios", "ws24", "creator")
 
 	require.NoError(t, err)
-	groups, _ := realm.state()
-	assert.Equal(t, courseGroupID, groups["Prompt/ws24-ios"].ID, "the leftover course group is reused")
+	groups, roles := realm.state()
+	assert.NotEqual(t, leftoverGroupID, groups["Prompt/ws24-ios"].ID, "the course group is created afresh")
 	assert.Equal(t, []string{"creator"}, groups["Prompt/ws24-ios/Lecturer"].Members)
 	assert.Empty(t, groups["Prompt/ws24-ios/Editor"].Members)
 	assert.NotContains(t, groups, "Prompt/ws24-ios/CustomGroups")
-	assert.NotContains(t, groups, "Prompt/ws24-ios/CustomGroups/team-a")
+	assert.Empty(t, groups["Other/staff"].Roles)
+	assert.Empty(t, realm.directRoles("student"))
+	assert.Empty(t, realm.directRoles("old-student"))
+	assert.Equal(t, []string{"ws24-ios-Editor", "ws24-ios-Lecturer", "ws24-ios-cg-team-Lecturer"}, roles, "the Lecturer role of the course \"ios-cg-team\" stays")
 }
 
 // Keycloak's group search can return the top-level parents of matching subgroups, so the top-level
@@ -97,22 +94,23 @@ func TestCreateCourseGroupsAndRolesKeepsTheCauseOfEveryFailure(t *testing.T) {
 	}{
 		{pattern: "POST /realms/prompt/protocol/openid-connect/token"},
 		{pattern: "GET /admin/realms/prompt/group-by-path/{path...}"},
+		{pattern: "GET /admin/realms/prompt/groups/{id}/children", leftover: true},
+		{pattern: "DELETE /admin/realms/prompt/clients/{client}/roles/{name}", leftover: true},
+		{pattern: "DELETE /admin/realms/prompt/groups/{id}", leftover: true},
 		{pattern: "POST /admin/realms/prompt/groups"},
 		{pattern: "POST /admin/realms/prompt/groups/{id}/children"},
 		{pattern: "GET /admin/realms/prompt/clients/{client}/roles/{name}"},
 		{pattern: "POST /admin/realms/prompt/clients/{client}/roles"},
 		{pattern: "POST /admin/realms/prompt/groups/{id}/role-mappings/clients/{client}"},
-		{pattern: "GET /admin/realms/prompt/groups/{id}/members"},
 		{pattern: "PUT /admin/realms/prompt/users/{user}/groups/{group}"},
-		{pattern: "DELETE /admin/realms/prompt/users/{user}/groups/{group}", leftover: true},
-		{pattern: "DELETE /admin/realms/prompt/groups/{id}", leftover: true},
 	}
 	for _, step := range steps {
 		t.Run(step.pattern, func(t *testing.T) {
 			realm := newFakeRealm()
 			if step.leftover {
 				realm.addGroup("Prompt/ws24-ios/Lecturer", "old-lecturer")
-				realm.addGroup("Prompt/ws24-ios/CustomGroups")
+				realm.addGroup("Prompt/ws24-ios/CustomGroups/team-a")
+				realm.addRole("ws24-ios-cg-team-a", "Prompt/ws24-ios/CustomGroups/team-a")
 			}
 			realm.failing = step.pattern
 
@@ -124,4 +122,13 @@ func TestCreateCourseGroupsAndRolesKeepsTheCauseOfEveryFailure(t *testing.T) {
 			assert.Contains(t, realm.recorded(), step.pattern, "the failing step must have been reached")
 		})
 	}
+}
+
+func withoutIDs(groups map[string]fakeGroupState) map[string]fakeGroupState {
+	cleared := map[string]fakeGroupState{}
+	for groupPath, group := range groups {
+		group.ID = ""
+		cleared[groupPath] = group
+	}
+	return cleared
 }

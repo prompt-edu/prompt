@@ -2,6 +2,7 @@ package keycloakRealmManager
 
 import (
 	"context"
+	"fmt"
 	"maps"
 	"slices"
 	"strings"
@@ -11,33 +12,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestIsCourseClientRole(t *testing.T) {
-	const group = "ws24-ios"
-	cases := []struct {
-		name     string
-		roleName string
-		want     bool
-	}{
-		{"lecturer role", group + "-Lecturer", true},
-		{"editor role", group + "-Editor", true},
-		{"custom group role", group + "-cg-teamA", true},
-		{"unrelated role", "PromptAdmin", false},
-		{"other course lecturer", "ws24-android-Lecturer", false},
-		{"prefix course is not matched", "ws24-ios-advanced-Lecturer", false},
-		{"prefix course custom role is not matched", "ws24-ios-advanced-cg-teamA", false},
-		{"bare group name", group, false},
-	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			if got := isCourseClientRole(tc.roleName, group); got != tc.want {
-				t.Errorf("isCourseClientRole(%q, %q) = %v, want %v", tc.roleName, group, got, tc.want)
-			}
-		})
-	}
-}
-
 // courseRealm holds the groups and roles of the course "lab" in the given semester, with a member in
-// every group, next to another course's role.
+// every group, next to the roles of the courses "lab-advanced" and "lab-cg-team". Their names start
+// like the staff and custom group roles of "lab".
 func courseRealm(semester string) *fakeRealm {
 	realm := newFakeRealm()
 	course := "Prompt/" + semester + "-lab"
@@ -48,33 +25,54 @@ func courseRealm(semester string) *fakeRealm {
 	realm.addRole(semester+"-lab-Editor", course+"/Editor")
 	realm.addRole(semester+"-lab-cg-team-a", course+"/CustomGroups/team-a")
 	realm.addRole(semester + "-lab-advanced-Lecturer")
+	realm.addGroup("Prompt/"+semester+"-lab-cg-team/Lecturer", "other-lecturer")
+	realm.addRole(semester+"-lab-cg-team-Lecturer", "Prompt/"+semester+"-lab-cg-team/Lecturer")
 	return realm
 }
 
-func TestDeleteCourseGroupsAndRolesByNameDeletesTheGroupLast(t *testing.T) {
-	realm := courseRealm("ws24")
-
-	err := realm.start(t).DeleteCourseGroupsAndRolesByName(context.Background(), "lab", "ws24")
-
-	require.NoError(t, err)
-	groups, roles := realm.state()
-	assert.Equal(t, []string{"Prompt"}, slices.Sorted(maps.Keys(groups)))
-	assert.Equal(t, []string{"ws24-lab-advanced-Lecturer"}, roles, "another course's roles stay")
+func deleteRequests(realm *fakeRealm) []string {
 	var deletes []string
 	for _, request := range realm.recorded() {
 		if strings.HasPrefix(request, "DELETE") {
 			deletes = append(deletes, request)
 		}
 	}
-	assert.Equal(t, []string{
-		"DELETE /admin/realms/prompt/clients/{client}/roles/{name}",
-		"DELETE /admin/realms/prompt/clients/{client}/roles/{name}",
-		"DELETE /admin/realms/prompt/clients/{client}/roles/{name}",
-		"DELETE /admin/realms/prompt/groups/{id}",
-	}, deletes)
+	return deletes
 }
 
-func TestDeleteCourseGroupsAndRolesByNameKeepsTheGroupWhenARoleCannotBeDeleted(t *testing.T) {
+func TestDeleteCourseGroupsAndRolesByNameDeletesTheCustomRolesThenTheGroupThenTheStaffRoles(t *testing.T) {
+	realm := courseRealm("ws24")
+
+	err := realm.start(t).DeleteCourseGroupsAndRolesByName(context.Background(), "lab", "ws24")
+
+	require.NoError(t, err)
+	groups, roles := realm.state()
+	assert.Equal(t, []string{"Prompt", "Prompt/ws24-lab-cg-team", "Prompt/ws24-lab-cg-team/Lecturer"}, slices.Sorted(maps.Keys(groups)))
+	assert.Equal(t, []string{"ws24-lab-advanced-Lecturer", "ws24-lab-cg-team-Lecturer"}, roles, "other courses' roles stay")
+	assert.Equal(t, []string{
+		"DELETE /admin/realms/prompt/clients/{client}/roles/{name}",
+		"DELETE /admin/realms/prompt/groups/{id}",
+		"DELETE /admin/realms/prompt/clients/{client}/roles/{name}",
+		"DELETE /admin/realms/prompt/clients/{client}/roles/{name}",
+	}, deleteRequests(realm))
+}
+
+func TestDeleteCourseGroupsAndRolesByNameDeletesTheRoleOfEveryCustomGroup(t *testing.T) {
+	realm := newFakeRealm()
+	for i := range childGroupsPageSize + 1 {
+		team := fmt.Sprintf("Prompt/ws24-lab/CustomGroups/team-%03d", i)
+		realm.addGroup(team)
+		realm.addRole(fmt.Sprintf("ws24-lab-cg-team-%03d", i), team)
+	}
+
+	err := realm.start(t).DeleteCourseGroupsAndRolesByName(context.Background(), "lab", "ws24")
+
+	require.NoError(t, err)
+	_, roles := realm.state()
+	assert.Empty(t, roles)
+}
+
+func TestDeleteCourseGroupsAndRolesByNameKeepsTheGroupWhenACustomRoleCannotBeDeleted(t *testing.T) {
 	realm := courseRealm("ws24")
 	realm.failing = "DELETE /admin/realms/prompt/clients/{client}/roles/{name}"
 
@@ -85,31 +83,60 @@ func TestDeleteCourseGroupsAndRolesByNameKeepsTheGroupWhenARoleCannotBeDeleted(t
 	assert.Equal(t, []string{"lecturer"}, groups["Prompt/ws24-lab/Lecturer"].Members, "the group keeps its members for a retry")
 }
 
+func TestDeleteCourseGroupsAndRolesByNameKeepsTheLecturerRoleWhenTheGroupCannotBeDeleted(t *testing.T) {
+	realm := courseRealm("ws24")
+	realm.failing = "DELETE /admin/realms/prompt/groups/{id}"
+
+	err := realm.start(t).DeleteCourseGroupsAndRolesByName(context.Background(), "lab", "ws24")
+
+	require.Error(t, err)
+	groups, roles := realm.state()
+	assert.Equal(t, []string{"lecturer"}, groups["Prompt/ws24-lab/Lecturer"].Members)
+	assert.Equal(t, []string{"ws24-lab-Lecturer"}, groups["Prompt/ws24-lab/Lecturer"].Roles, "the Lecturer keeps the role to retry the deletion")
+	assert.Contains(t, roles, "ws24-lab-Lecturer")
+}
+
 func TestDeleteCourseGroupsAndRolesByNameSucceedsWhenTheGroupIsAlreadyGone(t *testing.T) {
 	realm := newFakeRealm()
 	realm.addGroup("Prompt")
 	realm.addRole("ws24-lab-Lecturer")
+	realm.addRole("ws24-lab-cg-team-Lecturer")
 
 	err := realm.start(t).DeleteCourseGroupsAndRolesByName(context.Background(), "lab", "ws24")
 
 	require.NoError(t, err)
 	_, roles := realm.state()
-	assert.Empty(t, roles)
+	assert.Equal(t, []string{"ws24-lab-cg-team-Lecturer"}, roles, "the Lecturer role of the course \"lab-cg-team\" stays")
 }
 
-// The path "Prompt/ws24-ios/Lecturer" resolves to the Lecturer group of the course "ws24-ios", which
-// a course named "ios/Lecturer" must not delete.
-func TestDeleteCourseGroupsAndRolesByNameLeavesAnotherCoursesGroupForASlashInTheName(t *testing.T) {
-	realm := newFakeRealm()
-	realm.addGroup("Prompt/ws24-ios/Lecturer", "lecturer")
-	realm.addRole("ws24-ios-Lecturer", "Prompt/ws24-ios/Lecturer")
+// A "/" splits the group path, a "%" makes the URL invalid, and a "?" or "#" cuts it short, so the
+// course "lab#1" would look up the group and roles of the course "lab".
+func TestDeleteCourseGroupsAndRolesByNameLeavesKeycloakAloneForAnUnaddressableName(t *testing.T) {
+	for _, name := range []string{"lab/Lecturer", "lab%1", "lab?1", "lab#1"} {
+		t.Run(name, func(t *testing.T) {
+			realm := courseRealm("ws24")
+			groupsBefore, rolesBefore := realm.state()
 
-	err := realm.start(t).DeleteCourseGroupsAndRolesByName(context.Background(), "ios/Lecturer", "ws24")
+			err := realm.start(t).DeleteCourseGroupsAndRolesByName(context.Background(), name, "ws24")
+
+			require.NoError(t, err)
+			assert.Empty(t, realm.recorded())
+			groupsAfter, rolesAfter := realm.state()
+			assert.Equal(t, groupsBefore, groupsAfter)
+			assert.Equal(t, rolesBefore, rolesAfter)
+		})
+	}
+}
+
+func TestDeleteCourseGroupsAndRolesByNameSkipsAnUnaddressableCustomRole(t *testing.T) {
+	realm := courseRealm("ws24")
+	realm.addGroup("Prompt/ws24-lab/CustomGroups/team-Lecturer?x")
+
+	err := realm.start(t).DeleteCourseGroupsAndRolesByName(context.Background(), "lab", "ws24")
 
 	require.NoError(t, err)
-	groups, roles := realm.state()
-	assert.Equal(t, []string{"lecturer"}, groups["Prompt/ws24-ios/Lecturer"].Members)
-	assert.Equal(t, []string{"ws24-ios-Lecturer"}, roles)
+	_, roles := realm.state()
+	assert.Contains(t, roles, "ws24-lab-cg-team-Lecturer", "the role of \"team-Lecturer?x\" must not be looked up as the Lecturer role of the course \"lab-cg-team\"")
 }
 
 // A transport error embeds the request URL, here one with "404" in the course identifier. It must

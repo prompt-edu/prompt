@@ -63,6 +63,10 @@ func isAllowedCourseGroup(name string) bool {
 	return name == permissionValidation.CourseLecturer || name == permissionValidation.CourseEditor
 }
 
+func customGroupRoleName(courseGroupName, customGroupName string) string {
+	return courseGroupName + "-cg-" + customGroupName
+}
+
 func (s *KeycloakRealmService) AddCustomGroup(ctx context.Context, courseID uuid.UUID, groupName string) (string, error) {
 	courseGroupName, err := s.GetCourseGroupName(ctx, courseID)
 	if err != nil {
@@ -83,8 +87,7 @@ func (s *KeycloakRealmService) AddCustomGroup(ctx context.Context, courseID uuid
 	}
 
 	// 3. Create desired role
-	roleName := courseGroupName + "-cg-" + groupName
-	role, err := s.GetOrCreateRealmRole(ctx, token.AccessToken, roleName)
+	role, err := s.GetOrCreateRealmRole(ctx, token.AccessToken, customGroupRoleName(courseGroupName, groupName))
 	if err != nil {
 		log.Error("failed to create role: ", err)
 		return "", errors.New("failed to create keycloak roles")

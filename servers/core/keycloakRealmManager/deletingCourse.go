@@ -13,8 +13,8 @@ import (
 )
 
 // DeleteCourseGroupsAndRoles removes the Keycloak artifacts created by
-// CreateCourseGroupsAndRoles: the client roles named after the course and the
-// course group (Keycloak cascades its Lecturer/Editor/CustomGroups subgroups).
+// CreateCourseGroupsAndRoles: the course group (Keycloak cascades its
+// Lecturer/Editor/CustomGroups subgroups) and the client roles of the course.
 // It must run before the course row is removed from the database, since the
 // group name is derived from it.
 func (s *KeycloakRealmService) DeleteCourseGroupsAndRoles(ctx context.Context, courseID uuid.UUID) error {
@@ -32,70 +32,91 @@ func (s *KeycloakRealmService) DeleteCourseGroupsAndRolesByName(ctx context.Cont
 	return s.deleteCourseGroupsAndRoles(ctx, permissionValidation.CourseIdentifier(iterationName, courseName))
 }
 
-// deleteCourseGroupsAndRoles deletes the roles first and the group last, so a failure part way
-// through keeps the group and its memberships. Anything already gone counts as deleted, so a
-// retry is safe.
+const childGroupsPageSize = 100
+
+// deleteCourseGroupsAndRoles deletes the roles of the course's custom groups, then the course group,
+// then the Lecturer and Editor roles. Anything already gone counts as deleted, so a retry is safe.
+//
+// A custom group role is found through the custom group it belongs to, never by its name alone:
+// "ws24-ios-cg-team-Lecturer" can be a custom group role of the course "ios" as well as the Lecturer
+// role of a course "ios-cg-team" created before course names were refused a "-". Until the group is
+// deleted, its Lecturer members keep the Lecturer role, so they can retry a deletion that failed.
 func (s *KeycloakRealmService) deleteCourseGroupsAndRoles(ctx context.Context, courseGroupName string) error {
+	if strings.ContainsAny(courseGroupName, permissionValidation.UnaddressableCharacters) {
+		log.Warnf("course %s cannot be addressed in Keycloak; skipping the deletion of its groups and roles", courseGroupName)
+		return nil
+	}
+
 	token, err := s.LoginClient(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to log in to Keycloak: %w", err)
 	}
 
-	// Keycloak splits a group path at every "/", so the path of a course named before course names
-	// were refused a "/" can resolve to another course's group, such as "ws24-ios/Lecturer".
-	groupID, found := "", false
-	if strings.Contains(courseGroupName, "/") {
-		log.Warnf("course %s group name contains a \"/\"; skipping group deletion", courseGroupName)
-	} else {
-		groupID, found, err = s.findGroupAtPath(ctx, token.AccessToken, TOP_LEVEL_GROUP_NAME+"/"+courseGroupName)
+	courseGroupPath := TOP_LEVEL_GROUP_NAME + "/" + courseGroupName
+	groupID, found, err := s.findGroupAtPath(ctx, token.AccessToken, courseGroupPath)
+	if err != nil {
+		return err
+	}
+	if found {
+		customRoleNames, err := s.customGroupRoleNames(ctx, token.AccessToken, courseGroupPath, courseGroupName)
 		if err != nil {
 			return err
 		}
-		if !found {
-			log.Warnf("course %s group not found in Keycloak; skipping group deletion", courseGroupName)
+		for _, roleName := range customRoleNames {
+			if err := s.deleteClientRole(ctx, token.AccessToken, roleName); err != nil {
+				return err
+			}
 		}
-	}
-
-	// Group deletion only drops the group-role mappings, not the role definitions themselves.
-	if err := s.deleteCourseClientRoles(ctx, token.AccessToken, courseGroupName); err != nil {
-		return err
-	}
-
-	if !found {
-		return nil
-	}
-	if err := s.client.DeleteGroup(ctx, token.AccessToken, s.Realm, groupID); err != nil && !hasStatus(err, http.StatusNotFound) {
-		return fmt.Errorf("failed to delete course group: %w", err)
-	}
-	return nil
-}
-
-func (s *KeycloakRealmService) deleteCourseClientRoles(ctx context.Context, accessToken, courseGroupName string) error {
-	roles, err := s.client.GetClientRoles(ctx, accessToken, s.Realm, s.idOfClient, gocloak.GetRoleParams{})
-	if err != nil {
-		return fmt.Errorf("failed to list client roles: %w", err)
-	}
-
-	for _, role := range roles {
-		if role == nil || role.Name == nil || !isCourseClientRole(*role.Name, courseGroupName) {
-			continue
+		if err := s.client.DeleteGroup(ctx, token.AccessToken, s.Realm, groupID); err != nil && !hasStatus(err, http.StatusNotFound) {
+			return fmt.Errorf("failed to delete course group: %w", err)
 		}
-		if err := s.client.DeleteClientRole(ctx, accessToken, s.Realm, s.idOfClient, *role.Name); err != nil && !hasStatus(err, http.StatusNotFound) {
-			return fmt.Errorf("failed to delete client role %s: %w", *role.Name, err)
+	} else {
+		log.Debugf("course %s group not found in Keycloak; skipping group deletion", courseGroupName)
+	}
+
+	for _, staffRole := range []string{permissionValidation.CourseEditor, permissionValidation.CourseLecturer} {
+		if err := s.deleteClientRole(ctx, token.AccessToken, permissionValidation.CourseRoleName(courseGroupName, staffRole)); err != nil {
+			return err
 		}
 	}
 	return nil
 }
 
-// isCourseClientRole reports whether a client role was created for the given
-// course. Creation produces "<group>-Lecturer", "<group>-Editor" and custom
-// "<group>-cg-<name>" roles. The staff roles are matched exactly and custom
-// roles by the "-cg-" prefix so a course whose group name is a prefix of
-// another's (e.g. "ws24-ios" vs "ws24-ios-advanced") is not caught by mistake.
-func isCourseClientRole(roleName, courseGroupName string) bool {
-	if roleName == courseGroupName+"-"+permissionValidation.CourseLecturer ||
-		roleName == courseGroupName+"-"+permissionValidation.CourseEditor {
-		return true
+func (s *KeycloakRealmService) customGroupRoleNames(ctx context.Context, accessToken, courseGroupPath, courseGroupName string) ([]string, error) {
+	customGroupsID, found, err := s.findGroupAtPath(ctx, accessToken, courseGroupPath+"/"+CUSTOM_GROUPS_NAME)
+	if err != nil || !found {
+		return nil, err
 	}
-	return strings.HasPrefix(roleName, courseGroupName+"-cg-")
+
+	var roleNames []string
+	for first := 0; ; first += childGroupsPageSize {
+		page, err := s.client.GetChildGroups(ctx, accessToken, s.Realm, customGroupsID, gocloak.GetChildGroupsParams{
+			First: gocloak.IntP(first),
+			Max:   gocloak.IntP(childGroupsPageSize),
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to list the custom groups: %w", err)
+		}
+		for _, customGroup := range page {
+			if customGroup.Name == nil {
+				continue
+			}
+			roleName := customGroupRoleName(courseGroupName, *customGroup.Name)
+			if strings.ContainsAny(roleName, permissionValidation.UnaddressableCharacters) {
+				log.Warnf("custom group role %s cannot be addressed in Keycloak; skipping its deletion", roleName)
+				continue
+			}
+			roleNames = append(roleNames, roleName)
+		}
+		if len(page) < childGroupsPageSize {
+			return roleNames, nil
+		}
+	}
+}
+
+func (s *KeycloakRealmService) deleteClientRole(ctx context.Context, accessToken, roleName string) error {
+	if err := s.client.DeleteClientRole(ctx, accessToken, s.Realm, s.idOfClient, roleName); err != nil && !hasStatus(err, http.StatusNotFound) {
+		return fmt.Errorf("failed to delete client role %s: %w", roleName, err)
+	}
+	return nil
 }

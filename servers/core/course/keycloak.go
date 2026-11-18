@@ -21,8 +21,8 @@ const keycloakTimeout = 30 * time.Second
 // keeps "-" out of a new course's semester tag and name, so no other course has its identifier, and
 // the uncommitted row holds the (name, semester_tag) unique slot until the transaction ends. Keycloak
 // state under the identifier can therefore only be left over from a course that no longer exists:
-// the provisioning may reuse and reset it, and a failed provisioning is cleaned up before the
-// rollback releases the slot.
+// the provisioning deletes it before it creates the course's own, and a failed provisioning is
+// cleaned up before the rollback releases the slot.
 func ProvisionKeycloak(
 	ctx context.Context,
 	created db.Course,

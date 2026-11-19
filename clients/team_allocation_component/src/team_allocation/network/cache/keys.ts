@@ -2,6 +2,7 @@ type Id = string | undefined
 
 export const teamAllocationKeys = {
   teams: (phaseId: Id) => ['team_allocation_team', phaseId] as const,
+  tutors: (phaseId: Id) => ['team_allocation_tutors', phaseId] as const,
   skills: (phaseId: Id) => ['team_allocation_skill', phaseId] as const,
   allocations: (phaseId: Id) => ['team_allocations', phaseId] as const,
   config: (phaseId: Id) => ['team_allocation_config', phaseId] as const,
@@ -21,6 +22,7 @@ export const teamAllocationKeys = {
     // Self Team Allocation reads the same endpoint under the same literal, so the entry is shared
     studentsOfPhase: (phaseId: Id) => ['students', phaseId] as const,
     studentSearch: (searchString: string) => ['student-search', searchString] as const,
+    courseStaff: (courseId: Id) => ['team_allocation_course_staff', courseId] as const,
   },
   // Owned by @tumaet/prompt-shared-state: react-query is a Module Federation singleton, so this
   // entry is shared with core and must keep its literal

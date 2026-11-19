@@ -29,6 +29,12 @@
       "enabled": false
     },
     {
+      "description": "engines.node is a minimum, not the version we run; bumping it on every Node release only produced lone docs PRs, so raise it by hand when a package needs a newer Node",
+      "matchDepTypes": ["engines"],
+      "matchDepNames": ["node"],
+      "rangeStrategy": "replace"
+    },
+    {
       "description": "No minimum age for security updates",
       "matchCategories": ["security"],
       "minimumReleaseAge": "0 days"

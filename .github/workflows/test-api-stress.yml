@@ -1,0 +1,122 @@
+name: API Stress Tests
+
+# Boots the isolated prompt-stress stack and runs the api-stress suite against
+# it; see api-stress/README.md. Fails only on P0 findings (auth bypass,
+# cross-course IDOR, a service going down) or a fuzzer crash. P1/P2 findings
+# are listed in the job summary.
+#
+# This repository is public, so everything this job prints or uploads is too.
+# P0 details therefore never leave the runner: the summary and the artifact come
+# from --public-summary, which reduces P0 findings to a count.
+
+on:
+  workflow_call: {}
+  # Run a longer pass on demand from the Actions tab.
+  workflow_dispatch:
+    inputs:
+      intensity:
+        description: "k6 load level and fuzz body size"
+        type: choice
+        options: [gentle, medium, brutal]
+        default: gentle
+      scenarios:
+        description: 'Space-separated subset of "smoke load spike soak exhaustion"'
+        type: string
+        default: smoke
+
+permissions:
+  contents: read
+
+env:
+  STRESS_COMPOSE: >-
+    --env-file api-stress/stress.env.example
+    -f docker-compose.yml
+    -f api-stress/docker-compose.stress.yml
+    -p prompt-stress
+  STRESS_SERVICES: >-
+    db db-team-allocation db-self-team-allocation db-assessment
+    db-interview db-certificate keycloak-db keycloak
+    seaweedfs-master seaweedfs-volume seaweedfs-filer seaweedfs-s3
+    server-core server-team-allocation server-self-team-allocation server-assessment
+    server-interview server-certificate
+  # Keeps the orchestrator's lines in order with its subprocesses' output.
+  PYTHONUNBUFFERED: "1"
+  PUBLIC_DIR: ${{ github.workspace }}/api-stress-public
+
+jobs:
+  api-stress:
+    runs-on: ubuntu-latest
+    # Build + boot + the default smoke run take ~10 min; a dispatched full run longer.
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          enable-cache: true
+          cache-dependency-glob: api-stress/uv.lock
+
+      - uses: grafana/setup-k6-action@v1
+        with:
+          k6-version: "2.3.0"
+
+      - name: Run the suite's unit tests
+        working-directory: api-stress
+        run: uv run pytest
+
+      - name: Build the stress stack
+        run: |
+          # shellcheck disable=SC2086 # both hold multiple words; splitting is the point
+          docker compose ${STRESS_COMPOSE} build ${STRESS_SERVICES}
+
+      - name: Boot the stress stack
+        id: boot
+        # The servers have no healthcheck, so --wait only covers the databases,
+        # Keycloak and SeaweedFS; the suite's preflight polls the servers until they listen.
+        run: |
+          # shellcheck disable=SC2086 # both hold multiple words; splitting is the point
+          docker compose ${STRESS_COMPOSE} up -d --wait --wait-timeout 300 ${STRESS_SERVICES}
+
+      - name: Run the api-stress suite
+        env:
+          # Through env, not inline, so a dispatch input can't inject shell.
+          INTENSITY: ${{ inputs.intensity || 'gentle' }}
+          SCENARIOS: ${{ inputs.scenarios || 'smoke' }}
+        run: |
+          uv run --project api-stress api-stress-test \
+            --intensity "$INTENSITY" \
+            --scenarios "$SCENARIOS" \
+            --fail-on P0 \
+            --public-summary "$PUBLIC_DIR"
+
+      - name: Publish the summary
+        if: always()
+        run: |
+          if [ -f "$PUBLIC_DIR/summary.md" ]; then
+            cat "$PUBLIC_DIR/summary.md" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload the public findings
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: api-stress-public-findings
+          path: ${{ env.PUBLIC_DIR }}
+          retention-days: 14
+          if-no-files-found: ignore
+
+      # Only when the stack failed to come up: by then no suite traffic has hit the
+      # servers, so their logs cannot point at a P0 finding.
+      - name: Show why the stack did not boot
+        if: failure() && steps.boot.outcome == 'failure'
+        run: |
+          # shellcheck disable=SC2086 # STRESS_COMPOSE holds multiple flags
+          docker compose ${STRESS_COMPOSE} ps -a
+          # shellcheck disable=SC2086
+          docker compose ${STRESS_COMPOSE} logs --tail 100
+
+      - name: Tear down
+        if: always()
+        run: |
+          # shellcheck disable=SC2086 # STRESS_COMPOSE holds multiple flags
+          docker compose ${STRESS_COMPOSE} down -v

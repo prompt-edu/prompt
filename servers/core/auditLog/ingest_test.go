@@ -108,3 +108,15 @@ func (s *AuditLogTestSuite) TestIngest_RejectsBadCredentials() {
 	require.Equal(s.T(), http.StatusUnauthorized, s.postEvent(router, event, ingestService, "").Code)
 	require.Equal(s.T(), 0, s.countRows())
 }
+
+func (s *AuditLogTestSuite) TestIngest_RejectsRouteMountedWithoutServiceAuth() {
+	// A route mounted without ingestAuth has no authenticated service, so the
+	// handler must refuse rather than store an event with an empty source_service.
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	router.POST("/api/audit", ingestAuditEvent(s.sink))
+
+	res := s.postEvent(router, audit.Event{Action: "Created slot"}, ingestService, "sekret")
+	require.Equal(s.T(), http.StatusUnauthorized, res.Code)
+	require.Equal(s.T(), 0, s.countRows())
+}

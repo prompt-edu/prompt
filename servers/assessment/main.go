@@ -19,12 +19,14 @@ import (
 	"github.com/prompt-edu/prompt/servers/assessment/competencies"
 	"github.com/prompt-edu/prompt/servers/assessment/copy"
 	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseConfig"
+	"github.com/prompt-edu/prompt/servers/assessment/coursePhaseDeletion"
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/assessment/evaluations"
 	"github.com/prompt-edu/prompt/servers/assessment/evaluations/evaluationCompletion"
 	"github.com/prompt-edu/prompt/servers/assessment/evaluations/feedbackItem"
 	"github.com/prompt-edu/prompt/servers/assessment/privacy"
 	"github.com/prompt-edu/prompt/servers/assessment/schemaModification"
+	"github.com/prompt-edu/prompt/servers/assessment/teamScope"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -64,6 +66,7 @@ func main() {
 			promptTypes.CapabilityPrivacyDeletion: true,
 			promptTypes.CapabilityPhaseCopy:       true,
 			promptTypes.CapabilityPhaseConfig:     true,
+			promptTypes.CapabilityPhaseDeletion:   true,
 		},
 		RegisterRoutes: registerRoutes,
 	})
@@ -91,7 +94,7 @@ func registerRoutes(api, coursePhaseApi *gin.RouterGroup, conn *pgxpool.Pool) er
 	categoryService := categories.NewCategoryService(*query, conn, assessmentSchemaService, schemaModificationService, coursePhaseConfigService)
 
 	evaluationCompletionService := evaluationCompletion.NewEvaluationCompletionService(*query, conn, coursePhaseConfig.GetTeamsForCoursePhase, coursePhaseConfigService)
-	evaluationService := evaluations.NewEvaluationService(*query, conn, evaluationCompletionService, coursePhaseConfigService)
+	evaluationService := evaluations.NewEvaluationService(*query, conn, evaluationCompletionService, coursePhaseConfigService, teamScope.ResolveOwnTutorID)
 	feedbackItemService := feedbackItem.NewFeedbackItemService(*query, conn, evaluationCompletionService)
 
 	assessmentCompletionService := assessmentCompletion.NewAssessmentCompletionService(*query, conn, coursePhaseConfigService, coursePhaseConfig.CheckParticipantInPhase)
@@ -117,11 +120,13 @@ func registerRoutes(api, coursePhaseApi *gin.RouterGroup, conn *pgxpool.Pool) er
 
 	copyService := copy.NewCopyService(*query, conn)
 	privacyService := privacy.NewPrivacyService(*query, conn)
+	coursePhaseDeletionService := coursePhaseDeletion.NewCoursePhaseDeletionService(*query, conn)
 
 	// The SDK registrar owns the POST /copy route itself and has no per-route
 	// slot for the audit label, so it is attached through a group. An empty
 	// relative path leaves the registered route path unchanged.
 	copy.RegisterRoutes(api.Group("", audit.Describe(copy.AuditCopyAction)), copyService)
 	privacy.RegisterRoutes(api, privacyService)
+	coursePhaseDeletion.RegisterRoutes(coursePhaseApi, coursePhaseDeletionService)
 	return nil
 }

@@ -7,6 +7,7 @@ import {
   LoadingPage,
   ManagementPageHeader,
   type ParticipantRow,
+  PassStatusSummary,
   type TableFilter,
 } from '@tumaet/prompt-ui-components'
 import { useMemo } from 'react'
@@ -194,6 +195,7 @@ export const ParticipantsPage = () => {
         </div>
       )}
 
+      <PassStatusSummary participations={participations ?? []} className='mb-4' />
       <CoursePhaseParticipationsTable
         phaseId={phaseId}
         participants={participations ?? []}

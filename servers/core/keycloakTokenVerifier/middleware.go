@@ -117,6 +117,7 @@ func (v *KeycloakTokenVerifier) KeycloakMiddleware() gin.HandlerFunc {
 		c.Set(CtxUniversityLogin, universityLogin)
 		c.Set(CtxFirstName, firstName)
 		c.Set(CtxLastName, lastName)
+		c.Set(CtxTokenIssuedAt, idToken.IssuedAt)
 		c.Next()
 	}
 }

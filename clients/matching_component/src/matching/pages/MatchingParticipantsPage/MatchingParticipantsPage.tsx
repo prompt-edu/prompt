@@ -7,6 +7,7 @@ import {
   ErrorPage,
   type ExtraParticipantColumn,
   ManagementPageHeader,
+  PassStatusSummary,
   QueryGate,
 } from '@tumaet/prompt-ui-components'
 import { TriangleAlert } from 'lucide-react'
@@ -66,6 +67,7 @@ export const MatchingParticipantsPage = () => {
               </AlertDescription>
             </Alert>
           )}
+          <PassStatusSummary participations={participations ?? []} className='mb-4' />
           <CoursePhaseParticipationsTable
             phaseId={phaseId}
             participants={participations ?? []}

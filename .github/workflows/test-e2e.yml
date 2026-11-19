@@ -29,7 +29,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
-          node-version: 26.12.1
+          node-version: 26.13.0
 
       - name: Verify the shard partition covers every spec exactly once
         id: partition
@@ -140,7 +140,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
-          node-version: 26.12.1
+          node-version: 26.13.0
 
       - name: Install e2e dependencies
         run: npm ci
@@ -185,9 +185,10 @@ jobs:
           retention-days: 14
           if-no-files-found: ignore
 
-  # Stable name for the branch-protection required check (`e2e-tests / e2e`).
-  # The matrix job reports one check per shard, so its names track shards.json;
-  # this one does not, and so survives adding or renaming a suite.
+  # One stable result for the whole suite, which dev.yml's `ci-passed` gate (the
+  # ruleset's required check) depends on. The matrix job reports one check per
+  # shard, so its names track shards.json; this one does not, and so survives
+  # adding or renaming a suite.
   e2e:
     needs: [partition, shard, merge]
     if: ${{ !cancelled() }}

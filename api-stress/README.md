@@ -49,12 +49,15 @@ uv run --project api-stress api-stress-test                    # full run, mediu
 uv run --project api-stress api-stress-test --smoke-only       # quick reachability + latency baseline
 uv run --project api-stress api-stress-test --intensity brutal # all-out
 uv run --project api-stress api-stress-test --no-exhaustion    # skip the destructive lane
+uv run --project api-stress api-stress-test --fail-on P0       # exit 1 on any P0 finding (what CI does)
 
 # equivalent shim (also creates stress.env, syncs the env, then dispatches):
 api-stress/run.sh --smoke-only
 ```
 
 Output lands in `api-stress/reports/<timestamp>/` (`report.md` first).
+`--public-summary DIR` additionally writes a `summary.md` and `findings.json` with
+P0 findings reduced to a count, for output that others can read.
 
 ### Isolated stack details
 
@@ -69,6 +72,24 @@ docker compose --env-file api-stress/stress.env \
   -f docker-compose.yml -f api-stress/docker-compose.stress.yml \
   -p prompt-stress down -v
 ```
+
+## In CI
+
+`.github/workflows/test-api-stress.yml` runs on every PR (called from `dev.yml`): it
+runs the unit tests (`cd api-stress && uv run pytest`), boots this stack, and runs
+`--smoke-only --intensity gentle --fail-on P0 --public-summary <dir>`. So the job
+fails on P0 findings, or when the fuzzer crashed and the report lacks its auth and
+IDOR results. P1/P2 findings appear in the job summary and the
+`api-stress-public-findings` artifact. The `ci-passed` gate (#2414) waits for the job,
+so a failure blocks the merge; on PRs that only change docs it is skipped.
+
+The repository is public, so the job never publishes P0 details: the summary only
+counts them. When it fails, reproduce the run locally as above and read `report.md`,
+and treat a real P0 as a private security advisory. While a known P0 is being fixed
+in the advisory, it fails every PR, so an admin may bypass the check to merge
+unrelated PRs.
+For a longer pass, dispatch the workflow from the Actions tab with a higher
+`intensity` and more `scenarios`.
 
 ## Extending
 

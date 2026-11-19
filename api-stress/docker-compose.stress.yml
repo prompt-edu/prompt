@@ -48,6 +48,15 @@ services:
     ports: !override ["18081:8080", "19000:9000"]
     environment:
       KC_HOSTNAME_PORT: "18081"
+    # The base check allows 90s and one retry, but a cold start that imports the
+    # realm into a fresh database takes about that long locally and longer on CI
+    # runners, so `up --wait` would give up on a Keycloak that is still booting.
+    # Same budget as the e2e stack.
+    healthcheck:
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
 
   # ---- seaweedfs (only s3 gateway published, on 18334) ----
   seaweedfs-master:

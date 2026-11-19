@@ -94,9 +94,10 @@ export const AssessmentResultsSection = ({ onReadyChange }: AssessmentResultsSec
   }, [results, setStudentAssessment])
 
   // The example writes made-up results into the shared store, so clear them before another page
-  // (a participant's assessment, for example) reads it.
+  // (a participant's assessment, for example) reads it, and drop the last opened participant's name.
   useEffect(() => {
     if (isStudent) return
+    useStudentAssessmentStore.setState({ assessmentParticipation: undefined })
     return reset
   }, [isStudent, reset])
 

@@ -111,10 +111,10 @@ func TestDeleteCourseGroupsAndRolesByNameSucceedsWhenTheGroupIsAlreadyGone(t *te
 	assert.Equal(t, []string{"DELETE /admin/realms/prompt/clients/client-uuid/roles/ws24-lab-Lecturer"}, deleteCalls(realm), "the missing Editor role is not deleted")
 }
 
-// A "/" splits the group path, a "%" makes the URL invalid, and a "?" or "#" cuts it short, so the
-// course "lab#1" would look up the group and roles of the course "lab".
+// A "/" splits the group path, a "%" makes the URL invalid, and a "?", "#" or ";" cuts it short, so
+// the course "lab#1" would look up the group and roles of the course "lab".
 func TestDeleteCourseGroupsAndRolesByNameLeavesKeycloakAloneForAnUnaddressableName(t *testing.T) {
-	for _, name := range []string{"lab/Lecturer", "lab%1", "lab?1", "lab#1", "lab\t1"} {
+	for _, name := range []string{"lab/Lecturer", "lab%1", "lab?1", "lab#1", "lab;1", "lab\t1"} {
 		t.Run(name, func(t *testing.T) {
 			realm := courseRealm("ws24")
 			groupsBefore, rolesBefore := realm.state()

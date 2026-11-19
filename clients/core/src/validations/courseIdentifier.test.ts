@@ -19,18 +19,25 @@ describe.each(Object.entries(schemas))('%s', (_, schema) => {
     },
   )
 
-  it.each(['', 'ios-lab', 'ioslab/Lecturer', '100% Lab', 'lab?1', 'lab#1', 'lab\t1', 'lab\u007f'])(
-    'rejects the name %j',
-    (name) => {
-      expect(schema.shape.name.safeParse(name).success).toBe(false)
-    },
-  )
+  it.each([
+    '',
+    'ios-lab',
+    'ioslab/Lecturer',
+    '100% Lab',
+    'lab?1',
+    'lab#1',
+    'lab;1',
+    'lab\t1',
+    'lab\u007f',
+  ])('rejects the name %j', (name) => {
+    expect(schema.shape.name.safeParse(name).success).toBe(false)
+  })
 
   it.each(['ws24', 'WS 2425'])('accepts the semester tag %j', (semesterTag) => {
     expect(schema.shape.semesterTag.safeParse(semesterTag).success).toBe(true)
   })
 
-  it.each(['', 'ws-24', 'ws24/25', 'ws%24', 'ws?24', 'ws#24', 'ws24\n'])(
+  it.each(['', 'ws-24', 'ws24/25', 'ws%24', 'ws?24', 'ws#24', 'ws;24', 'ws24\n'])(
     'rejects the semester tag %j',
     (semesterTag) => {
       expect(schema.shape.semesterTag.safeParse(semesterTag).success).toBe(false)

@@ -19,7 +19,7 @@ const (
 )
 
 // ErrInvalidCourseIdentifier is returned when a new course's name or semester tag is empty or
-// contains one of the characters "-", "/", "%", "?" or "#" or a control character.
+// contains one of the characters "-", "/", "%", "?", "#" or ";" or a control character.
 var ErrInvalidCourseIdentifier = errors.New("invalid course name or semester tag")
 
 // ValidateCourseIdentifier checks the name and semester tag of a new course, which join to the
@@ -37,7 +37,7 @@ func ValidateCourseIdentifier(name, semesterTag string) error {
 			return fmt.Errorf("%w: the %s is required", ErrInvalidCourseIdentifier, part.label)
 		}
 		if strings.Contains(part.value, "-") || !permissionValidation.IsAddressableInKeycloak(part.value) {
-			return fmt.Errorf(`%w: the %s must not contain "-", "/", "%%", "?", "#" or control characters`, ErrInvalidCourseIdentifier, part.label)
+			return fmt.Errorf(`%w: the %s must not contain "-", "/", "%%", "?", "#", ";" or control characters`, ErrInvalidCourseIdentifier, part.label)
 		}
 	}
 	return nil

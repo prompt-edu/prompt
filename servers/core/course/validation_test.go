@@ -211,8 +211,8 @@ func (suite *CourseTestSuite) TestValidateUpdateCourseData() {
 }
 
 func TestValidateCourseIdentifier(t *testing.T) {
-	const invalidName = `invalid course name or semester tag: the name must not contain "-", "/", "%", "?", "#" or control characters`
-	const invalidSemesterTag = `invalid course name or semester tag: the semester tag must not contain "-", "/", "%", "?", "#" or control characters`
+	const invalidName = `invalid course name or semester tag: the name must not contain "-", "/", "%", "?", "#", ";" or control characters`
+	const invalidSemesterTag = `invalid course name or semester tag: the semester tag must not contain "-", "/", "%", "?", "#", ";" or control characters`
 	tests := []struct {
 		name, courseName, semesterTag, expectedError string
 	}{
@@ -230,6 +230,8 @@ func TestValidateCourseIdentifier(t *testing.T) {
 		{"question mark in the name", "lab?1", "ws24", invalidName},
 		{"number sign in the name", "lab#1", "ws28", invalidName},
 		{"number sign in the semester tag", "lab", "ws#28", invalidSemesterTag},
+		{"semicolon in the name", "lab;section=1", "ws24", invalidName},
+		{"semicolon in the semester tag", "lab", "ws;24", invalidSemesterTag},
 		{"empty name", "", "ws24", "invalid course name or semester tag: the name is required"},
 		{"empty semester tag", "lab", "", "invalid course name or semester tag: the semester tag is required"},
 	}

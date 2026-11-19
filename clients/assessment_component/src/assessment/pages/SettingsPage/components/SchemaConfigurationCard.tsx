@@ -1,4 +1,6 @@
 import {
+  Alert,
+  AlertDescription,
   Button,
   Card,
   DatePickerWithRange,
@@ -114,6 +116,13 @@ export const SchemaConfigurationCard = ({
           </div>
         )}
       </div>
+
+      {hasAssessmentData && (
+        <Alert>
+          <Lock className='h-4 w-4' />
+          <AlertDescription>{content.lockHint}</AlertDescription>
+        </Alert>
+      )}
 
       <ErrorDisplay error={error} />
 

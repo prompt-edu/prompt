@@ -18,6 +18,7 @@ import (
 
 type KeycloakRealmService struct {
 	client       *gocloak.GoCloak
+	baseURL      string
 	Realm        string
 	ClientID     string
 	ClientSecret string
@@ -28,6 +29,7 @@ type KeycloakRealmService struct {
 func NewKeycloakRealmService(baseURL, realm, clientID, clientSecret, idOfClient string, queries db.Queries) *KeycloakRealmService {
 	return &KeycloakRealmService{
 		client:       gocloak.NewClient(baseURL),
+		baseURL:      strings.TrimRight(baseURL, "/"),
 		Realm:        realm,
 		ClientID:     clientID,
 		ClientSecret: clientSecret,

@@ -282,7 +282,13 @@ func (f *fakeRealm) startWithQueries(t *testing.T, queries db.Queries) *Keycloak
 				groups = append(groups, gocloak.Group{ID: gocloak.StringP(group.id), Name: gocloak.StringP(group.name), Path: gocloak.StringP("/" + f.pathOf(group))})
 			}
 		}
-		writeJSON(w, http.StatusOK, groups)
+		slices.SortFunc(groups, func(a, b gocloak.Group) int { return strings.Compare(*a.Path, *b.Path) })
+		first, _ := strconv.Atoi(r.URL.Query().Get("first"))
+		pageSize := 100
+		if max := r.URL.Query().Get("max"); max != "" {
+			pageSize, _ = strconv.Atoi(max)
+		}
+		writeJSON(w, http.StatusOK, groups[min(first, len(groups)):min(first+pageSize, len(groups))])
 	})
 	handle("POST /admin/realms/prompt/clients/{client}/roles", func(w http.ResponseWriter, r *http.Request) {
 		var role gocloak.Role

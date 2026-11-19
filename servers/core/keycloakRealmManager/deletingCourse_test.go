@@ -152,6 +152,25 @@ func TestDeleteCourseGroupsAndRolesByNameKeepsARoleAGroupOfAnotherCourseMaps(t *
 	}
 }
 
+func TestDeleteCourseGroupsAndRolesByNameKeepsARoleAGroupOfAnotherCourseMapsAfterTheFirstPage(t *testing.T) {
+	realm := courseRealm("ws24")
+	realm.addGroup("Prompt/ws24-lab/CustomGroups/team-Lecturer", "student")
+	groupPaths := []string{"Prompt/ws24-lab/CustomGroups/team-Lecturer"}
+	for i := range roleGroupsPageSize {
+		groupPath := fmt.Sprintf("Other/group-%03d", i)
+		realm.addGroup(groupPath)
+		groupPaths = append(groupPaths, groupPath)
+	}
+	realm.addRole("ws24-lab-cg-team-Lecturer", groupPaths...)
+
+	err := realm.start(t).DeleteCourseGroupsAndRolesByName(context.Background(), "lab", "ws24")
+
+	require.NoError(t, err)
+	groups, roles := realm.state()
+	assert.Contains(t, roles, "ws24-lab-cg-team-Lecturer", "the group of \"lab-cg-team\" comes after the first page of groups that map the role")
+	assert.Equal(t, []string{"ws24-lab-cg-team-Lecturer"}, groups["Prompt/ws24-lab-cg-team/Lecturer"].Roles)
+}
+
 func TestDeleteCourseGroupsAndRolesByNameSkipsAnUnaddressableCustomRole(t *testing.T) {
 	realm := courseRealm("ws24")
 	realm.addGroup("Prompt/ws24-lab/CustomGroups/team-Lecturer?x")

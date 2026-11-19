@@ -83,7 +83,7 @@ func (s *KeycloakRealmService) AddCustomGroup(ctx context.Context, courseID uuid
 	otherCourseGroup, _, err := s.otherCourseGroupOfRole(ctx, token.AccessToken, TOP_LEVEL_GROUP_NAME+"/"+courseGroupName, roleName)
 	if err != nil {
 		log.Error("failed to check the custom group role: ", err)
-		return "", errors.New("failed to check the custom group role")
+		return "", fmt.Errorf("failed to check the custom group role: %w", err)
 	}
 	if otherCourseGroup != "" {
 		log.Warnf("custom group role %s is mapped to the group %s of another course", roleName, otherCourseGroup)

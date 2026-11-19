@@ -30,11 +30,11 @@ func courseRealm(semester string) *fakeRealm {
 	return realm
 }
 
-func deleteRequests(realm *fakeRealm) []string {
+func deleteCalls(realm *fakeRealm) []string {
 	var deletes []string
-	for _, request := range realm.recorded() {
-		if strings.HasPrefix(request, "DELETE") {
-			deletes = append(deletes, request)
+	for _, call := range realm.recordedCalls() {
+		if strings.HasPrefix(call, "DELETE ") {
+			deletes = append(deletes, call)
 		}
 	}
 	return deletes
@@ -42,6 +42,7 @@ func deleteRequests(realm *fakeRealm) []string {
 
 func TestDeleteCourseGroupsAndRolesByNameDeletesTheCustomRolesThenTheGroupThenTheStaffRoles(t *testing.T) {
 	realm := courseRealm("ws24")
+	courseGroupID := realm.groupAt("Prompt/ws24-lab").id
 
 	err := realm.start(t).DeleteCourseGroupsAndRolesByName(context.Background(), "lab", "ws24")
 
@@ -50,11 +51,11 @@ func TestDeleteCourseGroupsAndRolesByNameDeletesTheCustomRolesThenTheGroupThenTh
 	assert.Equal(t, []string{"Prompt", "Prompt/ws24-lab-cg-team", "Prompt/ws24-lab-cg-team/Lecturer"}, slices.Sorted(maps.Keys(groups)))
 	assert.Equal(t, []string{"ws24-lab-advanced-Lecturer", "ws24-lab-cg-team-Lecturer"}, roles, "other courses' roles stay")
 	assert.Equal(t, []string{
-		"DELETE /admin/realms/prompt/clients/{client}/roles/{name}",
-		"DELETE /admin/realms/prompt/groups/{id}",
-		"DELETE /admin/realms/prompt/clients/{client}/roles/{name}",
-		"DELETE /admin/realms/prompt/clients/{client}/roles/{name}",
-	}, deleteRequests(realm))
+		"DELETE /admin/realms/prompt/clients/client-uuid/roles/ws24-lab-cg-team-a",
+		"DELETE /admin/realms/prompt/groups/" + courseGroupID,
+		"DELETE /admin/realms/prompt/clients/client-uuid/roles/ws24-lab-Editor",
+		"DELETE /admin/realms/prompt/clients/client-uuid/roles/ws24-lab-Lecturer",
+	}, deleteCalls(realm))
 }
 
 func TestDeleteCourseGroupsAndRolesByNameDeletesTheRoleOfEveryCustomGroup(t *testing.T) {
@@ -157,8 +158,11 @@ func TestDeleteCourseGroupsAndRolesByNameSkipsAnUnaddressableCustomRole(t *testi
 	err := realm.start(t).DeleteCourseGroupsAndRolesByName(context.Background(), "lab", "ws24")
 
 	require.NoError(t, err)
+	for _, call := range realm.recordedCalls() {
+		assert.NotContains(t, call, "/roles/ws24-lab-cg-team-Lecturer", "the role of \"team-Lecturer?x\" must not be looked up as the Lecturer role of the course \"lab-cg-team\"")
+	}
 	_, roles := realm.state()
-	assert.Contains(t, roles, "ws24-lab-cg-team-Lecturer", "the role of \"team-Lecturer?x\" must not be looked up as the Lecturer role of the course \"lab-cg-team\"")
+	assert.Contains(t, roles, "ws24-lab-cg-team-Lecturer")
 }
 
 // A transport error embeds the request URL, here one with "404" in the course identifier. It must

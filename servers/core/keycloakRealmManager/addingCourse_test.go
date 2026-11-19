@@ -28,7 +28,7 @@ func TestCreateCourseGroupsAndRolesProvisionsANewCourse(t *testing.T) {
 	assert.Equal(t, []string{"ws24-ios-Editor", "ws24-ios-Lecturer"}, roles)
 }
 
-func TestCreateCourseGroupsAndRolesEndsInTheSameStateTheSecondTime(t *testing.T) {
+func TestCreateCourseGroupsAndRolesRecreatesTheSameStateTheSecondTime(t *testing.T) {
 	realm := newFakeRealm()
 	service := realm.start(t)
 	require.NoError(t, service.CreateCourseGroupsAndRoles(context.Background(), "ios", "ws24", "creator"))
@@ -38,6 +38,10 @@ func TestCreateCourseGroupsAndRolesEndsInTheSameStateTheSecondTime(t *testing.T)
 
 	require.NoError(t, err)
 	groupsAfter, rolesAfter := realm.state()
+	assert.Equal(t, groupsBefore["Prompt"].ID, groupsAfter["Prompt"].ID, "the Prompt group is reused")
+	for _, groupPath := range []string{"Prompt/ws24-ios", "Prompt/ws24-ios/Editor", "Prompt/ws24-ios/Lecturer"} {
+		assert.NotEqual(t, groupsBefore[groupPath].ID, groupsAfter[groupPath].ID, "%s is recreated", groupPath)
+	}
 	assert.Equal(t, withoutIDs(groupsBefore), withoutIDs(groupsAfter))
 	assert.Equal(t, rolesBefore, rolesAfter)
 }

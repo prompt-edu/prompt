@@ -1,4 +1,14 @@
-import { Button, ManagementPageHeader, MissingConfig } from '@tumaet/prompt-ui-components'
+import { useStudyPrograms } from '@core/network/hooks/useStudyPrograms'
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+  Button,
+  ManagementPageHeader,
+  MissingConfig,
+  ParticipationStatistics,
+  Skeleton,
+} from '@tumaet/prompt-ui-components'
 import { ExternalLink } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
@@ -6,11 +16,8 @@ import { useParseApplicationMetaData } from '../../hooks/useParseApplicationMeta
 import type { ApplicationMetaData } from '../../interfaces/applicationMetaData'
 import { getIsApplicationConfigured } from '../../utils/getApplicationIsConfigured'
 import { useApplicationStore } from '../../zustand/useApplicationStore'
-import { ApplicationGenderDiagram } from './diagrams/ApplicationGenderDiagram'
+import { APPLICATION_PASS_STATUS_LABELS } from '../ApplicationParticipantsPage/components/table/getApplicationStatusBadge'
 import { ApplicationStatusCard } from './diagrams/ApplicationStatusCard'
-import { ApplicationStudyBackgroundDiagram } from './diagrams/ApplicationStudyBackgroundDiagram'
-import { ApplicationStudySemesterDiagram } from './diagrams/ApplicationStudySemesterDiagram'
-import { AssessmentDiagram } from './diagrams/AssessmentDiagram'
 import { useHideMailingWarning } from './hooks/useHideMailingWarning'
 import { useMissingConfigs } from './hooks/useMissingConfig'
 
@@ -19,6 +26,7 @@ export const ApplicationLandingPage = () => {
   const { pathname } = useLocation()
   const { coursePhase, participations } = useApplicationStore()
   const { hideMailingWarning } = useHideMailingWarning()
+  const studyPrograms = useStudyPrograms()
   const missingConfigs = useMissingConfigs(
     applicationMetaData,
     coursePhase,
@@ -29,6 +37,12 @@ export const ApplicationLandingPage = () => {
   useParseApplicationMetaData(coursePhase, setApplicationMetaData)
 
   const isApplicationConfigured = getIsApplicationConfigured(applicationMetaData)
+  const statusCard = (
+    <ApplicationStatusCard
+      applicationMetaData={applicationMetaData}
+      applicationPhaseIsConfigured={isApplicationConfigured}
+    />
+  )
 
   return (
     <div>
@@ -44,18 +58,31 @@ export const ApplicationLandingPage = () => {
         )}
       </div>
       <MissingConfig elements={missingConfigs} />
-      <div className='grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-6'>
-        <ApplicationStatusCard
-          applicationMetaData={applicationMetaData}
-          applicationPhaseIsConfigured={isApplicationConfigured}
-        />
-        <AssessmentDiagram applications={participations} />
-        <ApplicationGenderDiagram applications={participations} />
-      </div>
-      <div className='grid gap-6 md:grid-cols-1 lg:grid-cols-2 mb-6'>
-        <ApplicationStudyBackgroundDiagram applications={participations} />
-        <ApplicationStudySemesterDiagram applications={participations} />
-      </div>
+      {studyPrograms.data ? (
+        <ParticipationStatistics
+          participations={participations}
+          studyPrograms={studyPrograms.data}
+          passStatusLabels={APPLICATION_PASS_STATUS_LABELS}
+          scores={participations.flatMap(({ score }) => (score === null ? [] : [score]))}
+          scoreTitle='Application Score'
+        >
+          {statusCard}
+        </ParticipationStatistics>
+      ) : (
+        <div className='grid gap-6 md:grid-cols-2 xl:grid-cols-3'>
+          {statusCard}
+          {studyPrograms.isError ? (
+            <Alert variant='destructive' className='xl:col-span-2'>
+              <AlertTitle>Failed to load study programs.</AlertTitle>
+              <AlertDescription>
+                The participation statistics need the study programs. Reload the page to try again.
+              </AlertDescription>
+            </Alert>
+          ) : (
+            <Skeleton className='w-full min-h-[300px] xl:col-span-2' />
+          )}
+        </div>
+      )}
     </div>
   )
 }

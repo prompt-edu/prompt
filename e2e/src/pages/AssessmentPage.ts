@@ -183,11 +183,16 @@ export class AssessmentPage {
   // Confirms the release dialog. Its title names what is being released, which
   // differs between assessment-enabled and evaluation-only phases.
   async confirmRelease(dialogTitle: 'Assessment' | 'Evaluation') {
+    const dialog = await this.openReleaseDialog(dialogTitle)
+    await dialog.getByRole('button', { name: 'Release Results' }).click()
+    await expect(this.unreleaseButton()).toBeVisible()
+  }
+
+  async openReleaseDialog(dialogTitle: 'Assessment' | 'Evaluation'): Promise<Locator> {
     await this.releaseButton().click()
     const dialog = this.page.getByRole('alertdialog')
     await expect(dialog.getByText(`Release ${dialogTitle} Results?`)).toBeVisible()
-    await dialog.getByRole('button', { name: 'Release Results' }).click()
-    await expect(this.unreleaseButton()).toBeVisible()
+    return dialog
   }
 
   // ── Schema configuration (rubric) ────────────────────────────────────────
@@ -322,6 +327,12 @@ export class AssessmentPage {
     await expect(
       this.page.getByText('Assessment results have not been released yet.'),
     ).toBeVisible()
+  }
+
+  async expectNoResultsShared() {
+    await expect(
+      this.page.getByRole('heading', { name: 'No results shared for this phase' }),
+    ).toBeVisible({ timeout: 15_000 })
   }
 
   // ── Student self evaluation ──────────────────────────────────────────────

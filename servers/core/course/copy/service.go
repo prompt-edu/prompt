@@ -23,7 +23,8 @@ type CourseCopyService struct {
 	conn         *pgxpool.Pool
 	coursePhases CoursePhaseProvider
 	// use dependency injection for keycloak to allow mocking
-	createCourseGroupsAndRoles func(ctx context.Context, courseName, iterationName, userID string) error
+	createCourseGroupsAndRoles  func(ctx context.Context, courseName, iterationName, userID string) error
+	cleanUpCourseGroupsAndRoles func(ctx context.Context, courseName, iterationName string) error
 }
 
 func NewCourseCopyService(
@@ -31,12 +32,14 @@ func NewCourseCopyService(
 	conn *pgxpool.Pool,
 	coursePhases CoursePhaseProvider,
 	createCourseGroupsAndRoles func(ctx context.Context, courseName, iterationName, userID string) error,
+	cleanUpCourseGroupsAndRoles func(ctx context.Context, courseName, iterationName string) error,
 ) *CourseCopyService {
 	return &CourseCopyService{
-		queries:                    queries,
-		conn:                       conn,
-		coursePhases:               coursePhases,
-		createCourseGroupsAndRoles: createCourseGroupsAndRoles,
+		queries:                     queries,
+		conn:                        conn,
+		coursePhases:                coursePhases,
+		createCourseGroupsAndRoles:  createCourseGroupsAndRoles,
+		cleanUpCourseGroupsAndRoles: cleanUpCourseGroupsAndRoles,
 	}
 }
 

@@ -67,7 +67,7 @@ class Boot:
         self.fixtures: dict = {"seed_log": self.log, "seeded": {}}
         # stamp uniqueness from the run dir name (no Date.now allowed elsewhere,
         # but here we just need per-run uniqueness; run_dir name is a timestamp).
-        self.tag = "stress-" + run_dir.name.replace("_", "")[-10:]
+        self.tag = "stress" + run_dir.name.replace("_", "").replace("-", "")[-10:]
         admin = auth.fetch_token("admin", "admin")["access_token"]
         self.admin_h = {"Authorization": f"Bearer {admin}"}
         self.client = httpx.Client(timeout=20.0)
@@ -90,8 +90,8 @@ class Boot:
     # ---------- course + phases ----------
     def create_course(self, label: str) -> dict:
         body = {
-            "name": f"STRESS-{label}",
-            "semesterTag": f"{self.tag}-{label}".lower(),
+            "name": f"STRESS{label}",
+            "semesterTag": f"{self.tag}{label}".lower(),
             "courseType": "practical course",
             "ects": 5,
             "startDate": "2026-01-01",

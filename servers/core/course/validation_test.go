@@ -39,7 +39,7 @@ func (suite *CourseTestSuite) SetupSuite() {
 
 	suite.cleanup = cleanup
 	coursePhaseService := coursePhase.NewCoursePhaseService(*testDB.Queries, testDB.Conn, resolution.NewResolutionService("localhost:8080"))
-	suite.courseService = NewCourseService(*testDB.Queries, testDB.Conn, coursePhaseService, nil, nil)
+	suite.courseService = NewCourseService(*testDB.Queries, testDB.Conn, coursePhaseService, nil, nil, nil)
 	suite.router = gin.Default()
 }
 
@@ -204,6 +204,44 @@ func (suite *CourseTestSuite) TestValidateUpdateCourseData() {
 				assert.NoError(t, err)
 			} else {
 				assert.Error(t, err)
+				assert.EqualError(t, err, tt.expectedError)
+			}
+		})
+	}
+}
+
+func TestValidateCourseIdentifier(t *testing.T) {
+	const invalidName = `invalid course name or semester tag: the name must not contain "-", "/", "%", "?", "#", ";" or control characters`
+	const invalidSemesterTag = `invalid course name or semester tag: the semester tag must not contain "-", "/", "%", "?", "#", ";" or control characters`
+	tests := []struct {
+		name, courseName, semesterTag, expectedError string
+	}{
+		{"valid", "iPraktikum", "ios2425", ""},
+		{"spaces are allowed", "Agile Project Management", "ws2425", ""},
+		{"non-Latin letters are allowed", "Übung 日本語", "ws2425", ""},
+		{"tab in the name", "lab\t1", "ws24", invalidName},
+		{"line feed in the semester tag", "lab", "ws24\n", invalidSemesterTag},
+		{"delete character in the name", "lab\x7f", "ws24", invalidName},
+		{"hyphen in the name", "ios-lab", "ws24", invalidName},
+		{"hyphen in the semester tag", "lab", "ws24-ios", invalidSemesterTag},
+		{"slash in the name", "ios/Lecturer", "ws24", invalidName},
+		{"slash in the semester tag", "lab", "ws24/ios", invalidSemesterTag},
+		{"percent sign in the name", "100% Lab", "ws24", invalidName},
+		{"question mark in the name", "lab?1", "ws24", invalidName},
+		{"number sign in the name", "lab#1", "ws28", invalidName},
+		{"number sign in the semester tag", "lab", "ws#28", invalidSemesterTag},
+		{"semicolon in the name", "lab;section=1", "ws24", invalidName},
+		{"semicolon in the semester tag", "lab", "ws;24", invalidSemesterTag},
+		{"empty name", "", "ws24", "invalid course name or semester tag: the name is required"},
+		{"empty semester tag", "lab", "", "invalid course name or semester tag: the semester tag is required"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := ValidateCourseIdentifier(tt.courseName, tt.semesterTag)
+			if tt.expectedError == "" {
+				assert.NoError(t, err)
+			} else {
+				assert.ErrorIs(t, err, ErrInvalidCourseIdentifier)
 				assert.EqualError(t, err, tt.expectedError)
 			}
 		})

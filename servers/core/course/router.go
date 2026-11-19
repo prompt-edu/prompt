@@ -151,6 +151,7 @@ func (s *CourseService) getCourseByID(c *gin.Context) {
 // @Param newCourse body courseDTO.CreateCourse true "Course to create"
 // @Success 201 {object} courseDTO.Course
 // @Failure 400 {object} utils.ErrorResponse
+// @Failure 409 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /courses/ [post]
 func (s *CourseService) createCourse(c *gin.Context) {

@@ -1,6 +1,6 @@
 import { useCourseStore } from '@tumaet/prompt-shared-state'
-import { QueryGate } from '@tumaet/prompt-ui-components'
-import { Loader2 } from 'lucide-react'
+import { Card, CardContent, QueryGate } from '@tumaet/prompt-ui-components'
+import { EyeOff, Loader2 } from 'lucide-react'
 import { useEffect, useMemo } from 'react'
 import { useParams } from 'react-router-dom'
 
@@ -13,12 +13,28 @@ import { useGetAllTeams } from '../../hooks/useGetAllTeams'
 import { useGetCoursePhaseConfig } from '../../hooks/useGetCoursePhaseConfig'
 import { useGetMyParticipation } from '../../hooks/useGetMyParticipation'
 import { buildExampleAssessmentResults } from '../../utils/exampleResults'
+import { hasVisibleResultSection } from '../../utils/studentResultsVisibility'
 import { useGetMyAssessmentResults } from '../hooks/useGetMyAssessmentResults'
 
 const AssessmentResultsLoader = () => (
   <div className='flex justify-center items-center h-64'>
     <Loader2 className='h-12 w-12 animate-spin text-primary' />
   </div>
+)
+
+const NoSharedResultsCard = () => (
+  <Card>
+    <CardContent className='flex items-start gap-3 p-6'>
+      <EyeOff className='mt-0.5 h-5 w-5 shrink-0 text-muted-foreground' />
+      <div className='space-y-1'>
+        <h2 className='text-base font-semibold'>No results shared for this phase</h2>
+        <p className='text-sm leading-6 text-muted-foreground'>
+          Your instructors have not shared the assessment sheet, grade suggestions, or action items
+          of this phase with students. Contact them if you have questions about your assessment.
+        </p>
+      </div>
+    </CardContent>
+  </Card>
 )
 
 interface AssessmentResultsSectionProps {
@@ -34,13 +50,13 @@ export const AssessmentResultsSection = ({ onReadyChange }: AssessmentResultsSec
   const gradingSheetVisible = coursePhaseConfig?.gradingSheetVisible ?? false
   const actionItemsVisible = coursePhaseConfig?.actionItemsVisible ?? false
   const gradeSuggestionVisible = coursePhaseConfig?.gradeSuggestionVisible ?? false
-  const hasVisibleSection = gradingSheetVisible || actionItemsVisible || gradeSuggestionVisible
+  const hasVisibleSection = hasVisibleResultSection(coursePhaseConfig)
 
   const { data: myParticipation } = useGetMyParticipation({ enabled: isStudent })
   const { data: teams } = useGetAllTeams()
   const { setStudentAssessment, setAssessmentParticipation, reset } = useStudentAssessmentStore()
 
-  const shouldFetch = isStudent && resultsReleased
+  const shouldFetch = isStudent && resultsReleased && hasVisibleSection
   const shouldFetchCategories = (shouldFetch || !isStudent) && gradingSheetVisible
   const resultsQuery = useGetMyAssessmentResults({ enabled: shouldFetch })
   const assessmentCategoriesQuery = useGetAllCategoriesWithCompetencies({
@@ -110,6 +126,7 @@ export const AssessmentResultsSection = ({ onReadyChange }: AssessmentResultsSec
   }, [myParticipation, setAssessmentParticipation, teams])
 
   if (isStudent && !resultsReleased) return null
+  if (!hasVisibleSection) return <NoSharedResultsCard />
 
   return (
     <QueryGate

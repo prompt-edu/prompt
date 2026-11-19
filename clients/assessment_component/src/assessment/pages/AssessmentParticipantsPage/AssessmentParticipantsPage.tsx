@@ -1,9 +1,11 @@
+import { PassStatus } from '@tumaet/prompt-shared-state'
 import {
   CoursePhaseParticipationsTable,
   ErrorPage,
   type ExtraParticipantColumn,
   ManagementPageHeader,
   type ParticipantRow,
+  PassStatusSummary,
   QueryGate,
   type RowAction,
   type TableFilter,
@@ -43,6 +45,8 @@ import {
   summarizeUnmarkResult,
 } from './utils/completionActions'
 import { exportAssessmentsAsJson, exportAssessmentsAsPdf } from './utils/exportAssessments'
+
+const PASS_STATUS_LABELS = { [PassStatus.NOT_ASSESSED]: 'No pass status' }
 
 const toParticipationIDs = (rows: ParticipantRow[]) => rows.map((row) => row.courseParticipationID)
 
@@ -282,6 +286,11 @@ export const AssessmentParticipantsPage = () => {
             openInNewTabRef.current = e.metaKey || e.ctrlKey
           }}
         >
+          <PassStatusSummary
+            participations={participations ?? []}
+            passStatusLabels={PASS_STATUS_LABELS}
+            className='mb-4'
+          />
           <CoursePhaseParticipationsTable
             phaseId={phaseId}
             participants={participations ?? []}

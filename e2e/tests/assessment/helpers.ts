@@ -94,12 +94,20 @@ export interface ConfigOverrides {
   selfEvaluationEnabled?: boolean
   selfEvaluationSchema?: string
   tutorEvaluationEnabled?: boolean
+  tutorEvaluationSchema?: string
+  tutorEvaluationDeadline?: string
+  gradeSuggestionVisible?: boolean
+  actionItemsVisible?: boolean
+  gradingSheetVisible?: boolean
 }
 
 // PUT /config requires the full request body; start/deadline are set to a
 // generous open window so grading, completion, and (cleanup) unmarking work.
-// assessmentEnabled is only sent when overridden, because an omitted flag keeps
-// the phase's current mode (the behavior the settings card relies on).
+// assessmentEnabled and the result visibility flags are only sent when
+// overridden. An omitted assessmentEnabled keeps the phase's current value, but
+// omitted visibility flags reset to their defaults (grade suggestions and
+// action items visible, grading sheet hidden), so pass them whenever a
+// non-default value must survive the call.
 export async function putConfig(
   api: APIRequestContext,
   phaseId: string,
@@ -127,10 +135,13 @@ export async function putConfig(
         peerEvaluationStart: past,
         peerEvaluationDeadline: future,
         tutorEvaluationEnabled: overrides.tutorEvaluationEnabled ?? false,
-        tutorEvaluationSchema: current.tutorEvaluationSchema,
+        tutorEvaluationSchema: overrides.tutorEvaluationSchema ?? current.tutorEvaluationSchema,
         tutorEvaluationStart: past,
-        tutorEvaluationDeadline: future,
+        tutorEvaluationDeadline: overrides.tutorEvaluationDeadline ?? future,
         evaluationResultsVisible: true,
+        gradeSuggestionVisible: overrides.gradeSuggestionVisible,
+        actionItemsVisible: overrides.actionItemsVisible,
+        gradingSheetVisible: overrides.gradingSheetVisible,
       },
     }),
     'PUT config',
@@ -287,6 +298,10 @@ export async function releaseResults(api: APIRequestContext, phaseId: string): P
   await ok(api.post(assessmentUrl(phaseId, 'config/release')), 'POST release')
 }
 
+export async function unreleaseResults(api: APIRequestContext, phaseId: string): Promise<void> {
+  await ok(api.post(assessmentUrl(phaseId, 'config/unrelease')), 'POST unrelease')
+}
+
 // ── Cleanup ────────────────────────────────────────────────────────────────
 
 // Restores a fixture phase to its seeded state, in dependency order:
@@ -332,6 +347,7 @@ export async function resetAssessmentPhase(
     for (const endpoint of [
       'category/assessment/with-competencies',
       'category/self/with-competencies',
+      'category/tutor/with-competencies',
     ]) {
       const res = await admin.get(assessmentUrl(phaseId, endpoint))
       if (!res.ok()) continue
@@ -345,6 +361,7 @@ export async function resetAssessmentPhase(
       assessmentEnabled: true,
       assessmentSchemaId: schemas.find((s) => s.name === DEFAULT_SCHEMAS.assessment)?.id,
       selfEvaluationSchema: schemas.find((s) => s.name === DEFAULT_SCHEMAS.self)?.id,
+      tutorEvaluationSchema: schemas.find((s) => s.name === DEFAULT_SCHEMAS.tutor)?.id,
     })
     for (const name of options.schemaNames ?? []) {
       const schema = schemas.find((s) => s.name === name)

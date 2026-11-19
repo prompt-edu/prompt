@@ -1,5 +1,8 @@
 import { useStudyPrograms } from '@core/network/hooks/useStudyPrograms'
 import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
   Button,
   ManagementPageHeader,
   MissingConfig,
@@ -34,6 +37,12 @@ export const ApplicationLandingPage = () => {
   useParseApplicationMetaData(coursePhase, setApplicationMetaData)
 
   const isApplicationConfigured = getIsApplicationConfigured(applicationMetaData)
+  const statusCard = (
+    <ApplicationStatusCard
+      applicationMetaData={applicationMetaData}
+      applicationPhaseIsConfigured={isApplicationConfigured}
+    />
+  )
 
   return (
     <div>
@@ -49,21 +58,30 @@ export const ApplicationLandingPage = () => {
         )}
       </div>
       <MissingConfig elements={missingConfigs} />
-      {studyPrograms.isPending ? (
-        <Skeleton className='w-full h-[600px]' />
-      ) : (
+      {studyPrograms.data ? (
         <ParticipationStatistics
           participations={participations}
-          studyPrograms={studyPrograms.data ?? []}
+          studyPrograms={studyPrograms.data}
           passStatusLabels={APPLICATION_PASS_STATUS_LABELS}
           scores={participations.flatMap(({ score }) => (score === null ? [] : [score]))}
           scoreTitle='Application Score'
         >
-          <ApplicationStatusCard
-            applicationMetaData={applicationMetaData}
-            applicationPhaseIsConfigured={isApplicationConfigured}
-          />
+          {statusCard}
         </ParticipationStatistics>
+      ) : (
+        <div className='grid gap-6 md:grid-cols-2 xl:grid-cols-3'>
+          {statusCard}
+          {studyPrograms.isError ? (
+            <Alert variant='destructive' className='xl:col-span-2'>
+              <AlertTitle>Failed to load study programs.</AlertTitle>
+              <AlertDescription>
+                The participation statistics need the study programs. Reload the page to try again.
+              </AlertDescription>
+            </Alert>
+          ) : (
+            <Skeleton className='w-full min-h-[300px] xl:col-span-2' />
+          )}
+        </div>
       )}
     </div>
   )

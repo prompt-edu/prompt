@@ -12,6 +12,8 @@ interface KeycloakContextType {
   isAuthenticated: boolean
   isLoggingOut: boolean
   initError: Error | null
+  // The iat claim of the current access token, in seconds
+  tokenIssuedAt: number | null
   login: (redirectUri?: string) => void
   logout: () => Promise<void>
   forceTokenRefresh: () => Promise<void>
@@ -22,6 +24,7 @@ export const KeycloakContext = createContext<KeycloakContextType>({
   isAuthenticated: false,
   isLoggingOut: false,
   initError: null,
+  tokenIssuedAt: null,
   login: () => {},
   logout: async () => {},
   forceTokenRefresh: async () => {},
@@ -36,6 +39,7 @@ const parseJwt = (token: string) => {
       preferred_username: string
       matriculation_number: string
       university_login: string
+      iat?: number
     }>(token)
   } catch {
     return null
@@ -72,6 +76,7 @@ export const KeycloakProvider: React.FC<{
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
   const [initError, setInitError] = useState<Error | null>(null)
+  const [tokenIssuedAt, setTokenIssuedAt] = useState<number | null>(null)
   const { setUser, setPermissions, clearUser, clearPermissions, setLogoutFunction } = useAuthStore()
 
   const clearLocalSession = useCallback(() => {
@@ -79,6 +84,7 @@ export const KeycloakProvider: React.FC<{
     localStorage.removeItem(REFRESH_TOKEN_KEY)
     clearUser()
     clearPermissions()
+    setTokenIssuedAt(null)
     setIsAuthenticated(false)
   }, [clearUser, clearPermissions])
 
@@ -103,6 +109,7 @@ export const KeycloakProvider: React.FC<{
         universityLogin: decodedJwt.university_login || '',
       })
       setPermissions(instance.resourceAccess?.['prompt-server']?.roles || [])
+      setTokenIssuedAt(decodedJwt.iat ?? null)
       setIsAuthenticated(true)
     },
     [setUser, setPermissions, clearLocalSession],
@@ -221,6 +228,7 @@ export const KeycloakProvider: React.FC<{
         isAuthenticated,
         isLoggingOut,
         initError,
+        tokenIssuedAt,
         login,
         logout,
         forceTokenRefresh,

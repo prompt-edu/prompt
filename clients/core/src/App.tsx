@@ -32,6 +32,7 @@ import { StudentsPage } from './managementConsole/pages/StudentsPage'
 import { StudyProgramsPage } from './managementConsole/pages/StudyProgramsPage/StudyProgramsPage'
 import { SystemStatusPage } from './managementConsole/pages/SystemStatusPage/SystemStatusPage'
 import { TemplateCoursesPage } from './managementConsole/pages/TemplateCoursesPage'
+import { OwnOrgRestriction } from './managementConsole/shared/components/OwnOrgRestriction'
 import { PermissionRestriction } from './managementConsole/shared/components/PermissionRestriction'
 import { ApplicationLoginPage } from './publicPages/application/ApplicationLoginPage'
 import { ApplicationAuthenticated } from './publicPages/application/pages/ApplicationAuthenticated/ApplicationAuthenticated'
@@ -207,8 +208,16 @@ export const App = () => {
               element={
                 <ManagementRoot>
                   <PermissionRestriction requiredPermissions={[Role.PROMPT_ADMIN]}>
-                    <OrgDetailPage />
+                    <OrgDetailPage viewer='PROMPT_Admin' />
                   </PermissionRestriction>
+                </ManagementRoot>
+              }
+            />
+            <Route
+              path='/management/org/:orgId'
+              element={
+                <ManagementRoot>
+                  <OwnOrgRestriction>{(role) => <OrgDetailPage viewer={role} />}</OwnOrgRestriction>
                 </ManagementRoot>
               }
             />

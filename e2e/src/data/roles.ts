@@ -10,6 +10,8 @@ export type Role =
   | 'student'
   | 'student2'
   | 'privacy-student'
+  | 'org-admin'
+  | 'org-member'
 
 export interface RoleAccount {
   username: string
@@ -65,6 +67,20 @@ export const ROLES: Record<Role, RoleAccount> = {
     permission: 'PROMPT_Student',
     email: 'privacy_subject@example.com',
   },
+  // Admin and Member of the seeded demo org (SEEDED_ORG). They hold no other role,
+  // as the chair's office typically does not.
+  'org-admin': {
+    username: 'org-admin',
+    password: 'org-admin',
+    permission: 'org-demo-chair-Admin',
+    email: 'org_admin@example.com',
+  },
+  'org-member': {
+    username: 'org-member',
+    password: 'org-member',
+    permission: 'org-demo-chair-Member',
+    email: 'org_member@example.com',
+  },
 }
 
 // Roles we pre-authenticate in global-setup (storageState reused by tests).
@@ -76,4 +92,6 @@ export const SEEDED_ROLES: Role[] = [
   'student',
   'student2',
   'privacy-student',
+  'org-admin',
+  'org-member',
 ]

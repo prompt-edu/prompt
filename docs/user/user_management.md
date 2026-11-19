@@ -27,7 +27,7 @@ The page shows two tables:
 ## 2. Add a Lecturer or Editor
 
 1. Click **Add Lecturer** or **Add Editor** on the corresponding card.
-2. Type at least 2 characters in the search field. PROMPT looks up matching users by name, email, or username.
+2. Type at least 2 characters in the search field. PROMPT looks up matching users by name, email, username, or exact university login.
 3. Click **Add** next to the user you want to assign the role to.
 
 {/* TODO: screenshot of the Add User dialog with search results visible */}

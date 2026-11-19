@@ -2,7 +2,7 @@ import { useAuthStore } from '@tumaet/prompt-shared-state'
 import { ErrorPage, LoadingPage, ManagementPageHeader } from '@tumaet/prompt-ui-components'
 import { useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { AddUserDialog } from '../components/AddUserDialog'
+import { AddUserDialog } from '../../shared/components/AddUserDialog'
 import { StaffMemberTable } from '../components/StaffMemberTable'
 import { useAddCourseStaffMember } from '../hooks/useAddCourseStaffMember'
 import { useCourseStaff } from '../hooks/useCourseStaff'
@@ -54,6 +54,18 @@ export const CourseUserManagementPage = () => {
     removeMember.mutate({ groupName, keycloakUserID: member.keycloakUserID })
   }
 
+  const holdersOf = (groupName: CourseGroupName) =>
+    groupName === 'Lecturer' ? lecturerIDs : editorIDs
+
+  const membershipNote = (groupName: CourseGroupName, candidate: StaffMember): string | null => {
+    if (holdersOf(groupName).has(candidate.keycloakUserID)) return `Already a ${groupName}`
+    if (groupName === 'Lecturer' && editorIDs.has(candidate.keycloakUserID))
+      return 'Currently an Editor'
+    if (groupName === 'Editor' && lecturerIDs.has(candidate.keycloakUserID))
+      return 'Currently a Lecturer'
+    return null
+  }
+
   return (
     <div className='space-y-6'>
       <ManagementPageHeader>User Management</ManagementPageHeader>
@@ -90,9 +102,9 @@ export const CourseUserManagementPage = () => {
           onOpenChange={(open) => {
             if (!open) setDialogGroup(null)
           }}
-          groupName={dialogGroup}
-          existingLecturerIDs={lecturerIDs}
-          existingEditorIDs={editorIDs}
+          title={`Add ${dialogGroup}`}
+          noteFor={(candidate) => membershipNote(dialogGroup, candidate)}
+          isDisabled={(candidate) => holdersOf(dialogGroup).has(candidate.keycloakUserID)}
           onSelect={handleAdd(dialogGroup)}
           isAdding={addMember.isPending}
         />

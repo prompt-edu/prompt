@@ -43,14 +43,14 @@ func setupKeycloakRouter(router *gin.RouterGroup, s *KeycloakRealmService, authM
 	keycloak.PUT("/group/:groupName/members/:userID", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), s.addCourseStaffMember)
 	keycloak.DELETE("/group/:groupName/members/:userID", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), s.removeCourseStaffMember)
 
-	// Realm-wide Keycloak user search. Not nested under :courseID because the
-	// query has no course context; permissionValidation.CheckAccessControlByRole
-	// matches CourseLecturer against any role suffix, so "is a lecturer of some
-	// course" passes without needing a courseID. Don't refactor this back under
-	// :courseID without re-checking that comment.
+	// Realm-wide Keycloak user search, for adding course staff and org members. Not nested under
+	// :courseID because the query has no course context; permissionValidation.CheckAccessControlByRole
+	// matches CourseLecturer against any role suffix, so "is a lecturer of some course" passes
+	// without needing a courseID, and OrgAdmin passes for an Admin of any org. Don't refactor this
+	// back under :courseID without re-checking that comment.
 	realmWide := router.Group("/keycloak", authMiddleware())
 	realmWide.GET("/users/search",
-		permissionValidation.CheckAccessControlByRole(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer),
+		permissionValidation.CheckAccessControlByRole(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer, permissionValidation.OrgAdmin),
 		s.searchKeycloakUsers,
 	)
 	// Service-account health probe for the admin system-status page.
@@ -325,7 +325,8 @@ func staffMemberID(c *gin.Context) (string, bool) {
 }
 
 // searchKeycloakUsers godoc
-// @Summary Search Keycloak users by name, email, or username
+// @Summary Search Keycloak users by name, email, username, or university login
+// @Description Match the name, email and username as Keycloak's search does, and the university login exactly, ignoring case. The user with that login is listed first.
 // @Tags keycloak
 // @Produce json
 // @Param q query string true "Search query (>=2 characters)"

@@ -106,7 +106,14 @@ export const coreKeys = {
 
   orgs: {
     all: () => ['orgs'] as const,
+    // Keyed by the org roles of the caller's token and its issue time, so every new token loads the
+    // list anew: the server leaves out an org created after the token, even with the same roles. The
+    // roles segment is an array, so the key never equals byId or members, whatever the URL passes as
+    // an org id. Without arguments, the key reaches the lists of every token.
+    own: (orgRoles?: readonly string[], tokenIssuedAt?: number | null) =>
+      ['orgs', 'own', orgRoles, tokenIssuedAt] as const,
     byId: (orgId: Id) => ['orgs', orgId] as const,
+    members: (orgId: Id) => ['orgs', orgId, 'members'] as const,
   },
 
   privacy: {

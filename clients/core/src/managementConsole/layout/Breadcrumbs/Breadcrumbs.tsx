@@ -1,9 +1,9 @@
 import { useStudentStore } from '@core/managementConsole/shared/store/student.store'
 import { coreApi } from '@core/network/api'
 import { coreKeys } from '@core/network/cache'
-import { useOrg } from '@core/network/hooks/useOrgs'
+import { useOrg, useOwnOrgs } from '@core/network/hooks/useOrgs'
 import { useQuery } from '@tanstack/react-query'
-import { useCourseStore } from '@tumaet/prompt-shared-state'
+import { Role, useAuthStore, useCourseStore } from '@tumaet/prompt-shared-state'
 import {
   Breadcrumb,
   BreadcrumbEllipsis,
@@ -47,6 +47,8 @@ export const Breadcrumbs: React.FC = () => {
   const navigate = useNavigate()
   const { courses } = useCourseStore()
   const { studentsById } = useStudentStore()
+  const { permissions } = useAuthStore()
+  const { data: ownOrgs } = useOwnOrgs()
 
   const segments = location.pathname.split('/').filter(Boolean)
   const currentPhaseId = segments[1] === 'course' ? segments[3] : undefined
@@ -56,8 +58,16 @@ export const Breadcrumbs: React.FC = () => {
     queryFn: () => coreApi.coursePhases.participations(currentPhaseId ?? ''),
     enabled: !!currentPhaseId && hasParticipantSegment,
   })
-  const currentOrgId = segments[1] === 'admin' && segments[2] === 'orgs' ? segments[3] : undefined
-  const { data: currentOrg } = useOrg(currentOrgId)
+  const currentOrgId =
+    segments[1] === 'admin' && segments[2] === 'orgs'
+      ? segments[3]
+      : segments[1] === 'org'
+        ? segments[2]
+        : undefined
+  const canReadCurrentOrg =
+    permissions.includes(Role.PROMPT_ADMIN) ||
+    (ownOrgs?.some((org) => org.id === currentOrgId) ?? false)
+  const { data: currentOrg } = useOrg(canReadCurrentOrg ? currentOrgId : undefined)
 
   const { tableSearch } = (location.state as TableReturnState | null) ?? {}
   const parentPath = `/${segments.slice(0, -1).join('/')}`
@@ -109,6 +119,11 @@ export const Breadcrumbs: React.FC = () => {
             path: `/management/admin/orgs/${pathSegments[3]}`,
           })
         }
+      } else if (pathSegments[1] === 'org' && pathSegments.length > 2) {
+        breadcrumbs.push({
+          title: currentOrg?.name ?? 'Org',
+          path: `/management/org/${pathSegments[2]}`,
+        })
       } else if (pathSegments[1] === 'course' && pathSegments.length >= 3) {
         const courseId = pathSegments[2]
         const course = courses.find((c) => c.id === courseId)

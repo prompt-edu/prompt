@@ -193,6 +193,16 @@ INSERT INTO student (id, first_name, last_name, email, matriculation_number, uni
 INSERT INTO student (id, first_name, last_name, email, matriculation_number, university_login, has_university_account, gender, nationality, study_program, study_degree, current_semester, last_modified)
     VALUES ('e0000010-0000-0000-0000-000000000010', 'Ida', 'Inactive', 'inactive_subject@example.com', '00000010', 'ii10tum', true, 'female', 'DE', 'Computer Science', 'bachelor', 3, '2015-01-01 12:00:00.000000');
 
+-- The demo org. Its Keycloak groups /Orgs/demo-chair/{Admin,Member}, its client roles
+-- org-demo-chair-{Admin,Member} and the users org-admin and org-member are part of both
+-- realm imports (keycloakConfig.json, e2e/keycloak/realm.json), since membership lives
+-- in Keycloak only. created_at lies in the past: a token issued before an org's creation
+-- grants nothing on it. An upsert rather than a delete, because course.org_id restricts
+-- deleting an org that a course was assigned to after seeding.
+INSERT INTO org (id, parent_org_id, name, slug, school, university, website, contact_email, created_at)
+    VALUES ('7a000001-0000-0000-0000-000000000001', NULL, 'Demo Chair', 'demo-chair', 'School of Computation, Information and Technology', 'Technical University of Munich', 'https://aet.cit.tum.de', 'demo-chair@example.com', '2026-01-01 00:00:00+00')
+    ON CONFLICT (id) DO UPDATE SET parent_org_id = EXCLUDED.parent_org_id, name = EXCLUDED.name, slug = EXCLUDED.slug, school = EXCLUDED.school, university = EXCLUDED.university, website = EXCLUDED.website, contact_email = EXCLUDED.contact_email, created_at = EXCLUDED.created_at;
+
 INSERT INTO course (id, name, start_date, end_date, semester_tag, course_type, ects, restricted_data, student_readable_data, template, short_description, long_description, archived, archived_on)
     VALUES ('d7307be2-d3dc-496e-86f0-643bff6cc1c8', 'iPraktikum', '2024-10-13', '2025-02-14', 'ios2425', 'practical course', 10, '{"icon": "graduation-cap", "bg-color": "bg-blue-100"}', '{"icon": "graduation-cap", "bg-color": "bg-blue-100"}', false, 'iOS practical course', 'The iPraktikum is a hands-on iOS development course.', false, NULL);
 INSERT INTO course (id, name, start_date, end_date, semester_tag, course_type, ects, restricted_data, student_readable_data, template, short_description, long_description, archived, archived_on)

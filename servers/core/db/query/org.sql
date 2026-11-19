@@ -9,8 +9,25 @@ UPDATE org SET created_at = clock_timestamp() WHERE id = $1 RETURNING *;
 -- name: GetOrgByID :one
 SELECT * FROM org WHERE id = $1;
 
+-- name: TryLockOrgMembership :one
+-- Serializes the membership changes of one org with each other and with the org's deletion until
+-- the transaction ends, or returns false at once while either holds the lock. Details edits take no
+-- part in it.
+SELECT pg_try_advisory_xact_lock(hashtextextended('org_membership:' || sqlc.arg(org_id)::uuid::text, 0));
+
+-- name: LockOrgMembershipForSession :exec
+-- Waits for the lock of TryLockOrgMembership and holds it until UnlockOrgMembership, so it outlives a
+-- transaction of the same connection that fails to commit.
+SELECT pg_advisory_lock(hashtextextended('org_membership:' || sqlc.arg(org_id)::uuid::text, 0));
+
+-- name: UnlockOrgMembership :one
+SELECT pg_advisory_unlock(hashtextextended('org_membership:' || sqlc.arg(org_id)::uuid::text, 0));
+
 -- name: GetOrgIDBySlug :one
 SELECT id FROM org WHERE slug = $1;
+
+-- name: GetOrgsBySlugs :many
+SELECT * FROM org WHERE slug = ANY(sqlc.arg(slugs)::text[]) ORDER BY name ASC, slug ASC;
 
 -- name: GetAllOrgs :many
 SELECT * FROM org ORDER BY name ASC, slug ASC;

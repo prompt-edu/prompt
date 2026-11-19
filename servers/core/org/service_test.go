@@ -15,6 +15,8 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/core/keycloakRealmManager"
+	"github.com/prompt-edu/prompt/servers/core/keycloakRealmManager/keycloakRealmDTO"
 	"github.com/prompt-edu/prompt/servers/core/org/orgDTO"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 	"github.com/stretchr/testify/assert"
@@ -79,7 +81,16 @@ func (suite *OrgServiceTestSuite) SetupSuite() {
 	suite.cleanup = cleanup
 	suite.conn = testDB.Conn
 	suite.keycloak = &keycloakSpy{}
-	suite.service = NewOrgService(*testDB.Queries, testDB.Conn, suite.keycloak.create, suite.keycloak.delete, suite.keycloak.exist, suite.keycloak.add)
+	directory := newFakeMemberDirectory()
+	suite.service = NewOrgService(*testDB.Queries, testDB.Conn, suite.keycloak.create, suite.keycloak.delete, suite.keycloak.exist, suite.keycloak.add, directory)
+}
+
+// withMembers returns the suite's service with its own member directory holding the users.
+func (suite *OrgServiceTestSuite) withMembers(users ...keycloakRealmDTO.StaffMember) (*OrgService, *fakeMemberDirectory) {
+	members := newFakeMemberDirectory(users...)
+	service := *suite.service
+	service.members = members
+	return &service, members
 }
 
 func (suite *OrgServiceTestSuite) TearDownSuite() {
@@ -135,6 +146,19 @@ func (suite *OrgServiceTestSuite) failCommitOn(event, row, slug string) {
 	require.NoError(suite.T(), err)
 	suite.T().Cleanup(func() {
 		_, err := suite.conn.Exec(suite.ctx, "DROP TRIGGER fail_commit ON org; DROP FUNCTION fail_commit();")
+		require.NoError(suite.T(), err)
+	})
+}
+
+func (suite *OrgServiceTestSuite) endSessionOnCommit(slug string) {
+	_, err := suite.conn.Exec(suite.ctx, fmt.Sprintf(`
+		CREATE FUNCTION end_session() RETURNS trigger LANGUAGE plpgsql AS $fn$
+		BEGIN PERFORM pg_terminate_backend(pg_backend_pid()); PERFORM pg_sleep(5); RETURN NULL; END $fn$;
+		CREATE CONSTRAINT TRIGGER end_session AFTER DELETE ON org DEFERRABLE INITIALLY DEFERRED
+		FOR EACH ROW WHEN (OLD.slug = '%s') EXECUTE FUNCTION end_session();`, slug))
+	require.NoError(suite.T(), err)
+	suite.T().Cleanup(func() {
+		_, err := suite.conn.Exec(suite.ctx, "DROP TRIGGER end_session ON org; DROP FUNCTION end_session();")
 		require.NoError(suite.T(), err)
 	})
 }
@@ -558,11 +582,404 @@ func (suite *OrgServiceTestSuite) TestDeleteOrgReportsMembersThatCouldNotBeReAdd
 	assert.Equal(suite.T(), 1, suite.countOrgs("re-add-fails"))
 }
 
+func (suite *OrgServiceTestSuite) TestDeleteOrgRestoresKeycloakWhenTheCommitEndsTheSession() {
+	org := suite.createOrg("delete-session-ends", nil)
+	suite.endSessionOnCommit("delete-session-ends")
+	suite.keycloak.members = orgMembers{permissionValidation.OrgAdmin: {"admin-1"}}
+	service, _ := suite.withMembers(staffMember("ada", "ad12min"))
+	addAda := func() error {
+		_, _, err := service.AddOrgMember(suite.ctx, org.ID, "ada", permissionValidation.OrgMember, caller)
+		return err
+	}
+	var duringRestore error
+	suite.keycloak.onCreate = func(string) { duringRestore = addAda() }
+
+	_, err := service.DeleteOrg(suite.ctx, org.ID)
+
+	assert.ErrorContains(suite.T(), err, "failed to commit transaction")
+	assert.NotErrorIs(suite.T(), err, ErrOrgMembersRemoved, "every member is back")
+	assert.Equal(suite.T(), 1, suite.countOrgs("delete-session-ends"))
+	assert.Equal(suite.T(), []string{"delete-session-ends", "delete-session-ends"}, suite.keycloak.created, "the failed commit is followed by a restore")
+	assert.Equal(suite.T(), []orgMembers{suite.keycloak.members}, suite.keycloak.added)
+	assert.ErrorIs(suite.T(), duringRestore, ErrMembershipBusy, "the restore holds the lock again")
+	assert.NoError(suite.T(), addAda(), "the restore released the lock")
+}
+
+func (suite *OrgServiceTestSuite) TestDeleteOrgCommitsWhenTheRequestEndsDuringKeycloak() {
+	org := suite.createOrg("delete-request-ends", nil)
+	ctx, cancel := context.WithCancel(suite.ctx)
+	defer cancel()
+	suite.keycloak.onDelete = func(string) { cancel() }
+
+	slug, err := suite.service.DeleteOrg(ctx, org.ID)
+
+	require.NoError(suite.T(), err)
+	assert.Equal(suite.T(), "delete-request-ends", slug)
+	assert.Zero(suite.T(), suite.countOrgs("delete-request-ends"))
+	assert.Equal(suite.T(), []string{"delete-request-ends"}, suite.keycloak.created, "nothing is restored")
+}
+
 func (suite *OrgServiceTestSuite) TestDeleteOrgNotFound() {
 	_, err := suite.service.DeleteOrg(suite.ctx, uuid.New())
 
 	assert.ErrorIs(suite.T(), err, ErrOrgNotFound)
 	assert.Empty(suite.T(), suite.keycloak.deleted)
+}
+
+func (suite *OrgServiceTestSuite) TestGetOwnOrgsReturnsTheTokensOrgsWithTheStrongerRole() {
+	adminOrg := suite.createOrg("own-admin", nil)
+	memberOrg := suite.createOrg("own-member", nil)
+	suite.createOrg("own-unrelated", nil)
+
+	ownOrgs, err := suite.service.GetOwnOrgs(suite.ctx, map[string]bool{
+		"org-own-admin-Member":           true,
+		"org-own-admin-Admin":            true,
+		"org-own-member-Member":          true,
+		"org-own-unrelated-Admin":        false,
+		"org-own-unknown-Admin":          true,
+		"org-own-member-cg-Admin":        true,
+		"ws25-own-admin-Lecturer":        true,
+		permissionValidation.PromptAdmin: true,
+	}, time.Now().Add(time.Minute))
+
+	require.NoError(suite.T(), err)
+	require.Len(suite.T(), ownOrgs, 2)
+	assert.Equal(suite.T(), adminOrg.ID, ownOrgs[0].ID)
+	assert.Equal(suite.T(), permissionValidation.OrgAdmin, ownOrgs[0].Role)
+	assert.Equal(suite.T(), memberOrg.ID, ownOrgs[1].ID)
+	assert.Equal(suite.T(), "own-member", ownOrgs[1].Slug)
+	assert.Equal(suite.T(), permissionValidation.OrgMember, ownOrgs[1].Role)
+}
+
+func (suite *OrgServiceTestSuite) TestGetOwnOrgsLeavesOutAnOrgCreatedAfterTheToken() {
+	org := suite.createOrg("own-later", nil)
+
+	ownOrgs, err := suite.service.GetOwnOrgs(suite.ctx, map[string]bool{"org-own-later-Admin": true}, org.CreatedAt.Add(-time.Minute))
+
+	require.NoError(suite.T(), err)
+	assert.Empty(suite.T(), ownOrgs)
+}
+
+func (suite *OrgServiceTestSuite) TestGetOwnOrgsWithoutOrgRolesIsAnEmptyList() {
+	ownOrgs, err := suite.service.GetOwnOrgs(suite.ctx, map[string]bool{"ws25-ase-Lecturer": true}, time.Now())
+
+	require.NoError(suite.T(), err)
+	assert.NotNil(suite.T(), ownOrgs)
+	assert.Empty(suite.T(), ownOrgs)
+}
+
+var caller = Caller{UserID: "caller"}
+
+// A member changed from a stale list may have been removed since, so changing their role never adds
+// them back.
+func (suite *OrgServiceTestSuite) TestUpdateOrgMemberRoleNeverAddsAUserToTheOrg() {
+	org := suite.createOrg("members-update-removed", nil)
+	service, members := suite.withMembers(staffMember("ada", "ad12min"))
+
+	_, _, err := service.UpdateOrgMemberRole(suite.ctx, org.ID, "ada", permissionValidation.OrgAdmin, caller)
+
+	assert.ErrorIs(suite.T(), err, ErrNotOrgMember)
+	assert.Empty(suite.T(), members.roleOf("members-update-removed", "ada"))
+}
+
+func (suite *OrgServiceTestSuite) TestMembershipOfAnUnknownOrgIsNotFound() {
+	service, _ := suite.withMembers(staffMember("ada", "ad12min"))
+
+	_, err := service.GetOrgMembers(suite.ctx, uuid.New())
+	assert.ErrorIs(suite.T(), err, ErrOrgNotFound)
+	_, _, err = service.AddOrgMember(suite.ctx, uuid.New(), "ada", permissionValidation.OrgMember, caller)
+	assert.ErrorIs(suite.T(), err, ErrOrgNotFound)
+	_, _, err = service.UpdateOrgMemberRole(suite.ctx, uuid.New(), "ada", permissionValidation.OrgMember, caller)
+	assert.ErrorIs(suite.T(), err, ErrOrgNotFound)
+	_, _, err = service.RemoveOrgMember(suite.ctx, uuid.New(), "ada", caller)
+	assert.ErrorIs(suite.T(), err, ErrOrgNotFound)
+}
+
+func (suite *OrgServiceTestSuite) TestUpdateOrgMemberRoleChangesTheRoleOfExactlyThatUser() {
+	org := suite.createOrg("members-role", nil)
+	// max has no university login, so the table shows his username, which is ada's university login
+	ada := staffMember("ada", "ad12min")
+	max := keycloakRealmDTO.StaffMember{KeycloakUserID: "max", Username: "ad12min"}
+	service, members := suite.withMembers(ada, max)
+	require.NoError(suite.T(), members.SetOrgMemberRole(suite.ctx, "members-role", "max", permissionValidation.OrgMember))
+
+	gotOrg, previousRole, err := service.UpdateOrgMemberRole(suite.ctx, org.ID, "max", permissionValidation.OrgAdmin, caller)
+
+	require.NoError(suite.T(), err)
+	assert.Equal(suite.T(), org.ID, gotOrg.ID)
+	assert.Equal(suite.T(), permissionValidation.OrgMember, previousRole)
+	assert.Equal(suite.T(), permissionValidation.OrgAdmin, members.roleOf("members-role", "max"))
+	assert.Empty(suite.T(), members.roleOf("members-role", "ada"))
+}
+
+func (suite *OrgServiceTestSuite) TestUpdateOrgMemberRoleRejectsTheCallersOwnMembership() {
+	org := suite.createOrg("members-self-role", nil)
+	service, members := suite.withMembers(staffMember("ada", "ad12min"))
+	require.NoError(suite.T(), members.SetOrgMemberRole(suite.ctx, "members-self-role", "ada", permissionValidation.OrgAdmin))
+
+	_, _, err := service.UpdateOrgMemberRole(suite.ctx, org.ID, "ada", permissionValidation.OrgMember, Caller{UserID: "ada"})
+
+	assert.ErrorIs(suite.T(), err, ErrOwnMembership)
+	assert.Equal(suite.T(), permissionValidation.OrgAdmin, members.roleOf("members-self-role", "ada"))
+}
+
+func (suite *OrgServiceTestSuite) TestUpdateOrgMemberRoleOfAnUnknownUser() {
+	org := suite.createOrg("members-ghost", nil)
+	service, _ := suite.withMembers()
+
+	_, _, err := service.UpdateOrgMemberRole(suite.ctx, org.ID, "ghost", permissionValidation.OrgMember, caller)
+
+	assert.ErrorIs(suite.T(), err, keycloakRealmManager.ErrUserNotFound)
+}
+
+func (suite *OrgServiceTestSuite) TestRemoveOrgMemberTakesTheUserOutOfTheOrg() {
+	org := suite.createOrg("members-remove", nil)
+	service, members := suite.withMembers(staffMember("ada", "ad12min"))
+	require.NoError(suite.T(), members.SetOrgMemberRole(suite.ctx, "members-remove", "ada", permissionValidation.OrgMember))
+
+	gotOrg, previousRole, err := service.RemoveOrgMember(suite.ctx, org.ID, "ada", caller)
+
+	require.NoError(suite.T(), err)
+	assert.Equal(suite.T(), org.ID, gotOrg.ID)
+	assert.Equal(suite.T(), permissionValidation.OrgMember, previousRole)
+	assert.Empty(suite.T(), members.roleOf("members-remove", "ada"))
+}
+
+func (suite *OrgServiceTestSuite) TestRemoveOrgMemberRefusesAUserWhoIsNotAMember() {
+	org := suite.createOrg("members-remove-twice", nil)
+	service, members := suite.withMembers(staffMember("ada", "ad12min"))
+	writes := 0
+	members.beforeWrite = func() { writes++ }
+
+	_, _, err := service.RemoveOrgMember(suite.ctx, org.ID, "ada", caller)
+
+	assert.ErrorIs(suite.T(), err, ErrNotOrgMember)
+	assert.Zero(suite.T(), writes)
+}
+
+func (suite *OrgServiceTestSuite) TestRemoveOrgMemberRejectsTheCallersOwnMembership() {
+	org := suite.createOrg("members-leave", nil)
+	service, members := suite.withMembers(staffMember("ada", "ad12min"))
+	require.NoError(suite.T(), members.SetOrgMemberRole(suite.ctx, "members-leave", "ada", permissionValidation.OrgAdmin))
+
+	_, _, err := service.RemoveOrgMember(suite.ctx, org.ID, "ada", Caller{UserID: "ada"})
+
+	assert.ErrorIs(suite.T(), err, ErrOwnMembership)
+	assert.Equal(suite.T(), permissionValidation.OrgAdmin, members.roleOf("members-leave", "ada"))
+}
+
+func (suite *OrgServiceTestSuite) TestAddOrgMemberAddsAUserWithoutAnOrgRole() {
+	org := suite.createOrg("members-add-new", nil)
+	ada := staffMember("ada", "ad12min")
+	service, members := suite.withMembers(ada)
+
+	gotOrg, previousRole, err := service.AddOrgMember(suite.ctx, org.ID, "ada", permissionValidation.OrgMember, caller)
+
+	require.NoError(suite.T(), err)
+	assert.Equal(suite.T(), org.ID, gotOrg.ID)
+	assert.Empty(suite.T(), previousRole)
+	assert.Equal(suite.T(), permissionValidation.OrgMember, members.roleOf("members-add-new", "ada"))
+	listed, err := service.GetOrgMembers(suite.ctx, org.ID)
+	require.NoError(suite.T(), err)
+	assert.Equal(suite.T(), []keycloakRealmDTO.OrgMember{{StaffMember: ada, Role: permissionValidation.OrgMember}}, listed)
+}
+
+// A user picked from a stale list may have become a member since, so adding them never changes
+// their role.
+func (suite *OrgServiceTestSuite) TestAddOrgMemberNeverChangesTheRoleOfAMember() {
+	org := suite.createOrg("members-add-existing", nil)
+	service, members := suite.withMembers(staffMember("ada", "ad12min"))
+	require.NoError(suite.T(), members.SetOrgMemberRole(suite.ctx, "members-add-existing", "ada", permissionValidation.OrgAdmin))
+
+	_, _, err := service.AddOrgMember(suite.ctx, org.ID, "ada", permissionValidation.OrgMember, caller)
+
+	assert.ErrorIs(suite.T(), err, ErrAlreadyOrgMember)
+	assert.Equal(suite.T(), permissionValidation.OrgAdmin, members.roleOf("members-add-existing", "ada"))
+}
+
+func (suite *OrgServiceTestSuite) TestAddOrgMemberOfAnUnknownUser() {
+	org := suite.createOrg("members-add-ghost", nil)
+	service, _ := suite.withMembers()
+
+	_, _, err := service.AddOrgMember(suite.ctx, org.ID, "ghost", permissionValidation.OrgMember, caller)
+
+	assert.ErrorIs(suite.T(), err, keycloakRealmManager.ErrUserNotFound)
+}
+
+// awaitSignal waits until a goroutine signals, and fails the test when it returns first or never
+// signals, so a broken lock fails the test instead of hanging it.
+func (suite *OrgServiceTestSuite) awaitSignal(signal <-chan struct{}, done <-chan error, what string) {
+	select {
+	case <-signal:
+	case err := <-done:
+		suite.T().Fatalf("%s returned before it got there: %v", what, err)
+	case <-time.After(5 * time.Second):
+		suite.T().Fatalf("%s never got there", what)
+	}
+}
+
+// assertWaiting fails the test when the goroutine returns within a moment.
+func (suite *OrgServiceTestSuite) assertWaiting(done <-chan error, what string) {
+	select {
+	case err := <-done:
+		suite.T().Fatalf("%s did not wait: %v", what, err)
+	case <-time.After(200 * time.Millisecond):
+	}
+}
+
+// receive returns the result of a goroutine, and fails the test when it never returns.
+func (suite *OrgServiceTestSuite) receive(done <-chan error, what string) error {
+	select {
+	case err := <-done:
+		return err
+	case <-time.After(5 * time.Second):
+		suite.T().Fatalf("%s never returned", what)
+		return nil
+	}
+}
+
+func (suite *OrgServiceTestSuite) TestMembershipChangesAreRefusedWhileTheOrgIsDeleted() {
+	org := suite.createOrg("members-deleting", nil)
+	service, members := suite.withMembers(staffMember("ada", "ad12min"))
+	var changeErr error
+	suite.keycloak.onDelete = func(string) {
+		_, _, changeErr = service.AddOrgMember(suite.ctx, org.ID, "ada", permissionValidation.OrgMember, caller)
+	}
+
+	_, err := service.DeleteOrg(suite.ctx, org.ID)
+
+	require.NoError(suite.T(), err)
+	assert.ErrorIs(suite.T(), changeErr, ErrMembershipBusy)
+	assert.Empty(suite.T(), members.roleOf("members-deleting", "ada"))
+}
+
+// A deletion re-adds the members it found when it fails, so it must not find them while a change
+// is still under way in Keycloak.
+func (suite *OrgServiceTestSuite) TestDeletionWaitsForAMembershipChangeInKeycloak() {
+	org := suite.createOrg("members-changing", nil)
+	service, members := suite.withMembers(staffMember("ada", "ad12min"))
+	require.NoError(suite.T(), members.SetOrgMemberRole(suite.ctx, "members-changing", "ada", permissionValidation.OrgMember))
+	inKeycloak, release := make(chan struct{}), make(chan struct{})
+	releaseChange := sync.OnceFunc(func() { close(release) })
+	defer releaseChange()
+	members.beforeWrite = func() {
+		close(inKeycloak)
+		<-release
+	}
+
+	changed := make(chan error, 1)
+	go func() {
+		_, _, err := service.RemoveOrgMember(suite.ctx, org.ID, "ada", caller)
+		changed <- err
+	}()
+	suite.awaitSignal(inKeycloak, changed, "the membership change")
+	deleted := make(chan error, 1)
+	go func() {
+		_, err := service.DeleteOrg(suite.ctx, org.ID)
+		deleted <- err
+	}()
+	suite.assertWaiting(deleted, "the deletion")
+	releaseChange()
+
+	require.NoError(suite.T(), suite.receive(changed, "the membership change"))
+	require.NoError(suite.T(), suite.receive(deleted, "the deletion"))
+	assert.Equal(suite.T(), []string{"members-changing"}, suite.keycloak.deleted)
+}
+
+// A failed commit releases the deletion's own locks before it re-adds the members it found, so a
+// change made in between would be undone by that restore.
+func (suite *OrgServiceTestSuite) TestMembershipChangesAreRefusedDuringTheRestoreOfAFailedDeletion() {
+	org := suite.createOrg("members-restoring", nil)
+	service, members := suite.withMembers(staffMember("ada", "ad12min"))
+	require.NoError(suite.T(), members.SetOrgMemberRole(suite.ctx, "members-restoring", "ada", permissionValidation.OrgMember))
+	suite.keycloak.members = orgMembers{permissionValidation.OrgMember: {"ada"}}
+	suite.failCommitOn("DELETE", "OLD", "members-restoring")
+	removeAda := func() error {
+		_, _, err := service.RemoveOrgMember(suite.ctx, org.ID, "ada", caller)
+		return err
+	}
+	var duringDeletion, duringRestore error
+	suite.keycloak.onDelete = func(string) { duringDeletion = removeAda() }
+	// The restore recreates the groups before it re-adds the members
+	suite.keycloak.onCreate = func(string) { duringRestore = removeAda() }
+
+	_, err := service.DeleteOrg(suite.ctx, org.ID)
+
+	assert.ErrorContains(suite.T(), err, "commit rejected")
+	assert.Len(suite.T(), suite.keycloak.added, 1, "the restore re-added the members")
+	assert.ErrorIs(suite.T(), duringDeletion, ErrMembershipBusy)
+	assert.ErrorIs(suite.T(), duringRestore, ErrMembershipBusy)
+	assert.Equal(suite.T(), permissionValidation.OrgMember, members.roleOf("members-restoring", "ada"))
+	require.NoError(suite.T(), removeAda(), "the restore released the lock")
+	assert.Empty(suite.T(), members.roleOf("members-restoring", "ada"))
+}
+
+// A role change adds the new role before it removes the other one, so two overlapping changes of a
+// user could leave them with neither. A change that waited for the other one would hold a pool
+// connection meanwhile, so it is refused instead.
+func (suite *OrgServiceTestSuite) TestAMembershipChangeIsRefusedWhileAnotherOneOfTheOrgIsUnderWay() {
+	org := suite.createOrg("members-turns", nil)
+	otherOrg := suite.createOrg("members-turns-other", nil)
+	service, members := suite.withMembers(staffMember("ada", "ad12min"), staffMember("max", "ma12xim"))
+	require.NoError(suite.T(), members.SetOrgMemberRole(suite.ctx, "members-turns", "ada", permissionValidation.OrgMember))
+	require.NoError(suite.T(), members.SetOrgMemberRole(suite.ctx, "members-turns-other", "ada", permissionValidation.OrgMember))
+	writes, release := make(chan struct{}, 1), make(chan struct{})
+	releaseWrites := sync.OnceFunc(func() { close(release) })
+	defer releaseWrites()
+	members.beforeWrite = func() {
+		writes <- struct{}{}
+		<-release
+	}
+
+	first := make(chan error, 1)
+	go func() {
+		_, _, err := service.UpdateOrgMemberRole(suite.ctx, org.ID, "ada", permissionValidation.OrgAdmin, caller)
+		first <- err
+	}()
+	suite.awaitSignal(writes, first, "the first membership change")
+	members.beforeWrite = nil
+
+	_, _, err := service.UpdateOrgMemberRole(suite.ctx, org.ID, "max", permissionValidation.OrgAdmin, caller)
+	assert.ErrorIs(suite.T(), err, ErrMembershipBusy, "a change of the same org")
+	_, _, err = service.UpdateOrgMemberRole(suite.ctx, otherOrg.ID, "ada", permissionValidation.OrgAdmin, caller)
+	assert.NoError(suite.T(), err, "a change of another org")
+	releaseWrites()
+
+	require.NoError(suite.T(), suite.receive(first, "the first membership change"))
+	assert.Equal(suite.T(), permissionValidation.OrgAdmin, members.roleOf("members-turns", "ada"))
+	assert.Empty(suite.T(), members.roleOf("members-turns", "max"))
+	assert.Equal(suite.T(), permissionValidation.OrgAdmin, members.roleOf("members-turns-other", "ada"))
+}
+
+// Other requests may hold every other connection of the pool, so a deletion that needs a second
+// connection while it holds the lock would keep the org's membership locked until they let one go.
+func (suite *OrgServiceTestSuite) TestDeleteOrgNeedsOneConnection() {
+	config, err := pgxpool.ParseConfig(suite.conn.Config().ConnString())
+	require.NoError(suite.T(), err)
+	config.MaxConns = 1
+	pool, err := pgxpool.NewWithConfig(suite.ctx, config)
+	require.NoError(suite.T(), err)
+	defer pool.Close()
+	service := *suite.service
+	service.conn = pool
+	service.queries = *db.New(pool)
+
+	deleted := suite.createOrg("one-connection", nil)
+	restored := suite.createOrg("one-connection-restored", nil)
+	suite.failCommitOn("DELETE", "OLD", "one-connection-restored")
+	ctx, cancel := context.WithTimeout(suite.ctx, 5*time.Second)
+	defer cancel()
+
+	slug, err := service.DeleteOrg(ctx, deleted.ID)
+	require.NoError(suite.T(), err)
+	assert.Equal(suite.T(), "one-connection", slug)
+	_, err = service.DeleteOrg(ctx, restored.ID)
+	assert.ErrorContains(suite.T(), err, "commit rejected")
+	assert.Equal(suite.T(), 1, suite.countOrgs("one-connection-restored"))
+	// The lock is released: a membership change on another connection goes ahead
+	other, _ := suite.withMembers()
+	_, _, err = other.UpdateOrgMemberRole(ctx, restored.ID, "nobody", permissionValidation.OrgMember, caller)
+	assert.ErrorIs(suite.T(), err, keycloakRealmManager.ErrUserNotFound)
 }
 
 func TestOrgServiceTestSuite(t *testing.T) {

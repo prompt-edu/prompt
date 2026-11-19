@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"unicode"
 
 	"github.com/Nerzal/gocloak/v14"
 	"github.com/google/uuid"
@@ -420,9 +421,9 @@ func (s *KeycloakRealmService) GetKeycloakStatus(ctx context.Context) keycloakRe
 	}
 }
 
-// SearchKeycloakUsers performs a realm-wide search by username/email/name.
-// Authorization for the route is "is a lecturer of any course" - see the
-// comment in router.go.
+// SearchKeycloakUsers performs a realm-wide search by username/email/name, and for the user whose
+// university login is the query. Authorization for the route is "is a lecturer of any course" - see
+// the comment in router.go.
 func (s *KeycloakRealmService) SearchKeycloakUsers(ctx context.Context, query string, limit int) (keycloakRealmDTO.UserSearchResults, error) {
 	q := strings.TrimSpace(query)
 	if len(q) < 2 {
@@ -453,6 +454,14 @@ func (s *KeycloakRealmService) SearchKeycloakUsers(ctx context.Context, query st
 		log.Error("failed to search keycloak users: ", err)
 		return keycloakRealmDTO.UserSearchResults{}, fmt.Errorf("failed to search keycloak users: %w", err)
 	}
+	// Keycloak's search does not match user attributes, so a student's university login, which
+	// lecturers usually know them by, is looked up separately. Its match is listed first.
+	byLogin, err := s.getUsersByUniversityLogin(ctx, token.AccessToken, q, fetchMax)
+	if err != nil {
+		log.Error("failed to search keycloak users by university login: ", err)
+		return keycloakRealmDTO.UserSearchResults{}, fmt.Errorf("failed to search keycloak users by university login: %w", err)
+	}
+	users = appendNewUsers(byLogin, users)
 
 	truncated := len(users) > limit
 	if truncated {
@@ -468,6 +477,40 @@ func (s *KeycloakRealmService) SearchKeycloakUsers(ctx context.Context, query st
 		Results:   results,
 		Truncated: truncated,
 	}, nil
+}
+
+// getUsersByUniversityLogin returns the users whose university login is login, ignoring case, in
+// their full representation. A login holds neither whitespace nor a colon, both of which would split
+// Keycloak's attribute query, so a query with either finds nobody.
+func (s *KeycloakRealmService) getUsersByUniversityLogin(ctx context.Context, accessToken, login string, max int) ([]*gocloak.User, error) {
+	if strings.ContainsFunc(login, func(r rune) bool { return unicode.IsSpace(r) || r == ':' }) {
+		return nil, nil
+	}
+	attributeQuery := keycloakRealmDTO.UniversityLoginAttribute + ":" + login
+	// Without exact, Keycloak matches the attribute value as a substring
+	exact := true
+	brief := false
+	return s.client.GetUsers(ctx, accessToken, s.Realm, gocloak.GetUsersParams{
+		Q:                   &attributeQuery,
+		Exact:               &exact,
+		Max:                 &max,
+		BriefRepresentation: &brief,
+	})
+}
+
+// appendNewUsers appends the users of more that are not in users yet, keeping their order.
+func appendNewUsers(users, more []*gocloak.User) []*gocloak.User {
+	seen := make(map[string]bool, len(users)+len(more))
+	for _, user := range users {
+		seen[gocloak.PString(user.ID)] = true
+	}
+	for _, user := range more {
+		if !seen[gocloak.PString(user.ID)] {
+			seen[gocloak.PString(user.ID)] = true
+			users = append(users, user)
+		}
+	}
+	return users
 }
 
 func (s *KeycloakRealmService) AddStudentsToEditorGroup(ctx context.Context, courseID uuid.UUID, studentIDs []uuid.UUID) (keycloakRealmDTO.AddStudentsToGroupResponse, error) {

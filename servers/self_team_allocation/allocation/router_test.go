@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	"github.com/prompt-edu/prompt/servers/self_team_allocation/allocation/allocationDTO"
 	db "github.com/prompt-edu/prompt/servers/self_team_allocation/db/sqlc"
@@ -21,6 +22,7 @@ type AllocationRouterTestSuite struct {
 	suite.Suite
 	ctx     context.Context
 	router  *gin.Engine
+	service *AllocationService
 	cleanup func()
 }
 
@@ -32,7 +34,8 @@ func (suite *AllocationRouterTestSuite) SetupSuite() {
 	require.NoError(suite.T(), err)
 	suite.cleanup = cleanup
 
-	allocationService := NewAllocationService(*testDB.Queries)
+	allocationService := NewAllocationService(*testDB.Queries, testDB.Conn)
+	suite.service = allocationService
 
 	suite.router = gin.Default()
 	api := suite.router.Group("/api/course_phase/:coursePhaseID")
@@ -104,6 +107,56 @@ func (suite *AllocationRouterTestSuite) TestGetAllocationByCourseParticipationID
 	suite.router.ServeHTTP(resp, req)
 
 	require.Equal(suite.T(), http.StatusNotFound, resp.Code)
+}
+
+// tutorRouter authenticates every request as a course editor with the given login, so the tutor
+// scope resolves their teams instead of passing a lecturer through.
+func (suite *AllocationRouterTestSuite) tutorRouter(login string) *gin.Engine {
+	router := gin.Default()
+	api := router.Group("/api/course_phase/:coursePhaseID")
+	RegisterRoutes(api, suite.service, func(allowedRoles ...string) gin.HandlerFunc {
+		return func(c *gin.Context) {
+			keycloakTokenVerifier.SetTokenUser(c, keycloakTokenVerifier.TokenUser{IsEditor: true, UniversityLogin: login})
+			c.Next()
+		}
+	})
+	return router
+}
+
+func (suite *AllocationRouterTestSuite) TestTutorOfSeveralTeamsReadsOnlyTheirAllocations() {
+	const phase = "/api/course_phase/33333333-3333-3333-3333-333333333333/allocation"
+	router := suite.tutorRouter("pl34ead")
+
+	req, _ := http.NewRequest("GET", phase, nil)
+	resp := httptest.NewRecorder()
+	router.ServeHTTP(resp, req)
+
+	require.Equal(suite.T(), http.StatusOK, resp.Code)
+	var allocations []allocationDTO.AllocationWithParticipation
+	require.NoError(suite.T(), json.Unmarshal(resp.Body.Bytes(), &allocations))
+	teams := make([]string, 0, len(allocations))
+	for _, allocation := range allocations {
+		teams = append(teams, allocation.TeamAllocation.String())
+	}
+	require.ElementsMatch(suite.T(), []string{"dddddddd-0000-0000-0000-000000000001", "dddddddd-0000-0000-0000-000000000002"}, teams)
+
+	for participant, expected := range map[string]int{
+		"dddd0001-0000-0000-0000-000000000001": http.StatusOK,
+		"dddd0003-0000-0000-0000-000000000003": http.StatusForbidden,
+	} {
+		req, _ := http.NewRequest("GET", phase+"/"+participant, nil)
+		resp := httptest.NewRecorder()
+		router.ServeHTTP(resp, req)
+		require.Equal(suite.T(), expected, resp.Code, participant)
+	}
+}
+
+func (suite *AllocationRouterTestSuite) TestEditorWithoutTutorRowForbiddenInPhaseWithTutors() {
+	req, _ := http.NewRequest("GET", "/api/course_phase/33333333-3333-3333-3333-333333333333/allocation", nil)
+	resp := httptest.NewRecorder()
+	suite.tutorRouter("zz99zzz").ServeHTTP(resp, req)
+
+	require.Equal(suite.T(), http.StatusForbidden, resp.Code)
 }
 
 func TestAllocationRouterTestSuite(t *testing.T) {

@@ -112,9 +112,10 @@ export function TutorImportDialog() {
         <DialogHeader>
           <DialogTitle>Import Tutors</DialogTitle>
           <DialogDescription>
-            Import tutors from another course phase, from the editors of this course, or search all
-            students to add them directly. A tutor can lead several teams. Importing a tutor
-            replaces the teams they already lead, so each person starts with their current teams.
+            Import tutors from another course phase, from the lecturers and editors of this course,
+            or search all students to add them directly. A tutor can lead several teams. Importing a
+            tutor replaces the teams they already lead, so each person starts with their current
+            teams.
           </DialogDescription>
         </DialogHeader>
 

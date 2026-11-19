@@ -17,9 +17,9 @@ test.describe('assessment: participants diagrams', () => {
     )
     await phase.expectParticipantsLoaded()
 
-    // Assessment status, grade distribution and score level distribution. Each
-    // draws a mark even before anyone is graded, so the lecturer journey grading
-    // this phase in parallel cannot change the outcome.
-    await expectChartsDrawn(page, 3)
+    // Pass status donut, assessment status, grade distribution and score level
+    // distribution. Each draws a mark even before anyone is graded, so the
+    // lecturer journey grading this phase in parallel cannot change the outcome.
+    await expectChartsDrawn(page, 4)
   })
 })

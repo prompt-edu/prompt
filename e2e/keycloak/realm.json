@@ -704,7 +704,10 @@
           "ios2425-iPraktikum-Lecturer",
           "ios2425-iPraktikumFull-Lecturer"
         ]
-      }
+      },
+      "groups": [
+        "/Prompt/ios2425-iPraktikumFull/Lecturer"
+      ]
     },
     {
       "username": "course-editor",

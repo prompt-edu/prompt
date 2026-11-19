@@ -14,6 +14,8 @@ import { getAllocations } from './helpers'
 // them in the Editor group of iPraktikumFull.
 const { phaseId: PHASE_ID, ledTutorId, teams } = TEAM_ALLOCATION_TUTOR_SCOPE
 const EDITOR_NAME = 'Eduard Eduard'
+// course-lecturer is in the Lecturer group of iPraktikumFull, so Course Staff offers them too.
+const LECTURER_NAME = 'Lector Lector'
 const EDITOR_LOGIN = 'co69edt'
 
 interface TeamWithTutors {
@@ -121,6 +123,19 @@ test.describe('team allocation: a tutor leading several teams', () => {
 
   test.describe('as the lecturer', () => {
     test.use({ role: 'course-lecturer' })
+
+    test('offers course lecturers next to course editors', async ({ page }) => {
+      const phase = new TeamAllocationPage(page)
+      await phase.goto(SEEDED_COURSES.fullCourse.id, PHASE_ID, '/allocations')
+      await phase.expectAllocationsLoaded()
+
+      await page.getByRole('button', { name: 'Import Tutors' }).click()
+      const dialog = page.getByRole('dialog', { name: 'Import Tutors' })
+      await dialog.getByRole('tab', { name: 'Course Staff' }).click()
+
+      await expect(dialog.getByRole('checkbox', { name: LECTURER_NAME })).toBeEnabled()
+      await expect(dialog.getByRole('checkbox', { name: EDITOR_NAME })).toBeEnabled()
+    })
 
     test('adds a team to a course editor who already leads several', async ({ page }) => {
       const phase = new TeamAllocationPage(page)

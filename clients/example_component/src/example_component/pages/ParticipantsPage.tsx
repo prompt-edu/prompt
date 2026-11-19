@@ -3,6 +3,7 @@ import {
   CoursePhaseParticipationsTable,
   ErrorPage,
   ManagementPageHeader,
+  PassStatusSummary,
   QueryGate,
 } from '@tumaet/prompt-ui-components'
 import { useParams } from 'react-router-dom'
@@ -27,6 +28,10 @@ export const ParticipantsPage = () => {
           This table shows all participants of the Example Component phase.
         </p>
         <div className='w-full'>
+          <PassStatusSummary
+            participations={participationsQuery.data?.participations ?? []}
+            className='mb-4'
+          />
           <CoursePhaseParticipationsTable
             phaseId={phaseId}
             participants={participationsQuery.data?.participations ?? []}

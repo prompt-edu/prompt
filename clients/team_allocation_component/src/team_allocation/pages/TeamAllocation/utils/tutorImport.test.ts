@@ -8,6 +8,7 @@ import {
   isSelectableTutor,
   normalizeLogin,
   staffMemberToTutorCandidate,
+  staffToTutorCandidates,
   studentToTutorCandidate,
 } from './tutorImport'
 
@@ -28,6 +29,12 @@ describe('tutor import', () => {
       lastName: 'Editor',
       universityLogin: 'co69edt',
     })
+  })
+
+  it('offers lecturers and editors, a person in both groups once', () => {
+    const lecturer = { ...editor, keycloakUserID: 'kc-2', universityLogin: 'ab12lec' }
+    const candidates = staffToTutorCandidates({ lecturers: [lecturer, editor], editors: [editor] })
+    expect(candidates.map((candidate) => candidate.id)).toEqual(['kc-2', 'kc-1'])
   })
 
   it('imports a student under their id', () => {

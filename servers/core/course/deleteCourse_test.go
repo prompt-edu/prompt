@@ -36,7 +36,7 @@ func (p stubPhaseProvider) DeleteModuleDataForCourse(context.Context, string, uu
 	return p.cleaned, p.err
 }
 
-func newDeleteCourseRouter(service *CourseService) *gin.Engine {
+func newAdminCourseRouter(service *CourseService) *gin.Engine {
 	router := gin.New()
 	setupCourseRouter(router.Group("/api"), service, func() gin.HandlerFunc {
 		return sdkTestUtils.MockAuthMiddleware([]string{"PROMPT_Admin"})
@@ -59,13 +59,14 @@ func TestDeleteCourseStopsWhenAModuleFails(t *testing.T) {
 	moduleErr := fmt.Errorf("%w: http://team-allocation:8083/api/course_phase/x answered 500: secret detail", coursePhase.ErrModuleDeletionFailed)
 	service := NewCourseService(db.Queries{}, nil, stubPhaseProvider{err: moduleErr},
 		func(context.Context, string, string, string) error { return nil },
+		func(context.Context, string, string) error { return nil },
 		func(context.Context, uuid.UUID) error {
 			keycloakDeleted = true
 			return nil
 		},
 	)
 
-	resp := deleteCourseRequest(newDeleteCourseRouter(service), uuid.New())
+	resp := deleteCourseRequest(newAdminCourseRouter(service), uuid.New())
 
 	assert.Equal(t, http.StatusBadGateway, resp.Code, "a module failure is an upstream failure")
 	assert.NotContains(t, resp.Body.String(), "team-allocation", "the module URL must not reach the client")
@@ -95,6 +96,7 @@ func TestDeleteCourseChecksForPhasesAddedDuringTheModuleCleanup(t *testing.T) {
 	newService := func(cleaned []uuid.UUID, keycloakDeleted *bool) *CourseService {
 		return NewCourseService(*testDB.Queries, testDB.Conn, stubPhaseProvider{cleaned: cleaned},
 			func(context.Context, string, string, string) error { return nil },
+			func(context.Context, string, string) error { return nil },
 			func(ctx context.Context, _ uuid.UUID) error {
 				*keycloakDeleted = true
 				_, keycloakHadDeadline = ctx.Deadline()
@@ -106,7 +108,7 @@ func TestDeleteCourseChecksForPhasesAddedDuringTheModuleCleanup(t *testing.T) {
 	t.Run("a course that does not exist is not found", func(t *testing.T) {
 		keycloakDeleted := false
 
-		resp := deleteCourseRequest(newDeleteCourseRouter(newService(nil, &keycloakDeleted)), uuid.New())
+		resp := deleteCourseRequest(newAdminCourseRouter(newService(nil, &keycloakDeleted)), uuid.New())
 
 		assert.Equal(t, http.StatusNotFound, resp.Code)
 		assert.False(t, keycloakDeleted, "there is no course whose Keycloak groups could be deleted")

@@ -87,7 +87,7 @@ func (s *KeycloakRealmService) createCustomGroup(c *gin.Context) {
 
 	id, err := s.AddCustomGroup(c, courseID, newGroupName.GroupName)
 	if err != nil {
-		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
+		writeServiceError(c, err)
 		return
 	}
 

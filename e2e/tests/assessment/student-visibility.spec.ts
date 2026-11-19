@@ -18,7 +18,6 @@ import {
   putConfig,
   releaseResults,
   resetAssessmentPhase,
-  unreleaseResults,
 } from './helpers'
 
 const PHASE_ID = ASSESSMENT_FIXTURE_PHASES.visibility
@@ -52,7 +51,7 @@ const reset = async () => {
 test.use({ role: 'student2' })
 
 test.describe('assessment: student result visibility', () => {
-  test.beforeAll(async () => {
+  test.beforeEach(async () => {
     await reset()
     const lecturer = await apiAsRole('lecturer')
     try {
@@ -81,7 +80,7 @@ test.describe('assessment: student result visibility', () => {
     }
   })
 
-  test.afterAll(async () => {
+  test.afterEach(async () => {
     await reset()
   })
 
@@ -160,7 +159,6 @@ test.describe('assessment: student result visibility', () => {
     // switched off before the release.
     const lecturer = await apiAsRole('lecturer')
     try {
-      await unreleaseResults(lecturer, PHASE_ID)
       const competency = (await getAssessmentCategories(lecturer, PHASE_ID))[0].competencies[0]
       await gradeCompetency(
         lecturer,

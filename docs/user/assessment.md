@@ -84,7 +84,7 @@ Control when students can see their assessment results:
 
 - **Grade Suggestions**: Enable this when you want students to see their overall performance score
 - **Action Items**: Enable this to share specific feedback points and improvement suggestions with students
-- **Both Disabled**: Use when you want to keep all assessment results private (e.g., for administrative purposes only). If the assessment sheet is hidden as well, students see a note that no results are shared for this phase, and the release dialog warns you before you release
+- **Both Disabled**: Use when you want to keep all assessment results private (e.g., for administrative purposes only). If the assessment sheet is hidden as well, the release dialog warns you before you release. After the release, students see a note that no results are shared for this phase. Before the release, they see that results have not been released yet
 
 #### Optional Evaluation Types
 

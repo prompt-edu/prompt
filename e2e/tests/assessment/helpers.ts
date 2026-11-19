@@ -104,8 +104,10 @@ export interface ConfigOverrides {
 // PUT /config requires the full request body; start/deadline are set to a
 // generous open window so grading, completion, and (cleanup) unmarking work.
 // assessmentEnabled and the result visibility flags are only sent when
-// overridden, because an omitted flag keeps the phase's current value (the
-// behavior the settings card relies on).
+// overridden. An omitted assessmentEnabled keeps the phase's current value, but
+// omitted visibility flags reset to their defaults (grade suggestions and
+// action items visible, grading sheet hidden), so pass them whenever a
+// non-default value must survive the call.
 export async function putConfig(
   api: APIRequestContext,
   phaseId: string,

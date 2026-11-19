@@ -103,7 +103,7 @@ export const SchemaConfigurationCard = ({
         </div>
 
         {showToggle && (
-          <div className='ml-auto w-fit max-w-sm'>
+          <div className='w-fit max-w-sm'>
             <SettingsSwitchField
               checked={enabled}
               onCheckedChange={onEnabledChange}

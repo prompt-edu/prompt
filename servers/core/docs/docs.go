@@ -6776,6 +6776,22 @@ const docTemplate = `{
                 }
             }
         },
+        "applicationDTO.ApplicationProfilePicture": {
+            "type": "object",
+            "properties": {
+                "explanation": {
+                    "type": "string"
+                },
+                "hiddenUntilAccepted": {
+                    "description": "HiddenUntilAccepted tells applicants that reviewers do not see their picture.",
+                    "type": "boolean"
+                },
+                "requirement": {
+                    "description": "Requirement is \"off\", \"optional\", or \"required\".",
+                    "type": "string"
+                }
+            }
+        },
         "applicationDTO.CreateAnswerFileUpload": {
             "type": "object",
             "properties": {
@@ -7156,6 +7172,14 @@ const docTemplate = `{
                 },
                 "longDescription": {
                     "type": "string"
+                },
+                "profilePicture": {
+                    "description": "ProfilePicture tells the form whether and why to ask logged-in applicants for a picture.\nOnly set on the form of one application, not in the list of open applications.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/applicationDTO.ApplicationProfilePicture"
+                        }
+                    ]
                 },
                 "shortDescription": {
                     "type": "string"
@@ -8937,7 +8961,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "universityLogin": {
-                    "description": "UniversityLogin is the user's university_login attribute, the login phases match tutors\nagainst. It is empty when the user has none.",
+                    "description": "UniversityLogin is the user's university_login attribute, the login phases match tutors\nagainst. It is empty when the user has none or the lookup returned a brief representation.",
                     "type": "string"
                 },
                 "username": {

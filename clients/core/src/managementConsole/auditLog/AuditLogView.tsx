@@ -7,7 +7,6 @@ import {
 } from '@tumaet/prompt-ui-components'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useMemo } from 'react'
-import { AUDIT_PAGE_SIZE } from './auditLogPaging'
 import { AuditLogFilterBar } from './components/AuditLogFilterBar'
 import { getAuditLogColumns } from './components/auditLogColumns'
 import type { AuditLogFilters, AuditLogPage } from './interfaces/auditLog'
@@ -65,7 +64,9 @@ export const AuditLogView = ({
         <LoadingPage />
       ) : (
         <>
-          <PromptTable data={entries} columns={columns} pageSize={AUDIT_PAGE_SIZE} />
+          {/* The filter bar and the Newer/Older buttons search and page the whole log on the
+              server, so the table must not search, sort or page the loaded page on its own. */}
+          <PromptTable data={entries} columns={columns} serverDriven />
           {(hasNewer || hasOlder) && (
             <div className='flex items-center justify-center gap-2'>
               <Button variant='outline' onClick={onNewer} disabled={!hasNewer || isFetching}>

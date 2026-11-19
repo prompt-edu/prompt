@@ -16,6 +16,7 @@ import (
 	db "github.com/prompt-edu/prompt/servers/assessment/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/assessment/evaluations/evaluationCompletion"
 	"github.com/prompt-edu/prompt/servers/assessment/evaluations/evaluationDTO"
+	"github.com/prompt-edu/prompt/servers/assessment/teamScope"
 	"github.com/prompt-edu/prompt/servers/assessment/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -60,7 +61,7 @@ func (suite *EvaluationServiceTestSuite) SetupSuite() {
 	coursePhaseConfigService := coursePhaseConfig.NewCoursePhaseConfigService(*testDB.Queries, testDB.Conn, assessmentSchemas.NewAssessmentSchemaService(*testDB.Queries, testDB.Conn))
 	suite.evaluationService = NewEvaluationService(*testDB.Queries, testDB.Conn,
 		evaluationCompletion.NewEvaluationCompletionService(*testDB.Queries, testDB.Conn, coursePhaseConfig.GetTeamsForCoursePhase, coursePhaseConfigService),
-		coursePhaseConfigService)
+		coursePhaseConfigService, teamScope.ResolveOwnTutorID)
 
 	// Test data IDs matching the evaluations.sql dump
 	suite.testCoursePhaseID = uuid.MustParse("4179d58a-d00d-4fa7-94a5-397bc69fab02")

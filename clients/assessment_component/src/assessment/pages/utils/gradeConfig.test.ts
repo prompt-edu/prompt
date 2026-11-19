@@ -1,6 +1,18 @@
 import { describe, expect, it } from 'vitest'
 
-import { isValidGrade, validateGrade } from './gradeConfig'
+import { getGradeLongLabel, isValidGrade, validateGrade } from './gradeConfig'
+
+describe('getGradeLongLabel', () => {
+  it('names a predefined grade with its grade band', () => {
+    expect(getGradeLongLabel(1.0)).toBe('Very Good - 1.0')
+    expect(getGradeLongLabel(1.7)).toBe('Good - 1.7')
+    expect(getGradeLongLabel(5)).toBe('Fail - 5.0')
+  })
+
+  it('falls back to the number for a value that is not a predefined grade', () => {
+    expect(getGradeLongLabel(4.5)).toBe('4.5')
+  })
+})
 
 describe('validateGrade', () => {
   it('requires a grade', () => {

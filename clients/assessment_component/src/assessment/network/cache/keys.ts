@@ -58,6 +58,7 @@ export const assessmentKeys = {
   results: {
     myAssessment: (phaseId: Id) => ['myAssessmentResults', phaseId] as const,
     myEvaluation: (phaseId: Id) => ['myEvaluationResults', phaseId] as const,
+    myTutorEvaluation: (phaseId: Id) => ['myTutorEvaluationResults', phaseId] as const,
     myGradeSuggestion: (phaseId: Id) => ['myGradeSuggestion', phaseId] as const,
   },
   myParticipation: (phaseId: Id) => ['course_phase_participation', phaseId] as const,

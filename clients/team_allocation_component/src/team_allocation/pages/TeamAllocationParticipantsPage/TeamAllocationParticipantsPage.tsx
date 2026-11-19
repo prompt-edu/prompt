@@ -10,6 +10,7 @@ import {
   type ExtraParticipantColumn,
   ManagementPageHeader,
   type ParticipantRow,
+  PassStatusSummary,
   QueryGate,
   type TableFilter,
 } from '@tumaet/prompt-ui-components'
@@ -194,6 +195,10 @@ export const TeamAllocationParticipantsPage = () => {
         </Alert>
       )}
       <div className='w-full'>
+        <PassStatusSummary
+          participations={coursePhaseParticipations?.participations ?? []}
+          className='mb-4'
+        />
         <CoursePhaseParticipationsTable
           phaseId={phaseId}
           participants={coursePhaseParticipations?.participations ?? []}

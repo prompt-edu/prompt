@@ -107,11 +107,12 @@ func (suite *CoursePhaseDeletionServiceTestSuite) TestHandleCoursePhaseDeletion(
 	assert.EqualValues(t, 1, suite.countRows("student_skill_response"),
 		"Expected only the retained course phase to keep a skill response")
 
-	_, err = suite.queries.GetTutorByCourseParticipationID(suite.suiteCtx, db.GetTutorByCourseParticipationIDParams{
+	tutors, err := suite.queries.GetTutorsByCourseParticipationID(suite.suiteCtx, db.GetTutorsByCourseParticipationIDParams{
 		CourseParticipationID: tutorParticipationID,
 		CoursePhaseID:         deletedCoursePhaseID,
 	})
-	assert.ErrorIs(t, err, pgx.ErrNoRows, "Expected tutors to be cascaded away with the teams")
+	assert.NoError(t, err)
+	assert.Empty(t, tutors, "Expected tutors to be cascaded away with the teams")
 }
 
 func (suite *CoursePhaseDeletionServiceTestSuite) TestHandleCoursePhaseDeletionKeepsOtherCoursePhases() {
@@ -152,11 +153,12 @@ func (suite *CoursePhaseDeletionServiceTestSuite) TestHandleCoursePhaseDeletionK
 	assert.NoError(t, err)
 	assert.Len(t, skillResponses, 1, "Expected the other course phase to keep its skill response")
 
-	_, err = suite.queries.GetTutorByCourseParticipationID(suite.suiteCtx, db.GetTutorByCourseParticipationIDParams{
+	tutors, err := suite.queries.GetTutorsByCourseParticipationID(suite.suiteCtx, db.GetTutorsByCourseParticipationIDParams{
 		CourseParticipationID: retainedTutorID,
 		CoursePhaseID:         retainedCoursePhaseID,
 	})
-	assert.NoError(t, err, "Expected the other course phase to keep its tutor")
+	assert.NoError(t, err)
+	assert.Len(t, tutors, 1, "Expected the other course phase to keep its tutor")
 }
 
 func (suite *CoursePhaseDeletionServiceTestSuite) TestHandleCoursePhaseDeletionIsIdempotent() {

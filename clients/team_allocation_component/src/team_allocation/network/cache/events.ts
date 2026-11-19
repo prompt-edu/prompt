@@ -52,9 +52,9 @@ export const teamAllocationCache = {
       teamAllocationKeys.config(phaseId),
     ]),
 
-  // Tutors are served as part of each team
+  // Tutors are served as part of each team, and with their logins in the tutor list
   tutorsImported: (queryClient: QueryClient, phaseId: Id): void =>
-    invalidate(queryClient, teamKeys(phaseId)),
+    invalidate(queryClient, [...teamKeys(phaseId), teamAllocationKeys.tutors(phaseId)]),
 
   mySurveyResponseSubmitted: (queryClient: QueryClient, phaseId: Id): void =>
     invalidate(queryClient, [teamAllocationKeys.survey.myResponse(phaseId)]),

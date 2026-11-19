@@ -183,11 +183,16 @@ export class AssessmentPage {
   // Confirms the release dialog. Its title names what is being released, which
   // differs between assessment-enabled and evaluation-only phases.
   async confirmRelease(dialogTitle: 'Assessment' | 'Evaluation') {
+    const dialog = await this.openReleaseDialog(dialogTitle)
+    await dialog.getByRole('button', { name: 'Release Results' }).click()
+    await expect(this.unreleaseButton()).toBeVisible()
+  }
+
+  async openReleaseDialog(dialogTitle: 'Assessment' | 'Evaluation'): Promise<Locator> {
     await this.releaseButton().click()
     const dialog = this.page.getByRole('alertdialog')
     await expect(dialog.getByText(`Release ${dialogTitle} Results?`)).toBeVisible()
-    await dialog.getByRole('button', { name: 'Release Results' }).click()
-    await expect(this.unreleaseButton()).toBeVisible()
+    return dialog
   }
 
   // ── Schema configuration (rubric) ────────────────────────────────────────
@@ -238,6 +243,32 @@ export class AssessmentPage {
 
   columnHeader(name: string): Locator {
     return this.page.getByRole('columnheader', { name, exact: true })
+  }
+
+  async selectRow(name: string) {
+    await this.page
+      .getByRole('row', { name: new RegExp(name) })
+      .getByRole('checkbox')
+      .click()
+  }
+
+  // Clicks the trigger and returns the file it downloads.
+  async download(trigger: Locator): Promise<{ name: string; bytes: Buffer }> {
+    const [download] = await Promise.all([
+      this.page.waitForEvent('download', { timeout: 30_000 }),
+      trigger.click(),
+    ])
+    const chunks: Buffer[] = []
+    for await (const chunk of await download.createReadStream()) {
+      chunks.push(Buffer.from(chunk))
+    }
+    return { name: download.suggestedFilename(), bytes: Buffer.concat(chunks) }
+  }
+
+  // Runs a bulk action of the table toolbar and returns the downloaded file.
+  async downloadBulkAction(action: string): Promise<{ name: string; bytes: Buffer }> {
+    await this.page.getByRole('button', { name: 'Actions' }).click()
+    return this.download(this.page.getByRole('menuitem', { name: action }))
   }
 
   async openParticipant(fullName: string) {
@@ -296,6 +327,12 @@ export class AssessmentPage {
     await expect(
       this.page.getByText('Assessment results have not been released yet.'),
     ).toBeVisible()
+  }
+
+  async expectNoResultsShared() {
+    await expect(
+      this.page.getByRole('heading', { name: 'No results shared for this phase' }),
+    ).toBeVisible({ timeout: 15_000 })
   }
 
   // ── Student self evaluation ──────────────────────────────────────────────

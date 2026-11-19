@@ -1,5 +1,8 @@
 import type { CreateOrUpdateEvaluationRequest, Evaluation } from '../../interfaces/evaluation'
-import type { StudentEvaluationResults } from '../../interfaces/evaluationResults'
+import type {
+  StudentEvaluationResults,
+  TutorEvaluationResults,
+} from '../../interfaces/evaluationResults'
 import { assessmentRequest, coursePhasePath } from '../client'
 
 const NO_CONTENT = 204
@@ -27,6 +30,14 @@ export const evaluations = {
   myResults: async (coursePhaseID: string): Promise<StudentEvaluationResults | null> => {
     const response = await assessmentRequest.getResponse<StudentEvaluationResults>(
       `${path(coursePhaseID)}/my-results`,
+    )
+    return response.status === NO_CONTENT ? null : response.data
+  },
+
+  // 204 unless the tutor evaluation is enabled, results are released, and the caller is a tutor.
+  myTutorResults: async (coursePhaseID: string): Promise<TutorEvaluationResults | null> => {
+    const response = await assessmentRequest.getResponse<TutorEvaluationResults>(
+      `${path(coursePhaseID)}/my-tutor-results`,
     )
     return response.status === NO_CONTENT ? null : response.data
   },

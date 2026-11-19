@@ -5,9 +5,17 @@ import {
   SEEDED_COURSES,
   TUTOR_SCOPE_PARTICIPANTS,
 } from '../../src/data/constants'
-import { apiAsRole, assessmentUrl } from './helpers'
+import { apiAsRole, assessmentUrl, putConfig } from './helpers'
 
 const PHASE_ID = ASSESSMENT_FIXTURE_PHASES.tutorScope
+// course-editor tutors Team Lovelace of this phase (seed/team_allocation.sql).
+const TUTOR = {
+  name: 'Eduard Eduard',
+  fileBaseName: 'Eduard_Eduard',
+  courseParticipationId: 'a0000005-0000-0000-0000-000000000005',
+}
+// The tutor leads several teams and gets one row per team.
+const TUTOR_ROW = `${TUTOR.name}.*Team Lovelace`
 const OTHER_TUTOR_PHASE_ID = ASSESSMENT_FIXTURE_PHASES.otherTutor
 const { ownTeam, hidden } = TUTOR_SCOPE_PARTICIPANTS
 const everyone = [...ownTeam, ...hidden]
@@ -29,8 +37,8 @@ async function participationIds(
 
 test.use({ role: 'course-editor' })
 
-test.describe('assessment: tutors only reach their own team', () => {
-  test('lists only the tutor team to the editor and everyone to the lecturer', async () => {
+test.describe('assessment: tutors only reach the teams they lead', () => {
+  test('lists only the tutor teams to the editor and everyone to the lecturer', async () => {
     expect(await participationIds('course-editor')).toEqual(
       ownTeam.map((p) => p.courseParticipationId).sort(),
     )
@@ -39,7 +47,7 @@ test.describe('assessment: tutors only reach their own team', () => {
     )
   })
 
-  test('rejects reads and writes outside the tutor team', async () => {
+  test('rejects reads and writes outside the tutor teams', async () => {
     const editor = await apiAsRole('course-editor')
     try {
       const assessmentOf = (id: string) =>
@@ -67,14 +75,14 @@ test.describe('assessment: tutors only reach their own team', () => {
     }
   })
 
-  test('shows only the tutor team on the participants page', async ({ page }) => {
+  test('shows only the tutor teams on the participants page', async ({ page }) => {
     const phase = new AssessmentPage(page)
     await phase.goto(SEEDED_COURSES.fullCourse.id, PHASE_ID, '/participants')
     await phase.expectParticipantsLoaded()
 
     for (const participant of ownTeam) {
       await expect(page.getByRole('row', { name: new RegExp(participant.name) })).toContainText(
-        'Team Lovelace',
+        participant.team,
       )
     }
     for (const participant of hidden) {
@@ -102,5 +110,46 @@ test.describe('assessment: tutors only reach their own team', () => {
     await phase.goto(SEEDED_COURSES.fullCourse.id, OTHER_TUTOR_PHASE_ID, '/participants')
     await phase.expectParticipantsLoaded()
     await expect(page.getByRole('row', { name: new RegExp(stan.name) })).toHaveCount(0)
+  })
+
+  test.describe('as the lecturer', () => {
+    test.use({ role: 'lecturer' })
+
+    test.beforeAll(async () => {
+      const lecturer = await apiAsRole('lecturer')
+      try {
+        await putConfig(lecturer, PHASE_ID, { tutorEvaluationEnabled: true })
+      } finally {
+        await lecturer.dispose()
+      }
+    })
+
+    test.afterAll(async () => {
+      const lecturer = await apiAsRole('lecturer')
+      try {
+        await putConfig(lecturer, PHASE_ID)
+      } finally {
+        await lecturer.dispose()
+      }
+    })
+
+    test('exports the selected tutor evaluations as zipped JSON and PDF', async ({ page }) => {
+      const phase = new AssessmentPage(page)
+      await phase.goto(SEEDED_COURSES.fullCourse.id, PHASE_ID, '/tutors')
+      await expect(page.getByRole('row', { name: new RegExp(TUTOR_ROW) })).toBeVisible({
+        timeout: 15_000,
+      })
+      await phase.selectRow(TUTOR_ROW)
+
+      const json = await phase.downloadBulkAction('Export JSON')
+      expect(json.name).toMatch(/^tutor_evaluations_json_\d{4}-\d{2}-\d{2}\.zip$/)
+      expect(json.bytes.includes(`${TUTOR.fileBaseName}.json`)).toBe(true)
+      expect(json.bytes.includes(TUTOR.courseParticipationId)).toBe(true)
+
+      const pdf = await phase.downloadBulkAction('Export PDF')
+      expect(pdf.name).toMatch(/^tutor_evaluations_pdf_\d{4}-\d{2}-\d{2}\.zip$/)
+      expect(pdf.bytes.includes(`${TUTOR.fileBaseName}.pdf`)).toBe(true)
+      expect(pdf.bytes.includes('%PDF-')).toBe(true)
+    })
   })
 })

@@ -2,7 +2,10 @@ import {
   ManagementPageHeader,
   PromptTable,
   type PromptTableColumnDef,
+  type RowAction,
+  useToast,
 } from '@tumaet/prompt-ui-components'
+import { FileJson, FileText } from 'lucide-react'
 import { type ReactNode, useMemo } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { AssessmentType } from '../../interfaces/assessmentType'
@@ -15,6 +18,10 @@ import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
 import { getTutorLabel } from '../hooks/useTutorLabel'
 import { getScoreLevelsFromEvaluations } from '../utils/getScoreLevelsFromEvaluations'
 import { getTutorRows, getUniqueTutorIds, type TutorRow } from '../utils/getTutorRows'
+import {
+  exportTutorEvaluationsAsJson,
+  exportTutorEvaluationsAsPdf,
+} from './utils/exportTutorEvaluations'
 
 export const TutorOverviewPage = (): ReactNode => {
   const { phaseId } = useParams<{ phaseId: string }>()
@@ -27,6 +34,8 @@ export const TutorOverviewPage = (): ReactNode => {
   const { data: evaluations } = useGetAllEvaluations()
 
   const { data: evaluationCompletions } = useGetAllEvaluationCompletions()
+  const tutorEvaluationEnabled = coursePhaseConfig?.tutorEvaluationEnabled ?? false
+  const { toast } = useToast()
 
   const data: TutorRow[] = useMemo(() => getTutorRows(teams), [teams])
 
@@ -44,6 +53,36 @@ export const TutorOverviewPage = (): ReactNode => {
     () => getScoreLevelsFromEvaluations(evaluations, AssessmentType.TUTOR),
     [evaluations],
   )
+
+  const actions: RowAction<TutorRow>[] = useMemo(() => {
+    if (!tutorEvaluationEnabled || !phaseId) {
+      return []
+    }
+    const runExport = async (exportFiles: () => Promise<void>) => {
+      try {
+        await exportFiles()
+      } catch {
+        toast({
+          title: 'Export failed',
+          description: 'Please try again.',
+          variant: 'destructive',
+        })
+      }
+    }
+    return [
+      {
+        label: 'Export JSON',
+        icon: <FileJson className='h-4 w-4' />,
+        onAction: (rows) => runExport(() => exportTutorEvaluationsAsJson(phaseId, rows, teams)),
+      },
+      {
+        label: 'Export PDF',
+        icon: <FileText className='h-4 w-4' />,
+        onAction: (rows) =>
+          runExport(() => exportTutorEvaluationsAsPdf(phaseId, rows, tutorLabel.title, teams)),
+      },
+    ]
+  }, [tutorEvaluationEnabled, phaseId, tutorLabel.title, teams, toast])
 
   const columns: PromptTableColumnDef<TutorRow>[] = useMemo(
     () => [
@@ -67,7 +106,7 @@ export const TutorOverviewPage = (): ReactNode => {
     <div className='space-y-4'>
       <ManagementPageHeader>{tutorLabel.title} Overview</ManagementPageHeader>
 
-      {coursePhaseConfig?.tutorEvaluationEnabled && (
+      {tutorEvaluationEnabled && (
         <p className='text-sm text-muted-foreground mb-4'>
           Click on any {tutorLabel.text} to view their evaluation results from students.
         </p>
@@ -91,8 +130,9 @@ export const TutorOverviewPage = (): ReactNode => {
       <PromptTable<TutorRow>
         data={data}
         columns={columns}
+        actions={actions}
         onRowClick={(row) => {
-          if (coursePhaseConfig?.tutorEvaluationEnabled) {
+          if (tutorEvaluationEnabled) {
             navigate(`${path}/${row.tutorId}`)
           }
         }}

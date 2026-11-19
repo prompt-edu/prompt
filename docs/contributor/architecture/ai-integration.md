@@ -22,11 +22,11 @@ stored records are no longer purged, exported or erased.
 
 ![Component diagram of the AI integration](./img/ai-integration/ai-integration.svg)
 
-> Phase servers and the MCP server reach Logos only through the AI server, which records every call
-> in its audit log database. The chat overlay and external MCP clients such as Claude Code connect
-> over MCP. The AI server and its database run only with `AI_ENABLED=true`. The Assessment client
-> and server stand for any phase that uses AI. The MCP server and the chat overlay are tracked in
-> #2285 (prompt-mcp) and #2286 (AI chat). The diagram is an
+> Phase servers reach Logos only through the AI server, which records every call in its audit log
+> database. The phase server and client stand for any phase that uses AI. Phase servers register
+> their tools with the MCP server, which executes them on behalf of external MCP clients such as
+> Claude Code. The AI server and its database run only with `AI_ENABLED=true`. The MCP server is
+> tracked in #2285 (prompt-mcp). The diagram is an
 > [Apollon](https://apollon.aet.cit.tum.de) model: import `img/ai-integration/ai-integration.json`
 > there to edit it, then export JSON and SVG again.
 

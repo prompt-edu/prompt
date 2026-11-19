@@ -13,6 +13,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	"github.com/prompt-edu/prompt-sdk/audit"
 	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
@@ -103,8 +104,17 @@ func newServiceRouter(t *testing.T, sink audit.Sink) (*gin.Engine, *gin.RouterGr
 	router.Use(audit.Middleware(sink), auditActorMiddleware())
 	api := router.Group("/self-team-allocation/api")
 	coursePhaseApi := api.Group("/course_phase/:coursePhaseID")
-	require.NoError(t, registerRoutes(api, coursePhaseApi, nil))
+	require.NoError(t, registerRoutes(api, coursePhaseApi, undialedPool(t)))
 	return router, api, coursePhaseApi
+}
+
+// undialedPool satisfies constructors that reject a nil pool; denied requests never reach it.
+func undialedPool(t *testing.T) *pgxpool.Pool {
+	t.Helper()
+	pool, err := pgxpool.New(context.Background(), "postgres://unused")
+	require.NoError(t, err)
+	t.Cleanup(pool.Close)
+	return pool
 }
 
 // auditCopyRouter reaches the copy handler itself, which the denied paths never

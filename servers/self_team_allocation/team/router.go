@@ -3,12 +3,15 @@ package teams
 import (
 	"errors"
 	"net/http"
+	"slices"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
 	"github.com/prompt-edu/prompt-sdk/audit"
 	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
+	"github.com/prompt-edu/prompt-sdk/promptTypes"
+	"github.com/prompt-edu/prompt-sdk/tutorscope"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/self_team_allocation/team/teamDTO"
 	log "github.com/sirupsen/logrus"
@@ -22,8 +25,9 @@ type teamHandler struct {
 func RegisterRoutes(routerGroup *gin.RouterGroup, teamsService *TeamsService, assignmentService *AssignmentService, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
 	handler := &teamHandler{teamsService: teamsService, assignmentService: assignmentService}
 	teamRouter := routerGroup.Group("/team")
+	scopingMW := tutorscope.TeamsMiddleware(tutorscope.NewPgxTeamsResolver(teamsService.conn))
 
-	teamRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseStudent), handler.getAllTeams)
+	teamRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.CourseStudent), scopingMW, handler.getAllTeams)
 	teamRouter.POST("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseStudent), handler.createTeams)
 	teamRouter.PUT("/:teamID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), handler.updateTeam)
 	// only allowing student - as this is a self assignment
@@ -32,13 +36,15 @@ func RegisterRoutes(routerGroup *gin.RouterGroup, teamsService *TeamsService, as
 	teamRouter.DELETE("/:teamID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), handler.deleteTeam)
 
 	// this is required to comply with the inter phase communication protocol
-	teamRouter.GET("/:teamID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), handler.getTeamByID)
+	teamRouter.GET("/:teamID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), scopingMW, handler.getTeamByID)
 
 	// Tutor management endpoints
 	teamRouter.POST("/tutors", audit.Describe("Imported tutors"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), handler.importTutors)
 	teamRouter.POST("/:teamID/tutor", audit.Describe("Added a tutor to a team"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), handler.createManualTutor)
 	teamRouter.DELETE("/tutor/:tutorID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), handler.deleteTutor)
-	teamRouter.GET("/tutors", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), handler.getTutors)
+	// Lecturers only, since it carries the tutors' logins: GET /team also serves students and tutors.
+	teamRouter.GET("/tutors", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), handler.getTutorAssignments)
+	teamRouter.GET("/tutors/me", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), handler.getMyTutor)
 }
 
 // checkTimeframe answers the request itself and returns false when team changes are not
@@ -88,8 +94,9 @@ func teamErrorStatus(err error) int {
 // @Tags team
 // @Produce json
 // @Param coursePhaseID path string true "Course Phase UUID"
-// @Success 200 {array} promptTypes.Team
+// @Success 200 {object} map[string][]promptTypes.Team
 // @Failure 400 {object} map[string]string
+// @Failure 403 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Security ApiKeyAuth
 // @Router /course_phase/{coursePhaseID}/team [get]
@@ -106,7 +113,22 @@ func (h *teamHandler) getAllTeams(c *gin.Context) {
 		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
-	c.JSON(http.StatusOK, teams)
+
+	if tutorTeamIDs, scoped := tutorscope.TeamIDs(c); scoped {
+		teams = filterTeamsByID(teams, tutorTeamIDs)
+	}
+
+	c.JSON(http.StatusOK, gin.H{"teams": teams})
+}
+
+func filterTeamsByID(teams []promptTypes.Team, teamIDs []uuid.UUID) []promptTypes.Team {
+	result := make([]promptTypes.Team, 0, len(teamIDs))
+	for _, t := range teams {
+		if slices.Contains(teamIDs, t.ID) {
+			result = append(result, t)
+		}
+	}
+	return result
 }
 
 // getTeamByID godoc
@@ -118,6 +140,7 @@ func (h *teamHandler) getAllTeams(c *gin.Context) {
 // @Param teamID path string true "Team UUID"
 // @Success 200 {object} promptTypes.Team
 // @Failure 400 {object} map[string]string
+// @Failure 403 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Security ApiKeyAuth
 // @Router /course_phase/{coursePhaseID}/team/{teamID} [get]
@@ -133,6 +156,11 @@ func (h *teamHandler) getTeamByID(c *gin.Context) {
 	if err != nil {
 		log.Error("Error parsing teamID: ", err)
 		sdkUtils.HandleError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	if tutorTeamIDs, scoped := tutorscope.TeamIDs(c); scoped && !slices.Contains(tutorTeamIDs, teamID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access restricted to assigned teams"})
 		return
 	}
 
@@ -380,12 +408,12 @@ func (h *teamHandler) deleteTeam(c *gin.Context) {
 
 // importTutors godoc
 // @Summary Import tutors
-// @Description Import multiple tutors for the course phase
+// @Description Set the teams of each listed tutor. A tutor is identified by their university login, which is required: their previous assignments in the phase are replaced, and an existing tutor keeps their id.
 // @Tags team
 // @Accept json
 // @Produce json
 // @Param coursePhaseID path string true "Course Phase UUID"
-// @Param tutors body []promptTypes.Person true "List of tutors to import"
+// @Param request body []teamDTO.Tutor true "Tutors to import"
 // @Success 201
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
@@ -407,6 +435,11 @@ func (h *teamHandler) importTutors(c *gin.Context) {
 	}
 
 	if err := h.teamsService.ImportTutors(c, coursePhaseID, tutors); err != nil {
+		if errors.Is(err, ErrMissingLogin) || errors.Is(err, ErrMissingTutorID) || errors.Is(err, ErrDuplicateLogin) ||
+			errors.Is(err, ErrDuplicateTutorID) || errors.Is(err, ErrNoTeams) || errors.Is(err, ErrInvalidTeamForPhase) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
 		log.Error("Error importing tutors: ", err)
 		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
@@ -500,18 +533,18 @@ func (h *teamHandler) deleteTutor(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
-// getTutors godoc
-// @Summary Get all tutors
-// @Description Get all tutors for a course phase
+// getTutorAssignments godoc
+// @Summary List the teams of every tutor
+// @Description One entry per tutor and team, with the id the tutor is stored under and their university login
 // @Tags team
 // @Produce json
 // @Param coursePhaseID path string true "Course Phase UUID"
-// @Success 200 {array} promptTypes.Person
+// @Success 200 {array} teamDTO.TutorAssignment
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Security ApiKeyAuth
 // @Router /course_phase/{coursePhaseID}/team/tutors [get]
-func (h *teamHandler) getTutors(c *gin.Context) {
+func (h *teamHandler) getTutorAssignments(c *gin.Context) {
 	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
 	if err != nil {
 		log.Error("Error parsing coursePhaseID: ", err)
@@ -519,11 +552,53 @@ func (h *teamHandler) getTutors(c *gin.Context) {
 		return
 	}
 
-	tutors, err := h.teamsService.GetTutorsByCoursePhase(c, coursePhaseID)
+	assignments, err := h.teamsService.GetTutorAssignments(c, coursePhaseID)
 	if err != nil {
+		log.Error("Error getting tutor assignments: ", err)
 		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
 	}
 
-	c.JSON(http.StatusOK, tutors)
+	c.JSON(http.StatusOK, assignments)
+}
+
+// getMyTutor godoc
+// @Summary Get the caller's tutor record
+// @Description Get the tutor that the caller's university login belongs to in this course phase, so other phases can match the caller to a team's tutors
+// @Tags team
+// @Produce json
+// @Param coursePhaseID path string true "Course Phase UUID"
+// @Success 200 {object} promptTypes.Person
+// @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Security ApiKeyAuth
+// @Router /course_phase/{coursePhaseID}/team/tutors/me [get]
+func (h *teamHandler) getMyTutor(c *gin.Context) {
+	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
+	if err != nil {
+		log.Error("Error parsing coursePhaseID: ", err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	tokenUser, ok := keycloakTokenVerifier.GetTokenUser(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "authenticated user not found in context"})
+		return
+	}
+
+	tutor, err := h.teamsService.GetTutorByUniversityLogin(c, coursePhaseID, tutorscope.NormalizeLogin(tokenUser.UniversityLogin))
+	if err != nil {
+		if errors.Is(err, ErrTutorNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "the caller is not a tutor in this course phase"})
+			return
+		}
+		log.Error("Error getting the caller's tutor record: ", err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, tutor)
 }

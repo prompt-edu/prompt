@@ -1629,7 +1629,7 @@ definitions:
       universityLogin:
         description: |-
           UniversityLogin is the user's university_login attribute, the login phases match tutors
-          against. It is empty when the user has none.
+          against. It is empty when the user has none or the lookup returned a brief representation.
         type: string
       username:
         type: string
@@ -3857,6 +3857,10 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/utils.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
@@ -4092,6 +4096,10 @@ paths:
             $ref: '#/definitions/courseDTO.Course'
         "400":
           description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "409":
+          description: Conflict
           schema:
             $ref: '#/definitions/utils.ErrorResponse'
         "500":

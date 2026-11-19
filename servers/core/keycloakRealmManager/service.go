@@ -20,6 +20,7 @@ import (
 
 type KeycloakRealmService struct {
 	client       *gocloak.GoCloak
+	baseURL      string
 	Realm        string
 	ClientID     string
 	ClientSecret string
@@ -32,6 +33,7 @@ func NewKeycloakRealmService(baseURL, realm, clientID, clientSecret, idOfClient 
 	client.RestyClient().OnAfterResponse(explainAdminAPIUnauthorized)
 	return &KeycloakRealmService{
 		client:       client,
+		baseURL:      strings.TrimRight(baseURL, "/"),
 		Realm:        realm,
 		ClientID:     clientID,
 		ClientSecret: clientSecret,
@@ -82,6 +84,10 @@ func isAllowedCourseGroup(name string) bool {
 	return name == permissionValidation.CourseLecturer || name == permissionValidation.CourseEditor
 }
 
+func customGroupRoleName(courseGroupName, customGroupName string) string {
+	return courseGroupName + "-cg-" + customGroupName
+}
+
 func (s *KeycloakRealmService) AddCustomGroup(ctx context.Context, courseID uuid.UUID, groupName string) (string, error) {
 	courseGroupName, err := s.GetCourseGroupName(ctx, courseID)
 	if err != nil {
@@ -94,6 +100,17 @@ func (s *KeycloakRealmService) AddCustomGroup(ctx context.Context, courseID uuid
 		return "", err
 	}
 
+	roleName := customGroupRoleName(courseGroupName, groupName)
+	otherCourseGroup, _, err := s.otherCourseGroupOfRole(ctx, token.AccessToken, TOP_LEVEL_GROUP_NAME+"/"+courseGroupName, roleName)
+	if err != nil {
+		log.Error("failed to check the custom group role: ", err)
+		return "", fmt.Errorf("failed to check the custom group role: %w", err)
+	}
+	if otherCourseGroup != "" {
+		log.Warnf("custom group role %s is mapped to the group %s of another course", roleName, otherCourseGroup)
+		return "", fmt.Errorf("%w: its role %s already belongs to another course", ErrInvalidGroupName, roleName)
+	}
+
 	// 2. Get Custom subgroup or create
 	customGroupID, err := s.GetOrCreateCustomGroup(ctx, token.AccessToken, groupName, courseID)
 	if err != nil {
@@ -102,7 +119,6 @@ func (s *KeycloakRealmService) AddCustomGroup(ctx context.Context, courseID uuid
 	}
 
 	// 3. Create desired role
-	roleName := courseGroupName + "-cg-" + groupName
 	role, err := s.GetOrCreateRealmRole(ctx, token.AccessToken, roleName)
 	if err != nil {
 		log.Error("failed to create role: ", err)

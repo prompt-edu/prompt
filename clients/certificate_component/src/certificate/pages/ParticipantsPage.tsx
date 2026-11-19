@@ -5,6 +5,7 @@ import {
   type ExtraParticipantColumn,
   ManagementPageHeader,
   type ParticipantRow,
+  PassStatusSummary,
   QueryGate,
   type RowAction,
 } from '@tumaet/prompt-ui-components'
@@ -161,6 +162,7 @@ export const ParticipantsPage = () => {
           </p>
         </div>
 
+        <PassStatusSummary participations={participants ?? []} className='mb-4' />
         <CoursePhaseParticipationsTable
           phaseId={phaseId}
           participants={participants ?? []}

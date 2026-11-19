@@ -12,56 +12,58 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const getTutorByCourseParticipationID = `-- name: GetTutorByCourseParticipationID :one
-SELECT t.course_phase_id, t.course_participation_id, t.first_name, t.last_name, t.team_id, t.university_login
-FROM tutor t
-WHERE t.course_participation_id = $1
-  AND t.course_phase_id = $2
+const deleteTutorAssignments = `-- name: DeleteTutorAssignments :exec
+DELETE
+FROM tutor
+WHERE course_phase_id = $1
+  AND (university_login = $2
+    OR (university_login IS NULL AND course_participation_id = $3))
 `
 
-type GetTutorByCourseParticipationIDParams struct {
-	CourseParticipationID uuid.UUID `json:"course_participation_id"`
-	CoursePhaseID         uuid.UUID `json:"course_phase_id"`
+type DeleteTutorAssignmentsParams struct {
+	CoursePhaseID         uuid.UUID   `json:"course_phase_id"`
+	UniversityLogin       pgtype.Text `json:"university_login"`
+	CourseParticipationID uuid.UUID   `json:"course_participation_id"`
 }
 
-func (q *Queries) GetTutorByCourseParticipationID(ctx context.Context, arg GetTutorByCourseParticipationIDParams) (Tutor, error) {
-	row := q.db.QueryRow(ctx, getTutorByCourseParticipationID, arg.CourseParticipationID, arg.CoursePhaseID)
-	var i Tutor
-	err := row.Scan(
-		&i.CoursePhaseID,
-		&i.CourseParticipationID,
-		&i.FirstName,
-		&i.LastName,
-		&i.TeamID,
-		&i.UniversityLogin,
-	)
-	return i, err
+// Removes every team assignment of one tutor, matched by login or, for rows stored without one, by id.
+func (q *Queries) DeleteTutorAssignments(ctx context.Context, arg DeleteTutorAssignmentsParams) error {
+	_, err := q.db.Exec(ctx, deleteTutorAssignments, arg.CoursePhaseID, arg.UniversityLogin, arg.CourseParticipationID)
+	return err
 }
 
-const getTutorByTeamID = `-- name: GetTutorByTeamID :one
-SELECT t.course_phase_id, t.course_participation_id, t.first_name, t.last_name, t.team_id, t.university_login
-FROM tutor t
-WHERE t.team_id = $1
-  AND t.course_phase_id = $2
+const getTutorAssignmentsByCoursePhase = `-- name: GetTutorAssignmentsByCoursePhase :many
+SELECT course_participation_id, university_login, team_id
+FROM tutor
+WHERE course_phase_id = $1
+ORDER BY university_login, course_participation_id, team_id
 `
 
-type GetTutorByTeamIDParams struct {
-	TeamID        uuid.UUID `json:"team_id"`
-	CoursePhaseID uuid.UUID `json:"course_phase_id"`
+type GetTutorAssignmentsByCoursePhaseRow struct {
+	CourseParticipationID uuid.UUID   `json:"course_participation_id"`
+	UniversityLogin       pgtype.Text `json:"university_login"`
+	TeamID                uuid.UUID   `json:"team_id"`
 }
 
-func (q *Queries) GetTutorByTeamID(ctx context.Context, arg GetTutorByTeamIDParams) (Tutor, error) {
-	row := q.db.QueryRow(ctx, getTutorByTeamID, arg.TeamID, arg.CoursePhaseID)
-	var i Tutor
-	err := row.Scan(
-		&i.CoursePhaseID,
-		&i.CourseParticipationID,
-		&i.FirstName,
-		&i.LastName,
-		&i.TeamID,
-		&i.UniversityLogin,
-	)
-	return i, err
+// One row per tutor and team, with the login that identifies the tutor across import sources.
+func (q *Queries) GetTutorAssignmentsByCoursePhase(ctx context.Context, coursePhaseID uuid.UUID) ([]GetTutorAssignmentsByCoursePhaseRow, error) {
+	rows, err := q.db.Query(ctx, getTutorAssignmentsByCoursePhase, coursePhaseID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetTutorAssignmentsByCoursePhaseRow
+	for rows.Next() {
+		var i GetTutorAssignmentsByCoursePhaseRow
+		if err := rows.Scan(&i.CourseParticipationID, &i.UniversityLogin, &i.TeamID); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getTutorByUniversityLogin = `-- name: GetTutorByUniversityLogin :one
@@ -69,6 +71,7 @@ SELECT t.course_participation_id, t.first_name, t.last_name
 FROM tutor t
 WHERE t.course_phase_id = $1
   AND t.university_login = $2
+ORDER BY t.course_participation_id
 LIMIT 1
 `
 
@@ -90,38 +93,74 @@ func (q *Queries) GetTutorByUniversityLogin(ctx context.Context, arg GetTutorByU
 	return i, err
 }
 
-const updateTutorTeam = `-- name: UpdateTutorTeam :execrows
-UPDATE tutor
-SET team_id = $3
+const getTutorIDByLogin = `-- name: GetTutorIDByLogin :one
+SELECT course_participation_id
+FROM tutor
 WHERE course_phase_id = $1
   AND university_login = $2
+ORDER BY course_participation_id
+LIMIT 1
 `
 
-type UpdateTutorTeamParams struct {
+type GetTutorIDByLoginParams struct {
 	CoursePhaseID   uuid.UUID   `json:"course_phase_id"`
 	UniversityLogin pgtype.Text `json:"university_login"`
-	TeamID          uuid.UUID   `json:"team_id"`
 }
 
-func (q *Queries) UpdateTutorTeam(ctx context.Context, arg UpdateTutorTeamParams) (int64, error) {
-	result, err := q.db.Exec(ctx, updateTutorTeam, arg.CoursePhaseID, arg.UniversityLogin, arg.TeamID)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected(), nil
+// The id a tutor already carries in this phase, so a re-import keeps the evaluations attached to it.
+func (q *Queries) GetTutorIDByLogin(ctx context.Context, arg GetTutorIDByLoginParams) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, getTutorIDByLogin, arg.CoursePhaseID, arg.UniversityLogin)
+	var course_participation_id uuid.UUID
+	err := row.Scan(&course_participation_id)
+	return course_participation_id, err
 }
 
-const upsertTutor = `-- name: UpsertTutor :exec
-INSERT INTO tutor (course_phase_id, course_participation_id, first_name, last_name, team_id, university_login)
-VALUES ($1, $2, $3, $4, $5, $6)
-ON CONFLICT (course_phase_id, course_participation_id) DO UPDATE
-    SET team_id          = EXCLUDED.team_id,
-        university_login = COALESCE(EXCLUDED.university_login, tutor.university_login),
-        first_name       = EXCLUDED.first_name,
-        last_name        = EXCLUDED.last_name
+const getTutorsByCourseParticipationID = `-- name: GetTutorsByCourseParticipationID :many
+SELECT t.course_phase_id, t.course_participation_id, t.first_name, t.last_name, t.team_id, t.university_login
+FROM tutor t
+WHERE t.course_participation_id = $1
+  AND t.course_phase_id = $2
+ORDER BY t.team_id
 `
 
-type UpsertTutorParams struct {
+type GetTutorsByCourseParticipationIDParams struct {
+	CourseParticipationID uuid.UUID `json:"course_participation_id"`
+	CoursePhaseID         uuid.UUID `json:"course_phase_id"`
+}
+
+func (q *Queries) GetTutorsByCourseParticipationID(ctx context.Context, arg GetTutorsByCourseParticipationIDParams) ([]Tutor, error) {
+	rows, err := q.db.Query(ctx, getTutorsByCourseParticipationID, arg.CourseParticipationID, arg.CoursePhaseID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Tutor
+	for rows.Next() {
+		var i Tutor
+		if err := rows.Scan(
+			&i.CoursePhaseID,
+			&i.CourseParticipationID,
+			&i.FirstName,
+			&i.LastName,
+			&i.TeamID,
+			&i.UniversityLogin,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const insertTutor = `-- name: InsertTutor :exec
+INSERT INTO tutor (course_phase_id, course_participation_id, first_name, last_name, team_id, university_login)
+VALUES ($1, $2, $3, $4, $5, $6)
+`
+
+type InsertTutorParams struct {
 	CoursePhaseID         uuid.UUID   `json:"course_phase_id"`
 	CourseParticipationID uuid.UUID   `json:"course_participation_id"`
 	FirstName             string      `json:"first_name"`
@@ -130,8 +169,8 @@ type UpsertTutorParams struct {
 	UniversityLogin       pgtype.Text `json:"university_login"`
 }
 
-func (q *Queries) UpsertTutor(ctx context.Context, arg UpsertTutorParams) error {
-	_, err := q.db.Exec(ctx, upsertTutor,
+func (q *Queries) InsertTutor(ctx context.Context, arg InsertTutorParams) error {
+	_, err := q.db.Exec(ctx, insertTutor,
 		arg.CoursePhaseID,
 		arg.CourseParticipationID,
 		arg.FirstName,
@@ -139,5 +178,14 @@ func (q *Queries) UpsertTutor(ctx context.Context, arg UpsertTutorParams) error 
 		arg.TeamID,
 		arg.UniversityLogin,
 	)
+	return err
+}
+
+const lockTutorImport = `-- name: LockTutorImport :exec
+SELECT pg_advisory_xact_lock(hashtextextended(CAST($1 AS uuid)::text, 0))
+`
+
+func (q *Queries) LockTutorImport(ctx context.Context, coursePhaseID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, lockTutorImport, coursePhaseID)
 	return err
 }

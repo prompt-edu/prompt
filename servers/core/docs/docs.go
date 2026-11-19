@@ -2434,6 +2434,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/utils.ErrorResponse"
                         }
                     },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -2895,6 +2901,12 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
                         "schema": {
                             "$ref": "#/definitions/utils.ErrorResponse"
                         }
@@ -8961,7 +8973,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "universityLogin": {
-                    "description": "UniversityLogin is the user's university_login attribute, the login phases match tutors\nagainst. It is empty when the user has none.",
+                    "description": "UniversityLogin is the user's university_login attribute, the login phases match tutors\nagainst. It is empty when the user has none or the lookup returned a brief representation.",
                     "type": "string"
                 },
                 "username": {

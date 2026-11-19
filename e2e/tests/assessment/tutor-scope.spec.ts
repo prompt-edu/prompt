@@ -14,6 +14,8 @@ const TUTOR = {
   fileBaseName: 'Eduard_Eduard',
   courseParticipationId: 'a0000005-0000-0000-0000-000000000005',
 }
+// The tutor leads several teams and gets one row per team.
+const TUTOR_ROW = `${TUTOR.name}.*Team Lovelace`
 const OTHER_TUTOR_PHASE_ID = ASSESSMENT_FIXTURE_PHASES.otherTutor
 const { ownTeam, hidden } = TUTOR_SCOPE_PARTICIPANTS
 const everyone = [...ownTeam, ...hidden]
@@ -35,8 +37,8 @@ async function participationIds(
 
 test.use({ role: 'course-editor' })
 
-test.describe('assessment: tutors only reach their own team', () => {
-  test('lists only the tutor team to the editor and everyone to the lecturer', async () => {
+test.describe('assessment: tutors only reach the teams they lead', () => {
+  test('lists only the tutor teams to the editor and everyone to the lecturer', async () => {
     expect(await participationIds('course-editor')).toEqual(
       ownTeam.map((p) => p.courseParticipationId).sort(),
     )
@@ -45,7 +47,7 @@ test.describe('assessment: tutors only reach their own team', () => {
     )
   })
 
-  test('rejects reads and writes outside the tutor team', async () => {
+  test('rejects reads and writes outside the tutor teams', async () => {
     const editor = await apiAsRole('course-editor')
     try {
       const assessmentOf = (id: string) =>
@@ -73,14 +75,14 @@ test.describe('assessment: tutors only reach their own team', () => {
     }
   })
 
-  test('shows only the tutor team on the participants page', async ({ page }) => {
+  test('shows only the tutor teams on the participants page', async ({ page }) => {
     const phase = new AssessmentPage(page)
     await phase.goto(SEEDED_COURSES.fullCourse.id, PHASE_ID, '/participants')
     await phase.expectParticipantsLoaded()
 
     for (const participant of ownTeam) {
       await expect(page.getByRole('row', { name: new RegExp(participant.name) })).toContainText(
-        'Team Lovelace',
+        participant.team,
       )
     }
     for (const participant of hidden) {
@@ -88,29 +90,37 @@ test.describe('assessment: tutors only reach their own team', () => {
     }
   })
 
-  test('steps previous / next only through the tutor team', async ({ page }) => {
+  test('steps previous / next only through the tutor teams', async ({ page }) => {
     const phase = new AssessmentPage(page)
     await phase.goto(SEEDED_COURSES.fullCourse.id, PHASE_ID, '/participants')
     await phase.expectParticipantsLoaded()
 
-    // Sorted by last name, ascending: Second, then Stan.
-    const [selma, stan] = [ownTeam[1], ownTeam[0]]
+    // The editor's participants sorted by last name, ascending, as the table sorts them.
+    const lastName = (name: string) => name.split(' ').at(-1) ?? name
+    const byLastName = ownTeam
+      .map((participant) => participant.name)
+      .sort((a, b) => lastName(a).localeCompare(lastName(b)))
+    const total = byLastName.length
+
     await phase.columnHeader('Last name').getByRole('button').click()
     const rows = page.locator('tbody').getByRole('row')
-    await expect(rows).toHaveCount(ownTeam.length)
-    await expect(rows.first()).toHaveAccessibleName(new RegExp(selma.name))
+    await expect(rows).toHaveCount(total)
+    await expect(rows.first()).toHaveAccessibleName(new RegExp(byLastName[0]))
 
     await rows.first().click()
     // The participant page keeps the scroll offset of the table, which can dock the header.
     await phase.scrollToTop()
-    await phase.expectOpenedParticipant(selma.name, 1, ownTeam.length)
+    await phase.expectOpenedParticipant(byLastName[0], 1, total)
     await expect(phase.previousParticipantButton()).toBeDisabled()
-    await expect(phase.nextParticipantButton()).toHaveAccessibleName(
-      `Next participant: ${stan.name}`,
-    )
 
-    await phase.nextParticipantButton().click()
-    await phase.expectOpenedParticipant(stan.name, 2, ownTeam.length)
+    // Next walks every participant of the editor's teams and none of the hidden ones.
+    for (let index = 1; index < total; index++) {
+      await expect(phase.nextParticipantButton()).toHaveAccessibleName(
+        `Next participant: ${byLastName[index]}`,
+      )
+      await phase.nextParticipantButton().click()
+      await phase.expectOpenedParticipant(byLastName[index], index + 1, total)
+    }
     await expect(phase.nextParticipantButton()).toBeDisabled()
   })
 
@@ -160,10 +170,10 @@ test.describe('assessment: tutors only reach their own team', () => {
     test('exports the selected tutor evaluations as zipped JSON and PDF', async ({ page }) => {
       const phase = new AssessmentPage(page)
       await phase.goto(SEEDED_COURSES.fullCourse.id, PHASE_ID, '/tutors')
-      await expect(page.getByRole('row', { name: new RegExp(TUTOR.name) })).toBeVisible({
+      await expect(page.getByRole('row', { name: new RegExp(TUTOR_ROW) })).toBeVisible({
         timeout: 15_000,
       })
-      await phase.selectRow(TUTOR.name)
+      await phase.selectRow(TUTOR_ROW)
 
       const json = await phase.downloadBulkAction('Export JSON')
       expect(json.name).toMatch(/^tutor_evaluations_json_\d{4}-\d{2}-\d{2}\.zip$/)

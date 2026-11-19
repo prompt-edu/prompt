@@ -4,6 +4,7 @@ import {
   ErrorPage,
   ManagementPageHeader,
   type ParticipantRow,
+  PassStatusSummary,
   type TableFilter,
 } from '@tumaet/prompt-ui-components'
 import { useMemo, useRef } from 'react'
@@ -112,6 +113,7 @@ export const InterviewParticipantsPage = () => {
               openInNewTabRef.current = e.metaKey || e.ctrlKey
             }}
           >
+            <PassStatusSummary participations={participations} className='mb-4' />
             <CoursePhaseParticipationsTable
               phaseId={phaseId}
               participants={participations}

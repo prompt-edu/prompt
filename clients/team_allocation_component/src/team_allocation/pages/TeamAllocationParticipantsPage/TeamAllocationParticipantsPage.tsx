@@ -5,6 +5,7 @@ import {
   ErrorPage,
   type ExtraParticipantColumn,
   ManagementPageHeader,
+  PassStatusSummary,
   QueryGate,
 } from '@tumaet/prompt-ui-components'
 import { useEffect, useMemo } from 'react'
@@ -127,6 +128,10 @@ export const TeamAllocationParticipantsPage = () => {
           This table shows all participants and their allocated teams.
         </p>
         <div className='w-full'>
+          <PassStatusSummary
+            participations={coursePhaseParticipations?.participations ?? []}
+            className='mb-4'
+          />
           <CoursePhaseParticipationsTable
             phaseId={phaseId}
             participants={coursePhaseParticipations?.participations ?? []}

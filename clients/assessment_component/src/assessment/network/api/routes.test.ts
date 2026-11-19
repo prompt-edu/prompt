@@ -331,6 +331,12 @@ const ROUTES: Route[] = [
     url: `${ASSESSMENT_BASE}/evaluation/my-results`,
   },
   {
+    name: 'evaluations.myTutorResults',
+    run: () => assessmentApi.evaluations.myTutorResults(PHASE),
+    method: 'get',
+    url: `${ASSESSMENT_BASE}/evaluation/my-tutor-results`,
+  },
+  {
     name: 'evaluations.save',
     run: () => assessmentApi.evaluations.save(PHASE, evaluation),
     method: 'post',

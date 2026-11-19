@@ -13,6 +13,7 @@ import (
 
 	"github.com/google/uuid"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt-sdk/promptTypes"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 )
 
@@ -87,30 +88,18 @@ func fetchTeams(authHeader string, resolution promptSDK.Resolution) (teamsRespon
 		return teamsResponse{}, err
 	}
 
-	req, err := http.NewRequest(http.MethodGet, teamsURL, nil)
-	if err != nil {
-		return teamsResponse{}, err
-	}
-	req.Header.Set("Authorization", authHeader)
-
-	resp, err := httpClient.Do(req)
+	status, body, err := getAsCaller(teamsURL, authHeader)
 	if err != nil {
 		return teamsResponse{}, fmt.Errorf("could not fetch teams: %w", err)
 	}
-	defer func() { _ = resp.Body.Close() }()
-
-	switch resp.StatusCode {
+	switch status {
 	case http.StatusOK:
 	case http.StatusForbidden:
 		return teamsResponse{}, errTeamsForbidden
 	default:
-		return teamsResponse{}, fmt.Errorf("could not fetch teams: received status %d", resp.StatusCode)
+		return teamsResponse{}, fmt.Errorf("could not fetch teams: received status %d", status)
 	}
 
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return teamsResponse{}, fmt.Errorf("could not read teams: %w", err)
-	}
 	var teams teamsResponse
 	if err := json.Unmarshal(body, &teams); err != nil {
 		return teamsResponse{}, fmt.Errorf("could not parse teams: %w", err)
@@ -118,9 +107,71 @@ func fetchTeams(authHeader string, resolution promptSDK.Resolution) (teamsRespon
 	return teams, nil
 }
 
+// ResolveOwnTutorID returns the tutor id the caller has in the phase providing the teams, so
+// assessment can match them to the tutor evaluations written about them. found is false when the
+// phase has no teams input or the team phase does not list the caller as a tutor.
+func ResolveOwnTutorID(authHeader string, coursePhaseID uuid.UUID) (tutorID uuid.UUID, found bool, err error) {
+	resolution, found, err := findTeamsResolution(authHeader, coursePhaseID)
+	if err != nil || !found {
+		return uuid.Nil, false, err
+	}
+
+	tutorURL, err := resolutionURL(resolution, "tutors", "me")
+	if err != nil {
+		return uuid.Nil, false, err
+	}
+
+	status, body, err := getAsCaller(tutorURL, authHeader)
+	if err != nil {
+		return uuid.Nil, false, fmt.Errorf("could not fetch the caller's tutor record: %w", err)
+	}
+	switch status {
+	case http.StatusOK:
+	// A team phase without the endpoint answers 404 as well, so it reads as "not a tutor".
+	case http.StatusNotFound, http.StatusForbidden:
+		return uuid.Nil, false, nil
+	default:
+		return uuid.Nil, false, fmt.Errorf("could not fetch the caller's tutor record: received status %d", status)
+	}
+
+	var tutor promptTypes.Person
+	if err := json.Unmarshal(body, &tutor); err != nil {
+		return uuid.Nil, false, fmt.Errorf("could not parse the caller's tutor record: %w", err)
+	}
+	if tutor.ID == uuid.Nil {
+		return uuid.Nil, false, nil
+	}
+	return tutor.ID, true, nil
+}
+
+// getAsCaller forwards the caller's own token, so the other phase applies the caller's
+// permissions. The body is only read for a 200.
+func getAsCaller(targetURL, authHeader string) (int, []byte, error) {
+	req, err := http.NewRequest(http.MethodGet, targetURL, nil)
+	if err != nil {
+		return 0, nil, err
+	}
+	req.Header.Set("Authorization", authHeader)
+
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return 0, nil, err
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != http.StatusOK {
+		return resp.StatusCode, nil, nil
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return 0, nil, fmt.Errorf("could not read response: %w", err)
+	}
+	return resp.StatusCode, body, nil
+}
+
 // resolutionURL mirrors the SDK's unexported URL check: the caller's token must only reach
-// a plain http(s) host on the resolution's own path.
-func resolutionURL(resolution promptSDK.Resolution) (string, error) {
+// a plain http(s) host on the resolution's own path, optionally extended by fixed segments.
+func resolutionURL(resolution promptSDK.Resolution, extraSegments ...string) (string, error) {
 	base, err := url.Parse(resolution.BaseURL)
 	if err != nil {
 		return "", fmt.Errorf("invalid resolution baseURL: %w", err)
@@ -134,5 +185,6 @@ func resolutionURL(resolution promptSDK.Resolution) (string, error) {
 		return "", fmt.Errorf("resolution endpoint path %q is not allowed", resolution.EndpointPath)
 	}
 
-	return base.JoinPath("course_phase", resolution.CoursePhaseID.String(), endpointPath).String(), nil
+	segments := append([]string{"course_phase", resolution.CoursePhaseID.String(), endpointPath}, extraSegments...)
+	return base.JoinPath(segments...).String(), nil
 }

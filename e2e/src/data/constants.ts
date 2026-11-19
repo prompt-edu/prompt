@@ -112,12 +112,19 @@ export const TEAM_ALLOCATION_STUDENT_PHASE_ID = 'b3000003-0000-0000-0000-0000000
 // students must be rejected (negative auth fixture).
 export const TEAM_ALLOCATION_FOREIGN_PHASE_ID = 'b3000002-0000-0000-0000-000000000002'
 
-// Standalone Team Allocation phase on fullCourse where course-editor tutors
-// Team Lovelace (Stan + Selma) and Team Turing holds Niclas + Test Test. It
-// feeds ASSESSMENT_FIXTURE_PHASES.tutorScope, so specs must not change it.
+// Standalone Team Allocation phase on fullCourse behind TUTOR_SCOPE_PARTICIPANTS:
+// course-editor leads Team Lovelace (Stan + Selma) and Team Turing (Niclas) under
+// the tutor id ledTutorId, a coach also tutors Team Lovelace, and Team Hamilton
+// (Test Test) has no tutor. It feeds ASSESSMENT_FIXTURE_PHASES.tutorScope, so a
+// spec that changes the lead (tutor-teams.spec.ts) must restore it afterwards.
 export const TEAM_ALLOCATION_TUTOR_SCOPE = {
   phaseId: 'b3000004-0000-0000-0000-000000000004',
-  ownTeamId: '3a000003-0000-0000-0000-000000000003',
+  ledTutorId: 'a0000005-0000-0000-0000-000000000005',
+  teams: {
+    lovelace: { id: '3a000003-0000-0000-0000-000000000003', name: 'Team Lovelace' },
+    turing: { id: '3a000004-0000-0000-0000-000000000004', name: 'Team Turing' },
+    hamilton: { id: '3a000006-0000-0000-0000-000000000006', name: 'Team Hamilton' },
+  },
 }
 
 // Standalone Assessment phases on fullCourse (no graph edges, so they are not
@@ -129,7 +136,9 @@ export const TEAM_ALLOCATION_TUTOR_SCOPE = {
 // `print` by the print spec (Stan participates), `gradeExport` by the grade
 // export spec (Stan participates), and `evaluationOnly` by the evaluation-only
 // spec (Stan participates), which flips assessment_enabled off. `tutorScope`
-// also serves the participant navigation spec, which only reads it.
+// also serves the participant navigation spec, which only reads it. `tutorResults`
+// belongs to the tutor results spec: Stan + Selma participate, and its teams come
+// from TEAM_ALLOCATION_TUTOR_SCOPE, so course-editor is their tutor.
 export const ASSESSMENT_FIXTURE_PHASES = {
   visibility: 'd0000006-0000-0000-0000-000000000006',
   selfEvaluation: 'd0000007-0000-0000-0000-000000000007',
@@ -138,18 +147,39 @@ export const ASSESSMENT_FIXTURE_PHASES = {
   evaluationOnly: 'd0000013-0000-0000-0000-000000000013',
   tutorScope: 'd0000018-0000-0000-0000-000000000018',
   otherTutor: 'd0000019-0000-0000-0000-000000000019',
+  tutorResults: 'd000001a-0000-0000-0000-00000000001a',
+}
+
+// The tutor record course-editor (Eduard Eduard, login co69edt) has in
+// TEAM_ALLOCATION_TUTOR_SCOPE: the id students evaluate as their tutor.
+export const TUTOR_SCOPE_TUTOR = {
+  name: 'Eduard Eduard',
+  id: 'a0000005-0000-0000-0000-000000000005',
 }
 
 // Participants of ASSESSMENT_FIXTURE_PHASES.tutorScope. Its teams come from the
-// standalone Team Allocation phase b3000004, where course-editor tutors Team
-// Lovelace only and New Test user is unallocated.
+// standalone Team Allocation phase TEAM_ALLOCATION_TUTOR_SCOPE.phaseId, where
+// course-editor is a project lead of Team Lovelace and Team Turing (not Team
+// Hamilton) and New Test user is unallocated.
 export const TUTOR_SCOPE_PARTICIPANTS = {
   ownTeam: [
-    { name: 'Stan Stan', courseParticipationId: 'a0000001-0000-0000-0000-000000000001' },
-    { name: 'Selma Second', courseParticipationId: 'ca000008-0000-4000-8000-000000000008' },
+    {
+      name: 'Stan Stan',
+      courseParticipationId: 'a0000001-0000-0000-0000-000000000001',
+      team: 'Team Lovelace',
+    },
+    {
+      name: 'Selma Second',
+      courseParticipationId: 'ca000008-0000-4000-8000-000000000008',
+      team: 'Team Lovelace',
+    },
+    {
+      name: 'Niclas Heun',
+      courseParticipationId: 'a0000002-0000-0000-0000-000000000002',
+      team: 'Team Turing',
+    },
   ],
   hidden: [
-    { name: 'Niclas Heun', courseParticipationId: 'a0000002-0000-0000-0000-000000000002' },
     { name: 'Test Test', courseParticipationId: 'a0000004-0000-0000-0000-000000000004' },
     { name: 'New Test user', courseParticipationId: 'a0000006-0000-0000-0000-000000000006' },
   ],

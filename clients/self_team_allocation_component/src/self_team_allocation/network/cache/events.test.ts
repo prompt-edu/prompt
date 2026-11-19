@@ -42,6 +42,22 @@ describe('teamsChanged', () => {
   })
 })
 
+describe('tutorsImported', () => {
+  it('invalidates the teams and the tutor list of this phase only', () => {
+    seed(
+      selfTeamAllocationKeys.teams(PHASE),
+      selfTeamAllocationKeys.tutors(PHASE),
+      selfTeamAllocationKeys.tutors(OTHER_PHASE),
+    )
+
+    selfTeamAllocationCache.tutorsImported(queryClient, PHASE)
+
+    expect(isInvalidated(selfTeamAllocationKeys.teams(PHASE))).toBe(true)
+    expect(isInvalidated(selfTeamAllocationKeys.tutors(PHASE))).toBe(true)
+    expect(isInvalidated(selfTeamAllocationKeys.tutors(OTHER_PHASE))).toBe(false)
+  })
+})
+
 describe('timeframeChanged', () => {
   it('invalidates the timeframe and the config reporting it', () => {
     seed(selfTeamAllocationKeys.timeframe(PHASE), selfTeamAllocationKeys.config(PHASE))

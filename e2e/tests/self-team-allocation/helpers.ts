@@ -21,7 +21,7 @@ export async function getTeams(
   if (!res.ok()) {
     throw new Error(`GET teams failed: ${res.status()} ${await res.text()}`)
   }
-  return (await res.json()) as Team[]
+  return ((await res.json()) as { teams: Team[] }).teams
 }
 
 // Removes a test-created team (any state), so specs stay independent and

@@ -68,7 +68,7 @@
         "y": 280
       },
       "data": {
-        "name": "MCP Server",
+        "name": "MCP Server (planned)",
         "isComponentHeaderShown": true
       },
       "measured": {
@@ -79,11 +79,11 @@
     {
       "id": "e65c8fde-0db4-4dba-9604-fe2bcd15d8ed",
       "width": 180,
-      "height": 120,
+      "height": 100,
       "type": "component",
       "position": {
-        "x": 430,
-        "y": 795
+        "x": 435,
+        "y": 410
       },
       "data": {
         "name": "Audit Log Database",
@@ -91,7 +91,7 @@
       },
       "measured": {
         "width": 180,
-        "height": 120
+        "height": 100
       }
     },
     {
@@ -174,7 +174,7 @@
         "y": 720
       },
       "data": {
-        "name": "Assessment\nService"
+        "name": "Phase\nService"
       },
       "measured": {
         "width": 30,
@@ -301,6 +301,41 @@
         "width": 30,
         "height": 30
       }
+    },
+    {
+      "id": "89ad27a7-257f-44f3-b402-631f371f2e75",
+      "width": 180,
+      "height": 120,
+      "type": "component",
+      "position": {
+        "x": 435,
+        "y": 795
+      },
+      "data": {
+        "name": "AI Client",
+        "isComponentHeaderShown": true
+      },
+      "measured": {
+        "width": 180,
+        "height": 120
+      }
+    },
+    {
+      "id": "e33e6efb-456b-4400-84f5-997f7f9c31a0",
+      "width": 30,
+      "height": 30,
+      "type": "componentInterface",
+      "position": {
+        "x": 510,
+        "y": 720
+      },
+      "data": {
+        "name": "Audit API"
+      },
+      "measured": {
+        "width": 30,
+        "height": 30
+      }
     }
   ],
   "edges": [
@@ -309,8 +344,8 @@
       "source": "43144144-efbf-4501-ab97-949fc2a80d2b",
       "target": "e65c8fde-0db4-4dba-9604-fe2bcd15d8ed",
       "type": "ComponentDependency",
-      "sourceHandle": "bottom",
-      "targetHandle": "top",
+      "sourceHandle": "top",
+      "targetHandle": "bottom",
       "data": {
         "points": []
       }
@@ -555,62 +590,6 @@
       }
     },
     {
-      "id": "293e503d-b12f-4d6d-9602-5426f4ad8de8",
-      "source": "5cddeb76-5ff3-433d-886e-bb529aadef14",
-      "target": "13f137f4-18fd-4b39-97fb-778cb4533646",
-      "type": "ComponentProvidedInterface",
-      "sourceHandle": "top",
-      "targetHandle": "bottom",
-      "data": {
-        "points": [
-          {
-            "x": 235,
-            "y": 550
-          },
-          {
-            "x": 235,
-            "y": 435
-          }
-        ],
-        "sourceAnchor": {
-          "side": "top",
-          "ratio": 0.8055555555555556
-        },
-        "targetAnchor": {
-          "side": "bottom",
-          "ratio": 0.5
-        }
-      }
-    },
-    {
-      "id": "db6da218-5987-4405-a7eb-4bcc36bb1aa6",
-      "source": "ca101e00-9737-46cb-bccd-598ba0093ca2",
-      "target": "13f137f4-18fd-4b39-97fb-778cb4533646",
-      "type": "ComponentRequiredInterface",
-      "sourceHandle": "bottom",
-      "targetHandle": "top",
-      "data": {
-        "targetAnchor": {
-          "side": "top",
-          "ratio": 0.5
-        },
-        "points": [
-          {
-            "x": 235,
-            "y": 325
-          },
-          {
-            "x": 235,
-            "y": 401
-          }
-        ],
-        "sourceAnchor": {
-          "side": "bottom",
-          "ratio": 0.7777777777777778
-        }
-      }
-    },
-    {
       "id": "ad7acbe0-ce69-4fbe-ae03-5da2cf8e4960",
       "source": "5cddeb76-5ff3-433d-886e-bb529aadef14",
       "target": "49345076-ccf3-4517-9f5d-1e95497a9a48",
@@ -716,6 +695,80 @@
         },
         "targetAnchor": {
           "side": "top",
+          "ratio": 0.5
+        }
+      }
+    },
+    {
+      "id": "576b05b1-4e1e-47fa-aab2-e4c38c585bf1",
+      "source": "e33e6efb-456b-4400-84f5-997f7f9c31a0",
+      "target": "43144144-efbf-4501-ab97-949fc2a80d2b",
+      "type": "ComponentProvidedInterface",
+      "sourceHandle": "top",
+      "targetHandle": "bottom",
+      "data": {
+        "points": [],
+        "sourceAnchor": {
+          "side": "top",
+          "ratio": 0.5
+        },
+        "targetAnchor": {
+          "side": "bottom",
+          "ratio": 0.5
+        }
+      }
+    },
+    {
+      "id": "75ed6eec-5598-4966-88c3-098939a548d8",
+      "source": "89ad27a7-257f-44f3-b402-631f371f2e75",
+      "target": "e33e6efb-456b-4400-84f5-997f7f9c31a0",
+      "type": "ComponentRequiredInterface",
+      "sourceHandle": "top",
+      "targetHandle": "bottom",
+      "data": {
+        "points": [],
+        "sourceAnchor": {
+          "side": "top",
+          "ratio": 0.5
+        },
+        "targetAnchor": {
+          "side": "bottom",
+          "ratio": 0.5
+        }
+      }
+    },
+    {
+      "id": "2964d417-741a-4ff9-9df7-62e82a9e00df",
+      "source": "89ad27a7-257f-44f3-b402-631f371f2e75",
+      "target": "c10c4792-ecec-47bc-b08f-93fb6275f206",
+      "type": "ComponentRequiredInterface",
+      "sourceHandle": "bottom",
+      "targetHandle": "bottom",
+      "data": {
+        "points": [
+          {
+            "x": 525,
+            "y": 915
+          },
+          {
+            "x": 525,
+            "y": 965
+          },
+          {
+            "x": 25,
+            "y": 965
+          },
+          {
+            "x": 25,
+            "y": 869
+          }
+        ],
+        "sourceAnchor": {
+          "side": "bottom",
+          "ratio": 0.5
+        },
+        "targetAnchor": {
+          "side": "bottom",
           "ratio": 0.5
         }
       }

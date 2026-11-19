@@ -11,6 +11,7 @@ import { describeMailReport } from '../../ResultsReleasedMailCard/utils'
 export interface ReleaseAssessmentResultsModel {
   assessmentEnabled: boolean
   resultsReleased: boolean
+  configLoaded: boolean
   showReleaseDialog: boolean
   setShowReleaseDialog: (open: boolean) => void
   showUnreleaseDialog: boolean
@@ -94,6 +95,7 @@ export const useReleaseAssessmentResults = (): ReleaseAssessmentResultsModel => 
   return {
     assessmentEnabled,
     resultsReleased: Boolean(coursePhaseConfig?.resultsReleased),
+    configLoaded: coursePhaseConfig !== undefined,
     showReleaseDialog,
     setShowReleaseDialog,
     showUnreleaseDialog,

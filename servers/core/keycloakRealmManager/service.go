@@ -80,7 +80,7 @@ func (s *KeycloakRealmService) AddCustomGroup(ctx context.Context, courseID uuid
 	}
 
 	roleName := customGroupRoleName(courseGroupName, groupName)
-	otherCourseGroup, err := s.otherCourseGroupOfRole(ctx, token.AccessToken, TOP_LEVEL_GROUP_NAME+"/"+courseGroupName, roleName)
+	otherCourseGroup, _, err := s.otherCourseGroupOfRole(ctx, token.AccessToken, TOP_LEVEL_GROUP_NAME+"/"+courseGroupName, roleName)
 	if err != nil {
 		log.Error("failed to check the custom group role: ", err)
 		return "", errors.New("failed to check the custom group role")

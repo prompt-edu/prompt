@@ -116,8 +116,8 @@ func (s *KeycloakRealmService) customGroupRoleNames(ctx context.Context, accessT
 }
 
 func (s *KeycloakRealmService) deleteCourseRole(ctx context.Context, accessToken, courseGroupPath, roleName string) error {
-	otherCourseGroup, err := s.otherCourseGroupOfRole(ctx, accessToken, courseGroupPath, roleName)
-	if err != nil {
+	otherCourseGroup, exists, err := s.otherCourseGroupOfRole(ctx, accessToken, courseGroupPath, roleName)
+	if err != nil || !exists {
 		return err
 	}
 	if otherCourseGroup != "" {

@@ -108,6 +108,7 @@ func TestDeleteCourseGroupsAndRolesByNameSucceedsWhenTheGroupIsAlreadyGone(t *te
 	require.NoError(t, err)
 	_, roles := realm.state()
 	assert.Equal(t, []string{"ws24-lab-cg-team-Lecturer"}, roles, "the Lecturer role of the course \"lab-cg-team\" stays")
+	assert.Equal(t, []string{"DELETE /admin/realms/prompt/clients/client-uuid/roles/ws24-lab-Lecturer"}, deleteCalls(realm), "the missing Editor role is not deleted")
 }
 
 // A "/" splits the group path, a "%" makes the URL invalid, and a "?" or "#" cuts it short, so the

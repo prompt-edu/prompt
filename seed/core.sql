@@ -285,6 +285,8 @@ INSERT INTO course_phase (id, course_id, name, restricted_data, is_initial_phase
 -- its teams come from b3000005, whose only tutor is not course-editor).
 -- d000001a = tutor results spec (Stan + Selma participate; its teams come from
 -- b3000004, so course-editor is their tutor and sees the tutor evaluation results).
+-- d000001b = tutor navigation spec (no participants; its teams come from b3000004,
+-- whose three tutor rows hold two tutors for previous / next).
 INSERT INTO course_phase (id, course_id, name, restricted_data, is_initial_phase, course_phase_type_id, student_readable_data)
     VALUES ('d0000006-0000-0000-0000-000000000006', 'c0000001-0000-0000-0000-000000000001', 'Assessment Visibility', '{}', false, (SELECT id FROM course_phase_type WHERE name = 'Assessment'), '{}');
 INSERT INTO course_phase (id, course_id, name, restricted_data, is_initial_phase, course_phase_type_id, student_readable_data)
@@ -307,6 +309,8 @@ INSERT INTO course_phase (id, course_id, name, restricted_data, is_initial_phase
     VALUES ('d0000019-0000-0000-0000-000000000019', 'c0000001-0000-0000-0000-000000000001', 'Assessment Other Tutor', '{}', false, (SELECT id FROM course_phase_type WHERE name = 'Assessment'), '{}');
 INSERT INTO course_phase (id, course_id, name, restricted_data, is_initial_phase, course_phase_type_id, student_readable_data)
     VALUES ('d000001a-0000-0000-0000-00000000001a', 'c0000001-0000-0000-0000-000000000001', 'Assessment Tutor Results', '{}', false, (SELECT id FROM course_phase_type WHERE name = 'Assessment'), '{}');
+INSERT INTO course_phase (id, course_id, name, restricted_data, is_initial_phase, course_phase_type_id, student_readable_data)
+    VALUES ('d000001b-0000-0000-0000-00000000001b', 'c0000001-0000-0000-0000-000000000001', 'Assessment Tutor Navigation', '{}', false, (SELECT id FROM course_phase_type WHERE name = 'Assessment'), '{}');
 -- Standalone Example phases (no graph edges, route by URL). The example phase is
 -- a minimal placeholder module, so it needs no participants or config:
 -- d000000f = MF smoke + lecturer-info API auth on iPraktikumFull,
@@ -754,7 +758,8 @@ BEGIN
             ('f0000004-0000-0000-0000-000000000004'::uuid, 'Team Allocation', 'teamAllocation', 'f0000007-0000-0000-0000-000000000007'::uuid, 'Certificate',  'teamAllocation'),
             ('b3000004-0000-0000-0000-000000000004'::uuid, 'Team Allocation', 'teamAllocation', 'd0000018-0000-0000-0000-000000000018'::uuid, 'Assessment',   'teamAllocation'),
             ('b3000005-0000-0000-0000-000000000005'::uuid, 'Team Allocation', 'teamAllocation', 'd0000019-0000-0000-0000-000000000019'::uuid, 'Assessment',   'teamAllocation'),
-            ('b3000004-0000-0000-0000-000000000004'::uuid, 'Team Allocation', 'teamAllocation', 'd000001a-0000-0000-0000-00000000001a'::uuid, 'Assessment',   'teamAllocation')
+            ('b3000004-0000-0000-0000-000000000004'::uuid, 'Team Allocation', 'teamAllocation', 'd000001a-0000-0000-0000-00000000001a'::uuid, 'Assessment',   'teamAllocation'),
+            ('b3000004-0000-0000-0000-000000000004'::uuid, 'Team Allocation', 'teamAllocation', 'd000001b-0000-0000-0000-00000000001b'::uuid, 'Assessment',   'teamAllocation')
          ) AS edge(from_phase, from_type, from_dto, to_phase, to_type, to_dto)
     JOIN course_phase_type from_type ON from_type.name = edge.from_type
     JOIN course_phase_type to_type   ON to_type.name = edge.to_type
@@ -763,8 +768,8 @@ BEGIN
     JOIN course_phase_type_participation_required_input_dto required
          ON required.course_phase_type_id = to_type.id AND required.dto_name = edge.to_dto;
     GET DIAGNOSTICS inserted = ROW_COUNT;
-    IF inserted <> 11 THEN
-        RAISE EXCEPTION 'seed: expected 11 participation data dependency edges, inserted % - a phase type or DTO descriptor did not resolve. See seed/README.md.', inserted;
+    IF inserted <> 12 THEN
+        RAISE EXCEPTION 'seed: expected 12 participation data dependency edges, inserted % - a phase type or DTO descriptor did not resolve. See seed/README.md.', inserted;
     END IF;
 END $$;
 
@@ -780,7 +785,8 @@ BEGIN
             ('f0000004-0000-0000-0000-000000000004'::uuid, 'Team Allocation', 'teams', 'f0000007-0000-0000-0000-000000000007'::uuid, 'Certificate',  'teams'),
             ('b3000004-0000-0000-0000-000000000004'::uuid, 'Team Allocation', 'teams', 'd0000018-0000-0000-0000-000000000018'::uuid, 'Assessment',   'teams'),
             ('b3000005-0000-0000-0000-000000000005'::uuid, 'Team Allocation', 'teams', 'd0000019-0000-0000-0000-000000000019'::uuid, 'Assessment',   'teams'),
-            ('b3000004-0000-0000-0000-000000000004'::uuid, 'Team Allocation', 'teams', 'd000001a-0000-0000-0000-00000000001a'::uuid, 'Assessment',   'teams')
+            ('b3000004-0000-0000-0000-000000000004'::uuid, 'Team Allocation', 'teams', 'd000001a-0000-0000-0000-00000000001a'::uuid, 'Assessment',   'teams'),
+            ('b3000004-0000-0000-0000-000000000004'::uuid, 'Team Allocation', 'teams', 'd000001b-0000-0000-0000-00000000001b'::uuid, 'Assessment',   'teams')
          ) AS edge(from_phase, from_type, from_dto, to_phase, to_type, to_dto)
     JOIN course_phase_type from_type ON from_type.name = edge.from_type
     JOIN course_phase_type to_type   ON to_type.name = edge.to_type
@@ -789,8 +795,8 @@ BEGIN
     JOIN course_phase_type_phase_required_input_dto required
          ON required.course_phase_type_id = to_type.id AND required.dto_name = edge.to_dto;
     GET DIAGNOSTICS inserted = ROW_COUNT;
-    IF inserted <> 6 THEN
-        RAISE EXCEPTION 'seed: expected 6 phase data dependency edges, inserted % - a phase type or DTO descriptor did not resolve. See seed/README.md.', inserted;
+    IF inserted <> 7 THEN
+        RAISE EXCEPTION 'seed: expected 7 phase data dependency edges, inserted % - a phase type or DTO descriptor did not resolve. See seed/README.md.', inserted;
     END IF;
 END $$;
 

@@ -35,7 +35,7 @@ export const getSchemaSectionContent = (
     timeframeHint:
       'This controls when lecturers can submit final assessments for participants in this phase.',
     lockHint:
-      "Assessments were already submitted with this schema. To keep them from being falsified, you can't turn the assessment off, switch to another schema or edit this one. To unlock it, open each participant's assessment page and delete the summary, the competency scores and the action items, and clear the category comments.",
+      "Assessments were already submitted with this schema. To keep them from being falsified, you can't turn the assessment off, switch to another schema or edit this one. To unlock it, open each participant's assessment page and delete the summary, the competency scores and the action items, and clear the category comments. Independent scores can only be deleted by the assessor who gave them, so each assessor must delete their own.",
     detailTitle: 'Assessment Schema',
     detailDescription:
       'Review and edit categories, competencies, weights, and proficiency descriptions for the final assessment.',

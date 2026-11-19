@@ -2,6 +2,7 @@ import { type NavigableParticipant, resolveNavigationOrder } from '@tumaet/promp
 import { useMemo } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useGetAllTeams } from '../../hooks/useGetAllTeams'
+import { getTutorRows, getUniqueTutorIds } from '../../utils/getTutorRows'
 
 export interface TutorDetailLocationState {
   /** The tutor table's order when the results were opened, for previous / next. */
@@ -25,11 +26,11 @@ export const useTutorNavigation = (): TutorNavigation => {
   const { data: teams } = useGetAllTeams()
 
   const orderedTutors = useMemo(() => {
-    const tutorById = new Map<string, NavigableParticipant>()
-    for (const tutor of teams.flatMap((team) => team.tutors)) {
-      if (tutor.id) tutorById.set(tutor.id, { courseParticipationID: tutor.id, student: tutor })
-    }
-    return resolveNavigationOrder(snapshotIds, [...tutorById.keys()], tutorId).flatMap(
+    const rows = getTutorRows(teams)
+    const tutorById = new Map<string, NavigableParticipant>(
+      rows.map((row) => [row.tutorId, { courseParticipationID: row.tutorId, student: row }]),
+    )
+    return resolveNavigationOrder(snapshotIds, getUniqueTutorIds(rows), tutorId).flatMap(
       (id) => tutorById.get(id) ?? [],
     )
   }, [teams, snapshotIds, tutorId])

@@ -9,6 +9,10 @@ definitions:
     type: object
   promptTypes.Person:
     properties:
+      email:
+        description: Email is the person's contact email address. It is empty when
+          the source does not provide it.
+        type: string
       firstName:
         description: FirstName stores the first name as provided during initial application
           or profile updates.
@@ -21,6 +25,11 @@ definitions:
       lastName:
         description: LastName stores the last name as provided during initial application
           or profile updates.
+        type: string
+      universityLogin:
+        description: |-
+          UniversityLogin is the person's username for university systems and services.
+          It is empty when the source does not provide it.
         type: string
     type: object
   promptTypes.Team:

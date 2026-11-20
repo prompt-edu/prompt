@@ -15,8 +15,10 @@ deployment — plus the `make new-phase` generator that automates the scaffoldin
 Key facts that changed since this page was written:
 
 - Build configs are now `rspack.config.mjs` (Rspack), not `webpack.config.mjs`.
-- The reference implementation is `clients/example_component` + `servers/example_server`
-  (formerly `template_component`/`template_server`); both have READMEs describing their layout.
+- The reference implementation is
+  [prompt-edu/prompt-example-phase](https://github.com/prompt-edu/prompt-example-phase)
+  (formerly `clients/example_component` + `servers/example_server` in this repository); its client
+  and server both have READMEs describing their layout.
 - External (out-of-repo) course phases **are** supported — see
   [prompt-intro-course](https://github.com/prompt-edu/prompt-intro-course) and
   [prompt-github-challenge](https://github.com/prompt-edu/prompt-github-challenge), and the

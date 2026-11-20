@@ -11,7 +11,8 @@ Local orchestration uses Docker Compose **v2** (`docker compose`, not `docker-co
 
 ## Per-phase services
 
-Each course phase contributes three services (mirror the `*-example` blocks):
+Each course phase contributes three services (`make new-phase` adds them from
+`scripts/new-course-phase/compose.*.yml.tmpl`):
 
 - `server-<name>` — build context `./servers/<name>`, `dockerfile: ../Dockerfile`, unique published
   port → `8080` (in the stack form below), `depends_on` its db + keycloak with

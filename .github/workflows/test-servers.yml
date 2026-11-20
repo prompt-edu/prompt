@@ -21,7 +21,6 @@ jobs:
           - presentation
           - self_team_allocation
           - team_allocation
-          - example_server
     steps:
       - uses: actions/checkout@v7
       - name: Setup Go

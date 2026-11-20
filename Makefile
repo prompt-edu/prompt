@@ -1,17 +1,17 @@
 .PHONY: help server servers client-core client-certificate client-ai client-presentation client-assessment \
-	client-interview client-matching client-example client-team-allocation \
+	client-interview client-matching client-team-allocation \
 	client-self-team-allocation client-infrastructure-setup clients db db-down \
 	server-core server-assessment server-interview \
-	server-team-allocation server-self-team-allocation server-example \
+	server-team-allocation server-self-team-allocation \
 	server-certificate server-presentation server-infrastructure-setup server-ai \
 	lint lint-clients lint-servers \
 	test test-clients test-core test-assessment test-interview \
-	test-team-allocation test-self-team-allocation test-example \
+	test-team-allocation test-self-team-allocation \
 	test-certificate test-presentation test-infrastructure-setup test-ai \
 	test-e2e test-e2e-shard test-e2e-ui test-e2e-down \
 	verify-up verify-down stack stop stack-down s3 \
 	sqlc sqlc-core sqlc-assessment sqlc-interview \
-	sqlc-team-allocation sqlc-self-team-allocation sqlc-example \
+	sqlc-team-allocation sqlc-self-team-allocation \
 	sqlc-certificate sqlc-presentation sqlc-infrastructure-setup sqlc-ai \
 	swagger install-clients install-hooks setup-skills new-phase \
 	seed seed-check
@@ -89,7 +89,6 @@ export DB_PORT_TEAM_ALLOCATION := $(PROMPT_PORT_5434)
 export DB_PORT_SELF_TEAM_ALLOCATION := $(PROMPT_PORT_5436)
 export DB_PORT_ASSESSMENT := $(PROMPT_PORT_5435)
 export DB_PORT_CERTIFICATE := $(PROMPT_PORT_5439)
-export DB_PORT_EXAMPLE_SERVER := $(PROMPT_PORT_5437)
 export DB_PORT_INTERVIEW := $(PROMPT_PORT_5438)
 export DB_PORT_PRESENTATION := $(PROMPT_PORT_5440)
 export DB_PORT_INFRASTRUCTURE_SETUP := $(PROMPT_PORT_5441)
@@ -131,7 +130,6 @@ servers: ## Start all servers (core + all microservices)
 	@$(MAKE) server-interview &
 	@$(MAKE) server-team-allocation &
 	@$(MAKE) server-self-team-allocation &
-	@$(MAKE) server-example &
 	@$(MAKE) server-certificate &
 	@$(MAKE) server-presentation &
 	@$(MAKE) server-infrastructure-setup &
@@ -153,9 +151,6 @@ server-team-allocation: ## Start team allocation server (port 8083)
 
 server-self-team-allocation: ## Start self team allocation server (port 8084)
 	$(call run-server,self_team_allocation,$(PROMPT_PORT_8084))
-
-server-example: ## Start example server (port 8086)
-	$(call run-server,example_server,$(PROMPT_PORT_8086))
 
 server-certificate: ## Start certificate server (port 8088)
 	$(call run-server,certificate,$(PROMPT_PORT_8088))
@@ -193,9 +188,6 @@ client-interview: ## Start only the interview client
 client-matching: ## Start only the matching client
 	cd clients/matching_component && yarn dev
 
-client-example: ## Start only the example client
-	cd clients/example_component && yarn dev
-
 client-team-allocation: ## Start only the team allocation client
 	cd clients/team_allocation_component && yarn dev
 
@@ -206,7 +198,7 @@ client-infrastructure-setup: ## Start only the infrastructure setup client
 	cd clients/infrastructure_setup_component && yarn dev
 
 DB_SERVICES = db db-team-allocation db-assessment db-self-team-allocation \
-	db-example-server db-interview db-certificate db-presentation \
+	db-interview db-certificate db-presentation \
 	db-infrastructure-setup $(if $(AI_PROFILE),db-ai)
 
 db: ## Start every service database and Keycloak
@@ -246,7 +238,7 @@ stack: ## Show this checkout's stack number, ports and the allocated stacks
 	@echo "client      http://localhost:$(PROMPT_PORT_3000) (remotes up to $(PROMPT_PORT_3012))"
 	@echo "core API    http://localhost:$(PROMPT_PORT_8080)"
 	@echo "servers     team allocation $(PROMPT_PORT_8083), self team allocation $(PROMPT_PORT_8084), assessment $(PROMPT_PORT_8085),"
-	@echo "            example $(PROMPT_PORT_8086), interview $(PROMPT_PORT_8087), certificate $(PROMPT_PORT_8088),"
+	@echo "            interview $(PROMPT_PORT_8087), certificate $(PROMPT_PORT_8088),"
 	@echo "            presentation $(PROMPT_PORT_8089), infrastructure setup $(PROMPT_PORT_8091)"
 	@echo "ai          server $(PROMPT_PORT_8092), client $(PROMPT_PORT_3013), postgres $(PROMPT_PORT_5442) (with AI_ENABLED=true)"
 	@echo "keycloak    http://localhost:$(PROMPT_PORT_8081)"
@@ -298,7 +290,6 @@ lint-servers: ## Run go vet on all servers
 	cd servers/interview && go vet ./...
 	cd servers/team_allocation && go vet ./...
 	cd servers/self_team_allocation && go vet ./...
-	cd servers/example_server && go vet ./...
 	cd servers/certificate && go vet ./...
 	cd servers/presentation && go vet ./...
 	cd servers/infrastructure_setup && go vet ./...
@@ -306,7 +297,7 @@ lint-servers: ## Run go vet on all servers
 
 # ─── Testing ───────────────────────────────────────────────────────────────────
 
-test: test-clients test-core test-assessment test-interview test-team-allocation test-self-team-allocation test-example test-certificate test-presentation test-infrastructure-setup test-ai ## Run all client and server tests
+test: test-clients test-core test-assessment test-interview test-team-allocation test-self-team-allocation test-certificate test-presentation test-infrastructure-setup test-ai ## Run all client and server tests
 
 test-clients: ## Run all client unit tests
 	cd clients && yarn install && yarn test
@@ -325,9 +316,6 @@ test-team-allocation: ## Run team allocation server tests
 
 test-self-team-allocation: ## Run self team allocation server tests
 	cd servers/self_team_allocation && go test ./...
-
-test-example: ## Run example server tests
-	cd servers/example_server && go test ./...
 
 test-certificate: ## Run certificate server tests
 	cd servers/certificate && go test ./...
@@ -425,7 +413,7 @@ verify-down: ## Tear down the host-browser stack and remove volumes
 
 # ─── Code Generation ──────────────────────────────────────────────────────────
 
-sqlc: sqlc-core sqlc-assessment sqlc-interview sqlc-team-allocation sqlc-self-team-allocation sqlc-example sqlc-certificate sqlc-presentation sqlc-infrastructure-setup sqlc-ai ## Generate sqlc code for all servers
+sqlc: sqlc-core sqlc-assessment sqlc-interview sqlc-team-allocation sqlc-self-team-allocation sqlc-certificate sqlc-presentation sqlc-infrastructure-setup sqlc-ai ## Generate sqlc code for all servers
 
 sqlc-core: ## Generate sqlc code for core server
 	cd servers/core && sqlc generate
@@ -441,9 +429,6 @@ sqlc-team-allocation: ## Generate sqlc code for team allocation server
 
 sqlc-self-team-allocation: ## Generate sqlc code for self team allocation server
 	cd servers/self_team_allocation && sqlc generate
-
-sqlc-example: ## Generate sqlc code for example server
-	cd servers/example_server && sqlc generate
 
 sqlc-certificate: ## Generate sqlc code for certificate server
 	cd servers/certificate && sqlc generate

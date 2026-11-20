@@ -34,11 +34,11 @@ env:
     -f api-stress/docker-compose.stress.yml
     -p prompt-stress
   STRESS_SERVICES: >-
-    db db-team-allocation db-self-team-allocation db-assessment db-example-server
+    db db-team-allocation db-self-team-allocation db-assessment
     db-interview db-certificate keycloak-db keycloak
     seaweedfs-master seaweedfs-volume seaweedfs-filer seaweedfs-s3
     server-core server-team-allocation server-self-team-allocation server-assessment
-    server-example server-interview server-certificate
+    server-interview server-certificate
   # Keeps the orchestrator's lines in order with its subprocesses' output.
   PYTHONUNBUFFERED: "1"
   PUBLIC_DIR: ${{ github.workspace }}/api-stress-public

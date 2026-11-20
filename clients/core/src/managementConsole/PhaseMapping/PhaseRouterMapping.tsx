@@ -5,7 +5,6 @@ import { ApplicationRoutes } from './ExternalRoutes/ApplicationRoutes'
 import { AssessmentRoutes } from './ExternalRoutes/AssessmentRoutes'
 import { CertificateRoutes } from './ExternalRoutes/CertificateRoutes'
 import { DevOpsChallengeRoutes } from './ExternalRoutes/DevOpsChallengeRoutes'
-import { ExampleRoutes } from './ExternalRoutes/ExampleRoutes'
 import { InfrastructureSetupRoutes } from './ExternalRoutes/InfrastructureSetupRoutes'
 import { InterviewRoutes } from './ExternalRoutes/InterviewRoutes'
 import { IntroCourseDeveloperRoutes } from './ExternalRoutes/IntroCourseDeveloperRoutes'
@@ -15,7 +14,6 @@ import { SelfTeamAllocationRoutes } from './ExternalRoutes/SelfTeamAllocationRou
 import { TeamAllocationRoutes } from './ExternalRoutes/TeamAllocationRoutes'
 
 const PhaseRouter: { [key: string]: React.FC } = {
-  example_component: ExampleRoutes,
   Application: ApplicationRoutes,
   Interview: InterviewRoutes,
   Matching: MatchingRoutes,

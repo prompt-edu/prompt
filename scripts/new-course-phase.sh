@@ -1,30 +1,38 @@
 #!/usr/bin/env bash
 #
-# Scaffold a new PROMPT course phase from the example component + example server.
+# Scaffold a new PROMPT course phase from the prompt-example-phase repository.
 #
 # Usage: scripts/new-course-phase.sh <name> <client_port> <server_port> [db_port]
 #   name         snake_case phase name WITHOUT the _component suffix (e.g. peer_review)
-#   client_port  unique dev port for the micro-frontend (e.g. 3011)
-#   server_port  unique port for the Go service (e.g. 8089)
+#   client_port  unique dev port for the micro-frontend (e.g. 3014)
+#   server_port  unique port for the Go service (e.g. 8093)
 #   db_port      unique published Postgres port (default: next free 54xx in docker-compose.yml)
 #
-# Copies clients/example_component and servers/example_server, renames every identifier,
-# and registers the phase in the workspaces, core client, docker-compose (plus its stack
-# overlay), env templates, Makefile, and CI matrices. Prints the remaining manual steps
-# at the end.
+# Clones https://github.com/prompt-edu/prompt-example-phase, renames every identifier with
+# its init.sh, converts it to the workspace layout of this repository, and registers the
+# phase in the workspaces, core client, docker-compose (plus its stack overlay), env
+# templates, Makefile, and CI matrices. Prints the remaining manual steps at the end.
 # Full documentation: docs/contributor/new_course_phase.md
 #
+# Environment:
+#   PHASE_TEMPLATE_SOURCE  git URL or local path to clone instead of the GitHub repository
+#   PHASE_TEMPLATE_REF     branch or tag to clone (default: main)
+#
 # Run on a clean working tree. If a step fails midway, revert with:
-#   git checkout -- . && git clean -fd clients/<name>_component servers/<name>
+#   git checkout -- . && git clean -fd clients/<name>_component servers/<name> \
+#     clients/core/src/managementConsole/PhaseMapping
 
 set -euo pipefail
 
 die() { echo "error: $*" >&2; exit 1; }
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+TEMPLATES="$REPO_ROOT/scripts/new-course-phase"
 cd "$REPO_ROOT"
-[[ -d clients/example_component && -d servers/example_server ]] \
-  || die "run from the PROMPT repo (example component/server not found)"
+[[ -f clients/core/remotes.config.mjs && -d servers/core ]] || die "run from the PROMPT repository"
+
+SOURCE="${PHASE_TEMPLATE_SOURCE:-https://github.com/prompt-edu/prompt-example-phase.git}"
+REF="${PHASE_TEMPLATE_REF:-main}"
 
 NAME="${1:-}"
 CLIENT_PORT="${2:-}"
@@ -39,12 +47,11 @@ DB_PORT="${4:-}"
 [[ "$NAME" != "example" ]] || die "pick a name other than 'example'"
 [[ "$CLIENT_PORT" =~ ^[0-9]+$ && "$SERVER_PORT" =~ ^[0-9]+$ ]] || die "ports must be numeric"
 
-# Derived spellings
 KEBAB="${NAME//_/-}"
 UPPER="$(echo "$NAME" | tr '[:lower:]' '[:upper:]')"
 PASCAL="$(echo "$NAME" | perl -pe 's/(^|_)([a-z])/\u$2/g')"
-CAMEL="$(echo "$PASCAL" | perl -pe 's/^([A-Z])/\l$1/')"
 READABLE="$(echo "$NAME" | perl -pe 's/_/ /g; s/(^| )([a-z])/$1\u$2/g')"
+READABLE_LOWER="${NAME//_/ }"
 
 CLIENT_DIR="clients/${NAME}_component"
 SERVER_DIR="servers/${NAME}"
@@ -55,6 +62,8 @@ grep -q "devPort: ${CLIENT_PORT}," clients/core/remotes.config.mjs \
   && die "client port ${CLIENT_PORT} is already used by another remote"
 # Host ports in docker-compose.yml read "${PROMPT_PORT_<port>:-<port>}:<container port>"
 # so a parallel stack can shift them (docs/contributor/setup.md).
+grep -qF ":-${CLIENT_PORT}}:80\"" docker-compose.yml \
+  && die "client port ${CLIENT_PORT} is already used in docker-compose.yml"
 grep -qF ":-${SERVER_PORT}}:8080\"" docker-compose.yml \
   && die "server port ${SERVER_PORT} is already used in docker-compose.yml"
 
@@ -65,46 +74,24 @@ fi
 grep -qF ":-${DB_PORT}}:5432\"" docker-compose.yml \
   && die "db port ${DB_PORT} is already used in docker-compose.yml"
 
-echo "Scaffolding phase '${NAME}' (client :${CLIENT_PORT}, server :${SERVER_PORT}, db :${DB_PORT})"
+json_value() { KEY="$2" perl -ne 'print $1 and exit if /"\Q$ENV{KEY}\E": "([^"]+)"/' "$1"; }
+VERSION="$(json_value clients/package.json version)"
+RSPACK_VERSION="$(json_value clients/package.json '@rspack/cli')"
+PACKAGE_MANAGER="$(json_value clients/package.json packageManager)"
+[[ -n "$VERSION" && -n "$RSPACK_VERSION" && -n "$PACKAGE_MANAGER" ]] \
+  || die "could not read version, @rspack/cli, or packageManager from clients/package.json"
 
-# rename_tokens <file...> — applies the example->NAME substitutions, most specific first
-rename_tokens() {
-  perl -pi -e "
-    s/example_component/${NAME}_component/g;
-    s/example_server/${NAME}/g;
-    s/example_table/${NAME}_table/g;
-    s/ExampleTable/${PASCAL}Table/g;
-    s/server-example/server-${KEBAB}/g;
-    s/client-example-component/client-${KEBAB}-component/g;
-    s/db-example-server/db-${KEBAB}-server/g;
-    s/example-service/${KEBAB}-service/g;
-    s/example-root/${KEBAB}-root/g;
-    s/EXAMPLE_SERVER/${UPPER}_SERVER/g;
-    s/EXAMPLE_HOST/${UPPER}_HOST/g;
-    s/DB_EXAMPLE_/DB_${UPPER}_/g;
-    s/ExampleService/${PASCAL}Service/g;
-    s/exampleService/${CAMEL}Service/g;
-    s/helloExampleServer/hello${PASCAL}Server/g;
-    s/GetExampleInfo/Get${PASCAL}Info/g;
-    s/getExampleInfo/get${PASCAL}Info/g;
-    s/ExampleInfo/${PASCAL}Info/g;
-    s/exampleInfo/${CAMEL}Info/g;
-    s/exampleRouter/${CAMEL}Router/g;
-    s/exampleServer/${CAMEL}Server/g;
-    s/exampleAxiosInstance/${CAMEL}AxiosInstance/g;
-    s/ExampleRoutes/${PASCAL}Routes/g;
-    s/ExampleSidebar/${PASCAL}Sidebar/g;
-    s/ExampleComponent/${PASCAL}Component/g;
-    s/Example Component/${READABLE} Component/g;
-    s/Example Server/${READABLE} Server/g;
-    s/PROMPT Example API/PROMPT ${READABLE} API/g;
-    s/\bExample\b/${PASCAL}/g;
-    s/\bexample\b/${NAME}/g;
-  " "$@"
+# render <template> — prints a template from scripts/new-course-phase with placeholders filled
+render() {
+  T_NAME="$NAME" T_KEBAB="$KEBAB" T_UPPER="$UPPER" T_PASCAL="$PASCAL" T_READABLE="$READABLE" \
+  T_READABLE_LOWER="$READABLE_LOWER" T_CLIENT_PORT="$CLIENT_PORT" T_SERVER_PORT="$SERVER_PORT" \
+  T_DB_PORT="$DB_PORT" T_VERSION="$VERSION" T_RSPACK_VERSION="$RSPACK_VERSION" \
+  T_PACKAGE_MANAGER="$PACKAGE_MANAGER" \
+    perl -pe 's/\{\{(\w+)\}\}/exists $ENV{"T_\U$1"} ? $ENV{"T_\U$1"} : die("unknown placeholder $1\n")/ge' \
+    "$TEMPLATES/$1"
 }
 
-# insert_after <file> <perl-regex matching a full line> <replacement text appended as new line>
-# Duplicates nothing; adds one new line directly after the first matching line.
+# insert_after <file> <perl-regex matching a full line> <text appended as a new line>
 insert_after() {
   local file="$1" pattern="$2" newline="$3"
   MATCH_PATTERN="$pattern" NEW_LINE="$newline" perl -pi -e '
@@ -114,132 +101,107 @@ insert_after() {
   grep -qF "$newline" "$file" || die "failed to insert into $file (anchor: $pattern)"
 }
 
-# copy_block <file> <anchor-regex> — copies the block starting at the anchor line and
-# ending before the next blank line, applies rename_tokens + port substitutions to the
-# copy, and inserts it (preceded by a blank line) directly after the original block.
-copy_block() {
-  local file="$1" anchor="$2" tmp
-  tmp="$(mktemp)"
-  awk -v anchor="$anchor" '
-    $0 ~ anchor { inblock = 1 }
-    inblock && /^[[:space:]]*$/ { exit }
-    inblock { print }
-  ' "$file" > "$tmp"
-  [[ -s "$tmp" ]] || die "block anchor not found in $file: $anchor"
-  rename_tokens "$tmp"
-  perl -pi -e "
-    s/PROMPT_PORT_8086:-8086\\}:8080/PROMPT_PORT_${SERVER_PORT}:-${SERVER_PORT}}:8080/;
-    s/PROMPT_PORT_3001:-3001\\}:80/PROMPT_PORT_${CLIENT_PORT}:-${CLIENT_PORT}}:80/;
-    s/PROMPT_PORT_5437:-5437\\}:5432/PROMPT_PORT_${DB_PORT}:-${DB_PORT}}:5432/;
-  " "$tmp"
-  BLOCK_FILE="$tmp" awk -v anchor="$anchor" '
-    { print }
-    $0 ~ anchor { inblock = 1 }
-    inblock && /^[[:space:]]*$/ && !done {
-      while ((getline line < ENVIRON["BLOCK_FILE"]) > 0) print line
-      print ""
-      done = 1; inblock = 0
-    }
-  ' "$file" > "${file}.new" && mv "${file}.new" "$file"
-  rm -f "$tmp"
+# insert_template_before <file> <perl-regex matching a full line> <template>
+insert_template_before() {
+  local file="$1" pattern="$2" block
+  block="$(mktemp)"
+  render "$3" > "$block"
+  MATCH_PATTERN="$pattern" BLOCK_FILE="$block" perl -pi -e '
+    BEGIN { $done = 0; local $/; open my $fh, "<", $ENV{BLOCK_FILE} or die; $text = <$fh> }
+    if (!$done && /$ENV{MATCH_PATTERN}/) { $_ = $text . $_; $done = 1 }
+  ' "$file"
+  grep -qF "$(head -1 "$block")" "$file" || die "failed to insert into $file (anchor: $pattern)"
+  rm -f "$block"
 }
 
-# ---------------------------------------------------------------- 1. client
+echo "Scaffolding phase '${NAME}' (client :${CLIENT_PORT}, server :${SERVER_PORT}, db :${DB_PORT})"
+
+# ------------------------------------------------------- 1. fetch and rename
+echo "-> fetching ${SOURCE} (${REF})"
+WORK="$(mktemp -d)"
+trap 'rm -rf "$WORK"' EXIT
+git -c advice.detachedHead=false clone --quiet --depth 1 --branch "$REF" "$SOURCE" "$WORK/phase" 2>/dev/null \
+  || die "could not clone ${SOURCE} (${REF})"
+PHASE_GO_MODULE="github.com/prompt-edu/prompt/servers/${NAME}" \
+  bash "$WORK/phase/init.sh" --no-verify "$NAME" "$CLIENT_PORT" "$SERVER_PORT" >/dev/null \
+  || die "init.sh of the example phase failed"
+
+# ---------------------------------------------------------------- 2. client
 echo "-> ${CLIENT_DIR}"
-cp -R clients/example_component "$CLIENT_DIR"
-rm -rf "$CLIENT_DIR/node_modules" "$CLIENT_DIR/build" "$CLIENT_DIR/README.md"
-mv "$CLIENT_DIR/src/example_component" "$CLIENT_DIR/src/${NAME}_component"
-mv "$CLIENT_DIR/src/${NAME}_component/network/exampleServerConfig.ts" \
-   "$CLIENT_DIR/src/${NAME}_component/network/${CAMEL}ServerConfig.ts"
-mv "$CLIENT_DIR/src/${NAME}_component/network/queries/getExampleInfo.ts" \
-   "$CLIENT_DIR/src/${NAME}_component/network/queries/get${PASCAL}Info.ts"
-find "$CLIENT_DIR" -type f \( -name '*.ts' -o -name '*.tsx' -o -name '*.mjs' \
-  -o -name '*.json' -o -name '*.js' -o -name '*.html' -o -name 'Dockerfile' \) \
-  -exec perl -0777 -pi -e 's/exampleServerConfig/'"${CAMEL}"'ServerConfig/g' {} + 2>/dev/null || true
-find "$CLIENT_DIR" -type f \( -name '*.ts' -o -name '*.tsx' -o -name '*.mjs' \
-  -o -name '*.json' -o -name '*.js' -o -name '*.html' -o -name 'Dockerfile' \) -print0 \
-  | xargs -0 perl -pi -e "s/^(\s*)port: 3001,\$/\$1port: ${CLIENT_PORT},/"
-grep -q "port: ${CLIENT_PORT}," "$CLIENT_DIR/rspack.config.mjs" \
-  || die "dev port anchor not found in $CLIENT_DIR/rspack.config.mjs (expected a 'port: 3001,' line)"
-find "$CLIENT_DIR" -type f \( -name '*.ts' -o -name '*.tsx' -o -name '*.mjs' \
-  -o -name '*.json' -o -name '*.js' -o -name '*.html' -o -name 'Dockerfile' \) -print0 \
-  | while IFS= read -r -d '' f; do rename_tokens "$f"; done
+SRC_CLIENT="$WORK/phase/client"
+rm -rf "$SRC_CLIENT/shared" "$SRC_CLIENT/node_modules" "$SRC_CLIENT/build" "$SRC_CLIENT/.yarn" \
+  "$SRC_CLIENT/yarn.lock" "$SRC_CLIENT/nginx.conf" "$SRC_CLIENT/README.md"
+perl -pi -e "s#'\./shared/#'../shared/#" "$SRC_CLIENT/rspack.config.mjs"
+perl -pi -e "s#'\.\./shared/#'../../shared/#" "$SRC_CLIENT/src/bootstrap.tsx"
+grep -q "'\.\./shared/" "$SRC_CLIENT/rspack.config.mjs" \
+  || die "shared import not found in rspack.config.mjs of the example phase"
+perl -pi -e 's/"rootDir": "\."/"rootDir": ".."/' "$SRC_CLIENT/tsconfig.json"
+render client.package.json.tmpl > "$SRC_CLIENT/package.json"
+render client.biome.json.tmpl > "$SRC_CLIENT/biome.json"
+render client.Dockerfile.tmpl > "$SRC_CLIENT/Dockerfile"
+cp clients/core/.dockerignore "$SRC_CLIENT/.dockerignore"
+mv "$SRC_CLIENT" "$CLIENT_DIR"
 
-# ---------------------------------------------------------------- 2. server
+# ---------------------------------------------------------------- 3. server
 echo "-> ${SERVER_DIR}"
-cp -R servers/example_server "$SERVER_DIR"
-rm -f "$SERVER_DIR/README.md"
-mv "$SERVER_DIR/example" "$SERVER_DIR/${NAME}"
-find "$SERVER_DIR" -type f \( -name '*.go' -o -name '*.sql' -o -name '*.yaml' \
-  -o -name '*.json' -o -name '*.mod' -o -name '*.sum' \) -print0 \
-  | while IFS= read -r -d '' f; do rename_tokens "$f"; done
-perl -pi -e "s/localhost:8086/localhost:${SERVER_PORT}/g" "$SERVER_DIR/main.go" \
-  "$SERVER_DIR/docs/docs.go" "$SERVER_DIR/docs/swagger.json" "$SERVER_DIR/docs/swagger.yaml"
+rm -f "$WORK/phase/server/Dockerfile" "$WORK/phase/server/README.md"
+mv "$WORK/phase/server" "$SERVER_DIR"
 
-# ------------------------------------------------------- 3. yarn workspaces
+# ------------------------------------------------------- 4. yarn workspaces
 echo "-> workspaces"
-perl -pi -e "s/^(\s*)\"example_component\",\$/\$1\"example_component\",\n\$1\"${NAME}_component\",/" \
+perl -pi -e "s/^(\s*)\"core\",\$/\$1\"core\",\n\$1\"${NAME}_component\",/" \
   clients/package.json clients/lerna.json
+grep -q "\"${NAME}_component\"," clients/package.json || die "workspace not added to clients/package.json"
+grep -q "\"${NAME}_component\"," clients/lerna.json || die "workspace not added to clients/lerna.json"
+insert_after clients/Dockerfile '^COPY core/package.json ' \
+  "$(printf 'COPY %-43s %s' "${NAME}_component/package.json" "${NAME}_component/package.json")"
 
-# ------------------------------------------------------------- 4. core client
+# ------------------------------------------------------------- 5. core client
 echo "-> core client registration"
 insert_after clients/core/remotes.config.mjs \
   'export const REMOTES = \[' \
   "  { name: '${NAME}_component', phaseTypeName: '${NAME}_component', devPort: ${CLIENT_PORT}, prodPath: '/${KEBAB}' },"
 
 PM=clients/core/src/managementConsole/PhaseMapping
-for f in ExternalRoutes/ExampleRoutes.tsx ExternalSidebars/ExampleSidebar.tsx; do
-  dst="$PM/${f/Example/$PASCAL}"
-  cp "$PM/$f" "$dst"
-  rename_tokens "$dst"
-done
+render Routes.tsx.tmpl > "$PM/ExternalRoutes/${PASCAL}Routes.tsx"
+render Sidebar.tsx.tmpl > "$PM/ExternalSidebars/${PASCAL}Sidebar.tsx"
 insert_after "$PM/PhaseRouterMapping.tsx" \
-  "import \\{ ExampleRoutes \\}" \
+  '^import \{ ApplicationRoutes \}' \
   "import { ${PASCAL}Routes } from './ExternalRoutes/${PASCAL}Routes'"
 insert_after "$PM/PhaseRouterMapping.tsx" \
-  '  example_component: ExampleRoutes,' \
+  '^const PhaseRouter: .* = \{$' \
   "  ${NAME}_component: ${PASCAL}Routes,"
 insert_after "$PM/PhaseSidebarMapping.tsx" \
-  "import \\{ ExampleSidebar \\}" \
+  '^import \{ ApplicationSidebar \}' \
   "import { ${PASCAL}Sidebar } from './ExternalSidebars/${PASCAL}Sidebar'"
 insert_after "$PM/PhaseSidebarMapping.tsx" \
-  '  example_component: ExampleSidebar,' \
+  '^\} = \{$' \
   "  ${NAME}_component: ${PASCAL}Sidebar,"
 insert_after "$PM/PhaseStudentDetailMapping.tsx" \
-  '  example_component: Fallback,' \
+  '^\} = \{$' \
   "  ${NAME}_component: Fallback,"
 
-APP=clients/core/src/App.tsx
-insert_after "$APP" \
-  "import \\{ ExampleRoutes \\}" \
-  "import { ${PASCAL}Routes } from './managementConsole/PhaseMapping/ExternalRoutes/${PASCAL}Routes'"
-ROUTE_BLOCK="$(perl -0777 -ne "print \$1 if /(\n            <Route\n              path='\/management\/course\/:courseId\/example_component\/\*'.*?\n            \/>)/s" "$APP")"
-[[ -n "$ROUTE_BLOCK" ]] || die "example route block not found in $APP"
-NEW_ROUTE="$(echo "$ROUTE_BLOCK" | perl -pe "s/example_component/${NAME}_component/; s/ExampleRoutes/${PASCAL}Routes/")"
-ROUTE_OLD="$ROUTE_BLOCK" ROUTE_NEW="$NEW_ROUTE" perl -0777 -pi -e \
-  's/\Q$ENV{ROUTE_OLD}\E/$ENV{ROUTE_OLD}$ENV{ROUTE_NEW}/' "$APP"
-
 insert_after clients/core/public/env.js \
-  "  EXAMPLE_HOST: 'http://localhost:8086'," \
+  "^  CORE_HOST: " \
   "  ${UPPER}_HOST: 'http://localhost:${SERVER_PORT}',"
 insert_after clients/core/public/env.template.js \
-  "  EXAMPLE_HOST: '\\\$EXAMPLE_HOST'," \
+  "^  CORE_HOST: " \
   "  ${UPPER}_HOST: '\$${UPPER}_HOST',"
 
-# ------------------------------------------------------------ 5. docker-compose
+# ------------------------------------------------------------ 6. docker-compose
 echo "-> docker-compose.yml, docker-compose.stack.yml"
-copy_block docker-compose.yml '^  server-example:$'
-copy_block docker-compose.yml '^  client-example-component:$'
-copy_block docker-compose.yml '^  db-example-server:$'
-insert_after docker-compose.yml '^      - EXAMPLE_HOST$' "      - ${UPPER}_HOST"
+insert_template_before docker-compose.yml '^  client-core:$' compose.server.yml.tmpl
+insert_template_before docker-compose.yml '^  clients-base:$' compose.client.yml.tmpl
+insert_template_before docker-compose.yml '^  keycloak-db:$' compose.db.yml.tmpl
+insert_after docker-compose.yml '^      - CORE_HOST=\$\{CORE_API_HOST\}$' "      - ${UPPER}_HOST"
 # A parallel stack keeps the new database in a named volume, like the others.
-insert_after docker-compose.stack.yml '^      - postgres_example_server_data:/var/lib/postgresql/data$' \
+insert_after docker-compose.stack.yml '^      - postgres_data:/var/lib/postgresql/data$' \
   "  db-${KEBAB}-server:
     volumes:
       - postgres_${NAME}_data:/var/lib/postgresql/data"
-insert_after docker-compose.stack.yml '^  postgres_example_server_data:$' "  postgres_${NAME}_data:"
+insert_after docker-compose.stack.yml '^  postgres_data:$' "  postgres_${NAME}_data:"
 
-# ------------------------------------------------------------- 6. env templates
+# ------------------------------------------------------------- 7. env templates
 echo "-> env templates"
 cat >> .env.template <<EOF
 
@@ -248,7 +210,7 @@ cat >> .env.template <<EOF
 # ============================================================================
 
 DB_HOST_${UPPER}_SERVER=db-${KEBAB}-server
-DB_PORT_${UPPER}_SERVER=${DB_PORT}
+DB_PORT_${UPPER}_SERVER=5432
 DB_${UPPER}_NAME=prompt
 DB_${UPPER}_USER=prompt-postgres
 DB_${UPPER}_PASSWORD=prompt-postgres
@@ -263,19 +225,23 @@ DB_HOST_${UPPER}_SERVER=localhost
 DB_PORT_${UPPER}_SERVER=${DB_PORT}
 EOF
 
-# ------------------------------------------------------------------ 7. Makefile
+# ------------------------------------------------------------------ 8. Makefile
 echo "-> Makefile"
-perl -pi -e "s/\bserver-example\b/server-example server-${KEBAB}/ if \$. < 15" Makefile
-perl -pi -e "s/\btest-example\b/test-example test-${KEBAB}/ if \$. < 15" Makefile
-perl -pi -e "s/\bsqlc-example\b/sqlc-example sqlc-${KEBAB}/ if \$. < 15" Makefile
-# make db starts the databases listed here, in every stack.
-perl -pi -e "s/^DB_SERVICES = /DB_SERVICES = db-${KEBAB}-server /" Makefile
-insert_after Makefile '^\t@\$\(MAKE\) server-example &$' "	@\$(MAKE) server-${KEBAB} &"
-insert_after Makefile '^export DB_PORT_EXAMPLE_SERVER := ' \
+perl -pi -e "s/\bserver-core\b/server-core server-${KEBAB}/ if \$. < 20" Makefile
+perl -pi -e "s/\btest-core\b/test-core test-${KEBAB}/ if \$. < 20" Makefile
+perl -pi -e "s/\bsqlc-core\b/sqlc-core sqlc-${KEBAB}/ if \$. < 20" Makefile
+insert_after Makefile '^\t@\$\(MAKE\) server-core &$' "	@\$(MAKE) server-${KEBAB} &"
+# The host-run server reaches its database on the port of this stack.
+insert_after Makefile '^export DB_CORE_PORT := ' \
   "export DB_PORT_${UPPER}_SERVER := \$(PROMPT_PORT_${DB_PORT})"
-insert_after Makefile '^\tcd servers/example_server && go vet' "	cd servers/${NAME} && go vet ./..."
-perl -pi -e "s/^(test: .*test-example)/\$1 test-${KEBAB}/" Makefile
-perl -pi -e "s/^(sqlc: .*sqlc-example)/\$1 sqlc-${KEBAB}/" Makefile
+insert_after Makefile '^\tcd servers/core && go vet' "	cd servers/${NAME} && go vet ./..."
+perl -pi -e "s/^(test: test-clients test-core)/\$1 test-${KEBAB}/" Makefile
+perl -pi -e "s/^(sqlc: sqlc-core)/\$1 sqlc-${KEBAB}/" Makefile
+# make db starts the databases listed here, in every stack.
+perl -pi -e "s/^(DB_SERVICES = db )/\$1db-${KEBAB}-server /" Makefile
+grep -q "^test: .*test-${KEBAB}" Makefile || die "test-${KEBAB} not added to the test target"
+grep -q "^sqlc: .*sqlc-${KEBAB}" Makefile || die "sqlc-${KEBAB} not added to the sqlc target"
+grep -q "^DB_SERVICES = .*db-${KEBAB}-server" Makefile || die "db-${KEBAB}-server not added to DB_SERVICES"
 printf '\nserver-%s: ## Start %s server (port %s)\n\t$(call run-server,%s,$(PROMPT_PORT_%s))\n' \
   "$KEBAB" "$NAME" "$SERVER_PORT" "$NAME" "$SERVER_PORT" >> Makefile
 printf '\ntest-%s: ## Run %s server tests\n\tcd servers/%s && go test ./...\n' \
@@ -283,23 +249,23 @@ printf '\ntest-%s: ## Run %s server tests\n\tcd servers/%s && go test ./...\n' \
 printf '\nsqlc-%s: ## Generate sqlc code for %s server\n\tcd servers/%s && sqlc generate\n' \
   "$KEBAB" "$NAME" "$NAME" >> Makefile
 
-# ------------------------------------------------------------------------ 8. CI
+# ------------------------------------------------------------------------ 9. CI
 echo "-> CI matrices"
-insert_after .github/workflows/quality-clients.yml '^          - example_component$' \
+insert_after .github/workflows/quality-clients.yml '^          - core$' \
   "          - ${NAME}_component"
-insert_after .github/workflows/quality-servers.yml '^          - example_server$' \
+insert_after .github/workflows/quality-servers.yml '^          - core$' \
   "          - ${NAME}"
-insert_after .github/workflows/test-servers.yml '^          - example_server$' \
+insert_after .github/workflows/test-servers.yml '^          - core$' \
   "          - ${NAME}"
 
-# ---------------------------------------------------------------- 9. verify
+# ---------------------------------------------------------------- 10. verify
 echo "-> verifying"
 (cd "$SERVER_DIR" && go build ./...) || die "go build failed in $SERVER_DIR"
 (cd clients && yarn install --mode update-lockfile >/dev/null 2>&1 && yarn install >/dev/null 2>&1) \
   || die "yarn install failed"
 (cd clients && yarn tsc -p "${NAME}_component/tsconfig.json" --noEmit --pretty false) \
   || die "typecheck failed for ${NAME}_component"
-CORE_TOUCHED=(core/remotes.config.mjs core/src/App.tsx core/src/managementConsole/PhaseMapping)
+CORE_TOUCHED=(core/remotes.config.mjs core/src/managementConsole/PhaseMapping)
 (cd clients && yarn biome check --write "${NAME}_component" "${CORE_TOUCHED[@]}" >/dev/null 2>&1) || true
 (cd clients && yarn biome check --diagnostic-level=error "${NAME}_component" "${CORE_TOUCHED[@]}" >/dev/null) \
   || die "biome check failed for ${NAME}_component or the touched core files"

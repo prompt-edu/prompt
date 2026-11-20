@@ -77,7 +77,7 @@
     },
     {
       "name": "presentation",
-      "cacheWriter": false,
+      "cacheWriter": true,
       "paths": [
         "/tests/presentation/.*\\.spec\\.ts$"
       ]
@@ -95,14 +95,6 @@
       "aiEnabled": true,
       "paths": [
         "/tests/ai/.*\\.spec\\.ts$"
-      ]
-    },
-    {
-      "name": "example",
-      "cacheWriter": true,
-      "paths": [
-        "/tests/example/.*\\.spec\\.ts$",
-        "/tests/api/example\\.api\\.spec\\.ts$"
       ]
     }
   ]

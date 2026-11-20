@@ -3,15 +3,15 @@ import React from 'react'
 import { DisabledSidebarMenuItem } from '../../layout/Sidebar/InsideSidebar/components/DisabledSidebarMenuItem'
 import { ExternalSidebarComponent } from './ExternalSidebar'
 
-interface ExampleSidebarProps {
+interface {{pascal}}SidebarProps {
   rootPath: string
   title?: string
   coursePhaseID: string
 }
 
-export const ExampleSidebar = React.lazy(() =>
-  import('example_component/sidebar')
-    .then((module): { default: React.FC<ExampleSidebarProps> } => ({
+export const {{pascal}}Sidebar = React.lazy(() =>
+  import('{{name}}_component/sidebar')
+    .then((module): { default: React.FC<{{pascal}}SidebarProps> } => ({
       default: ({ title, rootPath, coursePhaseID }) => {
         const sidebarElement: SidebarMenuItemProps = module.default || {}
         return (
@@ -26,8 +26,8 @@ export const ExampleSidebar = React.lazy(() =>
     }))
     .catch((): { default: React.FC } => ({
       default: () => {
-        console.warn('Failed to load example routes')
-        return <DisabledSidebarMenuItem title={'Example Not Available'} />
+        console.warn('Failed to load {{readable_lower}} sidebar')
+        return <DisabledSidebarMenuItem title={'{{readable}} Not Available'} />
       },
     })),
 )

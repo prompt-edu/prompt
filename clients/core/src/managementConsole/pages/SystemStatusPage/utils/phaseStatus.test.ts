@@ -44,7 +44,7 @@ describe('buildPhaseStatusEntries', () => {
   const remotes = [
     remote('interview_component', 'Interview'),
     remote('matching_component', 'Matching'),
-    remote('example_component', 'example_component'),
+    remote('unpaired_component', 'unpaired_component'),
   ]
 
   it('pairs a microservice phase type with its remote', () => {
@@ -75,7 +75,7 @@ describe('buildPhaseStatusEntries', () => {
     const entries = buildPhaseStatusEntries([interview, matching, application], remotes)
 
     expect(entries.map((entry) => entry.phaseType.name)).toEqual(['Interview', 'Matching'])
-    expect(entries.map((entry) => entry.remote?.name)).not.toContain('example_component')
+    expect(entries.map((entry) => entry.remote?.name)).not.toContain('unpaired_component')
   })
 })
 

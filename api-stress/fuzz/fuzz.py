@@ -49,7 +49,6 @@ SERVICE_PHASE_TYPE = {
     "self_team_allocation": "self team allocation",
     "assessment": "assessment",
     "certificate": "certificate",
-    "example_server": "example",
     "core": "application",
 }
 ROLE_TO_USER = {

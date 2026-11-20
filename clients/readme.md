@@ -23,20 +23,11 @@ Reusable code is consumed through published packages instead of a local shared w
 - **`@tumaet/prompt-ui-components`**: Reusable React components, `shadcn/ui` primitives, table helpers, theme providers, and UI-only helpers.
 - **`@tumaet/prompt-shared-state`**: Shared TypeScript interfaces, API clients, React Query hooks, domain helpers, and state stores.
 
-### `example_component`
+### Course phase components (`*_component`)
 
-A boilerplate component structure for creating new course phase modules:
-
-- **Structure:**
-  - `src/interface`: Interfaces specific to the component.
-  - `src/network`: Network request handlers specific to the component.
-  - `src/<SUBSYSTEM_NAME>/SamplePage`:
-    - `components`: Folder for all React components specific to this page.
-    - `samplePage.tsx`: Main file for the sample page implementation.
-  - `src/utilities`: (Careful - many utilities might be useful to move to a shared package)
-    - `helpers`: Helper functions specific to the component.
-    - `hooks`: Custom React hooks specific to the component.
-    - ...
+Each course phase is its own workspace, loaded into `core` through Module Federation. New phases
+start from [prompt-edu/prompt-example-phase](https://github.com/prompt-edu/prompt-example-phase);
+`make new-phase` scaffolds one into this repository (see below).
 
 ---
 
@@ -78,56 +69,11 @@ All dependencies that are shared between the components should be installed in t
 ```
 Only dependencies specific to your component shall be added in the subfolder.
 
-### Webpack Module Federation
+### Module Federation
 
-The clients are built using **Webpack**, leveraging **module federation** to dynamically load course phase components:
-
-- **Exporting `<your_component>`**
-  All exporting configs are set in `<your_component>/webpack.config.mjs`
-
-  ```ts
-  devServer: {
-    port: 3001, // set this to a free port
-  },
-  ...
-  plugins: [
-      ...
-      new container.ModuleFederationPlugin({
-          name: 'example_component',
-          filename: 'remoteEntry.js', // this MUST remain unchanged - file is auto-generated during runtim
-          exposes: {
-          './App': './src/App', // define what you want to export
-          },
-          shared: { ... },
-      }),
-  ]
-  ...
-  ```
-
-- **Loading `<your_component>` in the `core`**
-  1. Add `<your_component>` to the `core/webpack.config.mjs`
-
-     ```ts
-         new container.ModuleFederationPlugin({
-             name: 'core',
-             remotes: {
-                 example_component: 'example_component@[exampleComponent2Url]/remoteEntry.js',
-                 // add your component here
-             },
-     ```
-  2. Add a new url name to `core/src/global.d.ts`
-  3. Define the url in `core/src/index.js` (currently statically)
-  4. Import your component (TODO: update once we have a sidebar/router)
-
-  ```ts
-      const ExampleComponent = React.lazy(() => import('example_component/App'))
-
-      <React.Suspense fallback='Loading...'>
-          <ErrorBoundary fallback={<div>ExampleComponent is unavailable.</div>}>
-              <ExampleComponent />
-          </ErrorBoundary>
-      </React.Suspense>
-  ```
+The clients are built with **Rspack** and load course phase components through **Module
+Federation**. Each component builds its config with `shared/rspack/createRspackConfig.mjs`, and
+`core/remotes.config.mjs` lists the remotes core loads. See `docs/contributor/guide/client.md`.
 
 ### Biome
 
@@ -141,9 +87,7 @@ The clients are built using **Webpack**, leveraging **module federation** to dyn
 
 ## Creating a New Course Phase Module
 
-1. Copy the `example_component` folder and rename it to your new module name.
-2. Implement specific interfaces, network handlers, and utilities as required.
-3. Follow the standardized structure to ensure compatibility with the core application.
-4. Register the new module with the core application for dynamic loading as described above in `webpack`.
-
-This structure ensures a streamlined development process and maintains consistency across all course phase modules.
+Run `make new-phase NAME=<name> CLIENT_PORT=<port> SERVER_PORT=<port>` from the repository root.
+It downloads [prompt-example-phase](https://github.com/prompt-edu/prompt-example-phase), renames
+it, and registers the component and its server. The remaining steps are in
+`docs/contributor/new_course_phase.md`.

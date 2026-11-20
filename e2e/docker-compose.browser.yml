@@ -45,7 +45,6 @@ services:
       - KEYCLOAK_HOST=http://localhost:${PROMPT_PORT_18081:-18081}
 
   server-self-team-allocation: *host-phase-server
-  server-example: *host-phase-server
   server-assessment: *host-phase-server
   server-interview: *host-phase-server
   server-certificate: *host-phase-server

@@ -12,8 +12,8 @@ paths:
   `RegisterRoutes(routerGroup, service, authMiddleware)` mounting it. No package-level
   `XServiceSingleton`, no `InitXModule` that does both — a test must be able to obtain a service
   without building a router. `main.go` constructs every service in one block, then registers every
-  route group, and is the only place that knows the wiring order. Reference: `servers/presentation`,
-  and `servers/example_server` as the scaffolding template.
+  route group, and is the only place that knows the wiring order. Reference: `servers/presentation`;
+  new phases are scaffolded from `prompt-edu/prompt-example-phase` (`make new-phase`).
 - **Handlers are methods on the service they use** (`func (s *XService) getThing(c *gin.Context)`),
   registered as `service.getThing`. Reach state through the receiver, never a global. A separate
   `handler` struct earns its place only when it composes more than one collaborator, or when the
@@ -25,7 +25,7 @@ paths:
 - Use `DeferDBRollback(tx, ctx)` for safe transaction rollback.
 - Phase services expose config + copy endpoints via the SDK:
   `RegisterConfigEndpoint(...)`, `RegisterCopyEndpoint(...)` with `PhaseConfigHandler` /
-  `PhaseCopyHandler` implementations (see the `config/` and `copy/` packages in `example_server`).
+  `PhaseCopyHandler` implementations (see the `config/` and `copy/` packages in `servers/certificate`).
   Both are structural interfaces, so implement `HandlePhaseConfig` / `HandlePhaseCopy` on the
   service and pass the service itself; don't wrap it in a zero-value handler struct, which compiles
   and then dereferences nil at request time. The privacy endpoints take function types, so pass the

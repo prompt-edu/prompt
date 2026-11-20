@@ -56,7 +56,6 @@ trustworthy (derived from which key matched).
 | --- | --- |
 | `assessment` | `AUDIT_INGEST_KEY_ASSESSMENT` |
 | `certificate` | `AUDIT_INGEST_KEY_CERTIFICATE` |
-| `example-service` | `AUDIT_INGEST_KEY_EXAMPLE_SERVER` (local stack only) |
 | `interview` | `AUDIT_INGEST_KEY_INTERVIEW` |
 | `presentation` | `AUDIT_INGEST_KEY_PRESENTATION` |
 | `self-team-allocation` | `AUDIT_INGEST_KEY_SELF_TEAM_ALLOCATION` |

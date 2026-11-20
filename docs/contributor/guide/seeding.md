@@ -35,12 +35,11 @@ disposable - do not keep work there.
 | Presentation | yes | a team presentation schedule and feedback categories |
 | Certificate | yes | a released Typst template |
 | Self Team Allocation | no | 2 student-formed teams |
-| Example | no | the module's single row |
 
-The last two sit **off the graph**. `course_phase_graph` is UNIQUE on both of its
+Self Team Allocation sits **off the graph**. `course_phase_graph` is UNIQUE on both of its
 endpoint columns, so a course's phases form a strict chain that cannot branch - and
 Team Allocation and Self Team Allocation are alternatives no real course runs
-together. They still carry full data; they are just not part of the sequential
+together. It still carries full data; it is just not part of the sequential
 student flow.
 
 The seed also contains the fixture courses the Playwright suite asserts against
@@ -91,11 +90,7 @@ seed uses. Two consequences worth knowing:
 
 - Never insert a `course_phase_type` row yourself. Core skips a type's provided and
   required DTO descriptors whenever the type row already exists, so pinning the type
-  would silently cost you the inter-phase data dependency metadata. The one exception
-  is `example_component`: no service creates it, so `seed/core.sql` inserts it. That
-  is an ownership gap rather than a pattern to copy - its `base_url` is seed-owned
-  configuration nothing reconciles, so it points at core's gateway path and does not
-  reach a host-run example server on 8086.
+  would silently cost you the inter-phase data dependency metadata.
 - `base_url` comes out right per environment (`http://localhost:8087/...` locally,
   `{CORE_HOST}/...` in Docker) instead of being frozen into the seed.
 

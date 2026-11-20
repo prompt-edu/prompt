@@ -1,0 +1,21 @@
+  db-{{kebab}}-server:
+    image: "postgres:15.19-alpine"
+    container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-db-{{kebab}}-server
+    environment:
+      - POSTGRES_USER=${DB_{{upper}}_USER:-prompt-postgres}
+      - POSTGRES_PASSWORD=${DB_{{upper}}_PASSWORD:-prompt-postgres}
+      - POSTGRES_DB=${DB_{{upper}}_NAME:-prompt}
+      - TZ=Europe/Berlin
+    volumes:
+      - ./postgres_{{name}}_server_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -d ${DB_{{upper}}_NAME:-prompt} -U ${DB_{{upper}}_USER:-prompt-postgres}",
+        ]
+      timeout: 5s
+      retries: 5
+    ports:
+      - "${PROMPT_PORT_{{db_port}}:-{{db_port}}}:5432"
+

@@ -13,11 +13,7 @@ Full documentation: [`docs/contributor/guide/seeding.md`](../docs/contributor/gu
   a random UUID and *skips its provided/required DTO descriptors* when the type row
   already exists, so pinning a type quietly costs you the inter-phase data dependency
   metadata. Resolve types by name:
-  `(SELECT id FROM course_phase_type WHERE name = 'Interview')`. The single exception
-  is `example_component`: no service creates it, so `core.sql` inserts it (with a
-  random id, like core does) purely so the rest of the file can resolve it by name.
-  That leaves its `base_url` seed-owned and unreconciled - correct where core fronts
-  the phase services, wrong for a host-run example server.
+  `(SELECT id FROM course_phase_type WHERE name = 'Interview')`.
 - **The seed is authoritative.** Each file deletes the rows it owns and inserts them
   again, so `make seed` reconciles instead of failing. Scope every `DELETE` to pinned
   ids - never truncate.
@@ -37,7 +33,6 @@ Full documentation: [`docs/contributor/guide/seeding.md`](../docs/contributor/gu
 | `assessment.sql` | assessment | schemas, categories, competencies, config, assessments, evaluations |
 | `certificate.sql` | certificate | phase config (Typst template), downloads |
 | `presentation.sql` | presentation | phase config, feedback categories, slots, presentations |
-| `example_server.sql` | example_server | the module's single row |
 
 `infrastructure_setup` has no file: everything it stores is either encrypted
 provider credentials or a record of resources provisioned in a real external
@@ -53,7 +48,7 @@ across databases. `scripts/seed-check.sh` knows the core-owned prefixes.
 | --- | --- |
 | `c0000001…` / `c0000002…` / `c0000003…` | courses `iPraktikumFull` / `iPraktikumDemo` / `iPraktikumWelcome` |
 | `d7307be2…`, `e12ffe63…`, `be780b32…` | the e2e fixture courses |
-| `f00000NN…` | demo course phases (1 Application … 9 Example) |
+| `f00000NN…` | demo course phases (1 Application … 8 Self Team Allocation) |
 | `cd0000NN…` | demo course participations |
 | `e10000NN…` | demo students |
 | `e0000005…` / `a5000007…` | the Keycloak `student` / `student2` rows |
@@ -74,9 +69,9 @@ across databases. `scripts/seed-check.sh` knows the core-owned prefixes.
 Application → Interview → Matching → Team Allocation → Assessment → Presentation → Certificate
 ```
 
-with **Self Team Allocation** and **Example** deliberately off the graph: the graph
-cannot branch, Self Team Allocation is the alternative to Team Allocation rather than
-a successor to it, and Example is a developer placeholder. Both still carry data.
+with **Self Team Allocation** deliberately off the graph: the graph cannot branch, and
+Self Team Allocation is the alternative to Team Allocation rather than a successor to
+it. It still carries data.
 
 Eight applicants, six of whom pass into the rest of the course. `cd000001` and
 `cd000002` are the Keycloak `student` and `student2` users, so a local login lands on

@@ -80,6 +80,19 @@ export const SELF_TEAM_ALLOCATION_FOREIGN_PHASE_ID = 'aaaa3333-0000-0000-0000-00
 // student journey's phase when spec files run in parallel workers.
 export const SELF_TEAM_ALLOCATION_OVERVIEW_PHASE_ID = 'aaaa4444-0000-0000-0000-0000000000a4'
 
+// Standalone Self Team Allocation phase on fullCourse (no graph edge, navigate by
+// URL): course-editor leads Team Lovelace (Stan + Selma) and Team Turing (Niclas)
+// under the tutor id ledTutorId, and Team Hamilton (Test Test) has no tutor.
+export const SELF_TEAM_ALLOCATION_TUTOR_SCOPE = {
+  phaseId: 'aaaa7777-0000-0000-0000-0000000000a7',
+  ledTutorId: 'a0000005-0000-0000-0000-000000000005',
+  teams: {
+    lovelace: { id: '2d000001-0000-0000-0000-000000000001', name: 'Team Lovelace' },
+    turing: { id: '2d000002-0000-0000-0000-000000000002', name: 'Team Turing' },
+    hamilton: { id: '2d000003-0000-0000-0000-000000000003', name: 'Team Hamilton' },
+  },
+}
+
 // Students matching the Keycloak users (see e2e/keycloak/realm.json attributes).
 export const SEEDED_PHASE_STUDENTS = {
   student: { firstName: 'Stan', lastName: 'Stan' },

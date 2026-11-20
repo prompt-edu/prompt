@@ -1,105 +1,62 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { type Student, type Team, useCourseStore } from '@tumaet/prompt-shared-state'
+import type { Team } from '@tumaet/prompt-shared-state'
 import {
   Button,
-  Checkbox,
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-  getStudentName,
-  Label,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
 } from '@tumaet/prompt-ui-components'
+import { isAxiosError } from 'axios'
 import { Loader2, UserPlus } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import type { Tutor } from '../../../interfaces/tutor'
+import type { Tutor, TutorAssignment } from '../../../interfaces/tutor'
 import { selfTeamAllocationCache, selfTeamAllocationKeys } from '../../../network/cache'
 import { importTutors } from '../../../network/mutations/importTutors'
 import { getAllTeams } from '../../../network/queries/getAllTeams'
-import { getStudentsOfCoursePhase } from '../../../network/queries/getStudentsOfCoursePhase'
+import { getTutorAssignments } from '../../../network/queries/getTutorAssignments'
+import { currentTutorTeams } from '../utils/tutorImport'
+import { TutorImportFromCourse } from './TutorImportFromCourse'
+import { TutorImportFromStaff } from './TutorImportFromStaff'
 
 export function TutorImportDialog() {
-  const { phaseId } = useParams<{ phaseId: string }>()
-  const { courses } = useCourseStore()
+  const { courseId, phaseId } = useParams<{ courseId: string; phaseId: string }>()
   const queryClient = useQueryClient()
 
   const [open, setOpen] = useState(false)
-  const [selectedSourceCourse, setSelectedSourceCourse] = useState<string | null>(null)
-  const [selectedSourcePhase, setSelectedSourcePhase] = useState<string | null>(null)
-  const [selectedStudents, setSelectedStudents] = useState<string[]>([])
-  const [tutorTeamAssignments, setTutorTeamAssignments] = useState<Record<string, string>>({})
   const [isImporting, setIsImporting] = useState(false)
   const [importError, setImportError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!open) {
       setImportError(null)
-      setSelectedSourceCourse(null)
-      setSelectedSourcePhase(null)
-      setSelectedStudents([])
-      setTutorTeamAssignments({})
+      setIsImporting(false)
+      queryClient.removeQueries({ queryKey: selfTeamAllocationKeys.tutors(phaseId) })
     }
-  }, [open])
-
-  const handleCourseChange = (courseID: string) => {
-    setSelectedSourceCourse(courseID)
-    setSelectedSourcePhase(null)
-    setSelectedStudents([])
-    setTutorTeamAssignments({})
-  }
-
-  const handlePhaseChange = (phaseID: string) => {
-    setSelectedSourcePhase(phaseID)
-    setSelectedStudents([])
-    setTutorTeamAssignments({})
-  }
-
-  const handleStudentToggle = (studentId: string) => {
-    setSelectedStudents((prev) =>
-      prev.includes(studentId) ? prev.filter((id) => id !== studentId) : [...prev, studentId],
-    )
-  }
-
-  const handleSelectAll = (allStudents: Student[]) => {
-    if (selectedStudents.length === allStudents.length) {
-      setSelectedStudents([])
-    } else {
-      setSelectedStudents(allStudents.map((s) => s.id).filter((id): id is string => !!id))
-    }
-  }
-
-  const handleTeamChange = (studentId: string, teamId: string) => {
-    setTutorTeamAssignments((prev) => ({ ...prev, [studentId]: teamId }))
-  }
-
-  const {
-    data: students,
-    isLoading: isStudentsLoading,
-    isError: isStudentsError,
-  } = useQuery<Student[]>({
-    queryKey: selfTeamAllocationKeys.tutorImport.studentsOfPhase(selectedSourcePhase ?? undefined),
-    queryFn: () => {
-      if (selectedSourceCourse && selectedSourcePhase) {
-        return getStudentsOfCoursePhase(selectedSourcePhase)
-      }
-      return Promise.resolve([])
-    },
-    enabled: !!selectedSourceCourse && !!selectedSourcePhase,
-  })
+  }, [open, queryClient, phaseId])
 
   const { data: fetchedTeams } = useQuery<Team[]>({
     queryKey: selfTeamAllocationKeys.teams(phaseId),
     queryFn: () => getAllTeams(phaseId ?? ''),
     enabled: !!phaseId,
+  })
+
+  // The team pickers take their starting value once, so each opening waits for a fresh fetch.
+  const {
+    data: tutorAssignments,
+    isPending: isTutorAssignmentsPending,
+    isError: isTutorAssignmentsError,
+  } = useQuery<TutorAssignment[]>({
+    queryKey: selfTeamAllocationKeys.tutors(phaseId),
+    queryFn: () => getTutorAssignments(phaseId ?? ''),
+    enabled: !!phaseId && open,
   })
 
   const { mutate: mutateImportTutors } = useMutation({
@@ -108,45 +65,35 @@ export function TutorImportDialog() {
       setOpen(false)
       setIsImporting(false)
       setImportError(null)
-      selfTeamAllocationCache.teamsChanged(queryClient, phaseId)
+      selfTeamAllocationCache.tutorsImported(queryClient, phaseId)
     },
     onError: (error: unknown) => {
       console.error('Error importing tutors:', error)
       setIsImporting(false)
+      const backendError = isAxiosError(error) ? error.response?.data?.error : undefined
       const errorMessage =
-        error instanceof Error ? error.message : 'Failed to import tutors. Please try again.'
+        backendError ??
+        (error instanceof Error ? error.message : 'Failed to import tutors. Please try again.')
       setImportError(`Import failed: ${errorMessage}`)
     },
   })
 
-  const handleImport = () => {
-    if (!selectedSourceCourse || !selectedSourcePhase || selectedStudents.length === 0) return
+  const handleImport = (tutors: Tutor[]) => {
+    if (tutors.length === 0) return
 
-    const selectedStudentData = (students || []).filter(
-      (s) => s.id && selectedStudents.includes(s.id),
-    )
-    const studentsAsTutors: Tutor[] = selectedStudentData.map((s) => ({
-      coursePhaseID: phaseId ?? '',
-      courseParticipationID: s.id!,
-      firstName: s.firstName,
-      lastName: s.lastName,
-      teamID: tutorTeamAssignments[s.id!] || '',
-    }))
-
-    const allAssigned = studentsAsTutors.every((t) => t.teamID !== '')
+    const allAssigned = tutors.every((t) => t.teamIDs.length > 0)
     if (!allAssigned) {
-      setImportError('Please assign a team for each selected tutor.')
-      setIsImporting(false)
+      setImportError('Please assign at least one team to each selected tutor.')
       return
     }
 
+    setImportError(null)
     setIsImporting(true)
-    mutateImportTutors(studentsAsTutors)
+    mutateImportTutors(tutors)
   }
 
-  const currentSourceCourse = selectedSourceCourse
-    ? courses.find((c) => c.id === selectedSourceCourse)
-    : null
+  const teamOptions = (fetchedTeams ?? []).map((t) => ({ id: t.id, name: t.name }))
+  const currentTeams = useMemo(() => currentTutorTeams(tutorAssignments ?? []), [tutorAssignments])
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -160,130 +107,56 @@ export function TutorImportDialog() {
         <DialogHeader>
           <DialogTitle>Import Tutors</DialogTitle>
           <DialogDescription>
-            Select students from another course and assign them to teams.
+            Import tutors from another course phase or from the lecturers and editors of this
+            course. A tutor can lead several teams. Importing a tutor replaces the teams they
+            already lead, so each person starts with their current teams.
           </DialogDescription>
         </DialogHeader>
 
-        {/* Scroll the body, not the dialog, so the close button stays pinned. */}
-        <div className='grid gap-4 py-4 min-h-0 overflow-y-auto'>
-          <div className='grid gap-2'>
-            <Label htmlFor='course'>Select Source Course</Label>
-            <Select value={selectedSourceCourse || ''} onValueChange={handleCourseChange}>
-              <SelectTrigger id='course'>
-                <SelectValue placeholder='Select a course' />
-              </SelectTrigger>
-              <SelectContent>
-                {courses.map((course) => (
-                  <SelectItem key={course.id} value={course.id}>
-                    {course.name} ({course.semesterTag})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        {isTutorAssignmentsError && (
+          <div className='text-red-500 text-sm'>
+            Error loading the current tutors. Please try again.
           </div>
-
-          {selectedSourceCourse && (
-            <div className='grid gap-2'>
-              <Label htmlFor='phase'>Select Source Course Phase</Label>
-              <Select value={selectedSourcePhase || ''} onValueChange={handlePhaseChange}>
-                <SelectTrigger id='phase'>
-                  <SelectValue placeholder='Select a phase' />
-                </SelectTrigger>
-                <SelectContent>
-                  {currentSourceCourse?.coursePhases.map((phase) => (
-                    <SelectItem key={phase.id} value={phase.id}>
-                      {phase.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
-          {selectedSourcePhase && (
-            <div className='grid gap-2'>
-              {isStudentsLoading && <div>Loading students...</div>}
-              {isStudentsError && (
-                <div className='text-red-500'>Error loading students. Please try again.</div>
-              )}
-              {students && students.length > 0 && (
-                <>
-                  <div className='flex items-center justify-between'>
-                    <Label>Select Students as Tutors</Label>
-                    <Button variant='ghost' size='sm' onClick={() => handleSelectAll(students)}>
-                      {selectedStudents.length === students.length ? 'Deselect All' : 'Select All'}
-                    </Button>
-                  </div>
-                  <div className='border rounded-md p-4 max-h-[300px] overflow-y-auto space-y-3'>
-                    {students.map((student) => (
-                      <div key={student.id} className='space-y-2'>
-                        <div className='flex items-center space-x-2'>
-                          <Checkbox
-                            id={`student-${student.id}`}
-                            checked={selectedStudents.includes(student.id!)}
-                            onCheckedChange={() => handleStudentToggle(student.id!)}
-                          />
-                          <label
-                            htmlFor={`student-${student.id}`}
-                            className='text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70'
-                          >
-                            {getStudentName(student)}
-                          </label>
-                        </div>
-                        {selectedStudents.includes(student.id!) && (
-                          <div className='ml-6 grid gap-2'>
-                            <Label htmlFor={`team-${student.id}`} className='text-xs'>
-                              Assign to Team
-                            </Label>
-                            <Select
-                              value={tutorTeamAssignments[student.id!] || ''}
-                              onValueChange={(teamId) => handleTeamChange(student.id!, teamId)}
-                            >
-                              <SelectTrigger id={`team-${student.id}`} className='h-8'>
-                                <SelectValue placeholder='Select team' />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {(fetchedTeams ?? []).map((team) => (
-                                  <SelectItem key={team.id} value={team.id}>
-                                    {team.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
-          )}
-
-          {importError && <div className='text-red-500 text-sm'>{importError}</div>}
-        </div>
-
-        <DialogFooter>
-          <Button
-            type='submit'
-            onClick={handleImport}
-            disabled={
-              !selectedSourceCourse ||
-              !selectedSourcePhase ||
-              selectedStudents.length === 0 ||
-              isImporting
-            }
+        )}
+        {isTutorAssignmentsPending && !isTutorAssignmentsError && (
+          <div className='flex items-center justify-center py-4'>
+            <Loader2 className='h-5 w-5 animate-spin text-muted-foreground' />
+          </div>
+        )}
+        {tutorAssignments && (
+          // Scroll the body, not the dialog, so the close button stays pinned.
+          <Tabs
+            defaultValue='course'
+            onValueChange={() => setImportError(null)}
+            className='min-h-0 overflow-y-auto'
           >
-            {isImporting ? (
-              <>
-                <Loader2 className='mr-2 h-4 w-4 animate-spin' />
-                Importing...
-              </>
-            ) : (
-              'Import Selected Tutors'
-            )}
-          </Button>
-        </DialogFooter>
+            <TabsList className='grid w-full grid-cols-2'>
+              <TabsTrigger value='course'>From Course</TabsTrigger>
+              <TabsTrigger value='staff'>Course Staff</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value='course'>
+              <TutorImportFromCourse
+                teamOptions={teamOptions}
+                currentTeams={currentTeams}
+                isImporting={isImporting}
+                onImport={handleImport}
+              />
+            </TabsContent>
+
+            <TabsContent value='staff'>
+              <TutorImportFromStaff
+                courseId={courseId ?? ''}
+                teamOptions={teamOptions}
+                currentTeams={currentTeams}
+                isImporting={isImporting}
+                onImport={handleImport}
+              />
+            </TabsContent>
+          </Tabs>
+        )}
+
+        {importError && <div className='text-red-500 text-sm'>{importError}</div>}
       </DialogContent>
     </Dialog>
   )

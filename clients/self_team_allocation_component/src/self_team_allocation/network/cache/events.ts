@@ -22,6 +22,13 @@ export const selfTeamAllocationCache = {
   teamsChanged: (queryClient: QueryClient, phaseId: Id): void =>
     invalidate(queryClient, [selfTeamAllocationKeys.teams(phaseId)]),
 
+  // Tutors are served as part of each team, and with their logins in the tutor list
+  tutorsImported: (queryClient: QueryClient, phaseId: Id): void =>
+    invalidate(queryClient, [
+      selfTeamAllocationKeys.teams(phaseId),
+      selfTeamAllocationKeys.tutors(phaseId),
+    ]),
+
   // The config reports whether a timeframe is set
   timeframeChanged: (queryClient: QueryClient, phaseId: Id): void =>
     invalidate(queryClient, [

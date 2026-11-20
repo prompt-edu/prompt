@@ -224,17 +224,21 @@ jobs:
             client-presentation-component=prompt-clients-presentation-component:${{ needs.build-clients.outputs.presentation_image_tag }}
             client-infrastructure-setup-component=prompt-clients-infrastructure-setup-component:${{ needs.build-clients.outputs.infrastructure_setup_image_tag }}
             client-ai-component=prompt-clients-ai-component:${{ needs.build-clients.outputs.ai_image_tag }}
+          SHA: ${{ github.sha }}
         # shortcut: the shared build workflow only outputs tags, so this reads the digest a tag
-        # points to right after the build. A newer run on the same ref cancels this one, so the
-        # tag still holds this run's image. Switch to a digest output once that workflow has one.
+        # points to now. A tag a later run moved (say, when only this job is re-run) no longer
+        # carries this commit as its revision label, so the job fails instead of publishing it.
+        # Switch to a digest output once that workflow has one.
         run: |
           {
             echo 'list<<EOF'
             while IFS='=' read -r name image; do
               [ -n "$name" ] || continue
               ref="ghcr.io/prompt-edu/prompt/$image"
-              digest=$(docker buildx imagetools inspect "$ref" --format '{{json .Manifest}}' | jq -r .digest)
-              [[ "$digest" == sha256:* ]] || { echo "::error::no digest for $ref"; exit 1; }
+              read -r digest revision < <(docker buildx imagetools inspect "$ref" --format '{{json .}}' |
+                jq -r '[.manifest.digest, ([.image[].config.Labels["org.opencontainers.image.revision"]] | unique | join(","))] | @tsv')
+              [[ "$digest" == sha256:* ]] || { echo "::error::no digest for $ref" >&2; exit 1; }
+              [ "$revision" = "$SHA" ] || { echo "::error::$ref is built from $revision, not $SHA" >&2; exit 1; }
               echo "$name=$ref@$digest"
             done <<< "$IMAGES"
             echo EOF

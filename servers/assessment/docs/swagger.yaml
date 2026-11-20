@@ -964,9 +964,8 @@ definitions:
           CurrentSemester indicates which semester the student is currently in within their program.
           This helps with course eligibility, academic planning, and progress tracking.
       email:
-        description: |-
-          Email is the student's contact email address, must be a valid email format.
-          This is used for notifications, communications, and account recovery.
+        description: Email is the person's contact email address. It is empty when
+          the source does not provide it.
         type: string
       firstName:
         description: FirstName stores the first name as provided during initial application
@@ -1023,8 +1022,8 @@ definitions:
         type: string
       universityLogin:
         description: |-
-          UniversityLogin is the student's username for university systems and services.
-          This login is typically used for accessing library, computing resources, and other university platforms.
+          UniversityLogin is the person's username for university systems and services.
+          It is empty when the source does not provide it.
         type: string
     type: object
   promptTypes.StudyDegree:

@@ -198,6 +198,10 @@ reported when the credentials are saved rather than as a 403 on every instance d
 
 Verified against Keycloak 26.6.3: with `view-users` alone, group creation answers 403.
 
+On Keycloak 26.8.2 the client also needs the built-in `kc-admin-api` client scope as a default
+scope. Without it the token lacks the Admin API audience and every Admin REST API call answers 401,
+whatever roles the service account holds.
+
 ### Outline access
 
 Read this before promising anything to students.

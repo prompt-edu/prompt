@@ -766,7 +766,7 @@ services:
       - "${PROMPT_PORT_5431:-5431}:5432"
 
   keycloak:
-    image: quay.io/keycloak/keycloak:26.6.3
+    image: quay.io/keycloak/keycloak:26.8.2
     container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-keycloak
     command:
       - start-dev

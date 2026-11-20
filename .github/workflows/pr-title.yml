@@ -1,0 +1,15 @@
+# Checks the PR title with the org-wide reusable workflow from prompt-edu/.github.
+# Titles follow Conventional Commits; the old component tag is an optional
+# scope, e.g. `fix(assessment): ...` (see #2322).
+name: PR Title
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+
+permissions:
+  pull-requests: read
+
+jobs:
+  pr-title:
+    uses: prompt-edu/.github/.github/workflows/pr-title.yml@main

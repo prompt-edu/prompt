@@ -175,7 +175,7 @@ export const AssessmentCompletion = ({
               <Card className='flex flex-col grow'>
                 <CardHeader>
                   <CardTitle>General Remarks</CardTitle>
-                  {coursePhaseConfig?.actionItemsVisible && !readOnly && (
+                  {coursePhaseConfig?.gradeSuggestionVisible && !readOnly && (
                     <p className='text-xs text-gray-500 dark:text-gray-400 mt-1'>
                       These remarks will be visible to the student once results are released.
                     </p>

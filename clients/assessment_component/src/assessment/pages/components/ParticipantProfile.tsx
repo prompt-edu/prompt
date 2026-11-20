@@ -6,26 +6,27 @@ import {
   ProfilePicture,
 } from '@tumaet/prompt-ui-components'
 import { Book, Calendar, GraduationCap } from 'lucide-react'
+import type { ReactNode } from 'react'
 
-import type { AssessmentParticipationWithStudent } from '../../../interfaces/assessmentParticipationWithStudent'
-import type { StudentAssessment } from '../../../interfaces/studentAssessment'
+import type { AssessmentParticipationWithStudent } from '../../interfaces/assessmentParticipationWithStudent'
 
-import { StudentAssessmentBadges } from './StudentAssessmentBadges'
-
-interface AssessmentProfileProps {
+interface ParticipantProfileProps {
   participant: AssessmentParticipationWithStudent
-  studentAssessment: StudentAssessment
-  remainingAssessments: number
+  /** Names the page above the participant, e.g. "Self Evaluation". */
+  label?: string
+  /** Badges next to the name. */
+  children?: ReactNode
 }
 
-export const AssessmentProfile = ({
-  participant,
-  studentAssessment,
-  remainingAssessments,
-}: AssessmentProfileProps) => {
+export const ParticipantProfile = ({ participant, label, children }: ParticipantProfileProps) => {
   return (
     <Card>
       <CardHeader>
+        {label && (
+          <p className='text-sm font-medium text-muted-foreground text-center sm:text-left'>
+            {label}
+          </p>
+        )}
         <div className='flex flex-wrap items-center gap-2'>
           <ProfilePicture
             courseParticipationId={participant.courseParticipationID}
@@ -38,10 +39,7 @@ export const AssessmentProfile = ({
             {getStudentName(participant.student)}
           </h1>
 
-          <StudentAssessmentBadges
-            studentAssessment={studentAssessment}
-            remainingAssessments={remainingAssessments}
-          />
+          {children}
         </div>
       </CardHeader>
 

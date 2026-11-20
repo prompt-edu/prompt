@@ -135,7 +135,8 @@ export const TEAM_ALLOCATION_TUTOR_SCOPE = {
 // `selfEvaluation` by the self-evaluation spec (Stan participates),
 // `print` by the print spec (Stan participates), `gradeExport` by the grade
 // export spec (Stan participates), and `evaluationOnly` by the evaluation-only
-// spec (Stan participates), which flips assessment_enabled off. `tutorResults`
+// spec (Stan participates), which flips assessment_enabled off. `tutorScope`
+// also serves the participant navigation spec, which only reads it. `tutorResults`
 // belongs to the tutor results spec: Stan + Selma participate, and its teams come
 // from TEAM_ALLOCATION_TUTOR_SCOPE, so course-editor is their tutor.
 export const ASSESSMENT_FIXTURE_PHASES = {

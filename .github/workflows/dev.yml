@@ -189,3 +189,57 @@ jobs:
       server_ai_image_tag: ${{ needs.build-servers.outputs.server_ai_image_tag }}
       infrastructure_setup_image_tag: ${{ needs.build-clients.outputs.infrastructure_setup_image_tag }}
       ai_image_tag: ${{ needs.build-clients.outputs.ai_image_tag }}
+
+  # Publishes deploy.json for simple-cd (`.cd.yaml`), with every image pinned by digest.
+  # simple-cd only takes it from a run that succeeds as a whole.
+  publish-cd:
+    needs: [build-clients, build-servers]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Resolve image digests
+        id: images
+        env:
+          # <name in deploy.json, the docker-compose.prod.yml service>=<image>:<tag>
+          IMAGES: |
+            server-core=prompt-server-core:${{ needs.build-servers.outputs.server_core_image_tag }}
+            server-team-allocation=prompt-server-team-allocation:${{ needs.build-servers.outputs.server_team_allocation_image_tag }}
+            server-self-team-allocation=prompt-server-self-team-allocation:${{ needs.build-servers.outputs.server_self_team_allocation_image_tag }}
+            server-assessment=prompt-server-assessment:${{ needs.build-servers.outputs.server_assessment_image_tag }}
+            server-interview=prompt-server-interview:${{ needs.build-servers.outputs.server_interview_image_tag }}
+            server-certificate=prompt-server-certificate:${{ needs.build-servers.outputs.server_certificate_image_tag }}
+            server-presentation=prompt-server-presentation:${{ needs.build-servers.outputs.server_presentation_image_tag }}
+            server-infrastructure-setup=prompt-server-infrastructure-setup:${{ needs.build-servers.outputs.server_infrastructure_setup_image_tag }}
+            server-ai=prompt-server-ai:${{ needs.build-servers.outputs.server_ai_image_tag }}
+            client-core=prompt-clients-core:${{ needs.build-clients.outputs.core_image_tag }}
+            client-assessment-component=prompt-clients-assessment-component:${{ needs.build-clients.outputs.assessment_image_tag }}
+            client-interview-component=prompt-clients-interview-component:${{ needs.build-clients.outputs.interview_image_tag }}
+            client-matching-component=prompt-clients-matching-component:${{ needs.build-clients.outputs.matching_image_tag }}
+            client-team-allocation-component=prompt-clients-team-allocation-component:${{ needs.build-clients.outputs.team_allocation_image_tag }}
+            client-self-team-allocation-component=prompt-clients-self-team-allocation-component:${{ needs.build-clients.outputs.self_team_allocation_image_tag }}
+            client-example-component=prompt-clients-example-component:${{ needs.build-clients.outputs.example_image_tag }}
+            client-certificate-component=prompt-clients-certificate-component:${{ needs.build-clients.outputs.certificate_image_tag }}
+            client-presentation-component=prompt-clients-presentation-component:${{ needs.build-clients.outputs.presentation_image_tag }}
+            client-infrastructure-setup-component=prompt-clients-infrastructure-setup-component:${{ needs.build-clients.outputs.infrastructure_setup_image_tag }}
+            client-ai-component=prompt-clients-ai-component:${{ needs.build-clients.outputs.ai_image_tag }}
+        # shortcut: the shared build workflow only outputs tags, so this reads the digest a tag
+        # points to right after the build. A newer run on the same ref cancels this one, so the
+        # tag still holds this run's image. Switch to a digest output once that workflow has one.
+        run: |
+          {
+            echo 'list<<EOF'
+            while IFS='=' read -r name image; do
+              [ -n "$name" ] || continue
+              ref="ghcr.io/prompt-edu/prompt/$image"
+              digest=$(docker buildx imagetools inspect "$ref" --format '{{json .Manifest}}' | jq -r .digest)
+              [[ "$digest" == sha256:* ]] || { echo "::error::no digest for $ref"; exit 1; }
+              echo "$name=$ref@$digest"
+            done <<< "$IMAGES"
+            echo EOF
+          } >> "$GITHUB_OUTPUT"
+
+      - uses: Mtze/simple-cd/cd-publish@v0.1.0
+        with:
+          images: ${{ steps.images.outputs.list }}

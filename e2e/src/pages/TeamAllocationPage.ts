@@ -24,8 +24,57 @@ export class TeamAllocationPage {
 
   async expectSettingsLoaded() {
     await expect(
-      this.page.getByRole('heading', { level: 1, name: 'Survey Settings' }),
+      this.page.getByRole('heading', { level: 1, name: 'Settings', exact: true }),
     ).toBeVisible({ timeout: 15_000 })
+  }
+
+  async expectPreviousPhaseDataCheck() {
+    await expect(this.page.getByText('Previous Phase Data', { exact: true })).toBeVisible({
+      timeout: 15_000,
+    })
+    await expect(this.page.getByText(/of \d+ checks complete/)).toBeVisible({ timeout: 15_000 })
+  }
+
+  launchDialog(): Locator {
+    return this.page.getByRole('dialog', { name: 'Launch TEASE' })
+  }
+
+  // Expects both launch warnings: the phase has no previous phase data and no survey submission.
+  async expectLaunchDialogWarnings() {
+    await this.page.getByRole('button', { name: 'Launch Tease to Matchmake' }).click()
+    const dialog = this.launchDialog()
+    await expect(dialog).toBeVisible()
+    await expect(dialog.getByText(/^Data from previous phases is missing:/)).toBeVisible({
+      timeout: 15_000,
+    })
+    // The launch link only replaces the disabled button once the data check has finished.
+    const launch = dialog.getByRole('link', { name: /^Launch TEASE/ })
+    await expect(launch).toHaveAttribute('target', '_blank')
+    await expect(launch).toHaveAttribute('href', /\/tease\?coursePhaseId=/)
+    await expect(dialog.getByRole('link', { name: 'Open the settings' })).toHaveAttribute(
+      'href',
+      /\/settings$/,
+    )
+    await expect(dialog.getByText(/students have not submitted the survey/)).toBeVisible()
+    await expect(launch).toHaveText(/Launch TEASE anyway/)
+  }
+
+  async followNotSubmittedLink() {
+    await this.launchDialog().getByRole('link', { name: 'Show these students' }).click()
+    await expect(this.page).toHaveURL(/\/participants\?filters=/)
+  }
+
+  async expectOnlyNotSubmittedParticipants(lastName: string) {
+    const table = this.page.locator('#table-view')
+    await expect(table.getByRole('columnheader', { name: 'Survey' })).toBeVisible({
+      timeout: 15_000,
+    })
+    // The journey phase has no survey submissions, so the rows alone can't show that the filter
+    // applied. The table only shows the chip when the URL filter matches the Survey column.
+    await expect(this.page.getByText('Survey: Not submitted', { exact: true })).toBeVisible()
+    const row = table.getByRole('row').filter({ hasText: lastName })
+    await expect(row.getByText('Not submitted', { exact: true })).toBeVisible()
+    await expect(table.getByText('Submitted', { exact: true })).toHaveCount(0)
   }
 
   async createTeam(name: string) {

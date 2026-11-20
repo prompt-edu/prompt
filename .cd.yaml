@@ -1,0 +1,3 @@
+# simple-cd: deploys docker-compose.prod.yml to Compose targets, see docs/admin/simple-cd.md.
+compose:
+  path: docker-compose.prod.yml

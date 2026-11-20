@@ -3,25 +3,18 @@ import type { ReactNode } from 'react'
 
 interface EvaluationHeaderProps {
   children: ReactNode
-  previousAction?: ReactNode
-  nextAction?: ReactNode
 }
 
 /**
  * Displays an evaluation page title at full size and condenses it into a
  * compact header when it docks below the global management header.
  */
-export const EvaluationHeader = ({
-  children,
-  previousAction,
-  nextAction,
-}: EvaluationHeaderProps) => {
+export const EvaluationHeader = ({ children }: EvaluationHeaderProps) => {
   return (
     <StickyHeader>
       {(docked) => (
-        // The undocked gap is padding on the row rather than a margin on the title, so it
-        // is the same whether or not there are nav actions, it does not push the actions
-        // out of line with the title, and it is included in the height StickyHeader freezes.
+        // The undocked gap is padding on the row rather than a margin on the title, so it is
+        // included in the height StickyHeader freezes.
         // Only docking animates: the undocked row is in flow, so growing it back over time
         // would push the content below down while the user scrolls.
         <div
@@ -30,7 +23,6 @@ export const EvaluationHeader = ({
             docked ? 'h-10 px-3 transition-all duration-300' : 'pb-6',
           )}
         >
-          {previousAction}
           {/* ManagementPageHeader's text-4xl font-bold, inlined because it takes no
               className and this title also needs a condensed docked variant. */}
           <h1
@@ -41,7 +33,6 @@ export const EvaluationHeader = ({
           >
             {children}
           </h1>
-          {nextAction}
         </div>
       )}
     </StickyHeader>

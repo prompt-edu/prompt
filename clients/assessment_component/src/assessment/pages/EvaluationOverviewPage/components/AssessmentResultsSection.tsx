@@ -28,8 +28,9 @@ const NoSharedResultsCard = () => (
       <div className='space-y-1'>
         <h2 className='text-base font-semibold'>No results shared for this phase</h2>
         <p className='text-sm leading-6 text-muted-foreground'>
-          Your instructors have not shared the assessment sheet, grade suggestions, or action items
-          of this phase with students. Contact them if you have questions about your assessment.
+          Your instructors have not shared the assessment sheet, grade suggestions, general remarks,
+          or action items of this phase with students. Contact them if you have questions about your
+          assessment.
         </p>
       </div>
     </CardContent>

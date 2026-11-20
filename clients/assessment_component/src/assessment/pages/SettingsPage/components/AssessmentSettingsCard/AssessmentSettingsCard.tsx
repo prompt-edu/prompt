@@ -43,8 +43,8 @@ export const AssessmentSettingsCard = () => {
             checked={assessmentVisibility.gradeSuggestionVisible}
             onCheckedChange={assessmentVisibility.setGradeSuggestionVisible}
             disabled={isSaving}
-            title='Show grade suggestions'
-            description='Students can see the proposed grade and the final written feedback attached to their assessment.'
+            title='Show grade suggestions and general remarks'
+            description='Students can see the proposed grade and the General Remarks written in their assessment summary.'
           />
           <SettingsSwitchField
             checked={assessmentVisibility.actionItemsVisible}

@@ -9,11 +9,18 @@ type KeycloakUser struct {
 	LastName  string `json:"lastName"`
 }
 
+func stringValue(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
+}
+
 func GetKeycloakUserDTO(user gocloak.User) KeycloakUser {
 	return KeycloakUser{
-		Username:  *user.Username,
-		Email:     *user.Email,
-		FirstName: *user.FirstName,
-		LastName:  *user.LastName,
+		Username:  stringValue(user.Username),
+		Email:     stringValue(user.Email),
+		FirstName: stringValue(user.FirstName),
+		LastName:  stringValue(user.LastName),
 	}
 }

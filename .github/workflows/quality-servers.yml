@@ -2,6 +2,11 @@ name: Quality Servers
 
 on:
   workflow_call:
+    inputs:
+      servers:
+        description: "JSON array of server directories to check"
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -17,20 +22,11 @@ jobs:
         run: ./scripts/seed-check.sh
 
   quality-server:
+    if: inputs.servers != '[]'
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        module:
-          - ai
-          - assessment
-          - certificate
-          - core
-          - infrastructure_setup
-          - interview
-          - presentation
-          - self_team_allocation
-          - team_allocation
-          - example_server
+        module: ${{ fromJSON(inputs.servers) }}
     defaults:
       run:
         working-directory: servers/${{ matrix.module }}

@@ -93,8 +93,8 @@ Output lands in `api-stress/reports/<timestamp>/` (gitignored). Open `report.md`
 
 ## In CI
 
-Every PR runs the suite through `.github/workflows/test-api-stress.yml`, called from
-`dev.yml`. The job runs the suite's unit tests (`cd api-stress && uv run pytest`),
+Every PR that changes a server runs the suite through `.github/workflows/test-api-stress.yml`,
+called from `dev.yml`. The job runs the suite's unit tests (`cd api-stress && uv run pytest`),
 builds and boots the isolated stack, and runs a smoke + fuzz pass:
 
 ```bash
@@ -102,8 +102,8 @@ api-stress/run.sh --smoke-only --intensity gentle --fail-on P0 --public-summary 
 ```
 
 - **It blocks the merge.** The job is one of the jobs the `ci-passed` gate waits for
-  (#2414), and `ci-passed` is the check the `main` ruleset requires. Like the other
-  test jobs, it is skipped on PRs that only change docs.
+  (#2414), and `ci-passed` is the check the `main` ruleset requires. It is skipped on
+  PRs that change no server (see `scripts/ci-changes.mjs`), which includes docs-only PRs.
 - **It fails only on P0.** P1/P2 findings are listed in the job summary and the
   `api-stress-public-findings` artifact, so they never block a PR. A fuzzer crash
   fails the job too, because the report would then lack every auth and IDOR result.

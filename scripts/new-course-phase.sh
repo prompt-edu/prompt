@@ -284,13 +284,9 @@ printf '\nsqlc-%s: ## Generate sqlc code for %s server\n\tcd servers/%s && sqlc 
   "$KEBAB" "$NAME" "$NAME" >> Makefile
 
 # ------------------------------------------------------------------------ 8. CI
-echo "-> CI matrices"
-insert_after .github/workflows/quality-clients.yml '^          - example_component$' \
-  "          - ${NAME}_component"
-insert_after .github/workflows/quality-servers.yml '^          - example_server$' \
-  "          - ${NAME}"
-insert_after .github/workflows/test-servers.yml '^          - example_server$' \
-  "          - ${NAME}"
+echo "-> CI module registry"
+insert_after scripts/ci-changes.mjs '^  example: \{' \
+  "  ${NAME}: { server: '${NAME}', client: '${NAME}_component' },"
 
 # ---------------------------------------------------------------- 9. verify
 echo "-> verifying"
@@ -313,7 +309,8 @@ Remaining manual steps (see docs/contributor/new_course_phase.md):
      servers/core/coursePhaseType/initializeTypes.go (name key: '${NAME}_component',
      dev BaseUrl: devServiceURL(${SERVER_PORT}, "/${KEBAB}-service/api")).
   2. Deployment: docker-compose.prod.yml service + traefik labels, and the
-     build-and-push-clients.yml (pass MF_BUILD_VERSION like the other remotes) /
+     build-and-push-clients.yml (pass MF_BUILD_VERSION and gate on inputs.clients
+     like the other remotes) / build-and-push-servers.yml /
      deploy-docker.yml / dev.yml / prod.yml wiring.
      For the audit log, add an AUDIT_INGEST_KEY_${UPPER}_SERVER secret to
      deploy-docker.yml and list the service in core's AUDIT_INGEST_KEYS.

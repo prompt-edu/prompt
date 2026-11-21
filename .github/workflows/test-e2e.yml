@@ -1,7 +1,13 @@
 name: E2E Tests
 
 on:
-  workflow_call: {}
+  workflow_call:
+    inputs:
+      shards:
+        description: "JSON array of shard names to run; empty runs every shard"
+        required: false
+        type: string
+        default: ""
   # Allow running on demand from the Actions tab.
   workflow_dispatch: {}
 
@@ -19,7 +25,7 @@ env:
   BUILDKIT_IMAGE: moby/buildkit:buildx-stable-1
 
 jobs:
-  # Verify e2e/shards.json claims every spec once, and emit the shard matrix.
+  # Verify e2e/shards.json claims every spec once, and emit the selected shards' matrix.
   partition:
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -34,9 +40,11 @@ jobs:
       - name: Verify the shard partition covers every spec exactly once
         id: partition
         working-directory: e2e
+        env:
+          SHARDS: ${{ inputs.shards }}
         run: |
           node scripts/shards.mjs check
-          echo "matrix=$(node scripts/shards.mjs matrix)" >> "$GITHUB_OUTPUT"
+          echo "matrix=$(node scripts/shards.mjs matrix "$SHARDS")" >> "$GITHUB_OUTPUT"
 
   # One shard per microservice, each on its own fresh stack; see e2e/README.md.
   shard:

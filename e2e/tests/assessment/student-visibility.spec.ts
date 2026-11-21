@@ -210,4 +210,53 @@ test.describe('assessment: student result visibility', () => {
     await expect(page.getByText('Good - 1.7')).toHaveCount(0)
     await expect(page.getByRole('button', { name: /Download PDF/ })).toHaveCount(0)
   })
+
+  test("the tutor's hint on the general remarks follows the grade suggestion setting", async ({
+    browser,
+  }) => {
+    const remarksHint = 'These remarks will be visible to the student once results are released.'
+    const actionItemsHint =
+      'These action items will be visible to the student once results are released.'
+
+    const lecturerContext = await browser.newContext({ storageState: authFile('lecturer') })
+    try {
+      const lecturerPage = await lecturerContext.newPage()
+      const lecturerPhase = new AssessmentPage(lecturerPage)
+      const openSelmasAssessment = async () => {
+        await lecturerPhase.goto(SEEDED_COURSES.fullCourse.id, PHASE_ID, '/participants')
+        await lecturerPhase.expectParticipantsLoaded()
+        await lecturerPhase.openParticipant('Selma Second')
+      }
+
+      const setVisibility = async (
+        gradeSuggestionVisible: boolean,
+        actionItemsVisible: boolean,
+      ) => {
+        const lecturer = await apiAsRole('lecturer')
+        try {
+          await putConfig(lecturer, PHASE_ID, {
+            gradeSuggestionVisible,
+            actionItemsVisible,
+            gradingSheetVisible: false,
+          })
+        } finally {
+          await lecturer.dispose()
+        }
+      }
+
+      // The server only returns the remarks to students together with the
+      // grade suggestion, so action items alone must not promise them.
+      await setVisibility(false, true)
+      await openSelmasAssessment()
+      await expect(lecturerPage.getByText(actionItemsHint)).toBeVisible()
+      await expect(lecturerPage.getByText(remarksHint)).toHaveCount(0)
+
+      await setVisibility(true, false)
+      await openSelmasAssessment()
+      await expect(lecturerPage.getByText(remarksHint)).toBeVisible()
+      await expect(lecturerPage.getByText(actionItemsHint)).toHaveCount(0)
+    } finally {
+      await lecturerContext.close()
+    }
+  })
 })

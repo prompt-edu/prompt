@@ -16,7 +16,10 @@ import { EyeOff } from 'lucide-react'
 
 import { useGetCoursePhaseConfig } from '../../../../hooks/useGetCoursePhaseConfig'
 import { useGetCoursePhaseMetaData } from '../../../../hooks/useGetCoursePhaseMetaData'
-import { getVisibleResultSections } from '../../../../utils/studentResultsVisibility'
+import {
+  describeVisibleResultSections,
+  hasVisibleResultSection,
+} from '../../../../utils/studentResultsVisibility'
 import { isTemplateComplete, parseResultsReleasedMail } from '../../ResultsReleasedMailCard/utils'
 
 interface ReleaseConfirmationDialogProps {
@@ -46,20 +49,7 @@ export function ReleaseConfirmationDialog({
     courseMailingIsConfigured && resultsMail.sendOnRelease && isTemplateComplete(resultsMail)
 
   const assessmentEnabled = coursePhaseConfig?.assessmentEnabled ?? true
-  const visibleItems = getVisibleResultSections(coursePhaseConfig)
-  const showsNothingToStudents = assessmentEnabled && visibleItems.length === 0
-
-  const getVisibilityDescription = () => {
-    if (visibleItems.length === 1) {
-      return visibleItems[0]
-    }
-
-    if (visibleItems.length === 2) {
-      return `${visibleItems[0]} and ${visibleItems[1]}`
-    }
-
-    return `${visibleItems[0]}, ${visibleItems[1]}, and ${visibleItems[2]}`
-  }
+  const showsNothingToStudents = assessmentEnabled && !hasVisibleResultSection(coursePhaseConfig)
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -77,8 +67,8 @@ export function ReleaseConfirmationDialog({
             ) : assessmentEnabled ? (
               <>
                 Are you sure you want to release the assessment results to students? This will make{' '}
-                {getVisibilityDescription()} for all final assessments ({completedAssessments}/
-                {totalAssessments}) visible to students.
+                {describeVisibleResultSections(coursePhaseConfig)} for all final assessments (
+                {completedAssessments}/{totalAssessments}) visible to students.
               </>
             ) : (
               <>
@@ -95,9 +85,10 @@ export function ReleaseConfirmationDialog({
               <EyeOff className='h-4 w-4' />
               <AlertTitle>Students will not see any results</AlertTitle>
               <AlertDescription>
-                The assessment sheet, grade suggestions, and action items are all hidden. Students
-                only see a note that no results are shared for this phase. Switch on at least one of
-                them under &quot;Student visibility after release&quot; to share results.
+                The assessment sheet, grade suggestions, general remarks, and action items are all
+                hidden. Students only see a note that no results are shared for this phase. Switch
+                on at least one of them under &quot;Student visibility after release&quot; to share
+                results.
               </AlertDescription>
             </Alert>
           )}

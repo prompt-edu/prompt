@@ -12,6 +12,7 @@ export interface SchemaSectionContent {
   schemaHint: string
   timeframeLabel: string
   timeframeHint: string
+  lockHint: string
   detailTitle: string
   detailDescription: string
 }
@@ -33,6 +34,8 @@ export const getSchemaSectionContent = (
     timeframeLabel: 'Assessment timeframe',
     timeframeHint:
       'This controls when lecturers can submit final assessments for participants in this phase.',
+    lockHint:
+      "Assessments were already submitted with this schema. To keep them from being falsified, you can't turn the assessment off, switch to another schema or edit this one. To unlock it, open each participant's assessment page and delete the summary, the competency scores and the action items, and clear the category comments. Independent scores can only be deleted by the assessor who gave them, so each assessor must delete their own.",
     detailTitle: 'Assessment Schema',
     detailDescription:
       'Review and edit categories, competencies, weights, and proficiency descriptions for the final assessment.',
@@ -49,6 +52,8 @@ export const getSchemaSectionContent = (
       'Choose the schema students use for self-reflection. Use the detail page to inspect or adapt its content.',
     timeframeLabel: 'Self-evaluation timeframe',
     timeframeHint: 'This controls when students can start and submit their self-evaluations.',
+    lockHint:
+      "Students already submitted self-evaluations with this schema. To keep them from being falsified, you can't turn the self-evaluation off, switch to another schema or edit this one.",
     detailTitle: 'Self-Evaluation Schema',
     detailDescription:
       'Review and edit the self-evaluation categories, competencies, weights, and proficiency descriptions.',
@@ -65,6 +70,8 @@ export const getSchemaSectionContent = (
       'Choose the schema used for peer feedback. Shared schemas stay safe because edits create local copies when needed.',
     timeframeLabel: 'Peer-evaluation timeframe',
     timeframeHint: 'This controls when peer feedback opens and when submissions are due.',
+    lockHint:
+      "Students already submitted peer-evaluations with this schema. To keep them from being falsified, you can't turn the peer-evaluation off, switch to another schema or edit this one.",
     detailTitle: 'Peer-Evaluation Schema',
     detailDescription:
       'Review and edit the peer-evaluation categories, competencies, weights, and proficiency descriptions.',
@@ -79,6 +86,7 @@ export const getSchemaSectionContent = (
     schemaHint: `Choose the schema students use to evaluate their ${tutorLabel.text}. Use the detail page to review categories and competency descriptions.`,
     timeframeLabel: `${tutorLabel.title}-evaluation timeframe`,
     timeframeHint: `This controls when students can evaluate their ${tutorLabel.text} and when submissions close.`,
+    lockHint: `Students already submitted ${tutorLabel.text}-evaluations with this schema. To keep them from being falsified, you can't turn the ${tutorLabel.text}-evaluation off, switch to another schema or edit this one.`,
     detailTitle: `${tutorLabel.title}-Evaluation Schema`,
     detailDescription: `Review and edit the ${tutorLabel.text}-evaluation categories, competencies, weights, and proficiency descriptions students use to evaluate their ${tutorLabel.text}.`,
   },

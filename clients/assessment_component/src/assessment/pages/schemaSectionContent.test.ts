@@ -16,5 +16,6 @@ describe('getSchemaSectionContent', () => {
     const content = getSchemaSectionContent({ title: 'PL', text: 'PL' })[AssessmentType.TUTOR]
     expect(content.title).toBe('PL-Evaluation')
     expect(content.inlineTitle).toBe('PL-evaluation')
+    expect(content.lockHint).toContain("can't turn the PL-evaluation off")
   })
 })

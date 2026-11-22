@@ -172,6 +172,22 @@ func TestAuditMiddlewareUsesDescribedLabels(t *testing.T) {
 			coursePhaseID: auditCoursePhaseID,
 		},
 		{
+			name:          "tutor added to a team",
+			method:        http.MethodPost,
+			url:           auditCoursePhaseRoute + "/team/" + auditTeamID + "/tutors",
+			action:        "Added a tutor to a team",
+			actionKey:     "POST " + auditCoursePhaseTemplate + "/team/:teamID/tutors",
+			coursePhaseID: auditCoursePhaseID,
+		},
+		{
+			name:          "tutor removed from a team",
+			method:        http.MethodDelete,
+			url:           auditCoursePhaseRoute + "/team/" + auditTeamID + "/tutors/" + auditParticipationID,
+			action:        "Removed a tutor from a team",
+			actionKey:     "DELETE " + auditCoursePhaseTemplate + "/team/:teamID/tutors/:tutorID",
+			coursePhaseID: auditCoursePhaseID,
+		},
+		{
 			name:          "skill creation",
 			method:        http.MethodPost,
 			url:           auditCoursePhaseRoute + "/skill",

@@ -610,3 +610,209 @@ func (suite *TeamRouterTestSuite) TestGetMyTutorNotFoundForNonTutor() {
 		assert.Equal(suite.T(), http.StatusNotFound, resp.Code, "login %q", login)
 	}
 }
+
+const tutorPhaseID = "4179d58a-d00d-4fa7-94a5-397bc69fab02"
+
+func (suite *TeamRouterTestSuite) postTeamTutor(router *gin.Engine, teamID string, tutor teamDTO.TeamTutor) *httptest.ResponseRecorder {
+	body, _ := json.Marshal(tutor)
+	req, _ := http.NewRequest("POST", "/api/course_phase/"+tutorPhaseID+"/team/"+teamID+"/tutors", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	resp := httptest.NewRecorder()
+	router.ServeHTTP(resp, req)
+	return resp
+}
+
+func (suite *TeamRouterTestSuite) deleteTeamTutor(router *gin.Engine, teamID, tutorID string) int {
+	req, _ := http.NewRequest("DELETE", "/api/course_phase/"+tutorPhaseID+"/team/"+teamID+"/tutors/"+tutorID, nil)
+	resp := httptest.NewRecorder()
+	router.ServeHTTP(resp, req)
+	return resp.Code
+}
+
+func (suite *TeamRouterTestSuite) addedTutor(resp *httptest.ResponseRecorder) promptTypes.Person {
+	var tutor promptTypes.Person
+	assert.NoError(suite.T(), json.Unmarshal(resp.Body.Bytes(), &tutor))
+	return tutor
+}
+
+func (suite *TeamRouterTestSuite) TestAddTutorToTeamKeepsTheIDOfAnExistingTutor() {
+	tutorID := "99999999-9999-9999-9999-9999999999d1"
+	tutor := teamDTO.TeamTutor{
+		CourseParticipationID: uuid.MustParse(tutorID),
+		FirstName:             "Tara",
+		LastName:              "Team",
+		UniversityLogin:       " TT01EAM ",
+	}
+
+	resp := suite.postTeamTutor(suite.router, teamAlphaID, tutor)
+	assert.Equal(suite.T(), http.StatusCreated, resp.Code)
+	assert.Equal(suite.T(), tutorID, suite.addedTutor(resp).ID.String())
+
+	// The same login under another id leads a second team under the id the tutor already has.
+	tutor.CourseParticipationID = uuid.MustParse("99999999-9999-9999-9999-9999999999d2")
+	resp = suite.postTeamTutor(suite.router, teamGammaID, tutor)
+	assert.Equal(suite.T(), http.StatusCreated, resp.Code)
+	assert.Equal(suite.T(), tutorID, suite.addedTutor(resp).ID.String())
+
+	assert.ElementsMatch(suite.T(), []string{teamAlphaID, teamGammaID}, suite.tutorTeams(tutorPhaseID, tutorID))
+	assert.Empty(suite.T(), suite.tutorTeams(tutorPhaseID, tutor.CourseParticipationID.String()))
+
+	stored, err := suite.teamService.GetTutorByUniversityLogin(suite.suiteCtx, uuid.MustParse(tutorPhaseID), "tt01eam")
+	assert.NoError(suite.T(), err, "the login is stored normalized")
+	assert.Equal(suite.T(), tutorID, stored.ID.String())
+}
+
+func (suite *TeamRouterTestSuite) TestAddTutorToTeamTwiceAddsNothing() {
+	tutorID := "99999999-9999-9999-9999-9999999999d3"
+	tutor := teamDTO.TeamTutor{
+		CourseParticipationID: uuid.MustParse(tutorID),
+		FirstName:             "Dina",
+		LastName:              "Double",
+		UniversityLogin:       "dd01ubl",
+	}
+
+	assert.Equal(suite.T(), http.StatusCreated, suite.postTeamTutor(suite.router, teamAlphaID, tutor).Code)
+	resp := suite.postTeamTutor(suite.router, teamAlphaID, tutor)
+	assert.Equal(suite.T(), http.StatusOK, resp.Code, "a tutor already on the team is not an error")
+	assert.Equal(suite.T(), tutorID, suite.addedTutor(resp).ID.String())
+
+	assert.Equal(suite.T(), []string{teamAlphaID}, suite.tutorTeams(tutorPhaseID, tutorID))
+}
+
+func (suite *TeamRouterTestSuite) TestAddTutorToTeamRejectsAnIDOnTheTeamUnderAnotherLogin() {
+	// Like Bob Williams in the seed: a row stored without a login, so the new login does not match it.
+	tutorID := "99999999-9999-9999-9999-9999999999d5"
+	assert.NoError(suite.T(), suite.teamService.queries.InsertTutor(suite.suiteCtx, db.InsertTutorParams{
+		CoursePhaseID:         uuid.MustParse(tutorPhaseID),
+		CourseParticipationID: uuid.MustParse(tutorID),
+		FirstName:             "Lou",
+		LastName:              "Loginless",
+		TeamID:                uuid.MustParse(teamGammaID),
+	}))
+	tutor := teamDTO.TeamTutor{
+		CourseParticipationID: uuid.MustParse(tutorID),
+		FirstName:             "Lou",
+		LastName:              "Loginless",
+		UniversityLogin:       "ll01ogn",
+	}
+
+	assert.Equal(suite.T(), http.StatusBadRequest, suite.postTeamTutor(suite.router, teamGammaID, tutor).Code,
+		"the id already leads the team, so the tutor is not reported as added")
+	_, err := suite.teamService.GetTutorByUniversityLogin(suite.suiteCtx, uuid.MustParse(tutorPhaseID), "ll01ogn")
+	assert.ErrorIs(suite.T(), err, ErrTutorNotFound)
+}
+
+func (suite *TeamRouterTestSuite) TestAddTutorToTeamRejectsInvalidRequests() {
+	valid := teamDTO.TeamTutor{
+		CourseParticipationID: uuid.MustParse("99999999-9999-9999-9999-9999999999d4"),
+		FirstName:             "Val",
+		LastName:              "Id",
+		UniversityLogin:       "vi01dtm",
+	}
+	noLogin := valid
+	noLogin.UniversityLogin = "  "
+	noID := valid
+	noID.CourseParticipationID = uuid.Nil
+
+	for name, tc := range map[string]struct {
+		teamID string
+		tutor  teamDTO.TeamTutor
+	}{
+		"missing login":         {teamAlphaID, noLogin},
+		"missing id":            {teamAlphaID, noID},
+		"unknown team":          {uuid.NewString(), valid},
+		"team of another phase": {"dddddddd-dddd-dddd-dddd-dddddddddddd", valid},
+	} {
+		assert.Equal(suite.T(), http.StatusBadRequest, suite.postTeamTutor(suite.router, tc.teamID, tc.tutor).Code, name)
+	}
+
+	req, _ := http.NewRequest("POST", "/api/course_phase/"+tutorPhaseID+"/team/"+teamAlphaID+"/tutors", strings.NewReader("{"))
+	req.Header.Set("Content-Type", "application/json")
+	resp := httptest.NewRecorder()
+	suite.router.ServeHTTP(resp, req)
+	assert.Equal(suite.T(), http.StatusBadRequest, resp.Code, "invalid JSON")
+
+	assert.Empty(suite.T(), suite.tutorTeams(tutorPhaseID, valid.CourseParticipationID.String()), "a refused request writes nothing")
+}
+
+func (suite *TeamRouterTestSuite) TestRemoveTutorFromOneOfSeveralTeams() {
+	tutorID := "99999999-9999-9999-9999-9999999999e1"
+	tutor := teamDTO.TeamTutor{
+		CourseParticipationID: uuid.MustParse(tutorID),
+		FirstName:             "Sev",
+		LastName:              "Eral",
+		UniversityLogin:       "se01vrl",
+	}
+	assert.Equal(suite.T(), http.StatusCreated, suite.postTeamTutor(suite.router, teamAlphaID, tutor).Code)
+	assert.Equal(suite.T(), http.StatusCreated, suite.postTeamTutor(suite.router, teamGammaID, tutor).Code)
+
+	assert.Equal(suite.T(), http.StatusOK, suite.deleteTeamTutor(suite.router, teamAlphaID, tutorID))
+
+	assert.Equal(suite.T(), []string{teamGammaID}, suite.tutorTeams(tutorPhaseID, tutorID))
+	_, err := suite.teamService.GetTutorByUniversityLogin(suite.suiteCtx, uuid.MustParse(tutorPhaseID), "se01vrl")
+	assert.NoError(suite.T(), err, "the tutor still leads a team")
+}
+
+func (suite *TeamRouterTestSuite) TestRemoveTutorFromTheirLastTeamRemovesTheTutor() {
+	tutorID := "99999999-9999-9999-9999-9999999999e2"
+	tutor := teamDTO.TeamTutor{
+		CourseParticipationID: uuid.MustParse(tutorID),
+		FirstName:             "Lana",
+		LastName:              "Last",
+		UniversityLogin:       "la01stt",
+	}
+	assert.Equal(suite.T(), http.StatusCreated, suite.postTeamTutor(suite.router, teamGammaID, tutor).Code)
+
+	assert.Equal(suite.T(), http.StatusOK, suite.deleteTeamTutor(suite.router, teamGammaID, tutorID))
+
+	assert.Empty(suite.T(), suite.tutorTeams(tutorPhaseID, tutorID))
+	_, err := suite.teamService.GetTutorByUniversityLogin(suite.suiteCtx, uuid.MustParse(tutorPhaseID), "la01stt")
+	assert.ErrorIs(suite.T(), err, ErrTutorNotFound, "a tutor without a team is no longer a tutor of the phase")
+
+	resp := suite.getTutorAssignments(roleAuthMiddleware(keycloakTokenVerifier.TokenUser{IsLecturer: true}))
+	assert.NotContains(suite.T(), resp.Body.String(), tutorID)
+}
+
+func (suite *TeamRouterTestSuite) TestRemoveTutorFromTeamRejectsUnknownTeamsAndTutors() {
+	tutorID := "99999999-9999-9999-9999-9999999999e3"
+	tutor := teamDTO.TeamTutor{
+		CourseParticipationID: uuid.MustParse(tutorID),
+		FirstName:             "Not",
+		LastName:              "Here",
+		UniversityLogin:       "nh01ere",
+	}
+	assert.Equal(suite.T(), http.StatusCreated, suite.postTeamTutor(suite.router, teamAlphaID, tutor).Code)
+
+	assert.Equal(suite.T(), http.StatusNotFound, suite.deleteTeamTutor(suite.router, teamGammaID, tutorID), "a team the tutor does not lead")
+	assert.Equal(suite.T(), http.StatusNotFound, suite.deleteTeamTutor(suite.router, teamAlphaID, uuid.NewString()), "an unknown tutor")
+	assert.Equal(suite.T(), http.StatusBadRequest, suite.deleteTeamTutor(suite.router, uuid.NewString(), tutorID), "an unknown team")
+	assert.Equal(suite.T(), http.StatusBadRequest, suite.deleteTeamTutor(suite.router, "dddddddd-dddd-dddd-dddd-dddddddddddd", tutorID), "a team of another phase")
+	assert.Equal(suite.T(), http.StatusBadRequest, suite.deleteTeamTutor(suite.router, teamAlphaID, "not-a-uuid"), "an invalid tutor id")
+
+	assert.Equal(suite.T(), []string{teamAlphaID}, suite.tutorTeams(tutorPhaseID, tutorID))
+}
+
+func (suite *TeamRouterTestSuite) TestTeamTutorRoutesAreForLecturersOnly() {
+	tutorID := "99999999-9999-9999-9999-9999999999f1"
+	tutor := teamDTO.TeamTutor{
+		CourseParticipationID: uuid.MustParse(tutorID),
+		FirstName:             "Rhea",
+		LastName:              "Role",
+		UniversityLogin:       "rr01ole",
+	}
+
+	for name, tokenUser := range map[string]keycloakTokenVerifier.TokenUser{
+		"tutor":   {IsEditor: true, UniversityLogin: projectLeadLogin},
+		"student": {IsStudentOfCourse: true, UniversityLogin: "st01ude"},
+	} {
+		router := suite.routerWith(roleAuthMiddleware(tokenUser))
+		assert.Equal(suite.T(), http.StatusForbidden, suite.postTeamTutor(router, teamAlphaID, tutor).Code, name)
+		assert.Equal(suite.T(), http.StatusForbidden, suite.deleteTeamTutor(router, teamAlphaID, projectLeadID), name)
+	}
+	assert.Empty(suite.T(), suite.tutorTeams(tutorPhaseID, tutorID), "a forbidden add writes nothing")
+	assert.Contains(suite.T(), suite.tutorTeams(tutorPhaseID, projectLeadID), teamAlphaID, "a forbidden removal removes nothing")
+
+	lecturer := suite.routerWith(roleAuthMiddleware(keycloakTokenVerifier.TokenUser{IsLecturer: true}))
+	assert.Equal(suite.T(), http.StatusCreated, suite.postTeamTutor(lecturer, teamAlphaID, tutor).Code)
+	assert.Equal(suite.T(), http.StatusOK, suite.deleteTeamTutor(lecturer, teamAlphaID, tutorID))
+}

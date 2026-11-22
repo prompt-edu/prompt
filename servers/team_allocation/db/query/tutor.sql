@@ -43,3 +43,18 @@ WHERE t.course_phase_id = $1
   AND t.university_login = $2
 ORDER BY t.course_participation_id
 LIMIT 1;
+
+-- name: AddTutorToTeam :execrows
+-- Adds one team to a tutor. A login already on the team inserts nothing, so the caller sees 0 rows;
+-- the id already leading the team under another login still fails on the primary key.
+INSERT INTO tutor (course_phase_id, course_participation_id, first_name, last_name, team_id, university_login)
+VALUES ($1, $2, $3, $4, $5, $6)
+ON CONFLICT (course_phase_id, university_login, team_id) WHERE university_login IS NOT NULL DO NOTHING;
+
+-- name: RemoveTutorFromTeam :execrows
+-- Removes one team from a tutor. A tutor left without a team is no longer a tutor of the phase.
+DELETE
+FROM tutor
+WHERE course_phase_id = $1
+  AND team_id = $2
+  AND course_participation_id = $3;

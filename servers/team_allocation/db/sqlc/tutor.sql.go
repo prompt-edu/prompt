@@ -12,6 +12,38 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const addTutorToTeam = `-- name: AddTutorToTeam :execrows
+INSERT INTO tutor (course_phase_id, course_participation_id, first_name, last_name, team_id, university_login)
+VALUES ($1, $2, $3, $4, $5, $6)
+ON CONFLICT (course_phase_id, university_login, team_id) WHERE university_login IS NOT NULL DO NOTHING
+`
+
+type AddTutorToTeamParams struct {
+	CoursePhaseID         uuid.UUID   `json:"course_phase_id"`
+	CourseParticipationID uuid.UUID   `json:"course_participation_id"`
+	FirstName             string      `json:"first_name"`
+	LastName              string      `json:"last_name"`
+	TeamID                uuid.UUID   `json:"team_id"`
+	UniversityLogin       pgtype.Text `json:"university_login"`
+}
+
+// Adds one team to a tutor. A login already on the team inserts nothing, so the caller sees 0 rows;
+// the id already leading the team under another login still fails on the primary key.
+func (q *Queries) AddTutorToTeam(ctx context.Context, arg AddTutorToTeamParams) (int64, error) {
+	result, err := q.db.Exec(ctx, addTutorToTeam,
+		arg.CoursePhaseID,
+		arg.CourseParticipationID,
+		arg.FirstName,
+		arg.LastName,
+		arg.TeamID,
+		arg.UniversityLogin,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const deleteTutorAssignments = `-- name: DeleteTutorAssignments :exec
 DELETE
 FROM tutor
@@ -188,4 +220,27 @@ SELECT pg_advisory_xact_lock(hashtextextended(CAST($1 AS uuid)::text, 0))
 func (q *Queries) LockTutorImport(ctx context.Context, coursePhaseID uuid.UUID) error {
 	_, err := q.db.Exec(ctx, lockTutorImport, coursePhaseID)
 	return err
+}
+
+const removeTutorFromTeam = `-- name: RemoveTutorFromTeam :execrows
+DELETE
+FROM tutor
+WHERE course_phase_id = $1
+  AND team_id = $2
+  AND course_participation_id = $3
+`
+
+type RemoveTutorFromTeamParams struct {
+	CoursePhaseID         uuid.UUID `json:"course_phase_id"`
+	TeamID                uuid.UUID `json:"team_id"`
+	CourseParticipationID uuid.UUID `json:"course_participation_id"`
+}
+
+// Removes one team from a tutor. A tutor left without a team is no longer a tutor of the phase.
+func (q *Queries) RemoveTutorFromTeam(ctx context.Context, arg RemoveTutorFromTeamParams) (int64, error) {
+	result, err := q.db.Exec(ctx, removeTutorFromTeam, arg.CoursePhaseID, arg.TeamID, arg.CourseParticipationID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }

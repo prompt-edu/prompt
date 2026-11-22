@@ -33,6 +33,8 @@ func RegisterRoutes(routerGroup *gin.RouterGroup, service *TeamsService, authMid
 	teamRouter.GET("/tutors", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.getTutorAssignments)
 	teamRouter.POST("/tutors", audit.Describe("Imported tutors"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.importTutors)
 	teamRouter.GET("/tutors/me", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor), service.getMyTutor)
+	teamRouter.POST("/:teamID/tutors", audit.Describe("Added a tutor to a team"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.addTutorToTeam)
+	teamRouter.DELETE("/:teamID/tutors/:tutorID", audit.Describe("Removed a tutor from a team"), authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer), service.removeTutorFromTeam)
 
 	// required for inter-phase communication protocol
 	teamRouter.GET("/:teamID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.CourseStudent), scopingMW, service.getTeamByID)
@@ -345,6 +347,117 @@ func (s *TeamsService) importTutors(c *gin.Context) {
 	}
 
 	c.Status(http.StatusCreated)
+}
+
+// addTutorToTeam godoc
+// @Summary Add a tutor to a team
+// @Description Add one tutor to one team of the course phase. The tutor is identified by their university login, which is required: a tutor who already exists in the phase keeps their id and leads the team in addition to their other teams. Answers 200 instead of 201 when the tutor already leads the team.
+// @Tags team
+// @Accept json
+// @Produce json
+// @Param coursePhaseID path string true "Course Phase UUID"
+// @Param teamID path string true "Team UUID"
+// @Param request body teamDTO.TeamTutor true "Tutor to add"
+// @Success 200 {object} promptTypes.Person
+// @Success 201 {object} promptTypes.Person
+// @Failure 400 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Security ApiKeyAuth
+// @Router /course_phase/{coursePhaseID}/team/{teamID}/tutors [post]
+func (s *TeamsService) addTutorToTeam(c *gin.Context) {
+	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
+	if err != nil {
+		log.Error("Error parsing coursePhaseID: ", err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	teamID, err := uuid.Parse(c.Param("teamID"))
+	if err != nil {
+		log.Error("Error parsing teamID: ", err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	var tutor teamDTO.TeamTutor
+	if err := c.BindJSON(&tutor); err != nil {
+		log.Error("Error binding tutor: ", err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	stored, added, err := s.AddTutorToTeam(c, coursePhaseID, teamID, tutor)
+	if err != nil {
+		if errors.Is(err, ErrMissingLogin) || errors.Is(err, ErrMissingTutorID) || errors.Is(err, ErrInvalidTeamForPhase) ||
+			errors.Is(err, ErrTutorIDOnTeam) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		log.Error("Error adding tutor to team: ", err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	if !added {
+		c.JSON(http.StatusOK, stored)
+		return
+	}
+	c.JSON(http.StatusCreated, stored)
+}
+
+// removeTutorFromTeam godoc
+// @Summary Remove a tutor from a team
+// @Description Remove one tutor from one team of the course phase. A tutor removed from their last team is no longer a tutor of the phase.
+// @Tags team
+// @Produce json
+// @Param coursePhaseID path string true "Course Phase UUID"
+// @Param teamID path string true "Team UUID"
+// @Param tutorID path string true "Tutor UUID"
+// @Success 200
+// @Failure 400 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Security ApiKeyAuth
+// @Router /course_phase/{coursePhaseID}/team/{teamID}/tutors/{tutorID} [delete]
+func (s *TeamsService) removeTutorFromTeam(c *gin.Context) {
+	coursePhaseID, err := uuid.Parse(c.Param("coursePhaseID"))
+	if err != nil {
+		log.Error("Error parsing coursePhaseID: ", err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	teamID, err := uuid.Parse(c.Param("teamID"))
+	if err != nil {
+		log.Error("Error parsing teamID: ", err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	tutorID, err := uuid.Parse(c.Param("tutorID"))
+	if err != nil {
+		log.Error("Error parsing tutorID: ", err)
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	if err := s.RemoveTutorFromTeam(c, coursePhaseID, teamID, tutorID); err != nil {
+		if errors.Is(err, ErrInvalidTeamForPhase) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		if errors.Is(err, ErrTutorNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "the tutor does not lead this team"})
+			return
+		}
+		log.Error("Error removing tutor from team: ", err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	c.Status(http.StatusOK)
 }
 
 // getMyTutor godoc

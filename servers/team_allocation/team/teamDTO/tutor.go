@@ -45,3 +45,12 @@ func GetTutorAssignmentsFromDBModels(rows []db.GetTutorAssignmentsByCoursePhaseR
 	}
 	return assignments
 }
+
+// TeamTutor is one person to add as a tutor of a single team. The university login identifies the
+// tutor: a tutor who already exists in the phase keeps the id they have, as in an import.
+type TeamTutor struct {
+	CourseParticipationID uuid.UUID `json:"courseParticipationID"`
+	FirstName             string    `json:"firstName"`
+	LastName              string    `json:"lastName"`
+	UniversityLogin       string    `json:"universityLogin"`
+}

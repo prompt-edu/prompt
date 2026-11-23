@@ -139,6 +139,13 @@ from the repo when done — `e2e/` is checked in.
 
 ## Gotchas
 
+- The Playwright MCP runs with `--isolated` (`.mcp.json`), so its Chrome profile lives in
+  memory and `browser_close` or a new session starts logged out. Keep the flag. A saved
+  profile checks every sign-in against leaked passwords, and the seeded accounts (username
+  equals password) fail that check: Chrome opens a "Change your password" dialog that is
+  modal to the tab and absent from page screenshots, and from then on the tab receives no
+  mouse input, so every `browser_click` silently does nothing. Give any other MCP client
+  that drives this stack (Codex's `config.toml`) `--isolated` as well.
 - `/management/**` and `/apply/:id/authenticated` sit behind `RequireAuth`, which asks
   Keycloak for a login when no session can be restored; the public pages never redirect,
   so enter through a management route when you need to log in.

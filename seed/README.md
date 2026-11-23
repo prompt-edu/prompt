@@ -80,15 +80,15 @@ a successor to it, and Example is a developer placeholder. Both still carry data
 
 Eight applicants, six of whom pass into the rest of the course. `cd000001` and
 `cd000002` are the Keycloak `student` and `student2` users, so a local login lands on
-a populated course.
+a populated course. `cd000009` to `cd000011` are the three tutors: course participants
+without phase participations, assigned to the teams in Team Allocation and evaluated by
+their teams' students in Assessment.
 
-Two things are intentionally absent:
+One thing is intentionally absent:
 
 - **File-upload answers.** `application_answer_file_upload` needs a `files` row backed
   by a real object in SeaweedFS, which SQL alone cannot create. The upload *question*
   is seeded.
-- **Peer and tutor evaluations.** The config leaves those schema columns to their
-  migration-set defaults; only the self-evaluation round is seeded.
 
 ## The demo timeline
 

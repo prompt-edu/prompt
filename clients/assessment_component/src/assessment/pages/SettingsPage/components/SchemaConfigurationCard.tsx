@@ -83,8 +83,8 @@ export const SchemaConfigurationCard = ({
   const contentBlock = (
     <div className={renderAsCard ? 'space-y-6 p-6' : 'space-y-6'}>
       <div className='flex flex-wrap items-start gap-4'>
-        <div className='min-w-0 flex-1 space-y-2'>
-          <div className='flex items-center gap-2'>
+        <div className='min-w-0 grow basis-80 space-y-2'>
+          <div className='flex flex-wrap items-center gap-2'>
             <h2 className='text-xl font-semibold text-foreground'>{content.title}</h2>
             {hasAssessmentData && (
               <span
@@ -103,7 +103,7 @@ export const SchemaConfigurationCard = ({
         </div>
 
         {showToggle && (
-          <div className='ml-auto w-fit max-w-sm'>
+          <div className='w-fit max-w-sm'>
             <SettingsSwitchField
               checked={enabled}
               onCheckedChange={onEnabledChange}

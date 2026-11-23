@@ -184,6 +184,8 @@ github.com/power-devops/perfstat v0.0.0-20240221224432-82ca36839d55 h1:o4JXh1EVt
 github.com/power-devops/perfstat v0.0.0-20240221224432-82ca36839d55/go.mod h1:OmDBASR4679mdNQnz2pUhc2G8CO2JrUAVFDRBDP/hJE=
 github.com/prompt-edu/prompt-sdk v1.5.0 h1:Rm5KmS3TRrCAjKqOlZ4rWRFzvUkn2aSo2XRZqnCkyfE=
 github.com/prompt-edu/prompt-sdk v1.5.0/go.mod h1:6HVIzZGXx47sItfmKrgtO9//d8bn8lPGZ9b9GtrTRJ0=
+github.com/prompt-edu/prompt-sdk v1.7.0 h1:fM8f92chQc5RgyXTb67GPtmWE0nCGuuJ6TpX9SUT/sE=
+github.com/prompt-edu/prompt-sdk v1.7.0/go.mod h1:gn+Y4WGWdZxdXTTDtT9IsePct89bFYndD0426beH2xQ=
 github.com/quic-go/go-ossfuzz-seeds v0.1.0 h1:APacT+iIaNF6fd8AGEiN3bT/Jtkd2jz4v4TzM7MFjy0=
 github.com/quic-go/go-ossfuzz-seeds v0.1.0/go.mod h1:3IOHRbJIc+L6YKMwfDtJAM9Vj9k0YY4muhuyUYk5tbk=
 github.com/quic-go/qpack v0.6.0 h1:g7W+BMYynC1LbYLSqRt8PBg5Tgwxn214ZZR34VIOjz8=

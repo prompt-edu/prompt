@@ -74,6 +74,7 @@ export const useCopyCourse = (
       template: !!createTemplate,
       shortDescription: formData.shortDescription,
       longDescription: formData.longDescription || undefined,
+      orgID: formData.orgID,
     }
     mutateCopyCourse(copyData)
   }

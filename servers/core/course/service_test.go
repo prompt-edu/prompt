@@ -64,7 +64,7 @@ func (suite *CourseServiceTestSuite) TearDownSuite() {
 }
 
 func (suite *CourseServiceTestSuite) TestGetAllCourses() {
-	courses, err := suite.courseService.GetAllCourses(suite.ctx, map[string]bool{permissionValidation.PromptAdmin: true})
+	courses, err := suite.courseService.GetAllCourses(suite.ctx, map[string]bool{permissionValidation.PromptAdmin: true}, time.Now())
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), len(courses), 11, "Expected all courses")
 
@@ -75,7 +75,7 @@ func (suite *CourseServiceTestSuite) TestGetAllCourses() {
 }
 
 func (suite *CourseServiceTestSuite) TestGetAllCoursesWithRestriction() {
-	courses, err := suite.courseService.GetAllCourses(suite.ctx, map[string]bool{"ios2425-Another TEst-Lecturer": true})
+	courses, err := suite.courseService.GetAllCourses(suite.ctx, map[string]bool{"ios2425-Another TEst-Lecturer": true}, time.Now())
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), 1, len(courses), "Expected to get only one course")
 
@@ -86,7 +86,7 @@ func (suite *CourseServiceTestSuite) TestGetAllCoursesWithRestriction() {
 }
 
 func (suite *CourseServiceTestSuite) TestGetAllCoursesWithStudent() {
-	courses, err := suite.courseService.GetAllCourses(suite.ctx, map[string]bool{"ios2425-Another TEst-Student": true})
+	courses, err := suite.courseService.GetAllCourses(suite.ctx, map[string]bool{"ios2425-Another TEst-Student": true}, time.Now())
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), 1, len(courses), "Expected to get only one course")
 
@@ -101,7 +101,7 @@ func (suite *CourseServiceTestSuite) TestGetAllCoursesWithStudent() {
 // Archived courses must remain visible to their instructors (lecturers/editors)
 // so they can still review older results. See issue #1264.
 func (suite *CourseServiceTestSuite) TestGetAllCoursesArchivedVisibleToInstructor() {
-	courses, err := suite.courseService.GetAllCourses(suite.ctx, map[string]bool{"ios2425-Archived Course-Lecturer": true})
+	courses, err := suite.courseService.GetAllCourses(suite.ctx, map[string]bool{"ios2425-Archived Course-Lecturer": true}, time.Now())
 	assert.NoError(suite.T(), err)
 	require.Len(suite.T(), courses, 1, "Expected the archived course to be visible to its instructor")
 	assert.True(suite.T(), courses[0].Archived, "Returned course should be archived")
@@ -109,7 +109,7 @@ func (suite *CourseServiceTestSuite) TestGetAllCoursesArchivedVisibleToInstructo
 
 // Student-only users must not see archived courses (preserves prior behavior).
 func (suite *CourseServiceTestSuite) TestGetAllCoursesArchivedHiddenFromStudent() {
-	courses, err := suite.courseService.GetAllCourses(suite.ctx, map[string]bool{"ios2425-Archived Course-Student": true})
+	courses, err := suite.courseService.GetAllCourses(suite.ctx, map[string]bool{"ios2425-Archived Course-Student": true}, time.Now())
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), 0, len(courses), "Archived course should be hidden from student-only users")
 }
@@ -129,24 +129,24 @@ func (suite *CourseServiceTestSuite) TestCourseListsIgnoreOrgRoles() {
 	}()
 
 	orgRoles := map[string]bool{"org-ase-Admin": true, "org-ase-lab-Member": true, "org-aet-Member": true}
-	courses, err := suite.courseService.GetAllCourses(suite.ctx, orgRoles)
+	courses, err := suite.courseService.GetAllCourses(suite.ctx, orgRoles, time.Now())
 	require.NoError(suite.T(), err)
 	assert.Empty(suite.T(), courses, "org roles must not list courses")
-	templates, err := suite.courseService.GetTemplateCourses(suite.ctx, orgRoles)
+	templates, err := suite.courseService.GetTemplateCourses(suite.ctx, orgRoles, time.Now())
 	require.NoError(suite.T(), err)
 	assert.Empty(suite.T(), templates, "org roles must not list templates")
 
-	courses, err = suite.courseService.GetAllCourses(suite.ctx, map[string]bool{"org-ase-Lecturer": true})
+	courses, err = suite.courseService.GetAllCourses(suite.ctx, map[string]bool{"org-ase-Lecturer": true}, time.Now())
 	require.NoError(suite.T(), err)
 	require.Len(suite.T(), courses, 1)
 	assert.Equal(suite.T(), courseID, courses[0].ID)
 	assert.NotEmpty(suite.T(), courses[0].RestrictedData, "the course's lecturer sees its restricted data")
 
-	courses, err = suite.courseService.GetAllCourses(suite.ctx, map[string]bool{"org-ase-cg-Admin": true})
+	courses, err = suite.courseService.GetAllCourses(suite.ctx, map[string]bool{"org-ase-cg-Admin": true}, time.Now())
 	require.NoError(suite.T(), err)
 	require.Len(suite.T(), courses, 1, "a custom-group role of the course still lists it")
 
-	templates, err = suite.courseService.GetTemplateCourses(suite.ctx, map[string]bool{"org-aet-Editor": true})
+	templates, err = suite.courseService.GetTemplateCourses(suite.ctx, map[string]bool{"org-aet-Editor": true}, time.Now())
 	require.NoError(suite.T(), err)
 	require.Len(suite.T(), templates, 1)
 	assert.Equal(suite.T(), templateID, templates[0].ID)
@@ -299,7 +299,7 @@ func (suite *CourseServiceTestSuite) TestUpdateCourseTemplateStatus() {
 }
 
 func (suite *CourseServiceTestSuite) TestGetTemplateCourses() {
-	courses, err := suite.courseService.GetTemplateCourses(suite.ctx, map[string]bool{permissionValidation.PromptAdmin: true})
+	courses, err := suite.courseService.GetTemplateCourses(suite.ctx, map[string]bool{permissionValidation.PromptAdmin: true}, time.Now())
 	assert.NoError(suite.T(), err)
 	assert.NotEmpty(suite.T(), courses, "Template courses should not be empty")
 

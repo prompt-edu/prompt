@@ -1,5 +1,6 @@
 import type { CourseArchiveStatus } from '@core/interfaces/courseArchiveStatus'
 import type { CourseTemplateStatus } from '@core/interfaces/courseTemplateStatus'
+import type { UpdateCourseOrg } from '@core/interfaces/org'
 import type { CheckCourseCopyableResponse } from '@core/managementConsole/courseOverview/interfaces/checkCourseCopyableResponse'
 import {
   type CopyCourse,
@@ -75,6 +76,9 @@ export const courses = {
 
   setTemplateStatus: (courseID: string, updateRequest: CourseTemplateStatus): Promise<void> =>
     coreRequest.put(`${ofCourse(courseID)}/template`, updateRequest),
+
+  setOrg: (courseID: string, payload: UpdateCourseOrg): Promise<void> =>
+    coreRequest.put(`${ofCourse(courseID)}/org`, payload),
 
   setArchived: (courseID: string, payload: CourseArchiveStatus): Promise<Course> =>
     coreRequest.put(`${ofCourse(courseID)}/archive`, payload),

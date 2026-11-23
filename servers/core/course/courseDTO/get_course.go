@@ -25,6 +25,7 @@ type Course struct {
 	Template            bool          `json:"template"`
 	Archived            bool          `json:"archived"`
 	ArchivedOn          *time.Time    `json:"archivedOn,omitempty"`
+	OrgID               *uuid.UUID    `json:"orgID,omitempty"`
 }
 
 func GetCourseDTOFromDBModel(model db.Course) (Course, error) {
@@ -54,6 +55,7 @@ func GetCourseDTOFromDBModel(model db.Course) (Course, error) {
 		StudentReadableData: studentReadableData,
 		Template:            model.Template,
 		Archived:            model.Archived,
+		OrgID:               OrgIDFromDBModel(model.OrgID),
 	}
 
 	if model.ArchivedOn.Valid {

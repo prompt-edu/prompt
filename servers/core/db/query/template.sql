@@ -12,7 +12,7 @@ WITH parsed_roles AS (
     split_part(role, '-', 2) AS course_name,
     split_part(role, '-', 3) AS user_role
   FROM
-    unnest($1::text[]) AS role
+    unnest(sqlc.arg(user_roles)::text[]) AS role
   WHERE
     split_part(role, '-', 3) IN ('Lecturer', 'Editor', 'Student', 'cg')
 ),
@@ -42,6 +42,31 @@ user_course_roles AS (
     AND c.semester_tag = pr.semester_tag
   WHERE
     c.template = TRUE
+    AND c.archived = FALSE
+  UNION ALL
+  -- The Admins and Members of an org see all of its templates.
+  SELECT
+    c.id,
+    c.name,
+    c.semester_tag,
+    c.start_date,
+    c.end_date,
+    c.course_type,
+    c.student_readable_data,
+    c.restricted_data,
+    c.ects,
+    c.template,
+    c.short_description,
+    c.long_description,
+    c.archived,
+    c.archived_on,
+    c.org_id,
+    'Lecturer'
+  FROM
+    course c
+  WHERE
+    c.org_id = ANY(sqlc.arg(org_ids)::uuid[])
+    AND c.template = TRUE
     AND c.archived = FALSE
 )
 SELECT

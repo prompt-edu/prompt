@@ -1,11 +1,13 @@
 import { Page } from '@playwright/test'
-import { pickDateRange, waitForCourseId } from './CourseCreationPage'
+import { pickDateRange, pickOrg, waitForCourseId } from './CourseCreationPage'
 
 export interface CopyCourseInput {
   templateName: string
   name: string
   semesterTag: string
   courseType?: string
+  // Display name of the org to create the course in, for a user with org roles
+  org?: string
 }
 
 // The "Use Template" flow: choice dialog -> template picker -> copy form ->
@@ -28,12 +30,16 @@ export class CopyCoursePage {
     await form.getByPlaceholder('Enter semester tag').fill(input.semesterTag)
 
     if (input.courseType) {
-      await form.getByRole('combobox').click()
+      // The course type comes before the org select
+      await form.getByRole('combobox').first().click()
       await this.page.getByRole('option', { name: input.courseType }).click()
     }
 
     // Copy form requires a date range with to > from.
     await pickDateRange(this.page)
+    if (input.org) {
+      await pickOrg(this.page, form, input.org)
+    }
 
     await form.getByRole('button', { name: 'Continue' }).click()
 

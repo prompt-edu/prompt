@@ -41,6 +41,15 @@ export interface OwnOrg extends Org {
   role: OrgRole
 }
 
+// The course DTOs carry the course's org next to the fields of the shared Course type
+export interface CourseOrg {
+  orgID?: string
+}
+
+export interface UpdateCourseOrg {
+  orgID: string | null
+}
+
 export interface OrgMember {
   keycloakUserID: string
   username: string

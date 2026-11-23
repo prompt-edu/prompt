@@ -1,5 +1,6 @@
-import { ORG_ROLES, type OrgRole } from '@core/interfaces/org'
+import { type CourseOrg, ORG_ROLES, type OrgRole, type OwnOrg } from '@core/interfaces/org'
 import { validateSlug } from '@core/managementConsole/orgAdministration/utils/validateOrgForm'
+import { type Course, getPermissionString, Role } from '@tumaet/prompt-shared-state'
 
 export interface ParsedOrgRole {
   slug: string
@@ -35,3 +36,19 @@ export const hasAnyOrgRole = (permissions: string[]): boolean =>
 // The org roles among the token's roles, sorted, so the same roles always give the same list
 export const orgRolesOf = (permissions: string[]): string[] =>
   permissions.filter((permission) => parseOrgRole(permission) !== undefined).sort()
+
+export const courseOrgID = (course: Course): string | undefined =>
+  (course as Course & CourseOrg).orgID
+
+/**
+ * The Admins of an org are Lecturer-equivalent on all of its courses. The server grants that by
+ * itself, but the console and the phase remotes check Lecturer rights by the course role in the
+ * token. So the caller gets the course Lecturer role of every course of an org they are an Admin of.
+ * These roles only open the UI: the server still decides every request.
+ */
+export const orgLecturerPermissions = (courses: Course[], ownOrgs: OwnOrg[]): string[] => {
+  const adminOrgIDs = new Set(ownOrgs.filter((org) => org.role === 'Admin').map((org) => org.id))
+  return courses
+    .filter((course) => adminOrgIDs.has(courseOrgID(course) ?? ''))
+    .map((course) => getPermissionString(Role.COURSE_LECTURER, course.name, course.semesterTag))
+}

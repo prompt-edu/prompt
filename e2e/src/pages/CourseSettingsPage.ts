@@ -38,6 +38,20 @@ export class CourseSettingsPage {
     await expect(this.page.getByText('Successfully Updated Course', { exact: true })).toBeVisible()
   }
 
+  // The Org card: PROMPT admins pick the course's org, everyone else reads it
+  async setOrg(org: string) {
+    await this.expandCard(/^Org/)
+    await this.page.getByRole('combobox', { name: 'Org of the course' }).click()
+    await this.page.getByRole('option', { name: org, exact: true }).click()
+    await this.page.getByRole('button', { name: 'Save', exact: true }).click()
+    await expect(this.page.getByText('Org of the course changed').first()).toBeVisible()
+  }
+
+  async expectOrg(org: string) {
+    await this.expandCard(/^Org/)
+    await expect(this.page.locator('main').getByText(org, { exact: true })).toBeVisible()
+  }
+
   async deleteCourse() {
     await this.expandCard(/Danger Zone/)
     await this.page.getByRole('button', { name: 'Delete', exact: true }).click()

@@ -127,7 +127,7 @@ func (s *CoursePhaseService) getCoursePhaseByID(c *gin.Context) {
 		return
 	}
 
-	if !hasRestrictedDataAccess(userRolesMap, courseTokenIdentifier) {
+	if !hasRestrictedDataAccess(userRolesMap, courseTokenIdentifier, c.GetBool(permissionValidation.CtxCourseOrgAdmin)) {
 		// Hide restricted data for unauthorized users.
 		coursePhase.RestrictedData = meta.MetaData{}
 	}
@@ -238,8 +238,9 @@ func (s *CoursePhaseService) getPrevPhaseDataByCoursePhaseID(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, coursePhaseData)
 }
 
-func hasRestrictedDataAccess(userRolesMap map[string]bool, courseTokenIdentifier string) bool {
-	return userRolesMap[permissionValidation.PromptAdmin] ||
+// courseOrgAdmin: the Admins of the course's org are Lecturer-equivalent on it.
+func hasRestrictedDataAccess(userRolesMap map[string]bool, courseTokenIdentifier string, courseOrgAdmin bool) bool {
+	return courseOrgAdmin || userRolesMap[permissionValidation.PromptAdmin] ||
 		userRolesMap[fmt.Sprintf("%s-%s", courseTokenIdentifier, permissionValidation.CourseLecturer)] ||
 		userRolesMap[fmt.Sprintf("%s-%s", courseTokenIdentifier, permissionValidation.CourseEditor)]
 }

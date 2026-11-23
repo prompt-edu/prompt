@@ -405,6 +405,13 @@ const ROUTES: Route[] = [
     data: BODY,
   },
   {
+    name: 'courses.setOrg',
+    run: () => coreApi.courses.setOrg(COURSE, { orgID: null }),
+    method: 'put',
+    url: `${coursesPath}/${COURSE}/org`,
+    data: { orgID: null },
+  },
+  {
     name: 'courses.setArchived',
     run: () => coreApi.courses.setArchived(COURSE, { archived: true }),
     method: 'put',

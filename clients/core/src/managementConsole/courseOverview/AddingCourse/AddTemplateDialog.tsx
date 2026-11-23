@@ -90,6 +90,7 @@ export const AddTemplateDialog = ({
       shortDescription: templatePropertiesFormValues?.shortDescription || '',
       longDescription: templatePropertiesFormValues?.longDescription || '',
       template: true,
+      orgID: templatePropertiesFormValues?.orgID,
     }
     mutate(course)
   }
@@ -126,7 +127,7 @@ export const AddTemplateDialog = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogContent className='max-w-[550px] [&>*]:min-w-0'>
+      <DialogContent className='max-w-[550px] max-h-[90vh] overflow-y-auto [&>*]:min-w-0'>
         {isPending ? (
           <DialogLoadingDisplay customMessage='Updating template data...' />
         ) : isError && (error as any)?.response?.status === 409 ? (

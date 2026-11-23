@@ -7,9 +7,12 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/prompt-edu/prompt-sdk/audit"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/core/course/courseDTO"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase"
+	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/core/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 	"github.com/prompt-edu/prompt/servers/core/utils"
 	log "github.com/sirupsen/logrus"
@@ -35,11 +38,11 @@ func checkAccessControlByIDWrapper(check permissionValidation.PermissionCheck) f
 
 func setupCourseRouter(router *gin.RouterGroup, s *CourseService, authMiddleware func() gin.HandlerFunc, permissionRoleMiddleware, permissionIDMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
 	course := router.Group("/courses", authMiddleware())
-	// Org roles only open the list, which the management console loads for every user; it holds no
-	// org courses yet, so a user without course roles gets an empty list.
+	// The management console loads the list for every user; an Org Admin finds the org's courses in it.
 	course.GET("/", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer, permissionValidation.CourseEditor, permissionValidation.CourseStudent, permissionValidation.OrgAdmin, permissionValidation.OrgMember), s.getAllCourses)
 	course.GET("/:uuid", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer, permissionValidation.CourseEditor), s.getCourseByID)
-	course.POST("/", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer), s.createCourse)
+	// Org Admins and Members create courses in their org; the handler checks the org.
+	course.POST("/", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer, permissionValidation.OrgAdmin, permissionValidation.OrgMember), s.createCourse)
 	course.PUT("/:uuid/phase_graph", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), s.updateCoursePhaseOrder)
 	course.GET("/:uuid/phase_graph", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer, permissionValidation.CourseEditor), s.getCoursePhaseGraph)
 	course.GET("/:uuid/participation_data_graph", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer, permissionValidation.CourseEditor), s.getParticipationDataGraph)
@@ -50,14 +53,15 @@ func setupCourseRouter(router *gin.RouterGroup, s *CourseService, authMiddleware
 	course.PUT("/:uuid/archive", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer, permissionValidation.CourseEditor), s.archiveCourse)
 
 	course.PUT("/:uuid", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), s.updateCourseData)
+	course.PUT("/:uuid/org", audit.Describe("Assigned a course to an org"), permissionIDMiddleware(permissionValidation.PromptAdmin), s.updateCourseOrg)
 	course.GET("/self", s.getOwnCourses)
 
 	course.PUT("/:uuid/template", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), s.updateCourseTemplateStatus)
 	course.GET("/:uuid/template", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), s.checkCourseTemplateStatus)
 
-	course.GET("/template", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), s.getTemplateCourses)
+	course.GET("/template", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer, permissionValidation.OrgAdmin, permissionValidation.OrgMember), s.getTemplateCourses)
 
-	course.GET("/check-name", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer), s.checkCourseNameAvailability)
+	course.GET("/check-name", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer, permissionValidation.OrgAdmin, permissionValidation.OrgMember), s.checkCourseNameAvailability)
 
 	course.DELETE("/:uuid", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), s.deleteCourse)
 }
@@ -108,7 +112,7 @@ func (s *CourseService) getAllCourses(c *gin.Context) {
 
 	userRoles := rolesVal.(map[string]bool)
 
-	courses, err := s.GetAllCourses(c, userRoles)
+	courses, err := s.GetAllCourses(c, userRoles, c.GetTime(keycloakTokenVerifier.CtxTokenIssuedAt))
 	if err != nil {
 		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return
@@ -170,10 +174,21 @@ func (s *CourseService) createCourse(c *gin.Context) {
 		return
 	}
 
+	// Only the global roles create ungrouped courses; the org roles create courses in their org.
+	userRoles, _ := c.Get("userRoles")
+	roles, _ := userRoles.(map[string]bool)
+	if !AuthorizeNewCourseOrg(c, s.queries, newCourse.OrgID, roles[permissionValidation.PromptAdmin] || roles[permissionValidation.PromptLecturer]) {
+		return
+	}
+
 	course, err := s.CreateCourse(c, newCourse, userID)
 	if err != nil {
 		if errors.Is(err, ErrDuplicateCourseIdentifier) {
 			sdkUtils.HandleError(c, http.StatusConflict, err)
+			return
+		}
+		if errors.Is(err, ErrUnknownOrg) {
+			sdkUtils.HandleError(c, http.StatusBadRequest, err)
 			return
 		}
 		log.Error(err)
@@ -181,6 +196,92 @@ func (s *CourseService) createCourse(c *gin.Context) {
 		return
 	}
 	c.IndentedJSON(http.StatusCreated, course)
+}
+
+// AuthorizeNewCourseOrg checks the org a new course goes into and answers 403 when the caller may not
+// create the course there. In an org, the caller needs its Admin or Member role, unless they are a
+// PROMPT admin; the check ignores the roles of a deleted org with the same slug. Without an org,
+// ungroupedAllowed decides.
+func AuthorizeNewCourseOrg(c *gin.Context, queries db.Queries, orgID *uuid.UUID, ungroupedAllowed bool) bool {
+	if orgID == nil {
+		if !ungroupedAllowed {
+			sdkUtils.HandleError(c, http.StatusForbidden, errors.New("choose an org for the course"))
+		}
+		return ungroupedAllowed
+	}
+
+	allowed, err := permissionValidation.NewValidationService(queries).CheckOrgPermission(c, *orgID, permissionValidation.PromptAdmin, permissionValidation.OrgAdmin, permissionValidation.OrgMember)
+	if err != nil {
+		log.Error("failed to check the org of a new course: ", err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, errors.New("failed to check the org"))
+		return false
+	}
+	if !allowed {
+		sdkUtils.HandleError(c, http.StatusForbidden, errors.New("you cannot create courses in this org"))
+	}
+	return allowed
+}
+
+// updateCourseOrg godoc
+// @Summary Assign a course to an org
+// @Description Assign the course to an org, or remove it from its org with a null orgID. Only PROMPT admins can do this, so nobody claims a course for their org. The Admins of a course's org are Lecturer-equivalent on it.
+// @Tags courses
+// @Accept json
+// @Param uuid path string true "Course UUID"
+// @Param body body courseDTO.UpdateCourseOrg true "The org, or null"
+// @Success 204
+// @Failure 400 {object} utils.ErrorResponse
+// @Failure 404 {object} utils.ErrorResponse
+// @Failure 500 {object} utils.ErrorResponse
+// @Router /courses/{uuid}/org [put]
+func (s *CourseService) updateCourseOrg(c *gin.Context) {
+	courseID, err := uuid.Parse(c.Param("uuid"))
+	if err != nil {
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	var input courseDTO.UpdateCourseOrg
+	if err := c.ShouldBindJSON(&input); err != nil {
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	updated, err := s.UpdateCourseOrg(c, courseID, input.OrgID)
+	switch {
+	case errors.Is(err, pgx.ErrNoRows):
+		sdkUtils.HandleError(c, http.StatusNotFound, errors.New("course not found"))
+		return
+	case errors.Is(err, ErrUnknownOrg):
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
+		return
+	case err != nil:
+		log.Error("failed to update the org of a course: ", err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, errors.New("failed to update the org of the course"))
+		return
+	}
+
+	previousOrgID := courseDTO.OrgIDFromDBModel(updated.PreviousOrgID)
+	if (previousOrgID == nil && input.OrgID == nil) || (previousOrgID != nil && input.OrgID != nil && *previousOrgID == *input.OrgID) {
+		// The course already belonged to the org, so nothing changed.
+		audit.Suppress(c)
+	} else {
+		recordCourseOrgAudit(c, courseID, updated.Name, input.OrgID, previousOrgID)
+	}
+	c.Status(http.StatusNoContent)
+}
+
+// recordCourseOrgAudit names the course and its org after and before the change; orgID is nil when
+// the course left its org, previousOrgID when it joined one.
+func recordCourseOrgAudit(c *gin.Context, courseID uuid.UUID, courseName string, orgID, previousOrgID *uuid.UUID) {
+	metadata := map[string]any{}
+	if orgID != nil {
+		metadata["orgID"] = orgID.String()
+	}
+	if previousOrgID != nil {
+		metadata["previousOrgID"] = previousOrgID.String()
+	}
+	audit.Record(c, audit.Event{EntityType: "course", EntityID: courseID.String(), EntityName: courseName, CourseID: courseID.String(), Metadata: metadata})
 }
 
 // checkCourseNameAvailability godoc
@@ -576,7 +677,7 @@ func (s *CourseService) getTemplateCourses(c *gin.Context) {
 
 	userRoles := rolesVal.(map[string]bool)
 
-	courses, err := s.GetTemplateCourses(c, userRoles)
+	courses, err := s.GetTemplateCourses(c, userRoles, c.GetTime(keycloakTokenVerifier.CtxTokenIssuedAt))
 	if err != nil {
 		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		return

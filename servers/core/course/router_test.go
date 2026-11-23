@@ -83,22 +83,6 @@ func (suite *CourseRouterTestSuite) TestGetAllCourses() {
 	assert.Greater(suite.T(), len(courses), 0, "Expected at least one course")
 }
 
-func (suite *CourseRouterTestSuite) TestGetAllCoursesWithOnlyAnOrgRoleIsAnEmptyList() {
-	for _, roles := range [][]string{{"org-ase-Admin"}, {"org-ase-Member"}} {
-		router := gin.Default()
-		setupCourseRouter(router.Group("/api"), suite.courseService, func() gin.HandlerFunc {
-			return sdkTestUtils.MockAuthMiddleware(roles)
-		}, permissionValidation.CheckAccessControlByRole, sdkTestUtils.MockPermissionMiddleware)
-		req, _ := http.NewRequest("GET", "/api/courses/", nil)
-		resp := httptest.NewRecorder()
-
-		router.ServeHTTP(resp, req)
-
-		assert.Equal(suite.T(), http.StatusOK, resp.Code, roles)
-		assert.JSONEq(suite.T(), "[]", resp.Body.String(), roles)
-	}
-}
-
 func (suite *CourseRouterTestSuite) TestGetAllCoursesRejectsACustomGroupRoleThatLooksLikeAnOrgRole() {
 	router := gin.Default()
 	setupCourseRouter(router.Group("/api"), suite.courseService, func() gin.HandlerFunc {

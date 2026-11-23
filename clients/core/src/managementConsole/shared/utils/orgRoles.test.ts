@@ -1,5 +1,7 @@
+import type { CourseOrg, OwnOrg } from '@core/interfaces/org'
+import type { Course } from '@tumaet/prompt-shared-state'
 import { describe, expect, it } from 'vitest'
-import { hasAnyOrgRole, orgRolesOf, parseOrgRole } from './orgRoles'
+import { hasAnyOrgRole, orgLecturerPermissions, orgRolesOf, parseOrgRole } from './orgRoles'
 
 describe('parseOrgRole', () => {
   it.each([
@@ -62,5 +64,29 @@ describe('orgRolesOf', () => {
 
   it('is empty without org roles', () => {
     expect(orgRolesOf(['PROMPT_Admin', 'ws25-ase-Lecturer'])).toEqual([])
+  })
+})
+
+describe('orgLecturerPermissions', () => {
+  const course = (name: string, orgID?: string): Course =>
+    ({ name, semesterTag: 'ws2526', orgID }) as Course & CourseOrg
+  const ownOrg = (id: string, role: OwnOrg['role']): OwnOrg => ({ id, role }) as OwnOrg
+
+  it('gives an org Admin the Lecturer role of every course of the org', () => {
+    const courses = [
+      course('Agile', 'ase'),
+      course('Lab', 'ase'),
+      course('Other', 'aet'),
+      course('Free'),
+    ]
+
+    expect(orgLecturerPermissions(courses, [ownOrg('ase', 'Admin')])).toEqual([
+      'ws2526-Agile-Lecturer',
+      'ws2526-Lab-Lecturer',
+    ])
+  })
+
+  it('gives an org Member nothing', () => {
+    expect(orgLecturerPermissions([course('Agile', 'ase')], [ownOrg('ase', 'Member')])).toEqual([])
   })
 })

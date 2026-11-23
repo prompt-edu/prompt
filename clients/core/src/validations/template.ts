@@ -15,6 +15,7 @@ export const templateFormSchema = z.object({
     .max(5000, 'Long description cannot exceed 5000 characters')
     .optional()
     .or(z.literal('')),
+  orgID: z.string().optional(),
 })
 
 export type TemplateFormValues = z.infer<typeof templateFormSchema>

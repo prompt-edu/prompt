@@ -75,8 +75,8 @@ func (q *Queries) CheckCoursePhasesBelongToCourse(ctx context.Context, arg Check
 
 const createCourse = `-- name: CreateCourse :one
 INSERT INTO course (id, name, start_date, end_date, semester_tag, course_type, ects, restricted_data,
-                    student_readable_data, template, short_description, long_description)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+                    student_readable_data, template, short_description, long_description, org_id)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 RETURNING id, name, start_date, end_date, semester_tag, course_type, ects, restricted_data, student_readable_data, template, short_description, long_description, archived, archived_on, org_id
 `
 
@@ -93,6 +93,7 @@ type CreateCourseParams struct {
 	Template            bool        `json:"template"`
 	ShortDescription    pgtype.Text `json:"short_description"`
 	LongDescription     pgtype.Text `json:"long_description"`
+	OrgID               pgtype.UUID `json:"org_id"`
 }
 
 func (q *Queries) CreateCourse(ctx context.Context, arg CreateCourseParams) (Course, error) {
@@ -109,6 +110,7 @@ func (q *Queries) CreateCourse(ctx context.Context, arg CreateCourseParams) (Cou
 		arg.Template,
 		arg.ShortDescription,
 		arg.LongDescription,
+		arg.OrgID,
 	)
 	var i Course
 	err := row.Scan(
@@ -212,7 +214,27 @@ const getAllActiveCoursesRestricted = `-- name: GetAllActiveCoursesRestricted :m
             INNER JOIN
            parsed_roles pr
            ON c.name = pr.course_name
-            AND c.semester_tag = pr.semester_tag)
+            AND c.semester_tag = pr.semester_tag
+        UNION ALL
+        -- The Admins of an org are Lecturer-equivalent on all of its courses.
+        SELECT c.id,
+            c.name,
+            c.semester_tag,
+            c.start_date,
+            c.end_date,
+            c.course_type,
+            c.student_readable_data,
+            c.restricted_data,
+            c.ects,
+            c.template,
+            c.short_description,
+            c.long_description,
+            c.archived,
+            c.archived_on,
+            c.org_id,
+            'Lecturer'
+          FROM course c
+          WHERE c.org_id = ANY($2::uuid[]))
 SELECT ucr.id,
        ucr.name,
        ucr.start_date,
@@ -257,6 +279,11 @@ ORDER BY ucr.template,
          ucr.name DESC
 `
 
+type GetAllActiveCoursesRestrictedParams struct {
+	UserRoles   []string    `json:"user_roles"`
+	AdminOrgIds []uuid.UUID `json:"admin_org_ids"`
+}
+
 type GetAllActiveCoursesRestrictedRow struct {
 	ID                  uuid.UUID          `json:"id"`
 	Name                string             `json:"name"`
@@ -276,8 +303,8 @@ type GetAllActiveCoursesRestrictedRow struct {
 }
 
 // struct: Course
-func (q *Queries) GetAllActiveCoursesRestricted(ctx context.Context, dollar_1 []string) ([]GetAllActiveCoursesRestrictedRow, error) {
-	rows, err := q.db.Query(ctx, getAllActiveCoursesRestricted, dollar_1)
+func (q *Queries) GetAllActiveCoursesRestricted(ctx context.Context, arg GetAllActiveCoursesRestrictedParams) ([]GetAllActiveCoursesRestrictedRow, error) {
+	rows, err := q.db.Query(ctx, getAllActiveCoursesRestricted, arg.UserRoles, arg.AdminOrgIds)
 	if err != nil {
 		return nil, err
 	}
@@ -428,4 +455,30 @@ func (q *Queries) UpdateCourse(ctx context.Context, arg UpdateCourseParams) erro
 		arg.CourseType,
 	)
 	return err
+}
+
+const updateCourseOrg = `-- name: UpdateCourseOrg :one
+UPDATE course c
+SET org_id = $1
+FROM (SELECT p.id, p.org_id FROM course p WHERE p.id = $2 FOR UPDATE) previous
+WHERE c.id = previous.id
+RETURNING c.name, previous.org_id AS previous_org_id
+`
+
+type UpdateCourseOrgParams struct {
+	OrgID    pgtype.UUID `json:"org_id"`
+	CourseID uuid.UUID   `json:"course_id"`
+}
+
+type UpdateCourseOrgRow struct {
+	Name          string      `json:"name"`
+	PreviousOrgID pgtype.UUID `json:"previous_org_id"`
+}
+
+// Returns the course's name and the org it belonged to before.
+func (q *Queries) UpdateCourseOrg(ctx context.Context, arg UpdateCourseOrgParams) (UpdateCourseOrgRow, error) {
+	row := q.db.QueryRow(ctx, updateCourseOrg, arg.OrgID, arg.CourseID)
+	var i UpdateCourseOrgRow
+	err := row.Scan(&i.Name, &i.PreviousOrgID)
+	return i, err
 }

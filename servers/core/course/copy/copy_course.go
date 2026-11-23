@@ -1,13 +1,11 @@
 package copy
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/core/course"
@@ -70,6 +68,7 @@ func (s *CourseCopyService) copyCourseInternal(c *gin.Context, sourceCourseID uu
 			LongDescription:     longDescription,
 			CourseType:          courseType,
 			Ects:                ects,
+			OrgID:               courseVariables.OrgID,
 		}
 	} else {
 		newCourse = courseDTO.CreateCourse{
@@ -83,6 +82,7 @@ func (s *CourseCopyService) copyCourseInternal(c *gin.Context, sourceCourseID uu
 			LongDescription:     longDescription,
 			CourseType:          courseType,
 			Ects:                ects,
+			OrgID:               courseVariables.OrgID,
 		}
 	}
 
@@ -101,11 +101,7 @@ func (s *CourseCopyService) copyCourseInternal(c *gin.Context, sourceCourseID uu
 
 	createdCourse, err := qtx.CreateCourse(c, createCourseParams)
 	if err != nil {
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-			return courseDTO.Course{}, course.ErrDuplicateCourseIdentifier
-		}
-		return courseDTO.Course{}, fmt.Errorf("failed to create course in DB: %w", err)
+		return courseDTO.Course{}, fmt.Errorf("failed to create course in DB: %w", course.MapCourseWriteError(err))
 	}
 
 	if courseVariables.Template {

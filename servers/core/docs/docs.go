@@ -3510,6 +3510,59 @@ const docTemplate = `{
                 }
             }
         },
+        "/courses/{uuid}/org": {
+            "put": {
+                "description": "Assign the course to an org, or remove it from its org with a null orgID. Only PROMPT admins can do this, so nobody claims a course for their org. The Admins of a course's org are Lecturer-equivalent on it.",
+                "consumes": [
+                    "application/json"
+                ],
+                "tags": [
+                    "courses"
+                ],
+                "summary": "Assign a course to an org",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Course UUID",
+                        "name": "uuid",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "The org, or null",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/courseDTO.UpdateCourseOrg"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/courses/{uuid}/participation_data_graph": {
             "get": {
                 "description": "Get the participation data graph for a course",
@@ -7892,6 +7945,13 @@ const docTemplate = `{
                 },
                 "customRolePrefix": {
                     "type": "string"
+                },
+                "orgAdminRoles": {
+                    "description": "OrgAdminRoles are the Admin roles of the course's org, whose holders are Lecturer-equivalent\non the course. Empty for an ungrouped course.",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 }
             }
         },
@@ -7934,6 +7994,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "name": {
+                    "type": "string"
+                },
+                "orgID": {
                     "type": "string"
                 },
                 "restrictedData": {
@@ -8016,6 +8079,9 @@ const docTemplate = `{
                 "name": {
                     "type": "string"
                 },
+                "orgID": {
+                    "type": "string"
+                },
                 "restrictedData": {
                     "$ref": "#/definitions/meta.MetaData"
                 },
@@ -8053,6 +8119,11 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string"
+                },
+                "orgID": {
+                    "description": "OrgID puts the course into an org; without it the course is ungrouped.",
+                    "type": "string",
+                    "x-nullable": true
                 },
                 "restrictedData": {
                     "$ref": "#/definitions/meta.MetaData"
@@ -8117,6 +8188,18 @@ const docTemplate = `{
                 },
                 "studentReadableData": {
                     "$ref": "#/definitions/meta.MetaData"
+                }
+            }
+        },
+        "courseDTO.UpdateCourseOrg": {
+            "type": "object",
+            "required": [
+                "orgID"
+            ],
+            "properties": {
+                "orgID": {
+                    "type": "string",
+                    "x-nullable": true
                 }
             }
         },

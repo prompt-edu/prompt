@@ -107,3 +107,13 @@ INSERT INTO application_question_multi_select VALUES ('a540c8d0-b5ee-4510-a671-2
 INSERT INTO application_question_multi_select VALUES ('e9abbd7f-f7ae-4096-911c-c62fe33105fa', 'bd727106-2dc0-4c44-a804-2efde26101ae', 'Where are you saved?', '', 'CheckBoxQuestion', '', true, 0, 1, '{Yes}', 2, false, '');
 
 INSERT INTO application_question_multi_select VALUES ('c20829f9-d1d2-4952-95ee-1ebbff01a432', 'bd727106-2dc0-4c44-a804-2efde26101ae', 'Are you copied with the course?', '', 'CheckBoxQuestion', '', true, 0, 1, '{Yes}', 1, false, '');
+
+-- Two orgs for the org rules of creating, copying, and assigning courses. The org ase owns a template
+-- and a course, the org aet owns nothing. Both were created on 2026-01-01.
+INSERT INTO org (id, name, slug, created_at) VALUES
+    ('0a1e0000-0000-4000-8000-000000000001', 'Applied Software Engineering', 'ase', '2026-01-01 00:00:00+00'),
+    ('0a1e0000-0000-4000-8000-000000000002', 'Another Org', 'aet', '2026-01-01 00:00:00+00');
+
+INSERT INTO course (id, name, start_date, end_date, semester_tag, course_type, ects, template, org_id) VALUES
+    ('0a1e0000-0000-4000-8000-000000000011', 'ASE Template', NULL, NULL, 'tmpl', 'practical course', 10, TRUE, '0a1e0000-0000-4000-8000-000000000001'),
+    ('0a1e0000-0000-4000-8000-000000000012', 'ASE Course', '2025-05-19', '2025-08-30', 'ss25', 'practical course', 10, FALSE, '0a1e0000-0000-4000-8000-000000000001');

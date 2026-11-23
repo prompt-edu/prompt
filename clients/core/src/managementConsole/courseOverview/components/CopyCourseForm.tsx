@@ -1,4 +1,10 @@
+import {
+  OrgSelectField,
+  requireOrg,
+} from '@core/managementConsole/shared/components/OrgSelectField'
+import { useNewCourseOrg } from '@core/managementConsole/shared/hooks/useNewCourseOrg'
 import type { CopyCourseFormValues } from '@core/validations/copyCourse'
+import type { Course } from '@tumaet/prompt-shared-state'
 import { CourseType, CourseTypeDetails } from '@tumaet/prompt-shared-state'
 import {
   Button,
@@ -29,6 +35,8 @@ interface CopyCourseFormProps {
   courseName: string
   onSubmit: (data: CopyCourseFormValues) => void
   onClose: () => void
+  // The course to copy, which decides whether the copy needs an org
+  source?: Course
   useTemplateCopy?: boolean
 }
 
@@ -37,8 +45,10 @@ export const CopyCourseForm = ({
   courseName,
   onSubmit,
   onClose,
+  source,
   useTemplateCopy,
 }: CopyCourseFormProps) => {
+  const orgChoice = useNewCourseOrg(source)
   return (
     <>
       <DialogHeader>
@@ -52,7 +62,10 @@ export const CopyCourseForm = ({
         </DialogDescription>
       </DialogHeader>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-6'>
+        <form
+          onSubmit={form.handleSubmit(requireOrg(form, orgChoice.required, onSubmit))}
+          className='space-y-6'
+        >
           <FormField
             control={form.control}
             name='name'
@@ -161,6 +174,7 @@ export const CopyCourseForm = ({
               </FormItem>
             )}
           />
+          <OrgSelectField form={form} {...orgChoice} />
           <DialogFooter>
             <Button type='button' variant='outline' onClick={onClose}>
               Cancel

@@ -13,64 +13,115 @@ import (
 )
 
 const getCoursePhaseAuthRoleMapping = `-- name: GetCoursePhaseAuthRoleMapping :one
-SELECT CONCAT(c.semester_tag, '-', c.name, '-Lecturer')::text AS lecturer_role, CONCAT(c.semester_tag, '-', c.name, '-Editor')::text AS editor_role, CONCAT(c.semester_tag, '-', c.name, '-cg-')::text AS custom_role_prefix
+SELECT CONCAT(c.semester_tag, '-', c.name, '-Lecturer')::text AS lecturer_role, CONCAT(c.semester_tag, '-', c.name, '-Editor')::text AS editor_role, CONCAT(c.semester_tag, '-', c.name, '-cg-')::text AS custom_role_prefix, o.slug AS org_slug, o.created_at AS org_created_at
 FROM course c
 JOIN course_phase cp ON c.id = cp.course_id
+LEFT JOIN org o ON o.id = c.org_id
 WHERE cp.id = $1
 `
 
 type GetCoursePhaseAuthRoleMappingRow struct {
-	LecturerRole     string `json:"lecturer_role"`
-	EditorRole       string `json:"editor_role"`
-	CustomRolePrefix string `json:"custom_role_prefix"`
+	LecturerRole     string             `json:"lecturer_role"`
+	EditorRole       string             `json:"editor_role"`
+	CustomRolePrefix string             `json:"custom_role_prefix"`
+	OrgSlug          pgtype.Text        `json:"org_slug"`
+	OrgCreatedAt     pgtype.Timestamptz `json:"org_created_at"`
 }
 
 func (q *Queries) GetCoursePhaseAuthRoleMapping(ctx context.Context, id uuid.UUID) (GetCoursePhaseAuthRoleMappingRow, error) {
 	row := q.db.QueryRow(ctx, getCoursePhaseAuthRoleMapping, id)
 	var i GetCoursePhaseAuthRoleMappingRow
-	err := row.Scan(&i.LecturerRole, &i.EditorRole, &i.CustomRolePrefix)
+	err := row.Scan(
+		&i.LecturerRole,
+		&i.EditorRole,
+		&i.CustomRolePrefix,
+		&i.OrgSlug,
+		&i.OrgCreatedAt,
+	)
 	return i, err
 }
 
 const getPermissionStringByCourseID = `-- name: GetPermissionStringByCourseID :one
-SELECT CONCAT(semester_tag, '-', name) AS course_identifier
-FROM course
-WHERE id = $1
+
+SELECT CONCAT(c.semester_tag, '-', c.name)::text AS course_identifier, c.template, o.slug AS org_slug, o.created_at AS org_created_at
+FROM course c
+LEFT JOIN org o ON o.id = c.org_id
+WHERE c.id = $1
 `
 
-func (q *Queries) GetPermissionStringByCourseID(ctx context.Context, id uuid.UUID) (interface{}, error) {
+type GetPermissionStringByCourseIDRow struct {
+	CourseIdentifier string             `json:"course_identifier"`
+	Template         bool               `json:"template"`
+	OrgSlug          pgtype.Text        `json:"org_slug"`
+	OrgCreatedAt     pgtype.Timestamptz `json:"org_created_at"`
+}
+
+// The three lookups return the same columns, so permissionValidation reads them as one type. An
+// ungrouped course has no org slug.
+func (q *Queries) GetPermissionStringByCourseID(ctx context.Context, id uuid.UUID) (GetPermissionStringByCourseIDRow, error) {
 	row := q.db.QueryRow(ctx, getPermissionStringByCourseID, id)
-	var course_identifier interface{}
-	err := row.Scan(&course_identifier)
-	return course_identifier, err
+	var i GetPermissionStringByCourseIDRow
+	err := row.Scan(
+		&i.CourseIdentifier,
+		&i.Template,
+		&i.OrgSlug,
+		&i.OrgCreatedAt,
+	)
+	return i, err
 }
 
 const getPermissionStringByCourseParticipationID = `-- name: GetPermissionStringByCourseParticipationID :one
-SELECT CONCAT(c.semester_tag, '-', c.name) AS course_identifier
+SELECT CONCAT(c.semester_tag, '-', c.name)::text AS course_identifier, c.template, o.slug AS org_slug, o.created_at AS org_created_at
 FROM course c
 JOIN course_participation cp ON c.id = cp.course_id
+LEFT JOIN org o ON o.id = c.org_id
 WHERE cp.id = $1
 `
 
-func (q *Queries) GetPermissionStringByCourseParticipationID(ctx context.Context, id uuid.UUID) (interface{}, error) {
+type GetPermissionStringByCourseParticipationIDRow struct {
+	CourseIdentifier string             `json:"course_identifier"`
+	Template         bool               `json:"template"`
+	OrgSlug          pgtype.Text        `json:"org_slug"`
+	OrgCreatedAt     pgtype.Timestamptz `json:"org_created_at"`
+}
+
+func (q *Queries) GetPermissionStringByCourseParticipationID(ctx context.Context, id uuid.UUID) (GetPermissionStringByCourseParticipationIDRow, error) {
 	row := q.db.QueryRow(ctx, getPermissionStringByCourseParticipationID, id)
-	var course_identifier interface{}
-	err := row.Scan(&course_identifier)
-	return course_identifier, err
+	var i GetPermissionStringByCourseParticipationIDRow
+	err := row.Scan(
+		&i.CourseIdentifier,
+		&i.Template,
+		&i.OrgSlug,
+		&i.OrgCreatedAt,
+	)
+	return i, err
 }
 
 const getPermissionStringByCoursePhaseID = `-- name: GetPermissionStringByCoursePhaseID :one
-SELECT CONCAT(c.semester_tag, '-', c.name) AS course_identifier
+SELECT CONCAT(c.semester_tag, '-', c.name)::text AS course_identifier, c.template, o.slug AS org_slug, o.created_at AS org_created_at
 FROM course c
 JOIN course_phase cp ON c.id = cp.course_id
+LEFT JOIN org o ON o.id = c.org_id
 WHERE cp.id = $1
 `
 
-func (q *Queries) GetPermissionStringByCoursePhaseID(ctx context.Context, id uuid.UUID) (interface{}, error) {
+type GetPermissionStringByCoursePhaseIDRow struct {
+	CourseIdentifier string             `json:"course_identifier"`
+	Template         bool               `json:"template"`
+	OrgSlug          pgtype.Text        `json:"org_slug"`
+	OrgCreatedAt     pgtype.Timestamptz `json:"org_created_at"`
+}
+
+func (q *Queries) GetPermissionStringByCoursePhaseID(ctx context.Context, id uuid.UUID) (GetPermissionStringByCoursePhaseIDRow, error) {
 	row := q.db.QueryRow(ctx, getPermissionStringByCoursePhaseID, id)
-	var course_identifier interface{}
-	err := row.Scan(&course_identifier)
-	return course_identifier, err
+	var i GetPermissionStringByCoursePhaseIDRow
+	err := row.Scan(
+		&i.CourseIdentifier,
+		&i.Template,
+		&i.OrgSlug,
+		&i.OrgCreatedAt,
+	)
+	return i, err
 }
 
 const getStudentRoleStrings = `-- name: GetStudentRoleStrings :many

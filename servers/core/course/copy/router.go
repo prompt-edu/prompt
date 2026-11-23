@@ -35,8 +35,9 @@ func checkAccessControlByIDWrapper(check permissionValidation.PermissionCheck) f
 func setupCourseCopyRouter(router *gin.RouterGroup, s *CourseCopyService, authMiddleware func() gin.HandlerFunc, permissionRoleMiddleware, permissionIDMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
 	course := router.Group("/courses", authMiddleware())
 
-	course.GET("/:uuid/copyable", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), s.checkCourseCopyable)
-	course.POST("/:uuid/copy", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), s.copyCourse)
+	// OrgMember admits the Members of the course's org to its templates, so they create courses from them.
+	course.GET("/:uuid/copyable", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer, permissionValidation.OrgMember), s.checkCourseCopyable)
+	course.POST("/:uuid/copy", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer, permissionValidation.OrgMember), s.copyCourse)
 }
 
 // copyCourse godoc
@@ -64,6 +65,11 @@ func (s *CourseCopyService) copyCourse(c *gin.Context) {
 		return
 	}
 
+	// A copy made through an org role stays in an org; one made through a global or course role may be ungrouped.
+	if !course.AuthorizeNewCourseOrg(c, s.queries, courseVariables.OrgID, !c.GetBool(permissionValidation.CtxCourseAccessViaOrg)) {
+		return
+	}
+
 	originalCourseID, err := uuid.Parse(c.Param("uuid"))
 	if err != nil {
 		sdkUtils.HandleError(c, http.StatusBadRequest, fmt.Errorf("invalid course UUID: %w", err))
@@ -72,7 +78,11 @@ func (s *CourseCopyService) copyCourse(c *gin.Context) {
 
 	newCourse, err := s.CopyCourse(c, originalCourseID, courseVariables, userID)
 	if errors.Is(err, course.ErrDuplicateCourseIdentifier) {
-		sdkUtils.HandleError(c, http.StatusConflict, err)
+		sdkUtils.HandleError(c, http.StatusConflict, course.ErrDuplicateCourseIdentifier)
+		return
+	}
+	if errors.Is(err, course.ErrUnknownOrg) {
+		sdkUtils.HandleError(c, http.StatusBadRequest, course.ErrUnknownOrg)
 		return
 	}
 	if err != nil {

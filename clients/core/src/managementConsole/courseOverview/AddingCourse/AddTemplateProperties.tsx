@@ -1,3 +1,8 @@
+import {
+  OrgSelectField,
+  requireOrg,
+} from '@core/managementConsole/shared/components/OrgSelectField'
+import { useNewCourseOrg } from '@core/managementConsole/shared/hooks/useNewCourseOrg'
 import { coreApi } from '@core/network/api'
 import { type TemplateFormValues, templateFormSchema } from '@core/validations/template'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -42,8 +47,10 @@ export const AddTemplateProperties: React.FC<AddTemplatePropertiesProps> = ({
       semesterTag: 'template',
       shortDescription: initialValues?.shortDescription || '',
       longDescription: initialValues?.longDescription || '',
+      orgID: initialValues?.orgID,
     },
   })
+  const orgChoice = useNewCourseOrg()
 
   const onSubmit = async (data: TemplateFormValues) => {
     if (await checkTemplateExistsAndUpdateForm(data.name)) {
@@ -79,7 +86,10 @@ export const AddTemplateProperties: React.FC<AddTemplatePropertiesProps> = ({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-6'>
+      <form
+        onSubmit={form.handleSubmit(requireOrg(form, orgChoice.required, onSubmit))}
+        className='space-y-6'
+      >
         <FormField
           control={form.control}
           name='name'
@@ -188,6 +198,7 @@ export const AddTemplateProperties: React.FC<AddTemplatePropertiesProps> = ({
             </FormItem>
           )}
         />
+        <OrgSelectField form={form} {...orgChoice} />
         <div className='flex justify-between space-x-4 pt-4'>
           <Button type='button' variant='outline' onClick={onCancel}>
             Cancel

@@ -3,6 +3,7 @@ import { isNotFoundError, useOrg, useOrgs } from '@core/network/hooks/useOrgs'
 import { ManagementPageHeader, QueryGate } from '@tumaet/prompt-ui-components'
 import { useParams } from 'react-router-dom'
 import { EmptyPage } from '../../shared/components/EmptyPage'
+import { OrgCoursesSettings } from '../components/OrgCoursesSettings'
 import { OrgDangerZone } from '../components/OrgDangerZone'
 import { OrgDetailsSettings } from '../components/OrgDetailsSettings'
 import { OrgHierarchySettings } from '../components/OrgHierarchySettings'
@@ -70,6 +71,7 @@ export const OrgDetailPage = ({ viewer }: OrgDetailPageProps) => {
               readOnly={viewer === 'Member'}
             />
             {viewer !== 'Member' && <OrgMembersSettings key={`members-${org.id}`} org={org} />}
+            {viewer !== 'Member' && <OrgCoursesSettings org={org} />}
             {viewer === 'PROMPT_Admin' && <PromptAdminOrgSettings org={org} />}
           </div>
         )

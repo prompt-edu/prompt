@@ -8,6 +8,8 @@ export interface CreateCourseInput {
   courseType?: string
   ects?: number
   shortDescription?: string
+  // Display name of the org to create the course in, for a user with org roles
+  org?: string
 }
 
 // The two-page "Add a New Course" wizard, reached from the course-switch
@@ -33,7 +35,7 @@ export class CourseCreationPage {
     await dialog.getByPlaceholder('Enter a course name').fill(input.name)
 
     // Select the course type first: a fixed-ECTS type disables the ECTS input.
-    await dialog.getByRole('combobox').click()
+    await dialog.getByRole('combobox').filter({ hasText: 'Select a course type' }).click()
     await this.page.getByRole('option', { name: input.courseType ?? 'Lecture' }).click()
 
     await pickDateRange(this.page)
@@ -46,6 +48,9 @@ export class CourseCreationPage {
     await dialog
       .getByPlaceholder('One sentence summary')
       .fill(input.shortDescription ?? 'created by e2e')
+    if (input.org) {
+      await pickOrg(this.page, dialog, input.org)
+    }
 
     await dialog.getByRole('button', { name: 'Next', exact: true }).click()
 
@@ -73,6 +78,12 @@ export async function pickDateRange(page: Page): Promise<void> {
   await day(10).click()
   await day(20).click()
   await page.keyboard.press('Escape')
+}
+
+// The org select of the create and copy forms
+export async function pickOrg(page: Page, form: Locator, org: string): Promise<void> {
+  await form.getByRole('combobox').filter({ hasText: 'Choose an org' }).click()
+  await page.getByRole('option', { name: org, exact: true }).click()
 }
 
 // After a successful create/copy the app navigates to the new course overview.

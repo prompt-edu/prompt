@@ -12,6 +12,7 @@ export interface PostCourse {
   shortDescription: string
   longDescription?: string
   template: boolean
+  orgID?: string
 }
 
 // Helper function to format Date as YYYY-MM-DD

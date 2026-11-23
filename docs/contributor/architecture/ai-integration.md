@@ -106,6 +106,12 @@ the service's name and key, the phase's Logos key and the feature as default hea
 (`X-Prompt-Service`, `X-Prompt-Service-Token`, `X-Prompt-Provider-Key`, `X-Prompt-Feature`). The
 service key is the phase server's entry in `AI_SERVICE_KEYS`; it never goes to the browser.
 
+A Go phase server uses the `ai` package of prompt-sdk instead of setting these headers by hand:
+`ai.NewClientFromEnv` reads `AI_ENABLED`, `SERVER_AI_HOST` and the service's `AI_SERVICE_KEY`, and
+its client sends completions, posts oversight events and checks the AI server's health. The AI
+server reads the header names, the label and key rules and the event request from the same
+package, so the two sides cannot drift.
+
 | Route | Roles | Purpose |
 | --- | --- | --- |
 | `POST /v1/chat/completions` | Phase service key, then PromptAdmin, CourseLecturer, CourseEditor | Streamed or plain completion |

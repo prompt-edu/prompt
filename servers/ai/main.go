@@ -13,6 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt-sdk/ai"
 	"github.com/prompt-edu/prompt-sdk/promptTypes"
 	"github.com/prompt-edu/prompt-sdk/serviceAuth"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
@@ -118,7 +119,7 @@ func setupRouter(router *gin.Engine, conn *pgxpool.Pool, cfg config) {
 	api := router.Group("/ai/api")
 	coursePhaseAPI := api.Group("/course_phase/:coursePhaseID")
 	gateway.RegisterRoutes(coursePhaseAPI, gateway.New(cfg.providerURL, cfg.allowedModels, cfg.coreURL, callService), cfg.serviceKeys)
-	calls.RegisterRoutes(coursePhaseAPI, callService, serviceAuth.Middleware(cfg.serviceKeys, gateway.ServiceHeader, gateway.ServiceTokenHeader))
+	calls.RegisterRoutes(coursePhaseAPI, callService, serviceAuth.Middleware(cfg.serviceKeys, ai.ServiceHeader, ai.ServiceTokenHeader))
 	promptTypes.RegisterPrivacyModule(api, privacyService.Export, privacyService.Delete, []string{})
 	promptTypes.RegisterInfoEndpoint(api, promptTypes.ServiceInfo{
 		ServiceName: "ai",

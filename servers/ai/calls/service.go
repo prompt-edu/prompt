@@ -12,6 +12,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt-sdk/ai"
 	"github.com/prompt-edu/prompt/servers/ai/calls/callDTO"
 	db "github.com/prompt-edu/prompt/servers/ai/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/ai/encryption"
@@ -236,11 +237,11 @@ func (s *Service) Get(ctx context.Context, coursePhaseID, callID uuid.UUID, view
 }
 
 // Only the service that made a call may report events on it, and only an admin may do so on a call someone else made.
-func (s *Service) AddEvent(ctx context.Context, coursePhaseID, callID uuid.UUID, actorID, callerService string, byAdmin bool, request callDTO.EventRequest) (callDTO.Event, error) {
-	if request.Type == callDTO.EventEdited && request.EditDistance == nil {
+func (s *Service) AddEvent(ctx context.Context, coursePhaseID, callID uuid.UUID, actorID, callerService string, byAdmin bool, request ai.EventRequest) (callDTO.Event, error) {
+	if request.Validate() != nil {
 		return callDTO.Event{}, ErrInvalidEvent
 	}
-	data, err := json.Marshal(request.Data())
+	data, err := json.Marshal(eventData(request))
 	if err != nil {
 		return callDTO.Event{}, err
 	}
@@ -303,4 +304,12 @@ func pointerInt(value *int32) pgtype.Int4 {
 		return pgtype.Int4{}
 	}
 	return pgtype.Int4{Int32: *value, Valid: true}
+}
+
+// eventData is what an event stores next to its type. TargetID names what the phase applied the output to.
+func eventData(request ai.EventRequest) any {
+	return struct {
+		EditDistance *int       `json:"editDistance,omitempty"`
+		TargetID     *uuid.UUID `json:"targetId,omitempty"`
+	}{request.EditDistance, request.TargetID}
 }

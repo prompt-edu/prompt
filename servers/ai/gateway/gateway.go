@@ -3,16 +3,17 @@ package gateway
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
-	"regexp"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt-sdk/ai"
 	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt-sdk/serviceAuth"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
@@ -23,26 +24,13 @@ import (
 )
 
 const (
-	CallIDHeader = "X-Prompt-AI-Call-ID"
-	// ProviderKeyHeader carries the calling phase's own Logos key. The AI server stores no keys.
-	ProviderKeyHeader = "X-Prompt-Provider-Key"
-	FeatureHeader     = "X-Prompt-Feature"
-	// ServiceHeader and ServiceTokenHeader name the calling phase service and carry its AI_SERVICE_KEYS key.
-	ServiceHeader      = "X-Prompt-Service"
-	ServiceTokenHeader = "X-Prompt-Service-Token"
-
 	maxRequestBytes   = 4 << 20
-	maxSubjects       = 100
 	totalTimeout      = 10 * time.Minute
 	idleTimeout       = 2 * time.Minute
 	completionTimeout = 10 * time.Second
-	minKeyLength      = 8
-	maxKeyLength      = 512
 )
 
-var errMissingKey = errors.New("the request must carry the phase's Logos key in " + ProviderKeyHeader)
-
-var labelPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$`)
+var errMissingKey = errors.New("the request must carry the phase's Logos key in " + ai.ProviderKeyHeader)
 
 type Gateway struct {
 	providerURL   *url.URL
@@ -73,7 +61,7 @@ func New(providerURL *url.URL, allowedModels []string, coreURL string, callServi
 // Only phase services reach these routes, and PromptLecturer never: the SDK admits it for every course phase.
 func RegisterRoutes(coursePhaseAPI *gin.RouterGroup, gateway *Gateway, serviceKeys serviceAuth.Keys) {
 	v1 := coursePhaseAPI.Group("/v1",
-		serviceAuth.Middleware(serviceKeys, ServiceHeader, ServiceTokenHeader),
+		serviceAuth.Middleware(serviceKeys, ai.ServiceHeader, ai.ServiceTokenHeader),
 		promptSDK.AuthenticationMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor))
 	v1.POST("/chat/completions", bodyLimit.WithLimit(maxRequestBytes), gateway.chatCompletions)
 	v1.GET("/models", gateway.listModels)
@@ -97,13 +85,13 @@ func (g *Gateway) chatCompletions(c *gin.Context) {
 		ActorRole:       actorRole(user),
 		Issuer:          tokenIssuer(c.GetHeader("Authorization")),
 		CallerService:   service,
-		Feature:         c.GetHeader(FeatureHeader),
-		Template:        c.GetHeader("X-Prompt-Template"),
-		TemplateVersion: c.GetHeader("X-Prompt-Template-Version"),
+		Feature:         c.GetHeader(ai.FeatureHeader),
+		Template:        c.GetHeader(ai.TemplateHeader),
+		TemplateVersion: c.GetHeader(ai.TemplateVersionHeader),
 	}
 	if !dropInvalidLabels(&request.Feature, &request.Template, &request.TemplateVersion) {
 		g.deny(c, request, http.StatusBadRequest, "invalid_label",
-			FeatureHeader+", X-Prompt-Template and X-Prompt-Template-Version take letters, digits, '.', '_' and '-', at most 128")
+			ai.FeatureHeader+", "+ai.TemplateHeader+" and "+ai.TemplateVersionHeader+" take letters, digits, '.', '_' and '-', at most 128")
 		return
 	}
 
@@ -127,8 +115,8 @@ func (g *Gateway) chatCompletions(c *gin.Context) {
 		g.deny(c, request, http.StatusBadRequest, "model_not_allowed", "the model is not allowed")
 		return
 	}
-	if request.Subjects, err = parseSubjects(c.GetHeader("X-Prompt-Subjects")); err != nil {
-		g.deny(c, request, http.StatusBadRequest, "invalid_subjects", "X-Prompt-Subjects must list at most 100 course participation ids")
+	if request.Subjects, err = parseSubjects(c.GetHeader(ai.SubjectsHeader)); err != nil {
+		g.deny(c, request, http.StatusBadRequest, "invalid_subjects", fmt.Sprintf("%s must list at most %d course participation ids", ai.SubjectsHeader, ai.MaxSubjects))
 		return
 	}
 	logosKey, err := providerKey(c)
@@ -153,7 +141,7 @@ func (g *Gateway) chatCompletions(c *gin.Context) {
 		c.JSON(http.StatusServiceUnavailable, sdkUtils.ErrorResponse{Error: "the AI call could not be recorded"})
 		return
 	}
-	c.Header(CallIDHeader, callID.String())
+	c.Header(ai.CallIDHeader, callID.String())
 	g.forward(c, callID, logosKey, request)
 }
 
@@ -164,7 +152,7 @@ func (g *Gateway) deny(c *gin.Context, request calls.Request, status int, errorC
 		c.JSON(http.StatusServiceUnavailable, sdkUtils.ErrorResponse{Error: "the AI call could not be recorded"})
 		return
 	}
-	c.Header(CallIDHeader, callID.String())
+	c.Header(ai.CallIDHeader, callID.String())
 	c.JSON(status, sdkUtils.ErrorResponse{Error: message})
 }
 
@@ -221,21 +209,20 @@ func (g *Gateway) providerModels(c *gin.Context, logosKey string) ([]json.RawMes
 }
 
 func providerKey(c *gin.Context) (string, error) {
-	logosKey := strings.TrimSpace(c.GetHeader(ProviderKeyHeader))
+	logosKey := strings.TrimSpace(c.GetHeader(ai.ProviderKeyHeader))
 	// Removed so gin's panic recovery, which masks only Authorization, cannot print it.
-	c.Request.Header.Del(ProviderKeyHeader)
-	if len(logosKey) < minKeyLength || len(logosKey) > maxKeyLength ||
-		strings.ContainsFunc(logosKey, func(r rune) bool { return r < '!' || r > '~' }) {
+	c.Request.Header.Del(ai.ProviderKeyHeader)
+	if !ai.ValidProviderKey(logosKey) {
 		return "", errMissingKey
 	}
 	return logosKey, nil
 }
 
-// dropInvalidLabels clears every label that does not match labelPattern, so a refused value is never stored.
+// dropInvalidLabels clears every label the contract does not accept, so a refused value is never stored.
 func dropInvalidLabels(labels ...*string) bool {
 	valid := true
 	for _, label := range labels {
-		if *label != "" && !labelPattern.MatchString(*label) {
+		if *label != "" && !ai.ValidLabel(*label) {
 			*label, valid = "", false
 		}
 	}

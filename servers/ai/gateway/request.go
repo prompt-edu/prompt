@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
+	"github.com/prompt-edu/prompt-sdk/ai"
 )
 
 var (
@@ -65,7 +66,7 @@ func parseSubjects(header string) ([]uuid.UUID, error) {
 		return nil, nil
 	}
 	raws := strings.Split(header, ",")
-	if len(raws) > maxSubjects {
+	if len(raws) > ai.MaxSubjects {
 		return nil, errTooManySubjects
 	}
 	seen := map[uuid.UUID]bool{}

@@ -9,10 +9,8 @@ import (
 )
 
 const (
-	EventShown         = "shown"
-	EventAccepted      = "accepted"
-	EventEdited        = "edited"
-	EventRejected      = "rejected"
+	// EventContentViewed is recorded by this service when an admin opens a call's content. The
+	// events a phase reports are in prompt-sdk's ai package.
 	EventContentViewed = "content_viewed"
 )
 

@@ -169,11 +169,15 @@ func (s *OrgService) AddOrgMember(ctx context.Context, orgID uuid.UUID, userID, 
 }
 
 // UpdateOrgMemberRole gives a member of the org the org role. Unlike AddOrgMember, it never adds a
-// user to the org: a member changed from a stale list may have been removed since.
+// user to the org: a member changed from a stale list may have been removed since. A member who
+// already holds the role is left as is, so the role it returns as the previous one is orgRole.
 func (s *OrgService) UpdateOrgMemberRole(ctx context.Context, orgID uuid.UUID, userID, orgRole string, caller Caller) (orgDTO.Org, string, error) {
 	return s.changeMembership(ctx, orgID, userID, caller, func(ctx context.Context, slug, currentRole string) error {
 		if currentRole == "" {
 			return ErrNotOrgMember
+		}
+		if currentRole == orgRole {
+			return nil
 		}
 		if err := s.members.SetOrgMemberRole(ctx, slug, userID, orgRole); err != nil {
 			return fmt.Errorf("failed to set the org role of user %s: %w", userID, err)

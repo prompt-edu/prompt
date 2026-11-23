@@ -712,6 +712,22 @@ func (suite *OrgServiceTestSuite) TestUpdateOrgMemberRoleChangesTheRoleOfExactly
 	assert.Empty(suite.T(), members.roleOf("members-role", "ada"))
 }
 
+// Two admins picking the same role from a stale table both succeed, but only the first one writes.
+func (suite *OrgServiceTestSuite) TestUpdateOrgMemberRoleLeavesAMemberWithTheRoleAsIs() {
+	org := suite.createOrg("members-same-role", nil)
+	service, members := suite.withMembers(staffMember("ada", "ad12min"))
+	require.NoError(suite.T(), members.SetOrgMemberRole(suite.ctx, "members-same-role", "ada", permissionValidation.OrgAdmin))
+	writes := 0
+	members.beforeWrite = func() { writes++ }
+
+	_, previousRole, err := service.UpdateOrgMemberRole(suite.ctx, org.ID, "ada", permissionValidation.OrgAdmin, caller)
+
+	require.NoError(suite.T(), err)
+	assert.Equal(suite.T(), permissionValidation.OrgAdmin, previousRole)
+	assert.Zero(suite.T(), writes)
+	assert.Equal(suite.T(), permissionValidation.OrgAdmin, members.roleOf("members-same-role", "ada"))
+}
+
 func (suite *OrgServiceTestSuite) TestUpdateOrgMemberRoleRejectsTheCallersOwnMembership() {
 	org := suite.createOrg("members-self-role", nil)
 	service, members := suite.withMembers(staffMember("ada", "ad12min"))

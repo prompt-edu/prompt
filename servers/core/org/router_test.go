@@ -609,6 +609,10 @@ func (suite *OrgRouterTestSuite) TestMembershipAuditEntriesNameTheOrgAndTheMembe
 	changed := suite.expectAuditEvent(events, "Changed the role of an org member", suite.org.ID, "ase")
 	assert.Equal(suite.T(), map[string]any{"keycloakUserID": adaUserID, "role": permissionValidation.OrgMember, "previousRole": permissionValidation.OrgAdmin}, changed.Metadata)
 
+	// Giving the member the role they hold changes nothing, so the next entry is the removal's.
+	w = serve(router, http.MethodPut, memberPath(suite.org.ID, adaUserID), orgDTO.UpdateOrgMemberRole{Role: permissionValidation.OrgMember})
+	require.Equal(suite.T(), http.StatusNoContent, w.Code)
+
 	w = serve(router, http.MethodDelete, memberPath(suite.org.ID, adaUserID), nil)
 	require.Equal(suite.T(), http.StatusNoContent, w.Code)
 	removed := suite.expectAuditEvent(events, "Removed an org member", suite.org.ID, "ase")

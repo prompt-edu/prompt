@@ -5240,7 +5240,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Give the member with the Keycloak ID the Admin or Member role of the org. A user who holds no role in the org is refused, so a stale selection never adds them back. A user holds one org role at a time. Refused with 409 while another change to the org's members or its deletion is in progress. Only PROMPT admins can change their own membership.",
+                "description": "Give the member with the Keycloak ID the Admin or Member role of the org. A user who holds no role in the org is refused, so a stale selection never adds them back. A member who already holds the role is left as is, and no audit entry is recorded. A user holds one org role at a time. Refused with 409 while another change to the org's members or its deletion is in progress. Only PROMPT admins can change their own membership.",
                 "consumes": [
                     "application/json"
                 ],

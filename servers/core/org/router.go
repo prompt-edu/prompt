@@ -129,7 +129,7 @@ func (s *OrgService) addOrgMember(c *gin.Context) {
 
 // updateOrgMemberRole godoc
 // @Summary Change the role of an org member
-// @Description Give the member with the Keycloak ID the Admin or Member role of the org. A user who holds no role in the org is refused, so a stale selection never adds them back. A user holds one org role at a time. Refused with 409 while another change to the org's members or its deletion is in progress. Only PROMPT admins can change their own membership.
+// @Description Give the member with the Keycloak ID the Admin or Member role of the org. A user who holds no role in the org is refused, so a stale selection never adds them back. A member who already holds the role is left as is, and no audit entry is recorded. A user holds one org role at a time. Refused with 409 while another change to the org's members or its deletion is in progress. Only PROMPT admins can change their own membership.
 // @Tags orgs
 // @Accept json
 // @Param orgID path string true "Org UUID"
@@ -178,7 +178,12 @@ func (s *OrgService) writeOrgMemberRole(c *gin.Context, write func(ctx context.C
 		handleServiceError(c, err, fallbackMessage)
 		return
 	}
-	recordOrgMemberAudit(c, org, userID, input.Role, previousRole)
+	if previousRole == input.Role {
+		// The member already held the role, so nothing changed.
+		audit.Suppress(c)
+	} else {
+		recordOrgMemberAudit(c, org, userID, input.Role, previousRole)
+	}
 	c.Status(http.StatusNoContent)
 }
 

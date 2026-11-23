@@ -176,7 +176,7 @@ core client's entrypoint) and to `env.js` for local dev. Note: the typed `EnvTyp
    `if: contains(fromJSON(inputs.clients), '<name>_component')`. Do the same for the server in
    `build-and-push-servers.yml` with `inputs.servers`.
 3. `deploy-docker.yml`: add the image tag env var to the `.env.prod` step and the service to the
-   `SERVICES` list; reference the new output in `dev.yml` (with the `|| 'latest'` fallback the
+   `SERVICES` list; reference the new output in `dev.yml` (with the `|| 'main'` fallback the
    other images use) and `prod.yml`.
 
 External phases handle deployment in their own repository; only the core-side URL (2.1/2.5) and

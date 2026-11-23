@@ -180,30 +180,31 @@ jobs:
           done < <(jq -r 'to_entries[] | "\(.key)\t\(.value.result)"' <<<"$NEEDS")
           exit $failed
 
-  # Images a PR did not rebuild deploy from main's `latest` tag.
+  # Images a PR did not rebuild deploy from the `main` tag, which every push to main updates.
+  # `latest` is no fallback: releases push it too, possibly from an older commit.
   deploy-dev:
     needs: [build-clients, build-servers, e2e-tests]
     uses: ./.github/workflows/deploy-docker.yml
     secrets: inherit
     with:
       environment: prompt-dev-vm
-      core_image_tag: ${{ needs.build-clients.outputs.core_image_tag || 'latest' }}
-      example_image_tag: ${{ needs.build-clients.outputs.example_image_tag || 'latest' }}
-      interview_image_tag: ${{ needs.build-clients.outputs.interview_image_tag || 'latest' }}
-      matching_image_tag: ${{ needs.build-clients.outputs.matching_image_tag || 'latest' }}
-      assessment_image_tag: ${{ needs.build-clients.outputs.assessment_image_tag || 'latest' }}
-      team_allocation_image_tag: ${{ needs.build-clients.outputs.team_allocation_image_tag || 'latest' }}
-      self_team_allocation_image_tag: ${{ needs.build-clients.outputs.self_team_allocation_image_tag || 'latest' }}
-      server_core_image_tag: ${{ needs.build-servers.outputs.server_core_image_tag || 'latest' }}
-      server_team_allocation_image_tag: ${{ needs.build-servers.outputs.server_team_allocation_image_tag || 'latest' }}
-      server_assessment_image_tag: ${{ needs.build-servers.outputs.server_assessment_image_tag || 'latest' }}
-      server_interview_image_tag: ${{ needs.build-servers.outputs.server_interview_image_tag || 'latest' }}
-      server_self_team_allocation_image_tag: ${{ needs.build-servers.outputs.server_self_team_allocation_image_tag || 'latest' }}
-      server_certificate_image_tag: ${{ needs.build-servers.outputs.server_certificate_image_tag || 'latest' }}
-      certificate_image_tag: ${{ needs.build-clients.outputs.certificate_image_tag || 'latest' }}
-      presentation_image_tag: ${{ needs.build-clients.outputs.presentation_image_tag || 'latest' }}
-      server_presentation_image_tag: ${{ needs.build-servers.outputs.server_presentation_image_tag || 'latest' }}
-      server_infrastructure_setup_image_tag: ${{ needs.build-servers.outputs.server_infrastructure_setup_image_tag || 'latest' }}
-      server_ai_image_tag: ${{ needs.build-servers.outputs.server_ai_image_tag || 'latest' }}
-      infrastructure_setup_image_tag: ${{ needs.build-clients.outputs.infrastructure_setup_image_tag || 'latest' }}
-      ai_image_tag: ${{ needs.build-clients.outputs.ai_image_tag || 'latest' }}
+      core_image_tag: ${{ needs.build-clients.outputs.core_image_tag || 'main' }}
+      example_image_tag: ${{ needs.build-clients.outputs.example_image_tag || 'main' }}
+      interview_image_tag: ${{ needs.build-clients.outputs.interview_image_tag || 'main' }}
+      matching_image_tag: ${{ needs.build-clients.outputs.matching_image_tag || 'main' }}
+      assessment_image_tag: ${{ needs.build-clients.outputs.assessment_image_tag || 'main' }}
+      team_allocation_image_tag: ${{ needs.build-clients.outputs.team_allocation_image_tag || 'main' }}
+      self_team_allocation_image_tag: ${{ needs.build-clients.outputs.self_team_allocation_image_tag || 'main' }}
+      server_core_image_tag: ${{ needs.build-servers.outputs.server_core_image_tag || 'main' }}
+      server_team_allocation_image_tag: ${{ needs.build-servers.outputs.server_team_allocation_image_tag || 'main' }}
+      server_assessment_image_tag: ${{ needs.build-servers.outputs.server_assessment_image_tag || 'main' }}
+      server_interview_image_tag: ${{ needs.build-servers.outputs.server_interview_image_tag || 'main' }}
+      server_self_team_allocation_image_tag: ${{ needs.build-servers.outputs.server_self_team_allocation_image_tag || 'main' }}
+      server_certificate_image_tag: ${{ needs.build-servers.outputs.server_certificate_image_tag || 'main' }}
+      certificate_image_tag: ${{ needs.build-clients.outputs.certificate_image_tag || 'main' }}
+      presentation_image_tag: ${{ needs.build-clients.outputs.presentation_image_tag || 'main' }}
+      server_presentation_image_tag: ${{ needs.build-servers.outputs.server_presentation_image_tag || 'main' }}
+      server_infrastructure_setup_image_tag: ${{ needs.build-servers.outputs.server_infrastructure_setup_image_tag || 'main' }}
+      server_ai_image_tag: ${{ needs.build-servers.outputs.server_ai_image_tag || 'main' }}
+      infrastructure_setup_image_tag: ${{ needs.build-clients.outputs.infrastructure_setup_image_tag || 'main' }}
+      ai_image_tag: ${{ needs.build-clients.outputs.ai_image_tag || 'main' }}

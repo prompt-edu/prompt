@@ -75,10 +75,10 @@ Control when students can see their assessment results:
 
 | Setting                                        | Description                                                                                                  |
 | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| **Show grade suggestions and general remarks** | When enabled, students can view their grade suggestion and the General Remarks after the deadline has passed |
-| **Show action items**                          | When enabled, students can see their action items (feedback points) after the deadline has passed            |
+| **Show grade suggestions and general remarks** | When enabled, students can view their grade suggestion and the General Remarks after you release the results |
+| **Show action items**                          | When enabled, students can see their action items (feedback points) after you release the results            |
 
-> 💡 **Note**: Both visibility settings only take effect **after the assessment deadline**. Before the deadline, grade suggestions and action items are never visible to students, regardless of these settings. This ensures students cannot see preliminary results during the active assessment phase.
+> 💡 **Note**: Both visibility settings only take effect **after you release the results**. The deadline does not release them. Until you release, grade suggestions and action items are never visible to students, regardless of these settings. This ensures students cannot see preliminary results during the active assessment phase.
 
 **Use Cases:**
 

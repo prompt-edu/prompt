@@ -43,6 +43,7 @@ export interface CreateCourseOptions {
   courseType?: string
   ects?: number
   shortDescription?: string
+  orgID?: string
 }
 
 // Mirrors courseDTO.CreateCourse. The dates are placeholders — the lifecycle
@@ -64,6 +65,7 @@ export async function createCourseViaApi(
       courseType: opts.courseType ?? 'practical course',
       ects: opts.ects ?? 10,
       template: opts.template ?? false,
+      orgID: opts.orgID,
     },
   })
   if (!res.ok()) {

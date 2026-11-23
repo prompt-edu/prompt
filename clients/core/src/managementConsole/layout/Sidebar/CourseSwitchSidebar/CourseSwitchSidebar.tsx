@@ -9,6 +9,7 @@ import {
 } from '@tumaet/prompt-ui-components'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useParams } from 'react-router-dom'
+import { hasAnyOrgRole } from '../../../shared/utils/orgRoles'
 import { AddCourseButton } from './components/AddCourseSidebarItem'
 import { CourseSidebarItem } from './components/CourseSidebarItem'
 import SidebarHeaderComponent from './components/SidebarHeader'
@@ -29,9 +30,11 @@ export const CourseSwitchSidebar = () => {
 
   const { permissions } = useAuthStore()
 
-  const canAddCourse = permissions.some(
-    (permission) => permission === Role.PROMPT_ADMIN || permission === Role.PROMPT_LECTURER,
-  )
+  // Org Admins and Members create courses in their org
+  const canAddCourse =
+    permissions.some(
+      (permission) => permission === Role.PROMPT_ADMIN || permission === Role.PROMPT_LECTURER,
+    ) || hasAnyOrgRole(permissions)
 
   return (
     <Sidebar

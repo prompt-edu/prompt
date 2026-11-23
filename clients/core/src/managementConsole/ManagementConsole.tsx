@@ -1,6 +1,7 @@
 import { AnnouncementBar } from '@core/announcementBanner/AnnouncementBar'
 import { coreApi } from '@core/network/api'
 import { coreKeys } from '@core/network/cache'
+import { useOwnOrgs } from '@core/network/hooks/useOrgs'
 import { Footer } from '@core/publicPages/shared/components/Footer'
 import { useQuery } from '@tanstack/react-query'
 import { type Course, useAuthStore, useCourseStore } from '@tumaet/prompt-shared-state'
@@ -23,6 +24,7 @@ import { AppSidebar } from './layout/Sidebar/AppSidebar'
 import { NavUserMenu } from './layout/Sidebar/CourseSwitchSidebar/components/NavUserMenu'
 import CourseNotFound from './shared/components/CourseNotFound'
 import { EmptyPage } from './shared/components/EmptyPage'
+import { orgLecturerPermissions } from './shared/utils/orgRoles'
 
 export const ManagementRoot = ({ children }: { children?: React.ReactNode }) => (
   <RequireAuth>
@@ -32,7 +34,7 @@ export const ManagementRoot = ({ children }: { children?: React.ReactNode }) => 
 
 const ManagementConsole = ({ children }: { children?: React.ReactNode }) => {
   const { logout } = useKeycloak()
-  const { user, permissions } = useAuthStore()
+  const { user, permissions, setPermissions } = useAuthStore()
   const { courseId } = useParams<{ courseId: string }>()
   const hasChildren = React.Children.count(children) > 0
   const path = useLocation().pathname
@@ -72,7 +74,9 @@ const ManagementConsole = ({ children }: { children?: React.ReactNode }) => {
     refetchOwnCourseIds()
     refetchCourses()
   }
-  const isLoading = !user || isPending || isOwnCourseIdPending
+  // An org Admin's Lecturer roles come with their orgs, so the course pages wait for them
+  const { data: ownOrgs, isLoading: isOwnOrgsLoading } = useOwnOrgs()
+  const isLoading = !user || isPending || isOwnCourseIdPending || isOwnOrgsLoading
   const isError = isCourseError || isOwnCourseIdError
   const courseExists = fetchedCourses?.some((course) => course.id === courseId)
 
@@ -82,6 +86,16 @@ const ManagementConsole = ({ children }: { children?: React.ReactNode }) => {
       setCourses([...fetchedCourses])
     }
   }, [fetchedCourses, setCourses])
+
+  // The token refresh replaces the permissions, so this adds the org Admins' Lecturer roles again
+  useEffect(() => {
+    const missing = orgLecturerPermissions(fetchedCourses ?? [], ownOrgs ?? []).filter(
+      (permission) => !permissions.includes(permission),
+    )
+    if (missing.length > 0) {
+      setPermissions([...permissions, ...missing])
+    }
+  }, [fetchedCourses, ownOrgs, permissions, setPermissions])
 
   useEffect(() => {
     if (fetchedOwnCourseIDs) {

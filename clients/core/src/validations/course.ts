@@ -19,6 +19,7 @@ export const courseFormSchema = z.object({
     .max(5000, 'Long description cannot exceed 5000 characters')
     .optional()
     .or(z.literal('')),
+  orgID: z.string().optional(),
 })
 
 export type CourseFormValues = z.infer<typeof courseFormSchema>

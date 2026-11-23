@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"maps"
 	"slices"
 	"strings"
 	"time"
@@ -113,27 +112,13 @@ func (s *OrgService) GetOrg(ctx context.Context, id uuid.UUID) (orgDTO.Org, erro
 // Admin role wins over a Member role of the same org. As in CheckOrgPermission, an org created after
 // the token was issued is left out: the token's roles for its slug belong to a deleted org.
 func (s *OrgService) GetOwnOrgs(ctx context.Context, userRoles map[string]bool, tokenIssuedAt time.Time) ([]orgDTO.OwnOrg, error) {
-	roleBySlug := map[string]string{}
-	for role, held := range userRoles {
-		slug, orgRole, ok := permissionValidation.ParseOrgRole(role)
-		if held && ok && roleBySlug[slug] != permissionValidation.OrgAdmin {
-			roleBySlug[slug] = orgRole
-		}
-	}
-
-	ownOrgs := []orgDTO.OwnOrg{}
-	if len(roleBySlug) == 0 {
-		return ownOrgs, nil
-	}
-	slugs := slices.Collect(maps.Keys(roleBySlug))
-	orgs, err := s.queries.GetOrgsBySlugs(ctx, slugs)
+	orgs, err := permissionValidation.OwnOrgs(ctx, s.queries, userRoles, tokenIssuedAt)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get the orgs with the slugs %v: %w", slugs, err)
+		return nil, err
 	}
+	ownOrgs := make([]orgDTO.OwnOrg, 0, len(orgs))
 	for _, org := range orgs {
-		if permissionValidation.TokenPostdatesOrg(tokenIssuedAt, org.CreatedAt.Time) {
-			ownOrgs = append(ownOrgs, orgDTO.OwnOrg{Org: orgDTO.GetOrgDTOFromDBModel(org), Role: roleBySlug[org.Slug]})
-		}
+		ownOrgs = append(ownOrgs, orgDTO.OwnOrg{Org: orgDTO.GetOrgDTOFromDBModel(org.Org), Role: org.Role})
 	}
 	return ownOrgs, nil
 }

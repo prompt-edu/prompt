@@ -42,10 +42,12 @@ const isClientError = (error: unknown): boolean => {
   return status !== undefined && status >= 400 && status < 500
 }
 
-export const useOrgs = () => {
+// Only PROMPT admins may list all orgs
+export const useOrgs = (enabled = true) => {
   return useQuery({
     queryKey: coreKeys.orgs.all(),
     queryFn: coreApi.orgs.list,
+    enabled,
   })
 }
 
@@ -154,6 +156,27 @@ export const useOrg = (orgId: string | undefined) => {
     queryFn: () => coreApi.orgs.get(orgId ?? ''),
     enabled: isOrgId(orgId),
     retry: (failureCount, error) => !isClientError(error) && failureCount < MAX_RETRIES,
+  })
+}
+
+// Assigns the course to an org, or removes it from its org with null. Only PROMPT admins may.
+export const useSetCourseOrg = (courseId: string) => {
+  const { toast } = useToast()
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (orgID: string | null) => coreApi.courses.setOrg(courseId, { orgID }),
+    onSuccess: () => {
+      toast({ title: 'Org of the course changed' })
+      coreCache.coursesChanged(queryClient)
+    },
+    onError: (error) => {
+      toast({
+        title: 'Failed to change the org of the course',
+        description: serverErrorMessage(error),
+        variant: 'destructive',
+      })
+    },
   })
 }
 

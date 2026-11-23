@@ -335,3 +335,8 @@ INSERT INTO application_assessment (id, score, course_phase_id, course_participa
 INSERT INTO application_assessment (id, score, course_phase_id, course_participation_id) VALUES ('a5f4a560-9ee7-44fa-8a9e-c6141c4d6b5c', 2, '4179d58a-d00d-4fa7-94a5-397bc69fab02', '17f4518a-833b-49d5-a512-8f701703852e');
 
 INSERT INTO application_assessment (id, score, course_phase_id, course_participation_id) VALUES ('df02df1c-811b-42e8-9b3a-f66f5cd38f7f', 4, '4179d58a-d00d-4fa7-94a5-397bc69fab02', '1378db54-4ab4-4225-ac67-68e4345f21e2');
+
+-- An org with a course and one phase, for the org Admin roles of the course phase role mapping.
+INSERT INTO org (id, name, slug, created_at) VALUES ('0a2e0000-0000-4000-8000-000000000001', 'Applied Software Engineering', 'ase', '2026-01-01 00:00:00+00');
+INSERT INTO course (id, name, start_date, end_date, semester_tag, course_type, ects, org_id) VALUES ('0a2e0000-0000-4000-8000-000000000011', 'Agile', '2025-10-01', '2026-02-01', 'ws2526', 'practical course', 10, '0a2e0000-0000-4000-8000-000000000001');
+INSERT INTO course_phase (id, course_id, name, restricted_data, is_initial_phase, course_phase_type_id, student_readable_data) VALUES ('0a2e0000-0000-4000-8000-000000000021', '0a2e0000-0000-4000-8000-000000000011', 'Agile Intro', '{}', true, '48d22f19-6cc0-417b-ac25-415fb40f2030', '{}');

@@ -8,6 +8,7 @@ export interface CopyCourse {
   template: boolean
   shortDescription?: string
   longDescription?: string
+  orgID?: string
 }
 
 // Helper function to format Date as YYYY-MM-DD

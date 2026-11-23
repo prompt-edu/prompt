@@ -26,6 +26,7 @@ type CourseWithPhases struct {
 	Template            bool                                 `json:"template"`
 	Archived            bool                                 `json:"archived"`
 	ArchivedOn          *time.Time                           `json:"archivedOn,omitempty"`
+	OrgID               *uuid.UUID                           `json:"orgID,omitempty"`
 	CoursePhases        []coursePhaseDTO.CoursePhaseSequence `json:"coursePhases"`
 }
 
@@ -67,6 +68,7 @@ func GetCourseWithPhasesDTOFromDBModel(model db.Course) (CourseWithPhases, error
 		StudentReadableData: studentReadableData,
 		Template:            model.Template,
 		Archived:            model.Archived,
+		OrgID:               OrgIDFromDBModel(model.OrgID),
 	}
 
 	if model.ArchivedOn.Valid {

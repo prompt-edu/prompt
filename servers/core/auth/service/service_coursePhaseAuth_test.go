@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -57,7 +58,7 @@ func (suite *CoursePhaseAuthTestSuite) TestGetCourseRoles() {
 	// Use a coursePhaseID from your test data.
 	coursePhaseID := uuid.MustParse("4e736d05-c125-48f0-8fa0-848b03ca6908")
 
-	result, err := suite.authService.GetCourseRoles(suite.ctx, coursePhaseID)
+	result, err := suite.authService.GetCourseRoles(suite.ctx, coursePhaseID, time.Now())
 	suite.Require().NoError(err)
 
 	// Adjust expected values according to your test database contents.
@@ -68,6 +69,28 @@ func (suite *CoursePhaseAuthTestSuite) TestGetCourseRoles() {
 	suite.Equal(expectedLecturerRole, result.CourseLecturerRole, "Unexpected lecturer role")
 	suite.Equal(expectedEditorRole, result.CourseEditorRole, "Unexpected editor role")
 	suite.Equal(expectedCustomRolePrefix, result.CustomRolePrefix, "Unexpected custom role prefix")
+}
+
+func (suite *CoursePhaseAuthTestSuite) TestGetCourseRolesListsTheOrgAdminRole() {
+	ungroupedPhaseID := uuid.MustParse("4e736d05-c125-48f0-8fa0-848b03ca6908")
+	orgPhaseID := uuid.MustParse("0a2e0000-0000-4000-8000-000000000021") // course of the org ase, created on 2026-01-01
+	afterOrg := time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC)
+	beforeOrg := time.Date(2025, 12, 1, 0, 0, 0, 0, time.UTC)
+
+	for _, tt := range []struct {
+		name     string
+		phaseID  uuid.UUID
+		issuedAt time.Time
+		want     []string
+	}{
+		{"course of an org", orgPhaseID, afterOrg, []string{"org-ase-Admin"}},
+		{"token from before the org existed", orgPhaseID, beforeOrg, nil},
+		{"ungrouped course", ungroupedPhaseID, afterOrg, nil},
+	} {
+		result, err := suite.authService.GetCourseRoles(suite.ctx, tt.phaseID, tt.issuedAt)
+		suite.Require().NoError(err, tt.name)
+		suite.Equal(tt.want, result.OrgAdminRoles, tt.name)
+	}
 }
 
 func TestCoursePhaseAuthTestSuite(t *testing.T) {

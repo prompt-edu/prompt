@@ -1,13 +1,19 @@
 import { type CopyCourseFormValues, copyCourseSchema } from '@core/validations/copyCourse'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useCourseStore } from '@tumaet/prompt-shared-state'
+import { type Course, useCourseStore } from '@tumaet/prompt-shared-state'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import type { DialogStep } from '../../managementConsole/courseOverview/interfaces/copyCourseDialogProps'
 
-export const useCourseForm = (courseId: string, setCurrentStep: (step: DialogStep) => void) => {
+// source: the course to copy when the caller has it at hand, such as a template they may copy but
+// not list among their courses
+export const useCourseForm = (
+  courseId: string,
+  setCurrentStep: (step: DialogStep) => void,
+  source?: Course,
+) => {
   const { courses } = useCourseStore()
-  const course = courses.find((c) => c.id === courseId)
+  const course = source ?? courses.find((c) => c.id === courseId)
   const [formData, setFormData] = useState<CopyCourseFormValues | null>(null)
 
   const form = useForm<CopyCourseFormValues>({

@@ -10,6 +10,7 @@ import { WarningStep } from './WarningStep'
 
 export const CopyCourseDialog = ({
   courseId,
+  course,
   isOpen,
   onClose,
   useTemplateCopy,
@@ -32,7 +33,7 @@ export const CopyCourseDialog = ({
     course: copyCourse,
     onFormSubmit: onCopyFormSubmit,
     resetForm: resetCopyForm,
-  } = useCourseForm(courseId, setCurrentStep)
+  } = useCourseForm(courseId, setCurrentStep, course)
 
   const {
     form: templateForm,
@@ -67,6 +68,7 @@ export const CopyCourseDialog = ({
           dateRange,
           shortDescription: templateFormData.shortDescription,
           longDescription: templateFormData.longDescription,
+          orgID: templateFormData.orgID,
         })
       }
     } else {
@@ -78,7 +80,7 @@ export const CopyCourseDialog = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose} aria-hidden='true'>
-      <DialogContent className='max-w-md'>
+      <DialogContent className='max-w-md max-h-[90vh] overflow-y-auto'>
         {currentStep === 'form' && !createTemplate && (
           <CopyCourseForm
             form={copyForm}
@@ -86,6 +88,7 @@ export const CopyCourseDialog = ({
             onSubmit={onCopyFormSubmit}
             onClose={handleClose}
             useTemplateCopy={useTemplateCopy}
+            source={copyCourse}
           />
         )}
         {currentStep === 'form' && createTemplate && (
@@ -94,6 +97,7 @@ export const CopyCourseDialog = ({
             courseName={templateCourse?.name || ''}
             onSubmit={onTemplateFormSubmit}
             onClose={handleClose}
+            source={templateCourse}
           />
         )}
         {currentStep === 'warning' && (

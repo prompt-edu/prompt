@@ -1,3 +1,8 @@
+import {
+  OrgSelectField,
+  requireOrg,
+} from '@core/managementConsole/shared/components/OrgSelectField'
+import { useNewCourseOrg } from '@core/managementConsole/shared/hooks/useNewCourseOrg'
 import { coreApi } from '@core/network/api'
 import { type CourseFormValues, courseFormSchema } from '@core/validations/course'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -45,8 +50,10 @@ export const AddCourseProperties: React.FC<AddCoursePropertiesProps> = ({
       semesterTag: initialValues?.semesterTag || '',
       shortDescription: initialValues?.shortDescription || '',
       longDescription: initialValues?.longDescription || '',
+      orgID: initialValues?.orgID,
     },
   })
+  const orgChoice = useNewCourseOrg()
 
   const onSubmit = (data: CourseFormValues) => {
     onNext(data)
@@ -93,7 +100,10 @@ export const AddCourseProperties: React.FC<AddCoursePropertiesProps> = ({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-6'>
+      <form
+        onSubmit={form.handleSubmit(requireOrg(form, orgChoice.required, onSubmit))}
+        className='space-y-6'
+      >
         <FormField
           control={form.control}
           name='name'
@@ -239,6 +249,7 @@ export const AddCourseProperties: React.FC<AddCoursePropertiesProps> = ({
             </FormItem>
           )}
         />
+        <OrgSelectField form={form} {...orgChoice} />
         <div className='flex justify-between space-x-4 pt-4'>
           <Button type='button' variant='outline' onClick={onCancel}>
             Cancel

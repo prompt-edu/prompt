@@ -1,6 +1,7 @@
 package courseDTO
 
 import (
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/core/meta"
@@ -19,6 +20,8 @@ type CreateCourse struct {
 	CourseType          db.CourseType `json:"courseType"`
 	Ects                pgtype.Int4   `json:"ects" swaggertype:"integer"`
 	Template            bool          `json:"template"`
+	// OrgID puts the course into an org; without it the course is ungrouped.
+	OrgID *uuid.UUID `json:"orgID,omitempty" extensions:"x-nullable"`
 }
 
 func (c CreateCourse) GetDBModel() (db.CreateCourseParams, error) {
@@ -46,5 +49,6 @@ func (c CreateCourse) GetDBModel() (db.CreateCourseParams, error) {
 		CourseType:          c.CourseType,
 		Ects:                c.Ects,
 		Template:            c.Template,
+		OrgID:               OrgIDToDBModel(c.OrgID),
 	}, nil
 }

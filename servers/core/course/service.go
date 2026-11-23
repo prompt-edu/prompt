@@ -23,6 +23,8 @@ import (
 // ErrDuplicateCourseIdentifier is returned when a course with the same name and semester tag already exists.
 var ErrDuplicateCourseIdentifier = errors.New("a course with this name and semester already exists")
 
+var ErrUnknownOrg = errors.New("the org does not exist")
+
 // ErrCourseChangedDuringDeletion is returned when a phase was added to a course while its deletion
 // was asking the phase modules to drop their data. Retrying the deletion covers the new phase.
 var ErrCourseChangedDuringDeletion = errors.New("a course phase was added while the course was being deleted, please retry")
@@ -80,7 +82,9 @@ func (s *CourseService) GetOwnCourseIDs(ctx context.Context, matriculationNumber
 	return courses, err
 }
 
-func (s *CourseService) GetAllCourses(ctx context.Context, userRoles map[string]bool) ([]courseDTO.CourseWithPhases, error) {
+// GetAllCourses lists the courses of the caller's course roles and all courses of the orgs they are an
+// Admin of. tokenIssuedAt decides which org roles count, see permissionValidation.OwnOrgs.
+func (s *CourseService) GetAllCourses(ctx context.Context, userRoles map[string]bool, tokenIssuedAt time.Time) ([]courseDTO.CourseWithPhases, error) {
 	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
 	defer cancel()
 
@@ -101,7 +105,14 @@ func (s *CourseService) GetAllCourses(ctx context.Context, userRoles map[string]
 				userRolesArray = append(userRolesArray, key)
 			}
 		}
-		coursesRestricted, err := s.queries.GetAllActiveCoursesRestricted(ctxWithTimeout, userRolesArray)
+		ownOrgs, err := permissionValidation.OwnOrgs(ctxWithTimeout, s.queries, userRoles, tokenIssuedAt)
+		if err != nil {
+			return nil, err
+		}
+		coursesRestricted, err := s.queries.GetAllActiveCoursesRestricted(ctxWithTimeout, db.GetAllActiveCoursesRestrictedParams{
+			UserRoles:   userRolesArray,
+			AdminOrgIds: permissionValidation.OwnOrgIDs(ownOrgs, permissionValidation.OrgAdmin),
+		})
 		if err != nil {
 			return nil, err
 		}
@@ -211,11 +222,7 @@ func (s *CourseService) CreateCourse(ctx context.Context, course courseDTO.Creat
 	}
 	createdCourse, err := qtx.CreateCourse(ctx, createCourseParams)
 	if err != nil {
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-			return courseDTO.Course{}, ErrDuplicateCourseIdentifier
-		}
-		return courseDTO.Course{}, err
+		return courseDTO.Course{}, MapCourseWriteError(err)
 	}
 
 	// create keycloak roles - also add the requester to the course lecturer role
@@ -229,6 +236,31 @@ func (s *CourseService) CreateCourse(ctx context.Context, course courseDTO.Creat
 		return courseDTO.Course{}, fmt.Errorf("failed to commit transaction: %w", err)
 	}
 	return courseDTO.GetCourseDTOFromDBModel(createdCourse)
+}
+
+// MapCourseWriteError turns the constraint violations of a course insert or update into the errors
+// the handlers answer with a client error.
+func MapCourseWriteError(err error) error {
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) {
+		switch {
+		case pgErr.Code == "23505":
+			return ErrDuplicateCourseIdentifier
+		case pgErr.ConstraintName == "fk_course_org":
+			return ErrUnknownOrg
+		}
+	}
+	return err
+}
+
+// UpdateCourseOrg assigns the course to an org, or removes it from its org when orgID is nil. It
+// returns the course's name and the org it belonged to before.
+func (s *CourseService) UpdateCourseOrg(ctx context.Context, courseID uuid.UUID, orgID *uuid.UUID) (db.UpdateCourseOrgRow, error) {
+	row, err := s.queries.UpdateCourseOrg(ctx, db.UpdateCourseOrgParams{CourseID: courseID, OrgID: courseDTO.OrgIDToDBModel(orgID)})
+	if err != nil {
+		return db.UpdateCourseOrgRow{}, MapCourseWriteError(err)
+	}
+	return row, nil
 }
 
 func (s *CourseService) CheckCourseNameExists(ctx context.Context, name, semesterTag string) (bool, error) {
@@ -563,7 +595,9 @@ func (s *CourseService) UpdateCourseTemplateStatus(ctx context.Context, courseID
 	return nil
 }
 
-func (s *CourseService) GetTemplateCourses(ctx context.Context, userRoles map[string]bool) ([]courseDTO.Course, error) {
+// GetTemplateCourses lists the templates of the caller's course roles and all templates of their orgs.
+// tokenIssuedAt decides which org roles count, see permissionValidation.OwnOrgs.
+func (s *CourseService) GetTemplateCourses(ctx context.Context, userRoles map[string]bool, tokenIssuedAt time.Time) ([]courseDTO.Course, error) {
 	ctxWithTimeout, cancel := db.GetTimeoutContext(ctx)
 	defer cancel()
 
@@ -581,7 +615,14 @@ func (s *CourseService) GetTemplateCourses(ctx context.Context, userRoles map[st
 				userRolesArray = append(userRolesArray, key)
 			}
 		}
-		coursesRestricted, err := s.queries.GetTemplateCoursesRestricted(ctxWithTimeout, userRolesArray)
+		ownOrgs, err := permissionValidation.OwnOrgs(ctxWithTimeout, s.queries, userRoles, tokenIssuedAt)
+		if err != nil {
+			return nil, err
+		}
+		coursesRestricted, err := s.queries.GetTemplateCoursesRestricted(ctxWithTimeout, db.GetTemplateCoursesRestrictedParams{
+			UserRoles: userRolesArray,
+			OrgIds:    permissionValidation.OwnOrgIDs(ownOrgs, permissionValidation.OrgAdmin, permissionValidation.OrgMember),
+		})
 		if err != nil {
 			return nil, err
 		}

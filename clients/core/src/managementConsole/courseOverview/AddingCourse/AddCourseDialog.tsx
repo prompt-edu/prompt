@@ -77,6 +77,7 @@ export const AddCourseDialog = ({
       shortDescription: coursePropertiesFormValues?.shortDescription || '',
       longDescription: coursePropertiesFormValues?.longDescription || '',
       template: false,
+      orgID: coursePropertiesFormValues?.orgID,
     }
     mutate(course)
   }
@@ -114,7 +115,7 @@ export const AddCourseDialog = ({
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       {controlledOpen === undefined}
-      <DialogContent className='max-w-[550px] [&>*]:min-w-0'>
+      <DialogContent className='max-w-[550px] max-h-[90vh] overflow-y-auto [&>*]:min-w-0'>
         {isPending ? (
           <DialogLoadingDisplay customMessage='Updating course data...' />
         ) : isError && (error as any)?.response?.status === 409 ? (

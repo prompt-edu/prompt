@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/prompt-edu/prompt/servers/core/auth/service"
+	"github.com/prompt-edu/prompt/servers/core/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 )
 
@@ -60,7 +61,8 @@ func (h *authHandler) getCoursePhaseAuthRoles(c *gin.Context) {
 		return
 	}
 
-	roleMapping, err := h.service.GetCourseRoles(c, coursePhaseID)
+	// Without a token issue time, the zero time grants no org roles.
+	roleMapping, err := h.service.GetCourseRoles(c, coursePhaseID, c.GetTime(keycloakTokenVerifier.CtxTokenIssuedAt))
 	if err != nil {
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": "failed to get course roles"})
 		return

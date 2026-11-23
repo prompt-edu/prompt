@@ -39,7 +39,23 @@ first, not even the administrator who created the org: add the first Admin in th
 
 Change an org's parent in the **Hierarchy** card of its page, or choose **None (top level)**. An
 org cannot be placed below itself or one of its own child orgs. Nesting only records the structure
-for now: the Admins and Members of a parent org get no rights on its child orgs.
+for now: the Admins and Members of a parent org get no rights on its child orgs or their courses.
+
+## Courses
+
+A course can belong to one org. What the org's roles grant on its courses:
+
+- **Admins** have the rights of a course Lecturer on every course and template of the org, in the
+  management console and in every course phase, grading included. The org's courses appear in their
+  course list and in the **Courses** card of the org's page.
+- **Members** create courses in the org, also from its templates. Whoever creates a course becomes
+  its Lecturer, as before.
+- Users with only org roles must choose an org when they create or copy a course; PROMPT
+  administrators and lecturers can still create courses without one.
+
+Only PROMPT administrators assign a course to an org, change its org, or remove it from its org, in
+the **Org** card of the course's settings. So nobody claims a course for their org. Each change is
+recorded in the audit log. An org with courses cannot be deleted.
 
 ## Members
 

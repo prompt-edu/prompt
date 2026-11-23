@@ -12,6 +12,7 @@ export const makeTemplateCourseSchema = z.object({
     .string()
     .max(5000, 'Long description cannot exceed 5000 characters')
     .optional(),
+  orgID: z.string().optional(),
 })
 
 export type MakeTemplateCourseFormValues = z.infer<typeof makeTemplateCourseSchema>

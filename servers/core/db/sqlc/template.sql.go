@@ -154,6 +154,31 @@ user_course_roles AS (
   WHERE
     c.template = TRUE
     AND c.archived = FALSE
+  UNION ALL
+  -- The Admins and Members of an org see all of its templates.
+  SELECT
+    c.id,
+    c.name,
+    c.semester_tag,
+    c.start_date,
+    c.end_date,
+    c.course_type,
+    c.student_readable_data,
+    c.restricted_data,
+    c.ects,
+    c.template,
+    c.short_description,
+    c.long_description,
+    c.archived,
+    c.archived_on,
+    c.org_id,
+    'Lecturer'
+  FROM
+    course c
+  WHERE
+    c.org_id = ANY($2::uuid[])
+    AND c.template = TRUE
+    AND c.archived = FALSE
 )
 SELECT
   ucr.id,
@@ -196,6 +221,11 @@ ORDER BY
   ucr.semester_tag, ucr.name DESC
 `
 
+type GetTemplateCoursesRestrictedParams struct {
+	UserRoles []string    `json:"user_roles"`
+	OrgIds    []uuid.UUID `json:"org_ids"`
+}
+
 type GetTemplateCoursesRestrictedRow struct {
 	ID                  uuid.UUID          `json:"id"`
 	Name                string             `json:"name"`
@@ -215,8 +245,8 @@ type GetTemplateCoursesRestrictedRow struct {
 }
 
 // struct: Course
-func (q *Queries) GetTemplateCoursesRestricted(ctx context.Context, dollar_1 []string) ([]GetTemplateCoursesRestrictedRow, error) {
-	rows, err := q.db.Query(ctx, getTemplateCoursesRestricted, dollar_1)
+func (q *Queries) GetTemplateCoursesRestricted(ctx context.Context, arg GetTemplateCoursesRestrictedParams) ([]GetTemplateCoursesRestrictedRow, error) {
+	rows, err := q.db.Query(ctx, getTemplateCoursesRestricted, arg.UserRoles, arg.OrgIds)
 	if err != nil {
 		return nil, err
 	}

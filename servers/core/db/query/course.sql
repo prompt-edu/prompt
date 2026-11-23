@@ -17,7 +17,7 @@ ORDER BY c.template,
  WITH parsed_roles AS (SELECT split_part(role, '-', 1) AS semester_tag,
           split_part(role, '-', 2) AS course_name,
           split_part(role, '-', 3) AS user_role
-        FROM unnest($1::text[]) AS role
+        FROM unnest(sqlc.arg(user_roles)::text[]) AS role
         WHERE split_part(role, '-', 3) IN ('Lecturer', 'Editor', 'Student', 'cg')),
   user_course_roles AS (SELECT c.id,
             c.name,
@@ -39,7 +39,27 @@ ORDER BY c.template,
             INNER JOIN
            parsed_roles pr
            ON c.name = pr.course_name
-            AND c.semester_tag = pr.semester_tag)
+            AND c.semester_tag = pr.semester_tag
+        UNION ALL
+        -- The Admins of an org are Lecturer-equivalent on all of its courses.
+        SELECT c.id,
+            c.name,
+            c.semester_tag,
+            c.start_date,
+            c.end_date,
+            c.course_type,
+            c.student_readable_data,
+            c.restricted_data,
+            c.ects,
+            c.template,
+            c.short_description,
+            c.long_description,
+            c.archived,
+            c.archived_on,
+            c.org_id,
+            'Lecturer'
+          FROM course c
+          WHERE c.org_id = ANY(sqlc.arg(admin_org_ids)::uuid[]))
 SELECT ucr.id,
        ucr.name,
        ucr.start_date,
@@ -85,9 +105,17 @@ ORDER BY ucr.template,
 
 -- name: CreateCourse :one
 INSERT INTO course (id, name, start_date, end_date, semester_tag, course_type, ects, restricted_data,
-                    student_readable_data, template, short_description, long_description)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+                    student_readable_data, template, short_description, long_description, org_id)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 RETURNING *;
+
+-- name: UpdateCourseOrg :one
+-- Returns the course's name and the org it belonged to before.
+UPDATE course c
+SET org_id = sqlc.narg(org_id)
+FROM (SELECT p.id, p.org_id FROM course p WHERE p.id = sqlc.arg(course_id) FOR UPDATE) previous
+WHERE c.id = previous.id
+RETURNING c.name, previous.org_id AS previous_org_id;
 
 -- name: CheckCoursePhasesBelongToCourse :one
 WITH matched_phases AS (SELECT id

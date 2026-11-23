@@ -159,6 +159,19 @@ func (suite *AllocationRouterTestSuite) TestEditorWithoutTutorRowForbiddenInPhas
 	require.Equal(suite.T(), http.StatusForbidden, resp.Code)
 }
 
+// Tara, the only tutor of this phase, has no login, so no editor can match her. The scope must not
+// count her as a tutor of the phase, or it would lock every editor out of its allocations.
+func (suite *AllocationRouterTestSuite) TestEditorUnscopedInPhaseWithOnlyLoginlessTutors() {
+	req, _ := http.NewRequest("GET", "/api/course_phase/11111111-1111-1111-1111-111111111111/allocation", nil)
+	resp := httptest.NewRecorder()
+	suite.tutorRouter("zz99zzz").ServeHTTP(resp, req)
+
+	require.Equal(suite.T(), http.StatusOK, resp.Code)
+	var allocations []allocationDTO.AllocationWithParticipation
+	require.NoError(suite.T(), json.Unmarshal(resp.Body.Bytes(), &allocations))
+	require.Len(suite.T(), allocations, 3)
+}
+
 func TestAllocationRouterTestSuite(t *testing.T) {
 	suite.Run(t, new(AllocationRouterTestSuite))
 }

@@ -25,7 +25,7 @@ type teamHandler struct {
 func RegisterRoutes(routerGroup *gin.RouterGroup, teamsService *TeamsService, assignmentService *AssignmentService, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
 	handler := &teamHandler{teamsService: teamsService, assignmentService: assignmentService}
 	teamRouter := routerGroup.Group("/team")
-	scopingMW := tutorscope.TeamsMiddleware(tutorscope.NewPgxTeamsResolver(teamsService.conn))
+	scopingMW := TutorScopeMiddleware(teamsService.conn)
 
 	teamRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.CourseStudent), scopingMW, handler.getAllTeams)
 	teamRouter.POST("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseStudent), handler.createTeams)

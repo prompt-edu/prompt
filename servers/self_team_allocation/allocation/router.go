@@ -12,11 +12,12 @@ import (
 	"github.com/prompt-edu/prompt-sdk/tutorscope"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	"github.com/prompt-edu/prompt/servers/self_team_allocation/allocation/allocationDTO"
+	teams "github.com/prompt-edu/prompt/servers/self_team_allocation/team"
 )
 
 func RegisterRoutes(routerGroup *gin.RouterGroup, service *AllocationService, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
 	allocationRouter := routerGroup.Group("/allocation")
-	scopingMW := tutorscope.TeamsMiddleware(tutorscope.NewPgxTeamsResolver(service.conn))
+	scopingMW := teams.TutorScopeMiddleware(service.conn)
 
 	allocationRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.CourseStudent), scopingMW, service.getAllAllocations)
 	allocationRouter.GET("/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.CourseStudent), scopingMW, service.getAllocationByCourseParticipationID)

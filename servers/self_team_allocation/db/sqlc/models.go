@@ -42,3 +42,9 @@ type Tutor struct {
 	TeamID                uuid.UUID   `json:"team_id"`
 	UniversityLogin       pgtype.Text `json:"university_login"`
 }
+
+type TutorWithLogin struct {
+	CoursePhaseID   uuid.UUID   `json:"course_phase_id"`
+	UniversityLogin pgtype.Text `json:"university_login"`
+	TeamID          uuid.UUID   `json:"team_id"`
+}

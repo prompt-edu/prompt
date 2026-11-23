@@ -31,6 +31,7 @@ test.describe('permission matrix (browser)', () => {
 
       for (const surface of browserSurfaces) {
         const browser = surface.browser!
+        if (browser.notProbed?.roles.includes(role)) continue
         const allowed = browser.allowed.includes(role)
 
         test(`${allowed ? 'sees' : 'is blocked from'} ${surface.name}`, async ({ page }) => {

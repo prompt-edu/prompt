@@ -130,7 +130,7 @@ The Authorization column uses the literal Keycloak role names the JWT must carry
 | `GET` | `/api/keycloak/:courseID/group/staff` | `PROMPT_Admin` or `<course>-Lecturer` |
 | `PUT` | `/api/keycloak/:courseID/group/:groupName/members/:userID` | `PROMPT_Admin` or `<course>-Lecturer` |
 | `DELETE` | `/api/keycloak/:courseID/group/:groupName/members/:userID` | `PROMPT_Admin` or `<course>-Lecturer` |
-| `GET` | `/api/keycloak/users/search?q=...&limit=...` | `PROMPT_Admin` or any `*-Lecturer` (any course) |
+| `GET` | `/api/keycloak/users/search?q=...&limit=...` | `PROMPT_Admin`, any `*-Lecturer` (any course), or any `org-<slug>-Admin` (any org) |
 | `GET` | `/api/keycloak/status` | `PROMPT_Admin` only |
 
 ### Security Model

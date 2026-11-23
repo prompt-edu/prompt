@@ -14,8 +14,8 @@ type StaffMember struct {
 	UniversityLogin string `json:"universityLogin"`
 }
 
-// universityLoginAttribute is the Keycloak user attribute that also feeds the token claim.
-const universityLoginAttribute = "university_login"
+// UniversityLoginAttribute is the Keycloak user attribute that also feeds the token claim.
+const UniversityLoginAttribute = "university_login"
 
 // CourseStaff is the Lecturer / Editor membership of a single course.
 type CourseStaff struct {
@@ -40,7 +40,7 @@ func GetStaffMemberFromKeycloakUser(user *gocloak.User) StaffMember {
 		Email:           gocloak.PString(user.Email),
 		FirstName:       gocloak.PString(user.FirstName),
 		LastName:        gocloak.PString(user.LastName),
-		UniversityLogin: firstAttribute(user, universityLoginAttribute),
+		UniversityLogin: firstAttribute(user, UniversityLoginAttribute),
 	}
 }
 

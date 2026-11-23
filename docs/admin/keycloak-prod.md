@@ -147,7 +147,7 @@ Open `Clients > prompt-server > Service account roles`, click **Assign role**, f
 
 | Role | Used For |
 | :--- | :--- |
-| `view-users` | Searching for a user by name, email, or username when adding them to a course role. |
+| `view-users` | Searching for a user by name, email, username, or university login when adding them to a course role. |
 | `view-groups` | Listing the Lecturer / Editor members of a course. |
 | `manage-users` | Adding or removing a user from a course's Lecturer / Editor group. |
 

@@ -4,9 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"path"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -19,16 +22,29 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// fakeKeycloak serves the admin endpoints the org functions call and records the writes.
+// fakeKeycloak serves the admin endpoints the org functions and the user search call and records
+// the writes.
 type fakeKeycloak struct {
 	mu              sync.Mutex
 	groupIDs        map[string]string   // group path → group ID
 	members         map[string][]string // group ID → user IDs
+	users           []gocloak.User      // the realm's users, returned with their attributes
 	loginFails      bool
 	membersFail     bool
 	usersFailingAdd map[string]bool
+	unknownUsers    map[string]bool // user IDs that Keycloak answers with 404
 	deleted         []string
 	added           []string
+	writeLog        []string // every write in order, as "PUT <path>" or "DELETE <path>"
+}
+
+func (f *fakeKeycloak) user(userID string) gocloak.User {
+	for _, user := range f.users {
+		if *user.ID == userID {
+			return user
+		}
+	}
+	return gocloak.User{ID: gocloak.StringP(userID)}
 }
 
 func (f *fakeKeycloak) start(t *testing.T) *KeycloakRealmService {
@@ -63,22 +79,57 @@ func (f *fakeKeycloak) start(t *testing.T) *KeycloakRealmService {
 		pageSize, _ := strconv.Atoi(r.URL.Query().Get("max"))
 		page := []gocloak.User{}
 		for _, userID := range all[min(first, len(all)):min(first+pageSize, len(all))] {
-			page = append(page, gocloak.User{ID: gocloak.StringP(userID)})
+			page = append(page, f.user(userID))
 		}
 		writeJSON(w, page)
 	})
+	mux.HandleFunc("GET /admin/realms/prompt/users", func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, f.searchUsers(r.URL.Query()))
+	})
+	mux.HandleFunc("GET /admin/realms/prompt/users/{user}/groups", func(w http.ResponseWriter, r *http.Request) {
+		userID := r.PathValue("user")
+		if f.unknownUsers[userID] {
+			http.Error(w, `{"error":"User not found"}`, http.StatusNotFound)
+			return
+		}
+		groups := []gocloak.Group{}
+		for _, groupPath := range slices.Sorted(maps.Keys(f.groupIDs)) {
+			groupID := f.groupIDs[groupPath]
+			if slices.Contains(f.members[groupID], userID) {
+				groups = append(groups, gocloak.Group{ID: gocloak.StringP(groupID), Path: gocloak.StringP("/" + groupPath)})
+			}
+		}
+		first, _ := strconv.Atoi(r.URL.Query().Get("first"))
+		pageSize, _ := strconv.Atoi(r.URL.Query().Get("max"))
+		writeJSON(w, groups[min(first, len(groups)):min(first+pageSize, len(groups))])
+	})
 	mux.HandleFunc("DELETE /admin/realms/prompt/", func(w http.ResponseWriter, r *http.Request) {
+		resource := strings.TrimPrefix(r.URL.Path, "/admin/realms/prompt/")
 		f.mu.Lock()
-		f.deleted = append(f.deleted, strings.TrimPrefix(r.URL.Path, "/admin/realms/prompt/"))
+		f.deleted = append(f.deleted, resource)
+		f.writeLog = append(f.writeLog, "DELETE "+resource)
 		f.mu.Unlock()
+		w.WriteHeader(http.StatusNoContent)
+	})
+	mux.HandleFunc("DELETE /admin/realms/prompt/users/{user}/groups/{group}", func(w http.ResponseWriter, r *http.Request) {
+		resource := strings.TrimPrefix(r.URL.Path, "/admin/realms/prompt/")
+		f.mu.Lock()
+		f.deleted = append(f.deleted, resource)
+		f.writeLog = append(f.writeLog, "DELETE "+resource)
+		f.mu.Unlock()
+		if f.unknownUsers[r.PathValue("user")] {
+			http.Error(w, `{"error":"User not found"}`, http.StatusNotFound)
+			return
+		}
 		w.WriteHeader(http.StatusNoContent)
 	})
 	mux.HandleFunc("PUT /admin/realms/prompt/users/{user}/groups/{group}", func(w http.ResponseWriter, r *http.Request) {
 		userID := r.PathValue("user")
 		f.mu.Lock()
 		f.added = append(f.added, userID+" -> "+r.PathValue("group"))
+		f.writeLog = append(f.writeLog, "PUT "+strings.TrimPrefix(r.URL.Path, "/admin/realms/prompt/"))
 		f.mu.Unlock()
-		if f.usersFailingAdd[userID] {
+		if f.usersFailingAdd[userID] || f.unknownUsers[userID] {
 			http.Error(w, `{"error":"User not found"}`, http.StatusNotFound)
 			return
 		}
@@ -88,6 +139,32 @@ func (f *fakeKeycloak) start(t *testing.T) *KeycloakRealmService {
 	server := httptest.NewServer(mux)
 	t.Cleanup(server.Close)
 	return NewKeycloakRealmService(server.URL, "prompt", "prompt-server", "secret", "client-uuid", db.Queries{})
+}
+
+// searchUsers answers a user listing as Keycloak does: search matches the username as a substring,
+// and q matches an attribute, exactly only with exact=true, ignoring case either way.
+func (f *fakeKeycloak) searchUsers(query url.Values) []gocloak.User {
+	matches := func(value, wanted string) bool {
+		return strings.Contains(strings.ToLower(value), strings.ToLower(wanted))
+	}
+	if query.Get("exact") == "true" {
+		matches = strings.EqualFold
+	}
+	found := []gocloak.User{}
+	for _, user := range f.users {
+		if search := query.Get("search"); search != "" && matches(*user.Username, search) {
+			found = append(found, user)
+		}
+		if attribute, value, ok := strings.Cut(query.Get("q"), ":"); ok {
+			if values := user.Attributes[attribute]; len(values) > 0 && matches(values[0], value) {
+				found = append(found, user)
+			}
+		}
+	}
+	if pageSize, err := strconv.Atoi(query.Get("max")); err == nil {
+		found = found[:min(pageSize, len(found))]
+	}
+	return found
 }
 
 func (f *fakeKeycloak) writes() (deleted, added []string) {

@@ -40,6 +40,18 @@ type UpdateOrg struct {
 	ContactEmail string `json:"contactEmail"`
 }
 
+// OwnOrg is an org whose role the caller's token holds.
+type OwnOrg struct {
+	Org
+	// Role is the caller's org role, Admin or Member.
+	Role string `json:"role" enums:"Admin,Member"`
+}
+
+// UpdateOrgMemberRole is the org role the user in the URL is added with or changed to.
+type UpdateOrgMemberRole struct {
+	Role string `json:"role" validate:"required" enums:"Admin,Member"`
+}
+
 type UpdateOrgParent struct {
 	ParentOrgID *uuid.UUID `json:"parentOrgID" validate:"required" extensions:"x-nullable"`
 }

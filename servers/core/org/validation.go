@@ -5,25 +5,20 @@ import (
 	"fmt"
 	"net/mail"
 	"net/url"
-	"regexp"
-	"slices"
 	"strings"
 	"unicode/utf8"
 
 	"github.com/prompt-edu/prompt/servers/core/org/orgDTO"
+	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 )
 
 const (
-	minSlugLength         = 2
-	maxSlugLength         = 50
 	maxNameLength         = 255
 	maxSchoolLength       = 255
 	maxUniversityLength   = 255
 	maxWebsiteLength      = 2048
 	maxContactEmailLength = 254
 )
-
-var slugPattern = regexp.MustCompile(`^[a-z0-9]+(-[a-z0-9]+)*$`)
 
 func validateCreateOrg(input orgDTO.CreateOrg) error {
 	if err := validateSlug(input.Slug); err != nil {
@@ -36,21 +31,15 @@ func validateUpdateOrg(input orgDTO.UpdateOrg) error {
 	return validateOrgDetails(input.Name, input.School, input.University, input.Website, input.ContactEmail)
 }
 
-func validateSlug(slug string) error {
-	slug = strings.TrimSpace(slug)
-	if slug == "" {
-		return errors.New("slug is required")
-	}
-	if !slugPattern.MatchString(slug) {
-		return errors.New("slug may only contain lowercase letters and digits, separated by single hyphens")
-	}
-	if len(slug) < minSlugLength || len(slug) > maxSlugLength {
-		return fmt.Errorf("slug must be between %d and %d characters", minSlugLength, maxSlugLength)
-	}
-	if slices.Contains(strings.Split(slug, "-"), "cg") {
-		return errors.New(`slug must not contain a "cg" segment`)
+func validateOrgRole(role string) error {
+	if role != permissionValidation.OrgAdmin && role != permissionValidation.OrgMember {
+		return errors.New("role must be Admin or Member")
 	}
 	return nil
+}
+
+func validateSlug(slug string) error {
+	return permissionValidation.ValidateOrgSlug(strings.TrimSpace(slug))
 }
 
 func validateOrgDetails(name, school, university, website, contactEmail string) error {

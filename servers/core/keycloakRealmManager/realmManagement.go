@@ -328,6 +328,8 @@ func (s *KeycloakRealmService) GetGroupMembers(ctx context.Context, accessToken,
 		page, err := s.client.GetGroupMembers(ctx, accessToken, s.Realm, groupID, gocloak.GetGroupsParams{
 			First: gocloak.IntP(first),
 			Max:   gocloak.IntP(groupMembersPageSize),
+			// The full representation carries the user attributes, which hold the university login.
+			BriefRepresentation: gocloak.BoolP(false),
 		})
 		if err != nil {
 			log.Error("failed to get group members: ", err)

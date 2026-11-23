@@ -57,9 +57,12 @@ The Keycloak users are seeded by `keycloakConfig.json` (username == password):
 | `lecturer`, `course-lecturer` | Course Lecturer |
 | `course-editor` | Course Editor |
 | `student` (Stan), `student2` (Selma) | enrolled students |
+| `org-admin`, `org-member` | not at all: they are the Admin and the Member of the demo org `demo-chair` |
 
 Staff access comes from the `ios2526-iPraktikumDemo-Lecturer` / `-Editor` client
-roles. Student access does **not**: it is derived in the database by matching the
+roles. Org membership comes from the groups `/Orgs/demo-chair/{Admin,Member}`, which
+map the `org-demo-chair-{Admin,Member}` client roles; `core.sql` holds the matching
+`org` row. Student access does **not**: it is derived in the database by matching the
 token's `university_login` and `matriculation_number` against the `student` row.
 
 :::warning Existing Keycloak installs

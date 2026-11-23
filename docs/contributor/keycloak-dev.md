@@ -17,6 +17,11 @@ The following accounts are included in `keycloakConfig.json` to facilitate testi
 | **course-editor** | `course-editor` | `co69edt` | `00000004` | `PROMPT_Course_Editor` |
 | **student** | `student` | `no42tum` | `00000005` | `PROMPT_Student` |
 | **student-passkey** | `student-passkey` | `no43tum` | `00000006` | `PROMPT_Student` |
+| **org-admin** | `org-admin` | `or11adm` | `00000011` | `org-demo-chair-Admin`, through the group `/Orgs/demo-chair/Admin` |
+| **org-member** | `org-member` | `or12mem` | `00000012` | `org-demo-chair-Member`, through the group `/Orgs/demo-chair/Member` |
+
+The org users belong to the demo org `demo-chair` that `seed/core.sql` creates. Org membership
+lives in Keycloak only, so the org's groups and client roles are part of the realm import.
 
 ## 3. Modifying Users and Roles
 - **Adding Users:** Go to `Users` -> `Add user`. Required fields: Username, Email, First/Last Name.

@@ -5,9 +5,13 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/Nerzal/gocloak/v14"
 	"github.com/google/uuid"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
+	"github.com/prompt-edu/prompt/servers/core/keycloakRealmManager/keycloakRealmDTO"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func testKeycloakRealmService() *KeycloakRealmService {
@@ -73,4 +77,50 @@ func TestSearchKeycloakUsers_RejectsShortQuery(t *testing.T) {
 			}
 		})
 	}
+}
+
+func resultIDs(results keycloakRealmDTO.UserSearchResults) []string {
+	ids := []string{}
+	for _, user := range results.Results {
+		ids = append(ids, user.KeycloakUserID)
+	}
+	return ids
+}
+
+// Keycloak's search matches bob's username; ada's university login is the query, and eve's only
+// starts with it.
+func TestSearchKeycloakUsersListsTheUserWithTheUniversityLoginFirst(t *testing.T) {
+	keycloak := &fakeKeycloak{users: []gocloak.User{
+		keycloakUser("bob", "ab12cde.old", "bo34bbb"),
+		keycloakUser("ada", "ada", "ab12cde"),
+		keycloakUser("eve", "eve", "ab12cdef"),
+	}}
+
+	results, err := keycloak.start(t).SearchKeycloakUsers(context.Background(), "AB12CDE", 20)
+
+	require.NoError(t, err)
+	assert.Equal(t, []string{"ada", "bob"}, resultIDs(results))
+	assert.False(t, results.Truncated)
+}
+
+func TestSearchKeycloakUsersListsAUserMatchedTwiceOnce(t *testing.T) {
+	keycloak := &fakeKeycloak{users: []gocloak.User{keycloakUser("ada", "ab12cde", "ab12cde")}}
+
+	results, err := keycloak.start(t).SearchKeycloakUsers(context.Background(), "ab12cde", 20)
+
+	require.NoError(t, err)
+	assert.Equal(t, []string{"ada"}, resultIDs(results))
+}
+
+func TestSearchKeycloakUsersTruncatesTheMergedMatches(t *testing.T) {
+	keycloak := &fakeKeycloak{users: []gocloak.User{
+		keycloakUser("bob", "ab12cde.old", "bo34bbb"),
+		keycloakUser("ada", "ada", "ab12cde"),
+	}}
+
+	results, err := keycloak.start(t).SearchKeycloakUsers(context.Background(), "ab12cde", 1)
+
+	require.NoError(t, err)
+	assert.Equal(t, []string{"ada"}, resultIDs(results))
+	assert.True(t, results.Truncated)
 }

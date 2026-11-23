@@ -1130,6 +1130,32 @@ definitions:
       studentReadableData:
         $ref: '#/definitions/meta.MetaData'
     type: object
+  coursePhaseDTO.ExportedApplicationQuestion:
+    properties:
+      orderNum:
+        type: integer
+      questionID:
+        type: string
+      title:
+        type: string
+      type:
+        enum:
+        - text
+        - multiselect
+        type: string
+    type: object
+  coursePhaseDTO.ExportedApplicationQuestions:
+    properties:
+      applicationCoursePhaseID:
+        description: |-
+          ApplicationCoursePhaseID is the Application phase that passes its answers to this phase,
+          or null when the course has no such connection.
+        type: string
+      questions:
+        items:
+          $ref: '#/definitions/coursePhaseDTO.ExportedApplicationQuestion'
+        type: array
+    type: object
   coursePhaseDTO.PrevCoursePhaseData:
     properties:
       prevData:
@@ -3611,6 +3637,35 @@ paths:
           schema:
             $ref: '#/definitions/utils.ErrorResponse'
       summary: Get previous phase data by course phase ID
+      tags:
+      - course_phases
+  /course_phases/{uuid}/exported_application_questions:
+    get:
+      description: List the application questions whose answers reach this course
+        phase in prevData.applicationAnswers, with id, title and type. applicationCoursePhaseID
+        is null when no Application phase passes its answers to this phase.
+      parameters:
+      - description: Course Phase UUID
+        in: path
+        name: uuid
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/coursePhaseDTO.ExportedApplicationQuestions'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/utils.ErrorResponse'
+      summary: Get the application questions exported to a course phase
       tags:
       - course_phases
   /course_phases/{uuid}/participation_status_counts:

@@ -2019,6 +2019,47 @@ const docTemplate = `{
                 }
             }
         },
+        "/course_phases/{uuid}/exported_application_questions": {
+            "get": {
+                "description": "List the application questions whose answers reach this course phase in prevData.applicationAnswers, with id, title and type. applicationCoursePhaseID is null when no Application phase passes its answers to this phase.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "course_phases"
+                ],
+                "summary": "Get the application questions exported to a course phase",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Course Phase UUID",
+                        "name": "uuid",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/coursePhaseDTO.ExportedApplicationQuestions"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/utils.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/course_phases/{uuid}/participation_status_counts": {
             "get": {
                 "description": "Get counts of participation statuses for a course phase",
@@ -8542,6 +8583,42 @@ const docTemplate = `{
                 },
                 "studentReadableData": {
                     "$ref": "#/definitions/meta.MetaData"
+                }
+            }
+        },
+        "coursePhaseDTO.ExportedApplicationQuestion": {
+            "type": "object",
+            "properties": {
+                "orderNum": {
+                    "type": "integer"
+                },
+                "questionID": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "text",
+                        "multiselect"
+                    ]
+                }
+            }
+        },
+        "coursePhaseDTO.ExportedApplicationQuestions": {
+            "type": "object",
+            "properties": {
+                "applicationCoursePhaseID": {
+                    "description": "ApplicationCoursePhaseID is the Application phase that passes its answers to this phase,\nor null when the course has no such connection.",
+                    "type": "string"
+                },
+                "questions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/coursePhaseDTO.ExportedApplicationQuestion"
+                    }
                 }
             }
         },

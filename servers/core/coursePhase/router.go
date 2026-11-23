@@ -41,6 +41,7 @@ func setupCoursePhaseRouter(router *gin.RouterGroup, s *CoursePhaseService, auth
 	coursePhase.GET("/:uuid", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer, permissionValidation.CourseEditor, permissionValidation.CourseStudent), s.getCoursePhaseByID)
 	coursePhase.GET("/:uuid/course_phase_data", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer, permissionValidation.CourseEditor, permissionValidation.CourseStudent), s.getPrevPhaseDataByCoursePhaseID)
 	coursePhase.GET("/:uuid/participation_status_counts", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer, permissionValidation.CourseEditor), s.getCoursePhaseParticipationStatusCounts)
+	coursePhase.GET("/:uuid/exported_application_questions", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer, permissionValidation.CourseEditor), s.getExportedApplicationQuestions)
 
 	// getting the course ID here to do correct rights management
 	coursePhase.POST("/course/:courseID", permissionCourseIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), bodyLimit.WithLimit(bodyLimit.LargeMaxBytes), s.createCoursePhase)
@@ -268,4 +269,30 @@ func (s *CoursePhaseService) getCoursePhaseParticipationStatusCounts(c *gin.Cont
 	}
 
 	c.IndentedJSON(http.StatusOK, countsMap)
+}
+
+// getExportedApplicationQuestions godoc
+// @Summary Get the application questions exported to a course phase
+// @Description List the application questions whose answers reach this course phase in prevData.applicationAnswers, with id, title and type. applicationCoursePhaseID is null when no Application phase passes its answers to this phase.
+// @Tags course_phases
+// @Produce json
+// @Param uuid path string true "Course Phase UUID"
+// @Success 200 {object} coursePhaseDTO.ExportedApplicationQuestions
+// @Failure 400 {object} utils.ErrorResponse
+// @Failure 500 {object} utils.ErrorResponse
+// @Router /course_phases/{uuid}/exported_application_questions [get]
+func (s *CoursePhaseService) getExportedApplicationQuestions(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("uuid"))
+	if err != nil {
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	exportedQuestions, err := s.GetExportedApplicationQuestions(c, id)
+	if err != nil {
+		sdkUtils.HandleError(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	c.IndentedJSON(http.StatusOK, exportedQuestions)
 }

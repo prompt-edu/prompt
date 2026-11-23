@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/pkg/errors"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase/coursePhaseDTO"
@@ -140,4 +141,26 @@ func (s *CoursePhaseService) GetCoursePhaseParticipationStatusCounts(ctx context
 	}
 
 	return countsMap, err
+}
+
+// GetExportedApplicationQuestions lists the application questions whose answers reach this
+// phase in prevData.applicationAnswers. A phase without an incoming applicationAnswers
+// connection gets no questions and no application phase.
+func (s *CoursePhaseService) GetExportedApplicationQuestions(ctx context.Context, coursePhaseID uuid.UUID) (coursePhaseDTO.ExportedApplicationQuestions, error) {
+	applicationCoursePhaseID, err := s.queries.GetApplicationAnswersSourceForCoursePhase(ctx, coursePhaseID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return coursePhaseDTO.GetExportedApplicationQuestionsDTO(nil, nil), nil
+	}
+	if err != nil {
+		log.Error("could not get the application phase for course phase ", coursePhaseID, ": ", err)
+		return coursePhaseDTO.ExportedApplicationQuestions{}, errors.New("could not get the application phase")
+	}
+
+	questions, err := s.queries.GetExportedApplicationQuestionsForCoursePhase(ctx, applicationCoursePhaseID)
+	if err != nil {
+		log.Error("could not get the exported application questions of course phase ", applicationCoursePhaseID, ": ", err)
+		return coursePhaseDTO.ExportedApplicationQuestions{}, errors.New("could not get the exported application questions")
+	}
+
+	return coursePhaseDTO.GetExportedApplicationQuestionsDTO(&applicationCoursePhaseID, questions), nil
 }

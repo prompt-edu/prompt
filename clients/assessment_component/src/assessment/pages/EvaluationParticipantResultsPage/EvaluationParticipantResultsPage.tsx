@@ -4,7 +4,9 @@ import {
   CardContent,
   ErrorPage,
   getStudentName,
+  ParticipantNavigation,
   QueryGate,
+  StickyHeader,
 } from '@tumaet/prompt-ui-components'
 import { type ReactNode, useMemo } from 'react'
 import { useParams } from 'react-router-dom'
@@ -12,15 +14,18 @@ import { AssessmentType } from '../../interfaces/assessmentType'
 import { assessmentApi } from '../../network/api'
 import { assessmentKeys } from '../../network/cache'
 import { DownloadPdfButton } from '../components/DownloadPdfButton'
-import { EvaluationHeader } from '../components/EvaluationHeader'
+import { ScoreBadges } from '../components/EvaluationScore'
 import { FeedbackItemDisplayPanel } from '../components/FeedbackItemDisplayPanel/FeedbackItemDisplayPanel'
+import { ParticipantProfile } from '../components/ParticipantProfile'
 import { PrintReport } from '../components/PrintReport/PrintReport'
 import { useGetAllTeams } from '../hooks/useGetAllTeams'
 import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
 import { useGetCoursePhaseParticipations } from '../hooks/useGetCoursePhaseParticipations'
 import { useGetEvaluationCategoriesWithCompetencies } from '../hooks/useGetEvaluationCategoriesWithCompetencies'
+import { useParticipantNavigation } from '../hooks/useParticipantNavigation'
 import { CategoryEvaluation } from '../TutorEvaluationResultsPage/components/CategoryEvaluation'
 import { personFileBaseName } from '../utils/bulkExport/zipFiles'
+import { getScoreLevelsFromEvaluations } from '../utils/getScoreLevelsFromEvaluations'
 import { getTeamMemberName } from '../utils/getTeamMemberName'
 
 interface EvaluationParticipantResultsPageProps {
@@ -37,6 +42,7 @@ export const EvaluationParticipantResultsPage = ({
 
   const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
   const { data: participations } = useGetCoursePhaseParticipations()
+  const { orderedParticipations, navigateToParticipation } = useParticipantNavigation()
   const { data: teams } = useGetAllTeams()
   const { data: selfEvaluationCategories } = useGetEvaluationCategoriesWithCompetencies(
     AssessmentType.SELF,
@@ -68,6 +74,10 @@ export const EvaluationParticipantResultsPage = ({
   })
 
   const evaluations = evaluationsQuery.data ?? []
+  const score = useMemo(
+    () => getScoreLevelsFromEvaluations(evaluations, assessmentType)[0],
+    [evaluations, assessmentType],
+  )
   const feedbackItems = feedbackItemsQuery.data ?? []
 
   const participant = useMemo(
@@ -80,8 +90,7 @@ export const EvaluationParticipantResultsPage = ({
 
   const categories =
     assessmentType === AssessmentType.SELF ? selfEvaluationCategories : peerEvaluationCategories
-  const pageTitle =
-    assessmentType === AssessmentType.SELF ? 'Self Evaluation Results' : 'Peer Evaluation Results'
+  const pageLabel = assessmentType === AssessmentType.SELF ? 'Self Evaluation' : 'Peer Evaluation'
 
   const evaluationsByCategory = useMemo(
     () =>
@@ -141,9 +150,30 @@ export const EvaluationParticipantResultsPage = ({
         return (
           <>
             <div className='space-y-4 print:hidden'>
-              <EvaluationHeader>
-                {pageTitle} for {studentName}
-              </EvaluationHeader>
+              <StickyHeader
+                floating
+                expandedContent={
+                  <ParticipantProfile
+                    courseParticipationId={participant.courseParticipationID}
+                    person={participant.student}
+                    studyDetails={participant.student}
+                    label={pageLabel}
+                  >
+                    <ScoreBadges score={score} />
+                  </ParticipantProfile>
+                }
+              >
+                {(docked) => (
+                  <ParticipantNavigation
+                    participants={orderedParticipations}
+                    currentId={courseParticipationID}
+                    onNavigate={navigateToParticipation}
+                    compact={docked}
+                  >
+                    <ScoreBadges score={score} />
+                  </ParticipantNavigation>
+                )}
+              </StickyHeader>
 
               {categories.length === 0 ? (
                 <Card>
@@ -191,7 +221,7 @@ export const EvaluationParticipantResultsPage = ({
             </div>
 
             <PrintReport
-              title={`${pageTitle} for ${studentName}`}
+              title={`${pageLabel} Results for ${studentName}`}
               subtitle={teamName}
               meta={
                 evaluatorCount > 1 ? (

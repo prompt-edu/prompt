@@ -45,6 +45,9 @@ import { Button, Card, ManagementPageHeader } from '@tumaet/prompt-ui-components
   "Not now" on an optional prompt only lasts until the student leaves the page. The own picture
   is available through `useOwnProfilePicture` and editable through `ProfilePictureDialog`.
 - **Rich text:** `MinimalTiptapEditor`, `MailingTiptapEditor`, `DescriptionMinimalTiptapEditor`.
+- **Detail page header:** `StickyHeader` (docks below the management header while scrolling); put
+  `ParticipantNavigation` inside it with `compact={docked}`, so it docks as one box with the
+  current name between small previous / next arrows. Order it with `resolveNavigationOrder`.
 - **Hooks:** `useToast`, `useIsMobile`, `useCustomElementWidth`, `useScreenSize`.
 - **Utilities:** `cn` (clsx + tailwind-merge), `getStatusBadge`, `getStatusColor`,
   `getCountries`, `formatFileSize`, `openFileDownload`.

@@ -12,7 +12,8 @@ test.describe('application: overview diagrams', () => {
     const admin = new ApplicationAdminPage(page)
     await admin.gotoOverview(SEEDED_COURSES.fullCourse.id, FULL_COURSE_PHASES.application.id)
 
-    // Applications, Gender, Study Program and Semester Distribution.
-    await expectChartsDrawn(page, 4)
+    // Status, Study Degree, Study Program, Semester, Gender and Nationality. The
+    // seeded applications have no scores, so the score card draws no chart.
+    await expectChartsDrawn(page, 6)
   })
 })

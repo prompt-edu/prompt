@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/Nerzal/gocloak/v14"
@@ -54,35 +55,9 @@ func (s *KeycloakRealmService) CreateChildGroup(ctx context.Context, accessToken
 	childGroupID, err := s.client.CreateChildGroup(ctx, accessToken, s.Realm, parentGroupID, group)
 	if err != nil {
 		log.Error("failed to create child group: ", err)
-		return "", errors.New("failed to create Keycloak group")
+		return "", fmt.Errorf("failed to create Keycloak group %s: %w", groupName, err)
 	}
 	return childGroupID, nil
-}
-
-// GetOrCreatePromptGroup tries to find a top-level group exactly named TOP_LEVEL_GROUP_NAME.
-// If it doesn’t exist, it creates it. Returns the group ID either way.
-func (s *KeycloakRealmService) GetOrCreatePromptGroup(ctx context.Context, accessToken string) (string, error) {
-	exact := true
-	groups, err := s.client.GetGroups(ctx, accessToken, s.Realm, gocloak.GetGroupsParams{
-		Search: &TOP_LEVEL_GROUP_NAME,
-		Exact:  &exact,
-	})
-	if err != nil {
-		return "", fmt.Errorf("failed to get groups from Keycloak: %w", err)
-	}
-
-	if len(groups) == 1 && groups[0].Name != nil && *groups[0].Name == TOP_LEVEL_GROUP_NAME {
-		return *groups[0].ID, nil
-	}
-
-	// If not found, create the group
-	group := gocloak.Group{Name: &TOP_LEVEL_GROUP_NAME}
-	baseGroupID, err := s.client.CreateGroup(ctx, accessToken, s.Realm, group)
-	if err != nil {
-		log.Error("failed to create base group: ", err)
-		return "", errors.New("failed to create keycloak group")
-	}
-	return baseGroupID, nil
 }
 
 // GetCourseGroupName fetches the course from DB and constructs its Keycloak group name.
@@ -143,7 +118,7 @@ func (s *KeycloakRealmService) GetOrCreateCustomTopLevelGroup(ctx context.Contex
 	if err == nil && group.Name != nil && *group.Name == CUSTOM_GROUPS_NAME {
 		// Found existing group
 		return *group.ID, nil
-	} else if err != nil && !strings.Contains(err.Error(), "404") {
+	} else if err != nil && !hasStatus(err, http.StatusNotFound) {
 		// If we hit an error other than 404, it’s a real error
 		log.Errorf("failed to get group from Keycloak for path [%s]: %v", groupPath, err)
 		return "", fmt.Errorf("failed to get group from Keycloak: %w", err)
@@ -186,7 +161,7 @@ func (s *KeycloakRealmService) GetOrCreateCustomGroup(ctx context.Context, acces
 	if err == nil && group.Name != nil && *group.Name == groupName {
 		// Found existing subgroup
 		return *group.ID, nil
-	} else if err != nil && !strings.Contains(err.Error(), "404") {
+	} else if err != nil && !hasStatus(err, http.StatusNotFound) {
 		log.Errorf("failed to get group from Keycloak for path [%s]: %v", groupPath, err)
 		return "", fmt.Errorf("failed to get group: %w", err)
 	}
@@ -215,6 +190,51 @@ func (s *KeycloakRealmService) GetCustomGroupID(ctx context.Context, accessToken
 		return "", errors.New("failed to get custom group")
 	}
 	return *group.ID, nil
+}
+
+// otherCourseGroupOfRole returns the path of a group of another course that the client role is
+// mapped to, or "" when no such group exists, and whether the role exists. Groups of the course at
+// courseGroupPath and groups outside TOP_LEVEL_GROUP_NAME are not counted.
+func (s *KeycloakRealmService) otherCourseGroupOfRole(ctx context.Context, accessToken, courseGroupPath, roleName string) (string, bool, error) {
+	ownPath := "/" + courseGroupPath
+	for first := 0; ; first += roleGroupsPageSize {
+		groups, err := s.clientRoleGroupsPage(ctx, accessToken, roleName, first)
+		if hasStatus(err, http.StatusNotFound) {
+			return "", false, nil
+		}
+		if err != nil {
+			return "", false, fmt.Errorf("failed to get the groups of client role %s: %w", roleName, err)
+		}
+		for _, group := range groups {
+			if group == nil || group.Path == nil {
+				continue
+			}
+			groupPath := *group.Path
+			if strings.HasPrefix(groupPath, "/"+TOP_LEVEL_GROUP_NAME+"/") && groupPath != ownPath && !strings.HasPrefix(groupPath, ownPath+"/") {
+				return groupPath, true, nil
+			}
+		}
+		if len(groups) < roleGroupsPageSize {
+			return "", true, nil
+		}
+	}
+}
+
+const roleGroupsPageSize = 100
+
+func (s *KeycloakRealmService) clientRoleGroupsPage(ctx context.Context, accessToken, roleName string, first int) ([]*gocloak.Group, error) {
+	var groups []*gocloak.Group
+	resp, err := s.client.GetRequestWithBearerAuth(ctx, accessToken).
+		SetQueryParams(map[string]string{"first": strconv.Itoa(first), "max": strconv.Itoa(roleGroupsPageSize)}).
+		SetResult(&groups).
+		Get(s.baseURL + "/admin/realms/" + s.Realm + "/clients/" + s.idOfClient + "/roles/" + roleName + "/groups")
+	if err != nil {
+		return nil, err
+	}
+	if resp.IsError() {
+		return nil, &gocloak.APIError{Code: resp.StatusCode(), Message: resp.Status()}
+	}
+	return groups, nil
 }
 
 // GetOrCreateRealmRole fetches or creates a role for the Keycloak client identified by idOfClient.

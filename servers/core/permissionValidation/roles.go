@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+	"unicode"
 )
 
 const PromptAdmin = "PROMPT_Admin"
@@ -23,6 +24,14 @@ const (
 )
 
 var orgSlugPattern = regexp.MustCompile(`^[a-z0-9]+(-[a-z0-9]+)*$`)
+
+// IsAddressableInKeycloak reports whether Keycloak can address the groups and roles named after
+// name. Keycloak splits a group path at every "/". The name goes unescaped into the admin URLs,
+// which a "%" or a control character makes invalid and a "?", "#" or ";" cuts short, so the lookup
+// of "ws24-lab#1" reaches "ws24-lab".
+func IsAddressableInKeycloak(name string) bool {
+	return !strings.ContainsAny(name, "/%?#;") && strings.IndexFunc(name, unicode.IsControl) < 0
+}
 
 // CourseIdentifier builds the "<semesterTag>-<name>" prefix shared by a course's
 // Keycloak group and role names.

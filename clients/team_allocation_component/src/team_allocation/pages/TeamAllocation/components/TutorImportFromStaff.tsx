@@ -7,7 +7,7 @@ import type { Tutor } from '../../../interfaces/tutor'
 import { teamAllocationKeys } from '../../../network/cache'
 import { getCourseStaff } from '../../../network/queries/getCourseStaff'
 import { useTutorSelection } from '../hooks/useTutorSelection'
-import { type CurrentTutorTeams, staffMemberToTutorCandidate } from '../utils/tutorImport'
+import { type CurrentTutorTeams, staffToTutorCandidates } from '../utils/tutorImport'
 import { TutorSelection } from './TutorSelection'
 
 interface TutorImportFromStaffProps {
@@ -18,8 +18,8 @@ interface TutorImportFromStaffProps {
   onImport: (tutors: Tutor[]) => void
 }
 
-// Imports course editors, who have no student record (the project leads of the iPraktikum, for
-// example), as tutors of one or more teams.
+// Imports course lecturers and editors, who have no student record (the project leads of the
+// iPraktikum, for example), as tutors of one or more teams.
 export const TutorImportFromStaff = ({
   courseId,
   teamOptions,
@@ -39,12 +39,12 @@ export const TutorImportFromStaff = ({
     enabled: !!courseId,
   })
 
-  const candidates = useMemo(() => (staff?.editors ?? []).map(staffMemberToTutorCandidate), [staff])
+  const candidates = useMemo(() => (staff ? staffToTutorCandidates(staff) : []), [staff])
 
   return (
     <div className='grid gap-4 py-4'>
       <p className='text-sm text-muted-foreground'>
-        Course editors of this course. Assign each one the teams they lead.
+        Course lecturers and editors of this course. Assign each one the teams they lead.
       </p>
       {isLoading && (
         <div className='flex items-center justify-center py-4'>
@@ -57,7 +57,7 @@ export const TutorImportFromStaff = ({
         </div>
       )}
       {staff && candidates.length === 0 && (
-        <p className='text-sm text-muted-foreground'>This course has no course editors.</p>
+        <p className='text-sm text-muted-foreground'>This course has no lecturers or editors.</p>
       )}
       {candidates.length > 0 && (
         <TutorSelection

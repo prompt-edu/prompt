@@ -3,10 +3,13 @@ package course
 import (
 	"context"
 	"errors"
+	"fmt"
+	"strings"
 	"unicode/utf8"
 
 	"github.com/google/uuid"
 	"github.com/prompt-edu/prompt/servers/core/course/courseDTO"
+	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -14,6 +17,31 @@ const (
 	maxShortDescriptionLength = 255
 	maxLongDescriptionLength  = 5000
 )
+
+// ErrInvalidCourseIdentifier is returned when a new course's name or semester tag is empty or
+// contains one of the characters "-", "/", "%", "?", "#" or ";" or a control character.
+var ErrInvalidCourseIdentifier = errors.New("invalid course name or semester tag")
+
+// ValidateCourseIdentifier checks the name and semester tag of a new course, which join to the
+// identifier "<semester>-<name>" that names the course's Keycloak groups and roles:
+//   - A "-" would let two courses share an identifier, such as "ws24" with "ios-lab" and "ws24-ios"
+//     with "lab". Without one, the identifier splits back into its semester tag and name in exactly
+//     one way, and the database keeps (name, semester_tag) unique. Courses created before this rule
+//     can contain a "-", but their identifiers then hold more than one and differ from a new one.
+//   - Keycloak must be able to address the groups and roles of the identifier (see
+//     permissionValidation.IsAddressableInKeycloak): "ws24" with "ios/Lecturer" would resolve to the
+//     Lecturer group of the course "ws24-ios", and "lab#1" would look up "lab".
+func ValidateCourseIdentifier(name, semesterTag string) error {
+	for _, part := range []struct{ label, value string }{{"name", name}, {"semester tag", semesterTag}} {
+		if part.value == "" {
+			return fmt.Errorf("%w: the %s is required", ErrInvalidCourseIdentifier, part.label)
+		}
+		if strings.Contains(part.value, "-") || !permissionValidation.IsAddressableInKeycloak(part.value) {
+			return fmt.Errorf(`%w: the %s must not contain "-", "/", "%%", "?", "#", ";" or control characters`, ErrInvalidCourseIdentifier, part.label)
+		}
+	}
+	return nil
+}
 
 func validateCreateCourse(c courseDTO.CreateCourse) error {
 	if c.Name == "" {
@@ -42,6 +70,10 @@ func validateCreateCourse(c courseDTO.CreateCourse) error {
 		errorMessage := "semester tag is required"
 		log.Error(errorMessage)
 		return errors.New(errorMessage)
+	}
+	if err := ValidateCourseIdentifier(c.Name, c.SemesterTag.String); err != nil {
+		log.Error(err)
+		return err
 	}
 	if c.CourseType == "" {
 		errorMessage := "course type is required"

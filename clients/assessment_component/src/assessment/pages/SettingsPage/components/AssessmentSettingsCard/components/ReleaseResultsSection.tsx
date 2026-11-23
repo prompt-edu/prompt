@@ -24,6 +24,7 @@ export const ReleaseResultsSection = ({ isSaving }: ReleaseResultsSectionProps) 
     completedAssessments,
     totalAssessments,
     allAssessmentsCompleted,
+    configLoaded,
   } = useReleaseAssessmentResults()
 
   const resultsLabel = assessmentEnabled ? 'assessment results' : 'evaluation results'
@@ -65,7 +66,7 @@ export const ReleaseResultsSection = ({ isSaving }: ReleaseResultsSectionProps) 
 
             <Button
               onClick={() => setShowReleaseDialog(true)}
-              disabled={isSaving || isReleasing || !allAssessmentsCompleted}
+              disabled={isSaving || isReleasing || !configLoaded || !allAssessmentsCompleted}
               className='w-full'
             >
               {isReleasing

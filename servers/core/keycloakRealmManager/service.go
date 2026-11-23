@@ -4,10 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 	"unicode"
 
 	"github.com/Nerzal/gocloak/v14"
+	"github.com/go-resty/resty/v2"
 	"github.com/google/uuid"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/core/keycloakRealmManager/keycloakRealmDTO"
@@ -19,6 +21,7 @@ import (
 
 type KeycloakRealmService struct {
 	client       *gocloak.GoCloak
+	baseURL      string
 	Realm        string
 	ClientID     string
 	ClientSecret string
@@ -27,14 +30,32 @@ type KeycloakRealmService struct {
 }
 
 func NewKeycloakRealmService(baseURL, realm, clientID, clientSecret, idOfClient string, queries db.Queries) *KeycloakRealmService {
+	client := gocloak.NewClient(baseURL)
+	client.RestyClient().OnAfterResponse(explainAdminAPIUnauthorized)
 	return &KeycloakRealmService{
-		client:       gocloak.NewClient(baseURL),
+		client:       client,
+		baseURL:      strings.TrimRight(baseURL, "/"),
 		Realm:        realm,
 		ClientID:     clientID,
 		ClientSecret: clientSecret,
 		idOfClient:   idOfClient,
 		queries:      queries,
 	}
+}
+
+// adminAPIScopeDocsURL points at the admin guide section on the kc-admin-api client scope.
+const adminAPIScopeDocsURL = "https://prompt-edu.github.io/prompt/admin/keycloak-prod#required-client-scope-keycloak-2682"
+
+// explainAdminAPIUnauthorized turns a bare 401 from the Keycloak Admin REST API
+// into an error that says what to fix. Since Keycloak 26.8.2 the Admin API
+// rejects every token that lacks the kc-admin-api client scope, and all an admin
+// would otherwise see is "401 Unauthorized". A 401 from the token endpoint means
+// a wrong client secret and is left alone.
+func explainAdminAPIUnauthorized(_ *resty.Client, resp *resty.Response) error {
+	if resp.StatusCode() != http.StatusUnauthorized || !strings.Contains(resp.Request.URL, "/admin/realms/") {
+		return nil
+	}
+	return fmt.Errorf("401 Unauthorized from the Keycloak Admin REST API: the service-account client is probably missing the kc-admin-api client scope, which Keycloak requires since 26.8.2. See %s", adminAPIScopeDocsURL)
 }
 
 var TOP_LEVEL_GROUP_NAME = "Prompt"
@@ -64,6 +85,10 @@ func isAllowedCourseGroup(name string) bool {
 	return name == permissionValidation.CourseLecturer || name == permissionValidation.CourseEditor
 }
 
+func customGroupRoleName(courseGroupName, customGroupName string) string {
+	return courseGroupName + "-cg-" + customGroupName
+}
+
 func (s *KeycloakRealmService) AddCustomGroup(ctx context.Context, courseID uuid.UUID, groupName string) (string, error) {
 	courseGroupName, err := s.GetCourseGroupName(ctx, courseID)
 	if err != nil {
@@ -76,6 +101,17 @@ func (s *KeycloakRealmService) AddCustomGroup(ctx context.Context, courseID uuid
 		return "", err
 	}
 
+	roleName := customGroupRoleName(courseGroupName, groupName)
+	otherCourseGroup, _, err := s.otherCourseGroupOfRole(ctx, token.AccessToken, TOP_LEVEL_GROUP_NAME+"/"+courseGroupName, roleName)
+	if err != nil {
+		log.Error("failed to check the custom group role: ", err)
+		return "", fmt.Errorf("failed to check the custom group role: %w", err)
+	}
+	if otherCourseGroup != "" {
+		log.Warnf("custom group role %s is mapped to the group %s of another course", roleName, otherCourseGroup)
+		return "", fmt.Errorf("%w: its role %s already belongs to another course", ErrInvalidGroupName, roleName)
+	}
+
 	// 2. Get Custom subgroup or create
 	customGroupID, err := s.GetOrCreateCustomGroup(ctx, token.AccessToken, groupName, courseID)
 	if err != nil {
@@ -84,7 +120,6 @@ func (s *KeycloakRealmService) AddCustomGroup(ctx context.Context, courseID uuid
 	}
 
 	// 3. Create desired role
-	roleName := courseGroupName + "-cg-" + groupName
 	role, err := s.GetOrCreateRealmRole(ctx, token.AccessToken, roleName)
 	if err != nil {
 		log.Error("failed to create role: ", err)

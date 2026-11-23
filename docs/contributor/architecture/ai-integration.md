@@ -22,11 +22,14 @@ stored records are no longer purged, exported or erased.
 
 ![Component diagram of the AI integration](./img/ai-integration/ai-integration.svg)
 
-> The AI server, its database and the AI client run only with `AI_ENABLED=true`. The Assessment
-> client and server stand for any phase that uses AI. The planned components are tracked in #2285
-> (prompt-mcp) and #2286 (AI chat). The diagram is an [Apollon](https://apollon.aet.cit.tum.de)
-> model: import `img/ai-integration/ai-integration.json` there to edit it, then export JSON and SVG
-> again.
+> Phase servers reach Logos only through the AI server, which records every call in its audit log
+> database. The AI client, a micro-frontend loaded by the core client, browses these records. The
+> phase server and client stand for any phase that uses AI. The AI server, its database and the AI
+> client run only with `AI_ENABLED=true`. The MCP server is planned in #2285 (prompt-mcp, behind
+> `AI_MCP`): phase servers register their tools with it, and it executes them on behalf of external
+> MCP clients such as Claude Code. The diagram is an
+> [Apollon](https://apollon.aet.cit.tum.de) model: import `img/ai-integration/ai-integration.json`
+> there to edit it, then export JSON and SVG again.
 
 ## Decision Records
 

@@ -6575,7 +6575,7 @@ const docTemplate = `{
                     ]
                 },
                 "email": {
-                    "description": "Email is the student's contact email address, must be a valid email format.\nThis is used for notifications, communications, and account recovery.",
+                    "description": "Email is the person's contact email address. It is empty when the source does not provide it.",
                     "type": "string"
                 },
                 "firstName": {
@@ -6633,7 +6633,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "universityLogin": {
-                    "description": "UniversityLogin is the student's username for university systems and services.\nThis login is typically used for accessing library, computing resources, and other university platforms.",
+                    "description": "UniversityLogin is the person's username for university systems and services.\nIt is empty when the source does not provide it.",
                     "type": "string"
                 }
             }

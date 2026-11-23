@@ -104,7 +104,7 @@ services:
       - prompt-network
 
   keycloak:
-    image: quay.io/keycloak/keycloak:26.6.3
+    image: quay.io/keycloak/keycloak:26.8.2
     container_name: prompt-keycloak
     labels:
       - "traefik.enable=true"

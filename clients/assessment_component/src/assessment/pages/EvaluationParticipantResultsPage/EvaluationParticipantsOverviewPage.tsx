@@ -20,11 +20,13 @@ import {
 import { PeerEvaluationCompletionBadge } from '../components/badges'
 import { AssessmentDiagram } from '../components/diagrams/AssessmentDiagram'
 import { ScoreLevelDistributionDiagram } from '../components/diagrams/ScoreLevelDistributionDiagram'
+import { createScoreColumns } from '../components/EvaluationScore'
 import { useGetAllEvaluationCompletions } from '../hooks/useGetAllEvaluationCompletions'
 import { useGetAllEvaluations } from '../hooks/useGetAllEvaluations'
 import { useGetAllTeams } from '../hooks/useGetAllTeams'
 import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
 import { useGetCoursePhaseParticipations } from '../hooks/useGetCoursePhaseParticipations'
+import type { ParticipantDetailLocationState } from '../hooks/useParticipantNavigation'
 import { getScoreLevelsFromEvaluations } from '../utils/getScoreLevelsFromEvaluations'
 import type { EvaluationParticipantRow } from './interfaces/evaluationParticipantRow'
 import { exportEvaluationReportsAsPdf } from './utils/exportEvaluationReports'
@@ -185,8 +187,9 @@ export const EvaluationParticipantsOverviewPage = ({
         ),
         enableSorting: true,
       },
+      ...createScoreColumns<EvaluationParticipantRow>(typedScoreLevels),
     ],
-    [],
+    [typedScoreLevels],
   )
 
   return (
@@ -224,9 +227,13 @@ export const EvaluationParticipantsOverviewPage = ({
           data={data}
           columns={columns}
           actions={actions}
-          onRowClick={(row) => {
+          onRowClick={(row, orderedRows) => {
             if (isEnabled) {
-              navigate(`${path}/${row.id}`)
+              navigate(`${path}/${row.id}`, {
+                state: {
+                  orderedParticipationIds: orderedRows.map((orderedRow) => orderedRow.id),
+                } satisfies ParticipantDetailLocationState,
+              })
             }
           }}
         />

@@ -68,12 +68,15 @@ describe('select', () => {
 
   it('runs a leaf module with the core shard only', () => {
     assert.deepEqual(
-      select(['servers/interview/main.go', 'clients/interview_component/src/x.tsx']),
+      select([
+        'servers/infrastructure_setup/main.go',
+        'clients/infrastructure_setup_component/src/x.tsx',
+      ]),
       {
         code: true,
-        servers: ['interview'],
-        clients: ['interview_component'],
-        shards: ['core', 'interview'],
+        servers: ['infrastructure_setup'],
+        clients: ['infrastructure_setup_component'],
+        shards: ['core', 'infrastructure-setup'],
       },
     )
   })
@@ -85,6 +88,7 @@ describe('select', () => {
       'self-team-allocation',
       'assessment',
       'certificate',
+      'presentation',
       'ai',
     ])
     assert.deepEqual(select(['clients/matching_component/src/x.tsx']).shards, [
@@ -96,6 +100,22 @@ describe('select', () => {
     assert.deepEqual(select(['servers/example_server/main.go']).shards, ['core', 'ai', 'example'])
   })
 
+  it('reruns the phases that read team data for a team phase change', () => {
+    for (const file of ['servers/team_allocation/main.go', 'servers/self_team_allocation/main.go']) {
+      assert.ok(select([file]).shards.includes('presentation'), file)
+    }
+  })
+
+  it('reruns matching and its dependents for an interview change', () => {
+    assert.deepEqual(select(['servers/interview/main.go']).shards, [
+      'core',
+      'interview',
+      'matching',
+      'assessment',
+      'ai',
+    ])
+  })
+
   it('does not confuse modules sharing a name prefix', () => {
     assert.deepEqual(select(['servers/self_team_allocation/main.go']).servers, [
       'self_team_allocation',
@@ -105,6 +125,7 @@ describe('select', () => {
       'self-team-allocation',
       'assessment',
       'certificate',
+      'presentation',
       'ai',
     ])
   })

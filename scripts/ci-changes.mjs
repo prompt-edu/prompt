@@ -13,7 +13,7 @@ import { fileURLToPath } from 'node:url'
 export const MODULES = {
   core: { server: 'core', client: 'core', shard: 'core' },
   interview: { server: 'interview', client: 'interview_component', shard: 'interview' },
-  matching: { client: 'matching_component', shard: 'matching' },
+  matching: { client: 'matching_component', shard: 'matching', dependsOn: ['interview'] },
   team_allocation: {
     server: 'team_allocation',
     client: 'team_allocation_component',
@@ -37,7 +37,12 @@ export const MODULES = {
     shard: 'certificate',
     dependsOn: ['team_allocation', 'self_team_allocation'],
   },
-  presentation: { server: 'presentation', client: 'presentation_component', shard: 'presentation' },
+  presentation: {
+    server: 'presentation',
+    client: 'presentation_component',
+    shard: 'presentation',
+    dependsOn: ['team_allocation', 'self_team_allocation'],
+  },
   infrastructure_setup: {
     server: 'infrastructure_setup',
     client: 'infrastructure_setup_component',

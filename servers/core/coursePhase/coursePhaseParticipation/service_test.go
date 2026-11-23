@@ -66,6 +66,40 @@ func (suite *CoursePhaseParticipationTestSuite) TestGetParticipationsWithPrevDat
 	}
 }
 
+func (suite *CoursePhaseParticipationTestSuite) TestApplicationAnswersCarryQuestionIDAndTitle() {
+	interviewPhaseID := uuid.MustParse("2b1a55ad-8b1d-453f-b2b4-2373ecb35bc1")
+	experienceQuestionID := "fc8bda6d-280e-4a5e-9ebd-4bd8b68aab75"
+	motivationQuestionID := "a6a04042-95d1-4765-8592-caf9560c8c3c" // answered, but not exported
+
+	participationsWithResolution, err := suite.coursePhaseParticipationService.GetAllParticipationsForCoursePhase(suite.ctx, interviewPhaseID)
+	assert.NoError(suite.T(), err)
+
+	var experienceAnswer map[string]interface{}
+	for _, participation := range participationsWithResolution.Participations {
+		answers, ok := participation.PrevData["applicationAnswers"].([]interface{})
+		if !ok {
+			continue
+		}
+		for _, rawAnswer := range answers {
+			answer, ok := rawAnswer.(map[string]interface{})
+			if !assert.True(suite.T(), ok, "Expected every exported answer to be an object") {
+				return
+			}
+			assert.NotEqual(suite.T(), motivationQuestionID, answer["questionID"], "Questions that are not accessible for other phases must not be exported")
+			if answer["questionID"] == experienceQuestionID {
+				experienceAnswer = answer
+			}
+		}
+	}
+
+	if !assert.NotNil(suite.T(), experienceAnswer, "Expected an exported answer to the experience question") {
+		return
+	}
+	assert.Equal(suite.T(), "Expierenced7", experienceAnswer["title"])
+	assert.Equal(suite.T(), "experience", experienceAnswer["key"], "The key stays exported until every consumer reads the question id")
+	assert.Equal(suite.T(), "text", experienceAnswer["type"])
+}
+
 func (suite *CoursePhaseParticipationTestSuite) TestInterviewScoreIsResolvedNotInlined() {
 	matchingPhaseID := uuid.MustParse("7ffffd38-2454-4c67-821d-5692d8086e6c")
 	interviewPhaseID := uuid.MustParse("2b1a55ad-8b1d-453f-b2b4-2373ecb35bc1")

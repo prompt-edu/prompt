@@ -360,6 +360,8 @@ SELECT
                             FROM (
                                -- Text answers
                                SELECT jsonb_build_object(
+                                  'questionID', qt.id,
+                                  'title', COALESCE(qt.title, ''),
                                   'key', qt.access_key,
                                   'answer', to_jsonb(aat.answer),
                                   'order_num', qt.order_num, 
@@ -376,6 +378,8 @@ SELECT
                                UNION ALL
                                -- Multi-select answers
                                SELECT jsonb_build_object(
+                                  'questionID', qm.id,
+                                  'title', COALESCE(qm.title, ''),
                                   'key', qm.access_key,
                                   'answer', to_jsonb(aams.answer),
                                   'order_num', qm.order_num, 

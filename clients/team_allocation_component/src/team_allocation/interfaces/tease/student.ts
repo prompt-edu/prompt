@@ -3,8 +3,10 @@ import type { Device } from './device'
 import type { Gender } from './gender'
 import type { Language } from './language'
 import type { ProjectPreference } from './projectPreference'
-import type { SkillProficiency } from './skillProficiency'
+import type { SkillProficiency, UNKNOWN_SKILL_PROFICIENCY } from './skillProficiency'
 import type { StudentSkill } from './studentSkill'
+
+type IntroProficiency = SkillProficiency | typeof UNKNOWN_SKILL_PROFICIENCY
 
 export interface TeaseStudent {
   devices: Array<Device>
@@ -12,8 +14,8 @@ export interface TeaseStudent {
   firstName: string
   gender: Gender
   id: string
-  introCourseProficiency: SkillProficiency
-  introSelfEvaluation: SkillProficiency
+  introCourseProficiency: IntroProficiency
+  introSelfEvaluation: IntroProficiency
   languages: Array<Language>
   lastName: string
   nationality: string

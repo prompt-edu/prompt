@@ -1,23 +1,25 @@
 import {
-  Button,
+  Badge,
   Card,
   CardContent,
   ErrorPage,
-  getStudentName,
+  ParticipantNavigation,
   QueryGate,
+  StickyHeader,
 } from '@tumaet/prompt-ui-components'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useMemo } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { AssessmentType } from '../../interfaces/assessmentType'
 import { DownloadPdfButton } from '../components/DownloadPdfButton'
-import { EvaluationHeader } from '../components/EvaluationHeader'
+import { ScoreBadges } from '../components/EvaluationScore'
 import { FeedbackItemDisplayPanel } from '../components/FeedbackItemDisplayPanel/FeedbackItemDisplayPanel'
+import { ParticipantProfile } from '../components/ParticipantProfile'
 import { useGetAllTeams } from '../hooks/useGetAllTeams'
 import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
 import { useGetEvaluationCategoriesWithCompetencies } from '../hooks/useGetEvaluationCategoriesWithCompetencies'
 import { getTutorLabel } from '../hooks/useTutorLabel'
 import { personFileBaseName } from '../utils/bulkExport/zipFiles'
+import { getScoreLevelsFromEvaluations } from '../utils/getScoreLevelsFromEvaluations'
 import { getTeamNamesOfTutor } from '../utils/getTutorRows'
 import { CategoryEvaluation } from './components/CategoryEvaluation'
 import { TutorEvaluationReport } from './components/TutorEvaluationReport'
@@ -27,8 +29,7 @@ import { useTutorNavigation } from './hooks/useTutorNavigation'
 
 export const TutorEvaluationResultsPage = () => {
   const { tutorId } = useParams<{ tutorId: string }>()
-  const navigate = useNavigate()
-  const { prevTutor, nextTutor } = useTutorNavigation()
+  const { orderedTutors, navigateToTutor } = useTutorNavigation()
 
   const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
   const tutorLabel = getTutorLabel(coursePhaseConfig)
@@ -77,39 +78,45 @@ export const TutorEvaluationResultsPage = () => {
           return <ErrorPage message={`The requested ${tutorLabel.text} could not be found.`} />
         }
 
+        const badges = (
+          <>
+            {tutor.teamNames.map((teamName) => (
+              <Badge key={teamName} variant='outline'>
+                {teamName}
+              </Badge>
+            ))}
+            <ScoreBadges
+              score={getScoreLevelsFromEvaluations(tutorEvaluations, AssessmentType.TUTOR)[0]}
+            />
+          </>
+        )
+
         return (
           <>
             <div className='space-y-4 print:hidden'>
-              <EvaluationHeader
-                previousAction={
-                  prevTutor && (
-                    <Button
-                      variant='outline'
-                      className='h-10 shrink-0'
-                      aria-label={`Navigate to previous ${tutorLabel.text}: ${getStudentName(prevTutor)}`}
-                      onClick={() => navigate(`../${prevTutor.id}`, { relative: 'path' })}
-                    >
-                      <ChevronLeft className='h-4 w-4' />
-                      <span className='hidden md:inline'>{getStudentName(prevTutor)}</span>
-                    </Button>
-                  )
-                }
-                nextAction={
-                  nextTutor && (
-                    <Button
-                      variant='outline'
-                      className='h-10 shrink-0'
-                      aria-label={`Navigate to next ${tutorLabel.text}: ${getStudentName(nextTutor)}`}
-                      onClick={() => navigate(`../${nextTutor.id}`, { relative: 'path' })}
-                    >
-                      <span className='hidden md:inline'>{getStudentName(nextTutor)}</span>
-                      <ChevronRight className='h-4 w-4' />
-                    </Button>
-                  )
+              <StickyHeader
+                floating
+                expandedContent={
+                  <ParticipantProfile
+                    courseParticipationId={tutor.id}
+                    person={tutor}
+                    label={`${tutorLabel.title} Evaluation`}
+                  >
+                    {badges}
+                  </ParticipantProfile>
                 }
               >
-                {tutorLabel.title} Evaluation Results for {getStudentName(tutor)}
-              </EvaluationHeader>
+                {(docked) => (
+                  <ParticipantNavigation
+                    participants={orderedTutors}
+                    currentId={tutorId}
+                    onNavigate={navigateToTutor}
+                    compact={docked}
+                  >
+                    {badges}
+                  </ParticipantNavigation>
+                )}
+              </StickyHeader>
 
               {tutorEvaluationCategories.length === 0 ? (
                 <Card>

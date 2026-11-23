@@ -18,11 +18,6 @@ const sidebarItems: SidebarMenuItemProps = {
       requiredPermissions: LECTURER_ROLES,
     },
     {
-      title: 'Tease Configuration',
-      goToPath: '/tease-config',
-      requiredPermissions: LECTURER_ROLES,
-    },
-    {
       title: 'Allocations',
       goToPath: '/allocations',
       requiredPermissions: LECTURER_ROLES,

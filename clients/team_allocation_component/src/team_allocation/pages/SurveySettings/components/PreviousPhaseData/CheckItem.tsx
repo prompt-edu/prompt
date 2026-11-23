@@ -1,6 +1,6 @@
 import { Card, CardContent } from '@tumaet/prompt-ui-components'
 import { AlertCircle, CheckCircle } from 'lucide-react'
-import type { ValidationResult } from '../../../interfaces/validationResult'
+import type { ValidationResult } from '../../../../interfaces/validationResult'
 
 export const CheckItem = ({ check }: { check: ValidationResult }) => {
   return (

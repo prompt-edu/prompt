@@ -25,7 +25,7 @@ packages = ["stress"]
 # Unit tests for the orchestrator and report helpers; `uv run` installs this group
 # by default, so `uv run --project api-stress pytest api-stress` just works.
 dev = [
-    "pytest>=9.0",
+    "pytest>=9.2.0",
 ]
 
 [tool.pytest.ini_options]

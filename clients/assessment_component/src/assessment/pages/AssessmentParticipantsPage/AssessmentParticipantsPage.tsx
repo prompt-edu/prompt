@@ -1,9 +1,11 @@
+import { PassStatus } from '@tumaet/prompt-shared-state'
 import {
   CoursePhaseParticipationsTable,
   ErrorPage,
   type ExtraParticipantColumn,
   ManagementPageHeader,
   type ParticipantRow,
+  PassStatusSummary,
   QueryGate,
   type RowAction,
   type TableFilter,
@@ -23,6 +25,7 @@ import { useGetAllScoreLevels } from '../hooks/useGetAllScoreLevels'
 import { useGetAllTeams } from '../hooks/useGetAllTeams'
 import { useGetCoursePhaseConfig } from '../hooks/useGetCoursePhaseConfig'
 import { useGetCoursePhaseParticipations } from '../hooks/useGetCoursePhaseParticipations'
+import type { ParticipantDetailLocationState } from '../hooks/useParticipantNavigation'
 import { getTutorLabel } from '../hooks/useTutorLabel'
 import {
   createGradeSuggestionColumn,
@@ -43,6 +46,8 @@ import {
 } from './utils/completionActions'
 import { exportAssessmentsAsJson, exportAssessmentsAsPdf } from './utils/exportAssessments'
 
+const PASS_STATUS_LABELS = { [PassStatus.NOT_ASSESSED]: 'No pass status' }
+
 const toParticipationIDs = (rows: ParticipantRow[]) => rows.map((row) => row.courseParticipationID)
 
 const serverErrorMessage = (error: unknown): string =>
@@ -56,13 +61,17 @@ export const AssessmentParticipantsPage = () => {
   // shared table's onClickRowAction doesn't forward the event, so capture the modifier here
   const openInNewTabRef = useRef(false)
 
-  const openAssessment = (courseParticipationID: string) => {
-    const target = `${path}/${courseParticipationID}`
+  const openAssessment = (row: ParticipantRow, orderedRows: ParticipantRow[]) => {
+    const target = `${path}/${row.courseParticipationID}`
     if (openInNewTabRef.current) {
       window.open(`${window.location.origin}${target}`, '_blank', 'noopener,noreferrer')
       return
     }
-    navigate(target)
+    navigate(target, {
+      state: {
+        orderedParticipationIds: toParticipationIDs(orderedRows),
+      } satisfies ParticipantDetailLocationState,
+    })
   }
 
   const coursePhaseConfigQuery = useGetCoursePhaseConfig()
@@ -277,15 +286,18 @@ export const AssessmentParticipantsPage = () => {
             openInNewTabRef.current = e.metaKey || e.ctrlKey
           }}
         >
+          <PassStatusSummary
+            participations={participations ?? []}
+            passStatusLabels={PASS_STATUS_LABELS}
+            className='mb-4'
+          />
           <CoursePhaseParticipationsTable
             phaseId={phaseId}
             participants={participations ?? []}
             extraColumns={extraColumns}
             extraFilters={extraFilters}
             extraActions={extraActions}
-            onClickRowAction={
-              assessmentEnabled ? (row) => openAssessment(row.courseParticipationID) : undefined
-            }
+            onClickRowAction={assessmentEnabled ? openAssessment : undefined}
           />
         </div>
       </div>

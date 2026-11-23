@@ -1,6 +1,12 @@
-import { Languages, Laptop, MessageSquare, Star } from 'lucide-react'
-import type { StudentCheck } from '../../../interfaces/studentCheck'
+import { Languages, Laptop, Star } from 'lucide-react'
+import type { StudentCheck } from '../interfaces/studentCheck'
+import { UNKNOWN_SKILL_PROFICIENCY } from '../interfaces/tease/skillProficiency'
 
+const isMissingProficiency = (value: string | undefined | null): boolean =>
+  !value || value === UNKNOWN_SKILL_PROFICIENCY
+
+// There are no checks for the tutor and student comments: the server does not send them yet
+// (`ConvertCourseParticipationToTeaseStudent` always returns empty lists), so they would always fail.
 export const checksConfig: StudentCheck[] = [
   // Devices
   {
@@ -15,35 +21,11 @@ export const checksConfig: StudentCheck[] = [
     icon: <Laptop className='h-4 w-4' />,
   },
 
-  // Comments
-  {
-    label: 'Tutor Comments',
-    extractor: (s) => s.tutorComments,
-    isEmpty: (arr) => !arr || arr.length === 0,
-    missingMessage: 'tutor comments',
-    problemDescription: 'All students are missing comments from tutors.',
-    details: 'Allow tutors to add feedback. Export from the phase where collected.',
-    category: 'comments',
-    highLevelCategory: 'previous',
-    icon: <MessageSquare className='h-4 w-4' />,
-  },
-  {
-    label: 'Student Comments',
-    extractor: (s) => s.studentComments,
-    isEmpty: (arr) => !arr || arr.length === 0,
-    missingMessage: 'student comments',
-    problemDescription: 'All students are missing comments from students.',
-    details: 'Allow students to give feedback. Export from the phase where collected.',
-    category: 'comments',
-    highLevelCategory: 'previous',
-    icon: <MessageSquare className='h-4 w-4' />,
-  },
-
   // ScoreLevel
   {
     label: 'Score Level',
     extractor: (s) => s.introCourseProficiency,
-    isEmpty: (v) => v === undefined || v === null,
+    isEmpty: isMissingProficiency,
     missingMessage: 'score level information',
     problemDescription: 'All students are missing score levels.',
     details: 'Assign score levels. Export from the phase where collected.',
@@ -56,7 +38,7 @@ export const checksConfig: StudentCheck[] = [
   {
     label: 'Self Evaluation',
     extractor: (s) => s.introSelfEvaluation,
-    isEmpty: (v) => v === undefined || v === null,
+    isEmpty: isMissingProficiency,
     missingMessage: 'self evaluation information',
     problemDescription: 'All students are missing self-assessment information.',
     details: 'Collect self-assessment from students. Export from the phase where collected.',

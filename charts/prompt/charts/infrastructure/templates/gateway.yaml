@@ -1,0 +1,80 @@
+{{- $g := .Values.global.gateway -}}
+{{- $host := .Values.global.host -}}
+{{- $cm := $g.certManager -}}
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: {{ $g.name }}
+  labels:
+    {{- include "prompt.labels" (dict "root" . "component" "gateway") | nindent 4 }}
+  {{- if $cm.enabled }}
+  annotations:
+    cert-manager.io/cluster-issuer: {{ $cm.issuerName }}
+  {{- end }}
+spec:
+  gatewayClassName: {{ $g.gatewayClassName }}
+  listeners:
+    # HTTP listener: serves ACME HTTP-01 challenges and (optionally) redirects.
+    - name: http
+      protocol: HTTP
+      port: 80
+      allowedRoutes:
+        namespaces:
+          from: All
+    - name: apex
+      protocol: HTTPS
+      port: 443
+      hostname: {{ $host | quote }}
+      allowedRoutes:
+        namespaces:
+          from: Same
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: {{ printf "%s-tls-apex" .Release.Name }}
+    {{- if eq .Values.global.objectStorage.mode "in-cluster" }}
+    - name: s3
+      protocol: HTTPS
+      port: 443
+      hostname: {{ printf "s3.%s" $host | quote }}
+      allowedRoutes:
+        namespaces:
+          from: Same
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: {{ printf "%s-tls-s3" .Release.Name }}
+    {{- end }}
+    {{- if eq .Values.global.keycloak.mode "in-cluster" }}
+    - name: auth
+      protocol: HTTPS
+      port: 443
+      hostname: {{ printf "auth.%s" $host | quote }}
+      allowedRoutes:
+        namespaces:
+          from: Same
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: {{ printf "%s-tls-auth" .Release.Name }}
+    {{- end }}
+{{- if and $cm.enabled $cm.create }}
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: {{ $cm.issuerName }}
+spec:
+  acme:
+    email: {{ $cm.email | quote }}
+    server: {{ $cm.server | quote }}
+    privateKeySecretRef:
+      name: {{ $cm.issuerName }}-account-key
+    solvers:
+      - http01:
+          gatewayHTTPRoute:
+            parentRefs:
+              - name: {{ $g.name }}
+                namespace: {{ .Release.Namespace }}
+                sectionName: http
+{{- end }}

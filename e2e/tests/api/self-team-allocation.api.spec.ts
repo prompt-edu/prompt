@@ -25,7 +25,7 @@ test.describe('self team allocation API auth', () => {
 
   test('rejects a token without a course-scoped role', async ({ apiAs }) => {
     // `lecturer` has PROMPT_Lecturer only; /team requires admin, course
-    // lecturer, or course student.
+    // lecturer, course editor, or course student.
     const api = await apiAs('lecturer')
     const res = await api.get(phaseUrl(SELF_TEAM_ALLOCATION_PHASE_ID, 'team'))
     expect(res.status()).toBe(403)

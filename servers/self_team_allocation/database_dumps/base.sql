@@ -28,3 +28,18 @@ INSERT INTO public.timeframe (course_phase_id, starttime, endtime) VALUES
 
 INSERT INTO public.tutor (course_phase_id, course_participation_id, first_name, last_name, team_id) VALUES
     ('11111111-1111-1111-1111-111111111111', 'eeee1111-1111-1111-1111-111111111111', 'Tara', 'Tutor', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa');
+
+-- Tutor scope phase: a project lead (pl34ead) leads Lovelace and Turing, Hamilton has no tutor.
+INSERT INTO public.team (id, name, course_phase_id, created_at) VALUES
+    ('dddddddd-0000-0000-0000-000000000001', 'Lovelace', '33333333-3333-3333-3333-333333333333', '2024-03-01 10:00:00'),
+    ('dddddddd-0000-0000-0000-000000000002', 'Turing', '33333333-3333-3333-3333-333333333333', '2024-03-01 10:00:00'),
+    ('dddddddd-0000-0000-0000-000000000003', 'Hamilton', '33333333-3333-3333-3333-333333333333', '2024-03-01 10:00:00');
+
+INSERT INTO public.assignments (id, course_participation_id, team_id, course_phase_id, student_first_name, student_last_name) VALUES
+    ('dddddddd-aaaa-0000-0000-000000000001', 'dddd0001-0000-0000-0000-000000000001', 'dddddddd-0000-0000-0000-000000000001', '33333333-3333-3333-3333-333333333333', 'Lia', 'Lovelace'),
+    ('dddddddd-aaaa-0000-0000-000000000002', 'dddd0002-0000-0000-0000-000000000002', 'dddddddd-0000-0000-0000-000000000002', '33333333-3333-3333-3333-333333333333', 'Tom', 'Turing'),
+    ('dddddddd-aaaa-0000-0000-000000000003', 'dddd0003-0000-0000-0000-000000000003', 'dddddddd-0000-0000-0000-000000000003', '33333333-3333-3333-3333-333333333333', 'Hal', 'Hamilton');
+
+INSERT INTO public.tutor (course_phase_id, course_participation_id, first_name, last_name, team_id, university_login) VALUES
+    ('33333333-3333-3333-3333-333333333333', '99999999-9999-9999-9999-999999999997', 'Petra', 'Lead', 'dddddddd-0000-0000-0000-000000000001', 'pl34ead'),
+    ('33333333-3333-3333-3333-333333333333', '99999999-9999-9999-9999-999999999997', 'Petra', 'Lead', 'dddddddd-0000-0000-0000-000000000002', 'pl34ead');

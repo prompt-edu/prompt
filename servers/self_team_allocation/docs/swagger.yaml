@@ -68,6 +68,30 @@ definitions:
           type: string
         type: array
     type: object
+  teamDTO.Tutor:
+    properties:
+      courseParticipationID:
+        type: string
+      firstName:
+        type: string
+      lastName:
+        type: string
+      teamIDs:
+        items:
+          type: string
+        type: array
+      universityLogin:
+        type: string
+    type: object
+  teamDTO.TutorAssignment:
+    properties:
+      id:
+        type: string
+      teamID:
+        type: string
+      universityLogin:
+        type: string
+    type: object
   teamDTO.UpdateTeamRequest:
     properties:
       newTeamName:
@@ -119,6 +143,12 @@ paths:
             additionalProperties:
               type: string
             type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
         "500":
           description: Internal Server Error
           schema:
@@ -157,6 +187,12 @@ paths:
             additionalProperties:
               type: string
             type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
         "404":
           description: Not Found
           schema:
@@ -189,11 +225,19 @@ paths:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/promptTypes.Team'
-            type: array
+            additionalProperties:
+              items:
+                $ref: '#/definitions/promptTypes.Team'
+              type: array
+            type: object
         "400":
           description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
           schema:
             additionalProperties:
               type: string
@@ -311,6 +355,12 @@ paths:
             $ref: '#/definitions/promptTypes.Team'
         "400":
           description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
           schema:
             additionalProperties:
               type: string
@@ -527,7 +577,8 @@ paths:
       - team
   /course_phase/{coursePhaseID}/team/tutors:
     get:
-      description: Get all tutors for a course phase
+      description: One entry per tutor and team, with the id the tutor is stored under
+        and their university login
       parameters:
       - description: Course Phase UUID
         in: path
@@ -541,7 +592,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/promptTypes.Person'
+              $ref: '#/definitions/teamDTO.TutorAssignment'
             type: array
         "400":
           description: Bad Request
@@ -557,26 +608,28 @@ paths:
             type: object
       security:
       - ApiKeyAuth: []
-      summary: Get all tutors
+      summary: List the teams of every tutor
       tags:
       - team
     post:
       consumes:
       - application/json
-      description: Import multiple tutors for the course phase
+      description: 'Set the teams of each listed tutor. A tutor is identified by their
+        university login, which is required: their previous assignments in the phase
+        are replaced, and an existing tutor keeps their id.'
       parameters:
       - description: Course Phase UUID
         in: path
         name: coursePhaseID
         required: true
         type: string
-      - description: List of tutors to import
+      - description: Tutors to import
         in: body
-        name: tutors
+        name: request
         required: true
         schema:
           items:
-            $ref: '#/definitions/promptTypes.Person'
+            $ref: '#/definitions/teamDTO.Tutor'
           type: array
       produces:
       - application/json
@@ -598,6 +651,52 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Import tutors
+      tags:
+      - team
+  /course_phase/{coursePhaseID}/team/tutors/me:
+    get:
+      description: Get the tutor that the caller's university login belongs to in
+        this course phase, so other phases can match the caller to a team's tutors
+      parameters:
+      - description: Course Phase UUID
+        in: path
+        name: coursePhaseID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/promptTypes.Person'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get the caller's tutor record
       tags:
       - team
   /course_phase/{coursePhaseID}/timeframe:

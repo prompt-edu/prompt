@@ -28,7 +28,7 @@ func (suite *AllocationServiceTestSuite) SetupSuite() {
 	suite.testDB = testDB
 	suite.cleanup = cleanup
 
-	suite.allocationService = NewAllocationService(*testDB.Queries)
+	suite.allocationService = NewAllocationService(*testDB.Queries, testDB.Conn)
 }
 
 func (suite *AllocationServiceTestSuite) TearDownSuite() {

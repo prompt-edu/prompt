@@ -67,7 +67,7 @@ func registerRoutes(api, coursePhaseApi *gin.RouterGroup, conn *pgxpool.Pool) er
 	timeframeService := timeframe.NewTimeframeService(*query)
 	teamsService := teams.NewTeamsService(*query, conn, timeframeService)
 	assignmentService := teams.NewAssignmentService(*query, conn)
-	allocationService := allocation.NewAllocationService(*query)
+	allocationService := allocation.NewAllocationService(*query, conn)
 	configService := config.NewConfigService(*query)
 	privacyService := privacy.NewPrivacyService(*query, conn)
 

@@ -258,18 +258,18 @@ func (suite *TeamsServiceTestSuite) TestImportTutorsAndGetTutors() {
 	teamID := suite.createTeam(coursePhaseID, "TutorTeam")
 	tutors := []teamDTO.Tutor{
 		{
-			CoursePhaseID:         coursePhaseID,
 			CourseParticipationID: uuid.New(),
 			FirstName:             "Ina",
 			LastName:              "Instructor",
-			TeamID:                teamID,
+			UniversityLogin:       "in01str",
+			TeamIDs:               []uuid.UUID{teamID},
 		},
 	}
 
 	err := suite.teamsService.ImportTutors(suite.ctx, coursePhaseID, tutors)
 	require.NoError(suite.T(), err)
 
-	result, err := suite.teamsService.GetTutorsByCoursePhase(suite.ctx, coursePhaseID)
+	result, err := suite.teamsService.GetTutorAssignments(suite.ctx, coursePhaseID)
 	require.NoError(suite.T(), err)
 	require.Len(suite.T(), result, 1)
 }
@@ -281,11 +281,11 @@ func (suite *TeamsServiceTestSuite) TestCreateAndDeleteManualTutor() {
 	err := suite.teamsService.CreateManualTutor(suite.ctx, coursePhaseID, "Manual", "Tutor", teamID)
 	require.NoError(suite.T(), err)
 
-	tutors, err := suite.teamsService.GetTutorsByCoursePhase(suite.ctx, coursePhaseID)
+	tutors, err := suite.teamsService.GetTutorAssignments(suite.ctx, coursePhaseID)
 	require.NoError(suite.T(), err)
 	require.Len(suite.T(), tutors, 1)
 
-	err = suite.teamsService.DeleteTutor(suite.ctx, coursePhaseID, tutors[0].CourseParticipationID)
+	err = suite.teamsService.DeleteTutor(suite.ctx, coursePhaseID, tutors[0].ID)
 	require.NoError(suite.T(), err)
 }
 

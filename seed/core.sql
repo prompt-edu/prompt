@@ -311,6 +311,10 @@ INSERT INTO course_phase (id, course_id, name, restricted_data, is_initial_phase
     VALUES ('d0000013-0000-0000-0000-000000000013', 'c0000001-0000-0000-0000-000000000001', 'Assessment Evaluation Only', '{}', false, (SELECT id FROM course_phase_type WHERE name = 'Assessment'), '{}');
 INSERT INTO course_phase (id, course_id, name, restricted_data, is_initial_phase, course_phase_type_id, student_readable_data)
     VALUES ('b3000004-0000-0000-0000-000000000004', 'c0000001-0000-0000-0000-000000000001', 'Team Allocation Tutor Scope', '{}', false, (SELECT id FROM course_phase_type WHERE name = 'Team Allocation'), '{}');
+-- Standalone Self Team Allocation phase on fullCourse behind the e2e self team allocation
+-- tutor spec: course-editor leads two of its three teams (seed/self_team_allocation.sql).
+INSERT INTO course_phase (id, course_id, name, restricted_data, is_initial_phase, course_phase_type_id, student_readable_data)
+    VALUES ('aaaa7777-0000-0000-0000-0000000000a7', 'c0000001-0000-0000-0000-000000000001', 'Self Team Allocation Tutor Scope', '{}', false, (SELECT id FROM course_phase_type WHERE name = 'Self Team Allocation'), '{}');
 INSERT INTO course_phase (id, course_id, name, restricted_data, is_initial_phase, course_phase_type_id, student_readable_data)
     VALUES ('d0000018-0000-0000-0000-000000000018', 'c0000001-0000-0000-0000-000000000001', 'Assessment Tutor Scope', '{}', false, (SELECT id FROM course_phase_type WHERE name = 'Assessment'), '{}');
 INSERT INTO course_phase (id, course_id, name, restricted_data, is_initial_phase, course_phase_type_id, student_readable_data)

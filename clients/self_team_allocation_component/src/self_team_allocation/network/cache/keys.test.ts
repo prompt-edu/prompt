@@ -7,6 +7,7 @@ const PHASE = 'phase-1'
 describe('selfTeamAllocationKeys', () => {
   it('builds the phase keys', () => {
     expect(selfTeamAllocationKeys.teams(PHASE)).toEqual(['self_team_allocations', PHASE])
+    expect(selfTeamAllocationKeys.tutors(PHASE)).toEqual(['self_team_allocation_tutors', PHASE])
     expect(selfTeamAllocationKeys.timeframe(PHASE)).toEqual(['timeframe', PHASE])
     expect(selfTeamAllocationKeys.config(PHASE)).toEqual(['team_allocation_config', PHASE])
     expect(selfTeamAllocationKeys.myParticipation(PHASE)).toEqual([
@@ -21,5 +22,9 @@ describe('selfTeamAllocationKeys', () => {
 
   it('builds the tutor import key shared with Team Allocation', () => {
     expect(selfTeamAllocationKeys.tutorImport.studentsOfPhase(PHASE)).toEqual(['students', PHASE])
+    expect(selfTeamAllocationKeys.tutorImport.courseStaff('course-1')).toEqual([
+      'self_team_allocation_course_staff',
+      'course-1',
+    ])
   })
 })

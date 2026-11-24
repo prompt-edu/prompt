@@ -48,12 +48,12 @@ export const EvaluationInfoHeader = ({
     if (bothVisible) {
       return (
         'Assessment results have been released and are now available. ' +
-        'You can view your action items and grade suggestions below to understand areas for improvement.'
+        'You can view your grade suggestion, general remarks, and action items below to understand areas for improvement.'
       )
     } else if (gradeSuggestionVisible) {
       return (
         'Assessment results have been released and are now available. ' +
-        'You can view your grade suggestion below to understand your performance.'
+        'You can view your grade suggestion and general remarks below to understand your performance.'
       )
     } else if (actionItemsVisible) {
       return (

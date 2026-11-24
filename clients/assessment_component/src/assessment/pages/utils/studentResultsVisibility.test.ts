@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
-import { getVisibleResultSections, hasVisibleResultSection } from './studentResultsVisibility'
+import {
+  describeVisibleResultSections,
+  getVisibleResultSections,
+  hasVisibleResultSection,
+} from './studentResultsVisibility'
 
 const hidden = {
   gradeSuggestionVisible: false,
@@ -16,7 +20,17 @@ describe('getVisibleResultSections', () => {
         actionItemsVisible: true,
         gradingSheetVisible: true,
       }),
-    ).toEqual(['grade suggestions', 'action items', 'grading sheet'])
+    ).toEqual(['grade suggestions', 'general remarks', 'action items', 'grading sheet'])
+  })
+
+  it('lists the general remarks with the grade suggestions, not the action items', () => {
+    expect(getVisibleResultSections({ ...hidden, gradeSuggestionVisible: true })).toEqual([
+      'grade suggestions',
+      'general remarks',
+    ])
+    expect(getVisibleResultSections({ ...hidden, actionItemsVisible: true })).toEqual([
+      'action items',
+    ])
   })
 
   it('leaves out hidden sections', () => {
@@ -28,6 +42,31 @@ describe('getVisibleResultSections', () => {
   it('is empty when every section is hidden or the config is missing', () => {
     expect(getVisibleResultSections(hidden)).toEqual([])
     expect(getVisibleResultSections(undefined)).toEqual([])
+  })
+})
+
+describe('describeVisibleResultSections', () => {
+  it('joins one or two sections with "and"', () => {
+    expect(describeVisibleResultSections({ ...hidden, actionItemsVisible: true })).toBe(
+      'action items',
+    )
+    expect(describeVisibleResultSections({ ...hidden, gradeSuggestionVisible: true })).toBe(
+      'grade suggestions and general remarks',
+    )
+  })
+
+  it('separates three or more sections with commas', () => {
+    expect(
+      describeVisibleResultSections({
+        gradeSuggestionVisible: true,
+        actionItemsVisible: true,
+        gradingSheetVisible: true,
+      }),
+    ).toBe('grade suggestions, general remarks, action items, and grading sheet')
+  })
+
+  it('is empty when nothing is visible', () => {
+    expect(describeVisibleResultSections(hidden)).toBe('')
   })
 })
 

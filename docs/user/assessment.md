@@ -73,16 +73,16 @@ You must define the following core settings:
 
 Control when students can see their assessment results:
 
-| Setting                       | Description                                                                                       |
-| ----------------------------- | ------------------------------------------------------------------------------------------------- |
-| **Grade Suggestions Visible** | When enabled, students can view their grade suggestions after the deadline has passed             |
-| **Action Items Visible**      | When enabled, students can see their action items (feedback points) after the deadline has passed |
+| Setting                                        | Description                                                                                                  |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| **Show grade suggestions and general remarks** | When enabled, students can view their grade suggestion and the General Remarks after you release the results |
+| **Show action items**                          | When enabled, students can see their action items (feedback points) after you release the results            |
 
-> 💡 **Note**: Both visibility settings only take effect **after the assessment deadline**. Before the deadline, grade suggestions and action items are never visible to students, regardless of these settings. This ensures students cannot see preliminary results during the active assessment phase.
+> 💡 **Note**: Both visibility settings only take effect **after you release the results**. The deadline does not release them. Until you release, grade suggestions and action items are never visible to students, regardless of these settings. This ensures students cannot see preliminary results during the active assessment phase.
 
 **Use Cases:**
 
-- **Grade Suggestions**: Enable this when you want students to see their overall performance score
+- **Grade Suggestions and General Remarks**: Enable this when you want students to see their overall performance score and the written General Remarks. The General Remarks have no setting of their own, so hiding the grade suggestion hides them too
 - **Action Items**: Enable this to share specific feedback points and improvement suggestions with students
 - **Both Disabled**: Use when you want to keep all assessment results private (e.g., for administrative purposes only). If the assessment sheet is hidden as well, the release dialog warns you before you release. After the release, students see a note that no results are shared for this phase. Before the release, they see that results have not been released yet
 

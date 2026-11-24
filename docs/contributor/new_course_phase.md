@@ -77,8 +77,8 @@ types remotes by that suffix):
 2. `.env.template` + `.env.dev.template`: add the `DB_*_<NAME>_*` entries and `<NAME>_HOST`.
 3. `Makefile`: add `server-<name>`, `test-<name>`, `sqlc-<name>` targets and wire them into the
    aggregate `server`, `test`, `sqlc`, and `lint-servers` targets.
-4. CI: add the client to the `quality-clients.yml` matrix and the server to the
-   `quality-servers.yml` and `test-servers.yml` matrices.
+4. CI: register the server and client directories in `MODULES` in `scripts/ci-changes.mjs`. CI
+   reads its server and client lists from there, and `make test-ci` fails until they are listed.
 
 </details>
 
@@ -172,9 +172,12 @@ core client's entrypoint) and to `env.js` for local dev. Note: the typed `EnvTyp
    middlewares) and the server + db services.
 2. `build-and-push-clients.yml`: add a build job and an `<name>_image_tag` output. Pass
    `MF_BUILD_VERSION` in its `build-args` like the other remote jobs, so the System Status page
-   shows the client's version.
+   shows the client's version, and gate it like them with
+   `if: contains(fromJSON(inputs.clients), '<name>_component')`. Do the same for the server in
+   `build-and-push-servers.yml` with `inputs.servers`.
 3. `deploy-docker.yml`: add the image tag env var to the `.env.prod` step and the service to the
-   `SERVICES` list; reference the new output in `dev.yml` and `prod.yml`.
+   `SERVICES` list; reference the new output in `dev.yml` (with the `|| 'main'` fallback the
+   other images use) and `prod.yml`.
 
 External phases handle deployment in their own repository; only the core-side URL (2.1/2.5) and
 phase type (2.4) concern this repo.

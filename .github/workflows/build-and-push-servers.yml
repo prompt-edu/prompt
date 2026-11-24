@@ -3,6 +3,10 @@ name: Build and Push Docker Image Servers
 on:
   workflow_call:
     inputs:
+      servers:
+        description: "JSON array of server directories whose images to build"
+        required: true
+        type: string
       release_tag:
         description: "Optional image tag override"
         required: false
@@ -42,6 +46,7 @@ permissions:
 
 jobs:
   core:
+    if: contains(fromJSON(inputs.servers), 'core')
     uses: ls1intum/.github/.github/workflows/build-and-push-docker-image.yml@v1.2.0
     with:
       image-name: ghcr.io/prompt-edu/prompt/prompt-server-core # Defaults to the repository name
@@ -50,6 +55,7 @@ jobs:
       tags: ${{ inputs.release_tag }}
     secrets: inherit
   team-allocation:
+    if: contains(fromJSON(inputs.servers), 'team_allocation')
     uses: ls1intum/.github/.github/workflows/build-and-push-docker-image.yml@v1.2.0
     with:
       image-name: ghcr.io/prompt-edu/prompt/prompt-server-team-allocation
@@ -58,6 +64,7 @@ jobs:
       tags: ${{ inputs.release_tag }}
     secrets: inherit
   assessment:
+    if: contains(fromJSON(inputs.servers), 'assessment')
     uses: ls1intum/.github/.github/workflows/build-and-push-docker-image.yml@v1.2.0
     with:
       image-name: ghcr.io/prompt-edu/prompt/prompt-server-assessment
@@ -66,6 +73,7 @@ jobs:
       tags: ${{ inputs.release_tag }}
     secrets: inherit
   self-team-allocation:
+      if: contains(fromJSON(inputs.servers), 'self_team_allocation')
       uses: ls1intum/.github/.github/workflows/build-and-push-docker-image.yml@v1.2.0
       with:
         image-name: ghcr.io/prompt-edu/prompt/prompt-server-self-team-allocation
@@ -74,6 +82,7 @@ jobs:
         tags: ${{ inputs.release_tag }}
       secrets: inherit
   interview:
+    if: contains(fromJSON(inputs.servers), 'interview')
     uses: ls1intum/.github/.github/workflows/build-and-push-docker-image.yml@v1.2.0
     with:
       image-name: ghcr.io/prompt-edu/prompt/prompt-server-interview
@@ -82,6 +91,7 @@ jobs:
       tags: ${{ inputs.release_tag }}
     secrets: inherit
   certificate:
+    if: contains(fromJSON(inputs.servers), 'certificate')
     uses: ls1intum/.github/.github/workflows/build-and-push-docker-image.yml@v1.2.0
     with:
       image-name: ghcr.io/prompt-edu/prompt/prompt-server-certificate
@@ -90,6 +100,7 @@ jobs:
       tags: ${{ inputs.release_tag }}
     secrets: inherit
   presentation:
+    if: contains(fromJSON(inputs.servers), 'presentation')
     uses: ls1intum/.github/.github/workflows/build-and-push-docker-image.yml@v1.2.0
     with:
       image-name: ghcr.io/prompt-edu/prompt/prompt-server-presentation
@@ -98,6 +109,7 @@ jobs:
       tags: ${{ inputs.release_tag }}
     secrets: inherit
   infrastructure-setup:
+    if: contains(fromJSON(inputs.servers), 'infrastructure_setup')
     uses: ls1intum/.github/.github/workflows/build-and-push-docker-image.yml@v1.2.0
     with:
       image-name: ghcr.io/prompt-edu/prompt/prompt-server-infrastructure-setup
@@ -106,6 +118,7 @@ jobs:
       tags: ${{ inputs.release_tag }}
     secrets: inherit
   ai:
+    if: contains(fromJSON(inputs.servers), 'ai')
     uses: ls1intum/.github/.github/workflows/build-and-push-docker-image.yml@v1.2.0
     with:
       image-name: ghcr.io/prompt-edu/prompt/prompt-server-ai

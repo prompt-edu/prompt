@@ -3,6 +3,10 @@ name: Build and Push Clients Docker Clients
 on:
   workflow_call:
     inputs:
+      clients:
+        description: "JSON array of client directories whose images to build"
+        required: true
+        type: string
       release_tag:
         description: "Optional image tag override"
         required: false
@@ -51,6 +55,7 @@ permissions:
 
 jobs:
   clients-base:
+    if: inputs.clients != '[]'
     uses: ls1intum/.github/.github/workflows/build-and-push-docker-image.yml@v1.2.0
     with:
       image-name: ghcr.io/prompt-edu/prompt/prompt-clients-base
@@ -67,6 +72,7 @@ jobs:
           echo "base_image_tag: ${{ needs.clients-base.outputs.image_tag }}"
 
   core:
+    if: contains(fromJSON(inputs.clients), 'core')
     needs: clients-base
     uses: ls1intum/.github/.github/workflows/build-and-push-docker-image.yml@v1.2.0
     with:
@@ -82,6 +88,7 @@ jobs:
     secrets: inherit
 
   example:
+    if: contains(fromJSON(inputs.clients), 'example_component')
     needs: clients-base
     uses: ls1intum/.github/.github/workflows/build-and-push-docker-image.yml@v1.2.0
     with:
@@ -96,6 +103,7 @@ jobs:
     secrets: inherit
 
   interview:
+    if: contains(fromJSON(inputs.clients), 'interview_component')
     needs: clients-base
     uses: ls1intum/.github/.github/workflows/build-and-push-docker-image.yml@v1.2.0
     with:
@@ -110,6 +118,7 @@ jobs:
     secrets: inherit
 
   matching:
+    if: contains(fromJSON(inputs.clients), 'matching_component')
     needs: clients-base
     uses: ls1intum/.github/.github/workflows/build-and-push-docker-image.yml@v1.2.0
     with:
@@ -124,6 +133,7 @@ jobs:
     secrets: inherit
 
   assessment:
+    if: contains(fromJSON(inputs.clients), 'assessment_component')
     needs: clients-base
     uses: ls1intum/.github/.github/workflows/build-and-push-docker-image.yml@v1.2.0
     with:
@@ -138,6 +148,7 @@ jobs:
     secrets: inherit
 
   team-allocation:
+    if: contains(fromJSON(inputs.clients), 'team_allocation_component')
     needs: clients-base
     uses: ls1intum/.github/.github/workflows/build-and-push-docker-image.yml@v1.2.0
     with:
@@ -152,6 +163,7 @@ jobs:
     secrets: inherit
 
   self-team-allocation:
+    if: contains(fromJSON(inputs.clients), 'self_team_allocation_component')
     needs: clients-base
     uses: ls1intum/.github/.github/workflows/build-and-push-docker-image.yml@v1.2.0
     with:
@@ -166,6 +178,7 @@ jobs:
     secrets: inherit
 
   certificate:
+    if: contains(fromJSON(inputs.clients), 'certificate_component')
     needs: clients-base
     uses: ls1intum/.github/.github/workflows/build-and-push-docker-image.yml@v1.2.0
     with:
@@ -179,6 +192,7 @@ jobs:
         "MF_BUILD_VERSION=${{ needs.clients-base.outputs.image_tag }}"
     secrets: inherit
   presentation:
+    if: contains(fromJSON(inputs.clients), 'presentation_component')
     needs: clients-base
     uses: ls1intum/.github/.github/workflows/build-and-push-docker-image.yml@v1.2.0
     with:
@@ -192,6 +206,7 @@ jobs:
         "MF_BUILD_VERSION=${{ needs.clients-base.outputs.image_tag }}"
     secrets: inherit
   infrastructure-setup:
+    if: contains(fromJSON(inputs.clients), 'infrastructure_setup_component')
     needs: clients-base
     uses: ls1intum/.github/.github/workflows/build-and-push-docker-image.yml@v1.2.0
     with:
@@ -205,6 +220,7 @@ jobs:
         "MF_BUILD_VERSION=${{ needs.clients-base.outputs.image_tag }}"
     secrets: inherit
   ai:
+    if: contains(fromJSON(inputs.clients), 'ai_component')
     needs: clients-base
     uses: ls1intum/.github/.github/workflows/build-and-push-docker-image.yml@v1.2.0
     with:

@@ -27,34 +27,34 @@ permissions:
   packages: write
 
 jobs:
-  # Whether a PR touches anything beyond docs and repository metadata. A push to
-  # main only gets here past `paths-ignore`, so it always counts as code.
+  # Which servers, clients and e2e shards a PR needs, from scripts/ci-changes.mjs.
+  # Paths outside any registered module select everything, and so does a push
+  # to main, which only gets here past `paths-ignore`.
   changes:
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    permissions:
-      pull-requests: read
     outputs:
-      code: ${{ github.event_name != 'pull_request' || steps.filter.outputs.code == 'true' }}
+      code: ${{ steps.select.outputs.code }}
+      servers: ${{ steps.select.outputs.servers }}
+      clients: ${{ steps.select.outputs.clients }}
+      shards: ${{ steps.select.outputs.shards }}
     steps:
-      - name: Detect changes outside docs
-        id: filter
-        if: github.event_name == 'pull_request'
-        uses: dorny/paths-filter@v4
+      # The PR merge commit's first parent is the base branch tip.
+      - uses: actions/checkout@v7
         with:
-          # A file counts only if it matches every pattern, i.e. none of the
-          # exclusions. Keep them in sync with the push trigger's paths-ignore.
-          predicate-quantifier: every
-          filters: |
-            code:
-              - '**'
-              - '!**/*.md'
-              - '!docs/**'
-              - '!.gitignore'
-              - '!LICENSE'
-              - '!.github/ISSUE_TEMPLATE/**'
-              - '!.github/workflows/build-docs.yml'
-              - '!.github/workflows/discord-notifications.yml'
+          fetch-depth: 2
+      - name: Test the change selection
+        run: node --test scripts/ci-changes.test.mjs
+      - name: Select the affected modules
+        id: select
+        env:
+          EVENT: ${{ github.event_name }}
+        run: |
+          if [ "$EVENT" = "pull_request" ]; then
+            git diff --name-only --no-renames HEAD^1 HEAD | node scripts/ci-changes.mjs | tee -a "$GITHUB_OUTPUT"
+          else
+            node scripts/ci-changes.mjs --all | tee -a "$GITHUB_OUTPUT"
+          fi
 
   assign-author:
     if: github.event_name == 'pull_request'
@@ -95,41 +95,58 @@ jobs:
     needs: changes
     if: needs.changes.outputs.code == 'true'
     uses: ./.github/workflows/quality-servers.yml
+    with:
+      servers: ${{ needs.changes.outputs.servers }}
   test-servers:
-    needs: quality-servers
+    needs: [changes, quality-servers]
     uses: ./.github/workflows/test-servers.yml
+    with:
+      servers: ${{ needs.changes.outputs.servers }}
   build-servers:
     needs:
+      - changes
       - quality-servers
       - test-servers
     uses: ./.github/workflows/build-and-push-servers.yml
     secrets: inherit
+    with:
+      servers: ${{ needs.changes.outputs.servers }}
   quality-clients:
     needs: changes
     if: needs.changes.outputs.code == 'true'
     uses: ./.github/workflows/quality-clients.yml
+    with:
+      clients: ${{ needs.changes.outputs.clients }}
   e2e-tests:
-    needs: [quality-servers, quality-clients]
+    needs: [changes, quality-servers, quality-clients]
     uses: ./.github/workflows/test-e2e.yml
     permissions:
       contents: read
+    with:
+      shards: ${{ needs.changes.outputs.shards }}
   # Blocks the PR through ci-passed, but is not a deploy-dev dependency: a finding
   # does not hold back the deploy.
   api-stress-tests:
-    needs: quality-servers
+    needs: [changes, quality-servers]
     uses: ./.github/workflows/test-api-stress.yml
     permissions:
       contents: read
+    with:
+      servers: ${{ needs.changes.outputs.servers }}
   build-clients:
-    needs: quality-clients
+    needs: [changes, quality-clients]
     uses: ./.github/workflows/build-and-push-clients.yml
     secrets: inherit
+    with:
+      clients: ${{ needs.changes.outputs.clients }}
   # The one check the main ruleset requires. A skipped job that calls a reusable
   # workflow reports under its own name (`build-clients`), never the nested
   # names (`build-clients / core / merge`), so requiring those left docs-only
-  # PRs waiting forever. Code changes need every job to succeed; docs-only
-  # changes need them all skipped. It runs even on a cancelled run: GitHub treats
-  # a skipped required check as passed, and the script fails on `cancelled`.
+  # PRs waiting forever. The nested jobs of modules a PR leaves untouched are
+  # skipped inside the reusable workflows, so their callers still succeed. Code
+  # changes need every job to succeed; docs-only changes need them all skipped.
+  # It runs even on a cancelled run: GitHub treats a skipped required check as
+  # passed, and the script fails on `cancelled`.
   ci-passed:
     needs:
       - changes
@@ -163,29 +180,31 @@ jobs:
           done < <(jq -r 'to_entries[] | "\(.key)\t\(.value.result)"' <<<"$NEEDS")
           exit $failed
 
+  # Images a PR did not rebuild deploy from the `main` tag, which every push to main updates.
+  # `latest` is no fallback: releases push it too, possibly from an older commit.
   deploy-dev:
     needs: [build-clients, build-servers, e2e-tests]
     uses: ./.github/workflows/deploy-docker.yml
     secrets: inherit
     with:
       environment: prompt-dev-vm
-      core_image_tag: ${{ needs.build-clients.outputs.core_image_tag }}
-      example_image_tag: ${{ needs.build-clients.outputs.example_image_tag }}
-      interview_image_tag: ${{ needs.build-clients.outputs.interview_image_tag }}
-      matching_image_tag: ${{ needs.build-clients.outputs.matching_image_tag }}
-      assessment_image_tag: ${{ needs.build-clients.outputs.assessment_image_tag }}
-      team_allocation_image_tag: ${{ needs.build-clients.outputs.team_allocation_image_tag }}
-      self_team_allocation_image_tag: ${{ needs.build-clients.outputs.self_team_allocation_image_tag }}
-      server_core_image_tag: ${{ needs.build-servers.outputs.server_core_image_tag }}
-      server_team_allocation_image_tag: ${{ needs.build-servers.outputs.server_team_allocation_image_tag }}
-      server_assessment_image_tag: ${{ needs.build-servers.outputs.server_assessment_image_tag }}
-      server_interview_image_tag: ${{ needs.build-servers.outputs.server_interview_image_tag }}
-      server_self_team_allocation_image_tag: ${{ needs.build-servers.outputs.server_self_team_allocation_image_tag }}
-      server_certificate_image_tag: ${{ needs.build-servers.outputs.server_certificate_image_tag }}
-      certificate_image_tag: ${{ needs.build-clients.outputs.certificate_image_tag }}
-      presentation_image_tag: ${{ needs.build-clients.outputs.presentation_image_tag }}
-      server_presentation_image_tag: ${{ needs.build-servers.outputs.server_presentation_image_tag }}
-      server_infrastructure_setup_image_tag: ${{ needs.build-servers.outputs.server_infrastructure_setup_image_tag }}
-      server_ai_image_tag: ${{ needs.build-servers.outputs.server_ai_image_tag }}
-      infrastructure_setup_image_tag: ${{ needs.build-clients.outputs.infrastructure_setup_image_tag }}
-      ai_image_tag: ${{ needs.build-clients.outputs.ai_image_tag }}
+      core_image_tag: ${{ needs.build-clients.outputs.core_image_tag || 'main' }}
+      example_image_tag: ${{ needs.build-clients.outputs.example_image_tag || 'main' }}
+      interview_image_tag: ${{ needs.build-clients.outputs.interview_image_tag || 'main' }}
+      matching_image_tag: ${{ needs.build-clients.outputs.matching_image_tag || 'main' }}
+      assessment_image_tag: ${{ needs.build-clients.outputs.assessment_image_tag || 'main' }}
+      team_allocation_image_tag: ${{ needs.build-clients.outputs.team_allocation_image_tag || 'main' }}
+      self_team_allocation_image_tag: ${{ needs.build-clients.outputs.self_team_allocation_image_tag || 'main' }}
+      server_core_image_tag: ${{ needs.build-servers.outputs.server_core_image_tag || 'main' }}
+      server_team_allocation_image_tag: ${{ needs.build-servers.outputs.server_team_allocation_image_tag || 'main' }}
+      server_assessment_image_tag: ${{ needs.build-servers.outputs.server_assessment_image_tag || 'main' }}
+      server_interview_image_tag: ${{ needs.build-servers.outputs.server_interview_image_tag || 'main' }}
+      server_self_team_allocation_image_tag: ${{ needs.build-servers.outputs.server_self_team_allocation_image_tag || 'main' }}
+      server_certificate_image_tag: ${{ needs.build-servers.outputs.server_certificate_image_tag || 'main' }}
+      certificate_image_tag: ${{ needs.build-clients.outputs.certificate_image_tag || 'main' }}
+      presentation_image_tag: ${{ needs.build-clients.outputs.presentation_image_tag || 'main' }}
+      server_presentation_image_tag: ${{ needs.build-servers.outputs.server_presentation_image_tag || 'main' }}
+      server_infrastructure_setup_image_tag: ${{ needs.build-servers.outputs.server_infrastructure_setup_image_tag || 'main' }}
+      server_ai_image_tag: ${{ needs.build-servers.outputs.server_ai_image_tag || 'main' }}
+      infrastructure_setup_image_tag: ${{ needs.build-clients.outputs.infrastructure_setup_image_tag || 'main' }}
+      ai_image_tag: ${{ needs.build-clients.outputs.ai_image_tag || 'main' }}

@@ -2,12 +2,18 @@ name: Quality Clients
 
 on:
   workflow_call:
+    inputs:
+      clients:
+        description: "JSON array of client workspaces to check; any entry also runs the shared client checks"
+        required: true
+        type: string
 
 permissions:
   contents: read
 
 jobs:
   single-tailwind-sheet:
+    if: inputs.clients != '[]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -15,24 +21,14 @@ jobs:
         run: ./scripts/check-remote-styles.sh
 
   quality-client:
+    if: inputs.clients != '[]'
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: ./clients
     strategy:
       matrix:
-        module:
-          - core
-          - interview_component
-          - matching_component
-          - example_component
-          - assessment_component
-          - team_allocation_component
-          - self_team_allocation_component
-          - certificate_component
-          - presentation_component
-          - infrastructure_setup_component
-          - ai_component
+        module: ${{ fromJSON(inputs.clients) }}
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-node
@@ -44,6 +40,7 @@ jobs:
         run: yarn --cwd "${{ matrix.module }}" build
 
   test-client:
+    if: inputs.clients != '[]'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -61,6 +58,7 @@ jobs:
           path: ./clients/TestResults-clients.xml
 
   nginx-config:
+    if: inputs.clients != '[]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7

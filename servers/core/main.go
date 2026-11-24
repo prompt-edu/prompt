@@ -232,14 +232,14 @@ func main() {
 	mailingService := initMailing(api, *query, tokenVerifier.KeycloakMiddleware, validationService.CheckCoursePhasePermission)
 	studentService := student.NewStudentService(*query)
 	student.RegisterRoutes(api, studentService, tokenVerifier.KeycloakMiddleware)
-	courseService := course.NewCourseService(*query, conn, coursePhaseService, keycloakRealmService.CreateCourseGroupsAndRoles, keycloakRealmService.DeleteCourseGroupsAndRoles)
+	courseService := course.NewCourseService(*query, conn, coursePhaseService, keycloakRealmService.CreateCourseGroupsAndRoles, keycloakRealmService.DeleteCourseGroupsAndRolesByName, keycloakRealmService.DeleteCourseGroupsAndRoles)
 	course.RegisterRoutes(api, courseService, tokenVerifier.KeycloakMiddleware, validationService.CheckCoursePermission)
 	courseMailingService := courseMailing.NewCourseMailingService(*query, conn, sdkUtils.GetEnv("CORE_HOST", "http://localhost:3000"), mailingService.SendCourseMail)
 	courseMailing.RegisterRoutes(api, courseMailingService, tokenVerifier.KeycloakMiddleware, validationService.CheckCoursePermission)
 	// Recover any campaigns left mid-send by a previous crash/restart. Runs in the
 	// background so a slow/degraded database at boot doesn't delay server startup.
 	go courseMailingService.ReconcileStuckCampaigns(context.Background())
-	courseCopyService := copy.NewCourseCopyService(*query, conn, coursePhaseService, keycloakRealmService.CreateCourseGroupsAndRoles)
+	courseCopyService := copy.NewCourseCopyService(*query, conn, coursePhaseService, keycloakRealmService.CreateCourseGroupsAndRoles, keycloakRealmService.DeleteCourseGroupsAndRolesByName)
 	copy.RegisterRoutes(api, courseCopyService, tokenVerifier.KeycloakMiddleware, validationService.CheckCoursePermission)
 	coursePhase.RegisterRoutes(api, coursePhaseService, tokenVerifier.KeycloakMiddleware, validationService.CheckCoursePhasePermission, validationService.CheckCoursePermission)
 	courseParticipation.RegisterRoutes(api, courseParticipationService, tokenVerifier.KeycloakMiddleware, validationService.CheckCoursePermission)
@@ -264,7 +264,7 @@ func main() {
 	announcement.RegisterRoutes(api, announcementService, tokenVerifier.KeycloakMiddleware)
 	studyProgramService := studyProgram.NewStudyProgramService(*query, conn)
 	studyProgram.RegisterRoutes(api, studyProgramService, tokenVerifier.KeycloakMiddleware)
-	orgService := org.NewOrgService(*query, conn, keycloakRealmService.CreateOrgGroupsAndRoles, keycloakRealmService.DeleteOrgGroupsAndRoles, keycloakRealmService.OrgGroupsOrRolesExist, keycloakRealmService.AddOrgMembers)
+	orgService := org.NewOrgService(*query, conn, keycloakRealmService.CreateOrgGroupsAndRoles, keycloakRealmService.DeleteOrgGroupsAndRoles, keycloakRealmService.OrgGroupsOrRolesExist, keycloakRealmService.AddOrgMembers, keycloakRealmService)
 	org.RegisterRoutes(api, orgService, tokenVerifier.KeycloakMiddleware, validationService.CheckOrgPermission)
 
 	exportStorage, err := privacyexport.NewExportStorageFromEnv()

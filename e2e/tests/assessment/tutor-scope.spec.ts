@@ -90,6 +90,40 @@ test.describe('assessment: tutors only reach the teams they lead', () => {
     }
   })
 
+  test('steps previous / next only through the tutor teams', async ({ page }) => {
+    const phase = new AssessmentPage(page)
+    await phase.goto(SEEDED_COURSES.fullCourse.id, PHASE_ID, '/participants')
+    await phase.expectParticipantsLoaded()
+
+    // The editor's participants sorted by last name, ascending, as the table sorts them.
+    const lastName = (name: string) => name.split(' ').at(-1) ?? name
+    const byLastName = ownTeam
+      .map((participant) => participant.name)
+      .sort((a, b) => lastName(a).localeCompare(lastName(b)))
+    const total = byLastName.length
+
+    await phase.columnHeader('Last name').getByRole('button').click()
+    const rows = page.locator('tbody').getByRole('row')
+    await expect(rows).toHaveCount(total)
+    await expect(rows.first()).toHaveAccessibleName(new RegExp(byLastName[0]))
+
+    await rows.first().click()
+    // The participant page keeps the scroll offset of the table, which can dock the header.
+    await phase.scrollToTop()
+    await phase.expectOpenedParticipant(byLastName[0], 1, total)
+    await expect(phase.previousParticipantButton()).toBeDisabled()
+
+    // Next walks every participant of the editor's teams and none of the hidden ones.
+    for (let index = 1; index < total; index++) {
+      await expect(phase.nextParticipantButton()).toHaveAccessibleName(
+        `Next participant: ${byLastName[index]}`,
+      )
+      await phase.nextParticipantButton().click()
+      await phase.expectOpenedParticipant(byLastName[index], index + 1, total)
+    }
+    await expect(phase.nextParticipantButton()).toBeDisabled()
+  })
+
   test('shows an editor who tutors no team an empty participant list', async ({ page }) => {
     const stan = ownTeam[0]
     expect(await participationIds('lecturer', OTHER_TUTOR_PHASE_ID)).toEqual([

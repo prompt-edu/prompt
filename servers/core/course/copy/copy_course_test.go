@@ -2,6 +2,7 @@ package copy
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -10,18 +11,39 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
+	"github.com/prompt-edu/prompt/servers/core/course"
 	"github.com/prompt-edu/prompt/servers/core/course/copy/courseCopyDTO"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase"
 	"github.com/prompt-edu/prompt/servers/core/coursePhase/resolution"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
+
+// copyKeycloakSpy records the names of the courses the Keycloak hooks are called with.
+type copyKeycloakSpy struct {
+	created   []string
+	cleanedUp []string
+	createErr error
+}
+
+func (k *copyKeycloakSpy) create(_ context.Context, courseName, _, _ string) error {
+	k.created = append(k.created, courseName)
+	return k.createErr
+}
+
+func (k *copyKeycloakSpy) cleanUp(_ context.Context, courseName, _ string) error {
+	k.cleanedUp = append(k.cleanedUp, courseName)
+	return nil
+}
 
 type CopyCourseTestSuite struct {
 	suite.Suite
 	ctx               context.Context
 	cleanup           func()
+	queries           *db.Queries
+	keycloak          *copyKeycloakSpy
 	courseCopyService *CourseCopyService
 	sourceCourse      db.Course
 }
@@ -35,10 +57,10 @@ func (suite *CopyCourseTestSuite) SetupSuite() {
 	}
 
 	suite.cleanup = cleanup
+	suite.queries = testDB.Queries
+	suite.keycloak = &copyKeycloakSpy{}
 	coursePhaseService := coursePhase.NewCoursePhaseService(*testDB.Queries, testDB.Conn, resolution.NewResolutionService("localhost:8080"))
-	suite.courseCopyService = NewCourseCopyService(*testDB.Queries, testDB.Conn, coursePhaseService, func(ctx context.Context, courseName, semesterTag, userID string) error {
-		return nil
-	})
+	suite.courseCopyService = NewCourseCopyService(*testDB.Queries, testDB.Conn, coursePhaseService, suite.keycloak.create, suite.keycloak.cleanUp)
 
 	// Use the known UUID from the dump
 	sourceID := uuid.MustParse("c1f8060d-7381-4b64-a6ea-5ba8e8ac88dd")
@@ -48,6 +70,28 @@ func (suite *CopyCourseTestSuite) SetupSuite() {
 
 func (suite *CopyCourseTestSuite) TearDownSuite() {
 	suite.cleanup()
+}
+
+func (suite *CopyCourseTestSuite) SetupTest() {
+	*suite.keycloak = copyKeycloakSpy{}
+}
+
+func (suite *CopyCourseTestSuite) copyRequest(name, semesterTag string) courseCopyDTO.CopyCourseRequest {
+	return courseCopyDTO.CopyCourseRequest{
+		Name:        name,
+		SemesterTag: pgtype.Text{Valid: true, String: semesterTag},
+		StartDate:   pgtype.Date{Valid: true, Time: time.Date(2025, 10, 1, 0, 0, 0, 0, time.UTC)},
+		EndDate:     pgtype.Date{Valid: true, Time: time.Date(2026, 2, 28, 0, 0, 0, 0, time.UTC)},
+	}
+}
+
+func (suite *CopyCourseTestSuite) courseExists(name, semesterTag string) bool {
+	exists, err := suite.queries.CheckCourseNameExists(suite.ctx, db.CheckCourseNameExistsParams{
+		Name:        name,
+		SemesterTag: pgtype.Text{Valid: true, String: semesterTag},
+	})
+	require.NoError(suite.T(), err)
+	return exists
 }
 
 func (suite *CopyCourseTestSuite) TestCopyCourseInternal() {
@@ -129,6 +173,38 @@ func (suite *CopyCourseTestSuite) TestCopyCourseInternalWithDifferentCourseType(
 	sequence, err := suite.courseCopyService.queries.GetCoursePhaseSequence(suite.ctx, result.ID)
 	assert.NoError(suite.T(), err)
 	assert.NotEmpty(suite.T(), sequence, "Expected course phases to be copied")
+}
+
+func (suite *CopyCourseTestSuite) TestCopyCourseCleansUpKeycloakWhenProvisioningFails() {
+	suite.keycloak.createErr = errors.New("keycloak unavailable")
+
+	ginCtx, _ := gin.CreateTestContext(nil)
+	_, err := suite.courseCopyService.copyCourseInternal(ginCtx, suite.sourceCourse.ID, suite.copyRequest("Failed Clone", "ws2526"), "test_user")
+
+	assert.ErrorIs(suite.T(), err, suite.keycloak.createErr)
+	assert.Equal(suite.T(), []string{"Failed Clone"}, suite.keycloak.cleanedUp)
+	assert.False(suite.T(), suite.courseExists("Failed Clone", "ws2526"), "the copy must be rolled back")
+}
+
+// The router validates the name and semester tag first; the copy refuses them again before Keycloak.
+func (suite *CopyCourseTestSuite) TestCopyCourseRejectsAHyphenBeforeKeycloak() {
+	ginCtx, _ := gin.CreateTestContext(nil)
+	_, err := suite.courseCopyService.copyCourseInternal(ginCtx, suite.sourceCourse.ID, suite.copyRequest("lab", "ws25-ios"), "test_user")
+
+	assert.ErrorIs(suite.T(), err, course.ErrInvalidCourseIdentifier)
+	assert.Empty(suite.T(), suite.keycloak.created)
+	assert.False(suite.T(), suite.courseExists("lab", "ws25-ios"))
+}
+
+func (suite *CopyCourseTestSuite) TestCopyCourseRejectsADuplicate() {
+	ginCtx, _ := gin.CreateTestContext(nil)
+	_, err := suite.courseCopyService.copyCourseInternal(ginCtx, suite.sourceCourse.ID, suite.copyRequest("Duplicate Clone", "ws25"), "test_user")
+	require.NoError(suite.T(), err)
+
+	_, err = suite.courseCopyService.copyCourseInternal(ginCtx, suite.sourceCourse.ID, suite.copyRequest("Duplicate Clone", "ws25"), "test_user")
+
+	assert.ErrorIs(suite.T(), err, course.ErrDuplicateCourseIdentifier)
+	assert.Equal(suite.T(), []string{"Duplicate Clone"}, suite.keycloak.created, "Keycloak must not be touched for the duplicate")
 }
 
 func TestCopyCourseTestSuite(t *testing.T) {

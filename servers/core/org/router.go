@@ -1,6 +1,7 @@
 package org
 
 import (
+	"context"
 	"errors"
 	"net/http"
 
@@ -8,6 +9,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/prompt-edu/prompt-sdk/audit"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
+	"github.com/prompt-edu/prompt/servers/core/keycloakRealmManager"
+	"github.com/prompt-edu/prompt/servers/core/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt/servers/core/org/orgDTO"
 	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 	log "github.com/sirupsen/logrus"
@@ -32,10 +35,218 @@ func setupOrgRouter(router *gin.RouterGroup, s *OrgService, authMiddleware func(
 
 	org.GET("/", permissionRoleMiddleware(permissionValidation.PromptAdmin), s.getAllOrgs)
 	org.POST("/", audit.Describe("Created an org"), permissionRoleMiddleware(permissionValidation.PromptAdmin), s.createOrg)
+	// Every caller may list their own orgs; the token's org roles decide which.
+	org.GET("/self", s.getOwnOrgs)
 	org.GET("/:orgID", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.OrgAdmin, permissionValidation.OrgMember), s.getOrg)
 	org.PUT("/:orgID", audit.Describe("Updated an org"), permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.OrgAdmin), s.updateOrg)
 	org.PUT("/:orgID/parent", audit.Describe("Moved an org"), permissionRoleMiddleware(permissionValidation.PromptAdmin), s.updateOrgParent)
 	org.DELETE("/:orgID", audit.Describe("Deleted an org"), permissionRoleMiddleware(permissionValidation.PromptAdmin), s.deleteOrg)
+
+	org.GET("/:orgID/members", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.OrgAdmin), s.getOrgMembers)
+	org.POST("/:orgID/members/:userID", audit.Describe("Added an org member"), permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.OrgAdmin), s.addOrgMember)
+	org.PUT("/:orgID/members/:userID", audit.Describe("Changed the role of an org member"), permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.OrgAdmin), s.updateOrgMemberRole)
+	org.DELETE("/:orgID/members/:userID", audit.Describe("Removed an org member"), permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.OrgAdmin), s.removeOrgMember)
+}
+
+// getOwnOrgs godoc
+// @Summary Get the caller's orgs
+// @Description Get the orgs whose Admin or Member role the caller's token holds, each with the caller's role in it. A new role shows only after a token refresh.
+// @Tags orgs
+// @Produce json
+// @Success 200 {array} orgDTO.OwnOrg
+// @Failure 500 {object} utils.ErrorResponse
+// @Security BearerAuth
+// @Router /orgs/self [get]
+func (s *OrgService) getOwnOrgs(c *gin.Context) {
+	userRoles, ok := c.Value(keycloakTokenVerifier.CtxUserRoles).(map[string]bool)
+	if !ok {
+		log.Error("user roles not found in context")
+		sdkUtils.HandleError(c, http.StatusInternalServerError, errors.New("failed to get own orgs"))
+		return
+	}
+	issuedAt, err := permissionValidation.TokenIssuedAt(c)
+	if err != nil {
+		log.Error(err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, errors.New("failed to get own orgs"))
+		return
+	}
+
+	orgs, err := s.GetOwnOrgs(c, userRoles, issuedAt)
+	if err != nil {
+		log.Error(err)
+		sdkUtils.HandleError(c, http.StatusInternalServerError, errors.New("failed to get own orgs"))
+		return
+	}
+	c.IndentedJSON(http.StatusOK, orgs)
+}
+
+// getOrgMembers godoc
+// @Summary Get the members of an org
+// @Description Get the users in the org's Admin and Member groups, Admins first. A user in both groups is listed once, as an Admin.
+// @Tags orgs
+// @Produce json
+// @Param orgID path string true "Org UUID"
+// @Success 200 {array} keycloakRealmDTO.OrgMember
+// @Failure 400 {object} utils.ErrorResponse
+// @Failure 404 {object} utils.ErrorResponse
+// @Failure 500 {object} utils.ErrorResponse
+// @Security BearerAuth
+// @Router /orgs/{orgID}/members [get]
+func (s *OrgService) getOrgMembers(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("orgID"))
+	if err != nil {
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
+		return
+	}
+
+	members, err := s.GetOrgMembers(c, id)
+	if err != nil {
+		handleServiceError(c, err, "failed to get org members")
+		return
+	}
+	c.IndentedJSON(http.StatusOK, members)
+}
+
+// addOrgMember godoc
+// @Summary Add a member to an org
+// @Description Give the user with the Keycloak ID the Admin or Member role of the org. A user who already holds a role in the org is refused, so a stale selection never changes their role. Refused with 409 while another change to the org's members or its deletion is in progress. Only PROMPT admins can add themselves.
+// @Tags orgs
+// @Accept json
+// @Param orgID path string true "Org UUID"
+// @Param userID path string true "Keycloak user ID"
+// @Param role body orgDTO.UpdateOrgMemberRole true "Org role"
+// @Success 204
+// @Failure 400 {object} utils.ErrorResponse
+// @Failure 401 {object} utils.ErrorResponse
+// @Failure 404 {object} utils.ErrorResponse
+// @Failure 409 {object} utils.ErrorResponse
+// @Failure 500 {object} utils.ErrorResponse
+// @Security BearerAuth
+// @Router /orgs/{orgID}/members/{userID} [post]
+func (s *OrgService) addOrgMember(c *gin.Context) {
+	s.writeOrgMemberRole(c, s.AddOrgMember, "failed to add the org member")
+}
+
+// updateOrgMemberRole godoc
+// @Summary Change the role of an org member
+// @Description Give the member with the Keycloak ID the Admin or Member role of the org. A user who holds no role in the org is refused, so a stale selection never adds them back. A member who already holds the role is left as is, and no audit entry is recorded. A user holds one org role at a time. Refused with 409 while another change to the org's members or its deletion is in progress. Only PROMPT admins can change their own membership.
+// @Tags orgs
+// @Accept json
+// @Param orgID path string true "Org UUID"
+// @Param userID path string true "Keycloak user ID"
+// @Param role body orgDTO.UpdateOrgMemberRole true "Org role"
+// @Success 204
+// @Failure 400 {object} utils.ErrorResponse
+// @Failure 401 {object} utils.ErrorResponse
+// @Failure 404 {object} utils.ErrorResponse
+// @Failure 409 {object} utils.ErrorResponse
+// @Failure 500 {object} utils.ErrorResponse
+// @Security BearerAuth
+// @Router /orgs/{orgID}/members/{userID} [put]
+func (s *OrgService) updateOrgMemberRole(c *gin.Context) {
+	s.writeOrgMemberRole(c, s.UpdateOrgMemberRole, "failed to change the org member's role")
+}
+
+// writeOrgMemberRole gives the user in the URL the org role in the body through write.
+func (s *OrgService) writeOrgMemberRole(c *gin.Context, write func(ctx context.Context, orgID uuid.UUID, userID, orgRole string, caller Caller) (orgDTO.Org, string, error), fallbackMessage string) {
+	id, err := uuid.Parse(c.Param("orgID"))
+	if err != nil {
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
+		return
+	}
+	userID, ok := memberID(c)
+	if !ok {
+		return
+	}
+
+	var input orgDTO.UpdateOrgMemberRole
+	if err := c.ShouldBindJSON(&input); err != nil {
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
+		return
+	}
+	if err := validateOrgRole(input.Role); err != nil {
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
+		return
+	}
+	caller, ok := callerOf(c)
+	if !ok {
+		return
+	}
+
+	org, previousRole, err := write(c, id, userID, input.Role, caller)
+	if err != nil {
+		handleServiceError(c, err, fallbackMessage)
+		return
+	}
+	if previousRole == input.Role {
+		// The member already held the role, so nothing changed.
+		audit.Suppress(c)
+	} else {
+		recordOrgMemberAudit(c, org, userID, input.Role, previousRole)
+	}
+	c.Status(http.StatusNoContent)
+}
+
+// removeOrgMember godoc
+// @Summary Remove a member from an org
+// @Description Take the member out of the org's Admin and Member groups. A user who holds no role in the org is refused, so a stale selection is not recorded as a removal. Refused with 409 while another change to the org's members or its deletion is in progress. Only PROMPT admins can remove themselves.
+// @Tags orgs
+// @Param orgID path string true "Org UUID"
+// @Param userID path string true "Keycloak user ID"
+// @Success 204
+// @Failure 400 {object} utils.ErrorResponse
+// @Failure 401 {object} utils.ErrorResponse
+// @Failure 404 {object} utils.ErrorResponse
+// @Failure 409 {object} utils.ErrorResponse
+// @Failure 500 {object} utils.ErrorResponse
+// @Security BearerAuth
+// @Router /orgs/{orgID}/members/{userID} [delete]
+func (s *OrgService) removeOrgMember(c *gin.Context) {
+	id, err := uuid.Parse(c.Param("orgID"))
+	if err != nil {
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
+		return
+	}
+	userID, ok := memberID(c)
+	if !ok {
+		return
+	}
+	caller, ok := callerOf(c)
+	if !ok {
+		return
+	}
+
+	org, previousRole, err := s.RemoveOrgMember(c, id, userID, caller)
+	if err != nil {
+		handleServiceError(c, err, "failed to remove the org member")
+		return
+	}
+	recordOrgMemberAudit(c, org, userID, "", previousRole)
+	c.Status(http.StatusNoContent)
+}
+
+// memberID returns the Keycloak user ID in the URL in its canonical form, or refuses the request.
+// Keycloak user IDs are UUIDs, so only a well-formed one is passed on to Keycloak. The canonical
+// form also keeps the own-membership guard from missing an uppercase spelling of the caller's ID.
+func memberID(c *gin.Context) (string, bool) {
+	userID, err := uuid.Parse(c.Param("userID"))
+	if err != nil {
+		sdkUtils.HandleError(c, http.StatusBadRequest, err)
+		return "", false
+	}
+	return userID.String(), true
+}
+
+// callerOf returns who makes the request. Without the caller's Keycloak user ID, the own-membership
+// guard would not hold, so the request is refused.
+func callerOf(c *gin.Context) (Caller, bool) {
+	callerUserID := c.GetString(keycloakTokenVerifier.CtxUserID)
+	if callerUserID == "" {
+		sdkUtils.HandleError(c, http.StatusUnauthorized, errors.New("missing caller identity"))
+		return Caller{}, false
+	}
+	userRoles, _ := c.Value(keycloakTokenVerifier.CtxUserRoles).(map[string]bool)
+	return Caller{UserID: callerUserID, IsPromptAdmin: userRoles[permissionValidation.PromptAdmin]}, true
 }
 
 // getAllOrgs godoc
@@ -225,13 +436,28 @@ func recordOrgAudit(c *gin.Context, orgID uuid.UUID, slug string) {
 	audit.Record(c, audit.Event{EntityType: "org", EntityID: orgID.String(), EntityName: slug})
 }
 
+// recordOrgMemberAudit names the org, the member, and their role after and before the change; role
+// is empty for a removal, previousRole for an addition.
+func recordOrgMemberAudit(c *gin.Context, org orgDTO.Org, userID, role, previousRole string) {
+	metadata := map[string]any{"keycloakUserID": userID}
+	if role != "" {
+		metadata["role"] = role
+	}
+	if previousRole != "" {
+		metadata["previousRole"] = previousRole
+	}
+	audit.Record(c, audit.Event{EntityType: "org", EntityID: org.ID.String(), EntityName: org.Slug, Metadata: metadata})
+}
+
 func handleServiceError(c *gin.Context, err error, fallbackMessage string) {
 	switch {
 	case errors.Is(err, ErrOrgNotFound):
 		sdkUtils.HandleError(c, http.StatusNotFound, err)
-	case errors.Is(err, ErrParentOrgNotFound), errors.Is(err, ErrOrgCycle):
+	case errors.Is(err, keycloakRealmManager.ErrUserNotFound), errors.Is(err, ErrNotOrgMember):
+		sdkUtils.HandleError(c, http.StatusNotFound, err)
+	case errors.Is(err, ErrParentOrgNotFound), errors.Is(err, ErrOrgCycle), errors.Is(err, ErrOwnMembership), errors.Is(err, keycloakRealmManager.ErrInvalidOrgRole):
 		sdkUtils.HandleError(c, http.StatusBadRequest, err)
-	case errors.Is(err, ErrDuplicateOrgSlug), errors.Is(err, ErrOrgHasChildOrgs), errors.Is(err, ErrOrgHasCourses):
+	case errors.Is(err, ErrDuplicateOrgSlug), errors.Is(err, ErrOrgHasChildOrgs), errors.Is(err, ErrOrgHasCourses), errors.Is(err, ErrAlreadyOrgMember), errors.Is(err, ErrMembershipBusy):
 		sdkUtils.HandleError(c, http.StatusConflict, err)
 	case errors.Is(err, ErrOrgMembersRemoved):
 		log.Error(err)

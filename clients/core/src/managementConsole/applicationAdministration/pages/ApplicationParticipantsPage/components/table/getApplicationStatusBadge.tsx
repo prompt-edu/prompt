@@ -11,13 +11,18 @@ const defaultStatusDisplayConfig: ApplicationStatusDisplayConfig = {
   badgeClassName: 'bg-gray-500 hover:bg-gray-500',
 }
 
+export const APPLICATION_PASS_STATUS_LABELS = {
+  [PassStatus.PASSED]: 'Accepted',
+  [PassStatus.FAILED]: 'Rejected',
+}
+
 const applicationStatusDisplayConfig: Record<PassStatus, ApplicationStatusDisplayConfig> = {
   [PassStatus.PASSED]: {
-    label: 'Accepted',
+    label: APPLICATION_PASS_STATUS_LABELS[PassStatus.PASSED],
     badgeClassName: 'bg-green-500 hover:bg-green-500',
   },
   [PassStatus.FAILED]: {
-    label: 'Rejected',
+    label: APPLICATION_PASS_STATUS_LABELS[PassStatus.FAILED],
     badgeClassName: 'bg-red-500 hover:bg-red-500',
   },
   [PassStatus.NOT_ASSESSED]: {

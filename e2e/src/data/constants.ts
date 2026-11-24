@@ -29,6 +29,22 @@ export const SEEDED_COURSES = {
   },
 }
 
+// The demo org. Its Admin and Member are the Keycloak users `org-admin` and
+// `org-member`, through the realm's /Orgs/demo-chair groups.
+export const SEEDED_ORG = {
+  id: '7a000001-0000-0000-0000-000000000001',
+  name: 'Demo Chair',
+  slug: 'demo-chair',
+  // The details seed/core.sql gives the org, for tests that change and restore them
+  details: {
+    name: 'Demo Chair',
+    school: 'School of Computation, Information and Technology',
+    university: 'Technical University of Munich',
+    website: 'https://aet.cit.tum.de',
+    contactEmail: 'demo-chair@example.com',
+  },
+}
+
 // Total non-template courses present in the seed: the four fixture courses below,
 // `iPraktikumWelcome` (which owns the welcome-text Application phase), and
 // `iPraktikumDemo`, the populated demo course the seed adds for local
@@ -79,6 +95,19 @@ export const SELF_TEAM_ALLOCATION_FOREIGN_PHASE_ID = 'aaaa3333-0000-0000-0000-00
 // (no graph edge, navigate by URL): teams formed there never collide with the
 // student journey's phase when spec files run in parallel workers.
 export const SELF_TEAM_ALLOCATION_OVERVIEW_PHASE_ID = 'aaaa4444-0000-0000-0000-0000000000a4'
+
+// Standalone Self Team Allocation phase on fullCourse (no graph edge, navigate by
+// URL): course-editor leads Team Lovelace (Stan + Selma) and Team Turing (Niclas)
+// under the tutor id ledTutorId, and Team Hamilton (Test Test) has no tutor.
+export const SELF_TEAM_ALLOCATION_TUTOR_SCOPE = {
+  phaseId: 'aaaa7777-0000-0000-0000-0000000000a7',
+  ledTutorId: 'a0000005-0000-0000-0000-000000000005',
+  teams: {
+    lovelace: { id: '2d000001-0000-0000-0000-000000000001', name: 'Team Lovelace' },
+    turing: { id: '2d000002-0000-0000-0000-000000000002', name: 'Team Turing' },
+    hamilton: { id: '2d000003-0000-0000-0000-000000000003', name: 'Team Hamilton' },
+  },
+}
 
 // Students matching the Keycloak users (see e2e/keycloak/realm.json attributes).
 export const SEEDED_PHASE_STUDENTS = {
@@ -135,9 +164,12 @@ export const TEAM_ALLOCATION_TUTOR_SCOPE = {
 // `selfEvaluation` by the self-evaluation spec (Stan participates),
 // `print` by the print spec (Stan participates), `gradeExport` by the grade
 // export spec (Stan participates), and `evaluationOnly` by the evaluation-only
-// spec (Stan participates), which flips assessment_enabled off. `tutorResults`
+// spec (Stan participates), which flips assessment_enabled off. `tutorScope`
+// also serves the participant navigation spec, which only reads it. `tutorResults`
 // belongs to the tutor results spec: Stan + Selma participate, and its teams come
 // from TEAM_ALLOCATION_TUTOR_SCOPE, so course-editor is their tutor.
+// `tutorNavigation` belongs to the tutor navigation spec: no participants, and its
+// teams come from TEAM_ALLOCATION_TUTOR_SCOPE, whose two tutors fill three rows.
 export const ASSESSMENT_FIXTURE_PHASES = {
   visibility: 'd0000006-0000-0000-0000-000000000006',
   selfEvaluation: 'd0000007-0000-0000-0000-000000000007',
@@ -147,6 +179,7 @@ export const ASSESSMENT_FIXTURE_PHASES = {
   tutorScope: 'd0000018-0000-0000-0000-000000000018',
   otherTutor: 'd0000019-0000-0000-0000-000000000019',
   tutorResults: 'd000001a-0000-0000-0000-00000000001a',
+  tutorNavigation: 'd000001b-0000-0000-0000-00000000001b',
 }
 
 // The tutor record course-editor (Eduard Eduard, login co69edt) has in

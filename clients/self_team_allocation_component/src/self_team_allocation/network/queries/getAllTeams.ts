@@ -8,7 +8,7 @@ export const getAllTeams = async (coursePhaseID: string): Promise<Team[]> => {
       await selfTeamAllocationAxiosInstance.get(
         `/self-team-allocation/api/course_phase/${coursePhaseID}/team`,
       )
-    ).data
+    ).data.teams
   } catch (err) {
     console.error(err)
     throw err

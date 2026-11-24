@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Reads e2e/shards.json: check | matrix | paths <name> | ai-enabled <name> | names.
+// Reads e2e/shards.json: check | matrix [names-json] | paths <name> | ai-enabled <name> | names.
 
 import { readFileSync, readdirSync } from 'node:fs'
 import path from 'node:path'
@@ -78,8 +78,12 @@ function check() {
   }
 }
 
-function matrix() {
-  const include = loadShards().map((shard) => ({
+// An empty `selected` keeps every shard.
+function matrix(selected) {
+  const names = selected ? JSON.parse(selected) : []
+  for (const name of names) findShard(name)
+  const shards = loadShards().filter((shard) => names.length === 0 || names.includes(shard.name))
+  const include = shards.map((shard) => ({
     name: shard.name,
     paths: shard.paths.join(' '),
     cacheWriter: Boolean(shard.cacheWriter),
@@ -116,7 +120,7 @@ switch (command) {
     check()
     break
   case 'matrix':
-    matrix()
+    matrix(argument)
     break
   case 'paths':
     paths(argument)
@@ -132,6 +136,6 @@ switch (command) {
     )
     break
   default:
-    console.error('Usage: node scripts/shards.mjs <check|matrix|paths <name>|ai-enabled <name>|names>')
+    console.error('Usage: node scripts/shards.mjs <check|matrix [names-json]|paths <name>|ai-enabled <name>|names>')
     process.exit(2)
 }

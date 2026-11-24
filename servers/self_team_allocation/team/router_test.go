@@ -142,10 +142,12 @@ func (suite *TeamRouterTestSuite) TestGetAllTeamsRoute() {
 
 	require.Equal(suite.T(), http.StatusOK, resp.Code)
 
-	var teams []promptTypes.Team
-	err := json.Unmarshal(resp.Body.Bytes(), &teams)
+	var response struct {
+		Teams []promptTypes.Team `json:"teams"`
+	}
+	err := json.Unmarshal(resp.Body.Bytes(), &response)
 	require.NoError(suite.T(), err)
-	require.NotEmpty(suite.T(), teams)
+	require.NotEmpty(suite.T(), response.Teams)
 }
 
 func (suite *TeamRouterTestSuite) TestGetTeamByIDRoute() {
@@ -313,11 +315,11 @@ func (suite *TeamRouterTestSuite) TestImportTutorsRoute() {
 
 	tutors := []teamDTO.Tutor{
 		{
-			CoursePhaseID:         coursePhaseID,
 			CourseParticipationID: uuid.New(),
 			FirstName:             "Import",
 			LastName:              "Tutor",
-			TeamID:                teamID,
+			UniversityLogin:       "im01prt",
+			TeamIDs:               []uuid.UUID{teamID},
 		},
 	}
 	payload, _ := json.Marshal(tutors)
@@ -331,7 +333,7 @@ func (suite *TeamRouterTestSuite) TestImportTutorsRoute() {
 
 	require.Equal(suite.T(), http.StatusCreated, resp.Code)
 
-	tutorList, err := suite.testDB.Queries.GetTutorsByCoursePhase(suite.ctx, coursePhaseID)
+	tutorList, err := suite.testDB.Queries.GetTutorAssignmentsByCoursePhase(suite.ctx, coursePhaseID)
 	require.NoError(suite.T(), err)
 	require.NotEmpty(suite.T(), tutorList)
 }
@@ -353,7 +355,7 @@ func (suite *TeamRouterTestSuite) TestCreateManualTutorRoute() {
 
 	require.Equal(suite.T(), http.StatusCreated, resp.Code)
 
-	tutors, err := suite.testDB.Queries.GetTutorsByCoursePhase(suite.ctx, coursePhaseID)
+	tutors, err := suite.testDB.Queries.GetTutorAssignmentsByCoursePhase(suite.ctx, coursePhaseID)
 	require.NoError(suite.T(), err)
 	require.Len(suite.T(), tutors, 1)
 }
@@ -380,7 +382,7 @@ func (suite *TeamRouterTestSuite) TestDeleteTutorRoute() {
 
 	require.Equal(suite.T(), http.StatusOK, resp.Code)
 
-	tutors, err := suite.testDB.Queries.GetTutorsByCoursePhase(suite.ctx, coursePhaseID)
+	tutors, err := suite.testDB.Queries.GetTutorAssignmentsByCoursePhase(suite.ctx, coursePhaseID)
 	require.NoError(suite.T(), err)
 	require.Empty(suite.T(), tutors)
 }

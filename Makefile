@@ -7,7 +7,7 @@
 	lint lint-clients lint-servers \
 	test test-clients test-core test-assessment test-interview \
 	test-team-allocation test-self-team-allocation test-example \
-	test-certificate test-presentation test-infrastructure-setup test-ai \
+	test-certificate test-presentation test-infrastructure-setup test-ai test-ci \
 	test-e2e test-e2e-shard test-e2e-ui test-e2e-down \
 	verify-up verify-down stack stop stack-down s3 \
 	sqlc sqlc-core sqlc-assessment sqlc-interview \
@@ -306,10 +306,13 @@ lint-servers: ## Run go vet on all servers
 
 # ─── Testing ───────────────────────────────────────────────────────────────────
 
-test: test-clients test-core test-assessment test-interview test-team-allocation test-self-team-allocation test-example test-certificate test-presentation test-infrastructure-setup test-ai ## Run all client and server tests
+test: test-clients test-core test-assessment test-interview test-team-allocation test-self-team-allocation test-example test-certificate test-presentation test-infrastructure-setup test-ai test-ci ## Run all client and server tests
 
 test-clients: ## Run all client unit tests
 	cd clients && yarn install && yarn test
+
+test-ci: ## Run the CI change-selection tests
+	node --test scripts/ci-changes.test.mjs
 
 test-core: ## Run core server tests
 	cd servers/core && go test ./...

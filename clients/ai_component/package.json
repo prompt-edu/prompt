@@ -1,6 +1,6 @@
 {
   "name": "ai_component",
-  "version": "2.21.0",
+  "version": "2.21.2",
   "main": "src/index.ts",
   "license": "MIT",
   "scripts": {
@@ -14,7 +14,7 @@
   "devDependencies": {
     "@rspack/cli": "^2.3.2",
     "@rspack/core": "^2.3.2",
-    "openai": "^7.55.0"
+    "openai": "^7.57.0"
   },
   "packageManager": "yarn@4.18.1"
 }

@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/prompt-edu/prompt/servers/self_team_allocation/allocation/allocationDTO"
 	db "github.com/prompt-edu/prompt/servers/self_team_allocation/db/sqlc"
 	log "github.com/sirupsen/logrus"
@@ -16,11 +17,13 @@ var ErrAssignmentNotFound = errors.New("assignment not found")
 
 type AllocationService struct {
 	queries db.Queries
+	conn    *pgxpool.Pool
 }
 
-func NewAllocationService(queries db.Queries) *AllocationService {
+func NewAllocationService(queries db.Queries, conn *pgxpool.Pool) *AllocationService {
 	return &AllocationService{
 		queries: queries,
+		conn:    conn,
 	}
 }
 

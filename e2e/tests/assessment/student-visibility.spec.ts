@@ -2,6 +2,7 @@ import { expect, test, authFile } from '../../src/fixtures/auth'
 import { AssessmentPage } from '../../src/pages/AssessmentPage'
 import {
   ASSESSMENT_FIXTURE_PHASES,
+  FULL_COURSE_STUDENT,
   FULL_COURSE_STUDENT2,
   SEEDED_COURSES,
 } from '../../src/data/constants'
@@ -23,18 +24,34 @@ const PHASE_ID = ASSESSMENT_FIXTURE_PHASES.visibility
 const SCHEMA_NAME = 'E2E Visibility Rubric'
 const REMARKS = 'Solid contribution to the visibility fixture.'
 
-const reset = () =>
-  resetAssessmentPhase(PHASE_ID, {
-    courseParticipationIds: [FULL_COURSE_STUDENT2.courseParticipationId],
+// Also restores the server's default result visibility, which the empty-state
+// test switches off entirely.
+const reset = async () => {
+  await resetAssessmentPhase(PHASE_ID, {
+    courseParticipationIds: [
+      FULL_COURSE_STUDENT2.courseParticipationId,
+      FULL_COURSE_STUDENT.courseParticipationId,
+    ],
     schemaNames: [SCHEMA_NAME],
   })
+  const admin = await apiAsRole('admin')
+  try {
+    await putConfig(admin, PHASE_ID, {
+      gradeSuggestionVisible: true,
+      actionItemsVisible: true,
+      gradingSheetVisible: false,
+    })
+  } finally {
+    await admin.dispose()
+  }
+}
 
 // Selma (student2) is the graded student; Stan (student) is the enrolled
 // bystander whose results must stay empty.
 test.use({ role: 'student2' })
 
 test.describe('assessment: student result visibility', () => {
-  test.beforeAll(async () => {
+  test.beforeEach(async () => {
     await reset()
     const lecturer = await apiAsRole('lecturer')
     try {
@@ -63,7 +80,7 @@ test.describe('assessment: student result visibility', () => {
     }
   })
 
-  test.afterAll(async () => {
+  test.afterEach(async () => {
     await reset()
   })
 
@@ -130,6 +147,116 @@ test.describe('assessment: student result visibility', () => {
       expect(res.status()).toBe(204)
     } finally {
       await stanApi.dispose()
+    }
+  })
+
+  test('students see an empty state when every result section is hidden', async ({
+    page,
+    browser,
+  }) => {
+    // The release button needs every participant's assessment to be final, so
+    // Stan gets a completed assessment too. All three result sections are
+    // switched off before the release.
+    const lecturer = await apiAsRole('lecturer')
+    try {
+      const competency = (await getAssessmentCategories(lecturer, PHASE_ID))[0].competencies[0]
+      await gradeCompetency(
+        lecturer,
+        PHASE_ID,
+        FULL_COURSE_STUDENT.courseParticipationId,
+        competency.id,
+        'ok',
+      )
+      await markAssessmentComplete(
+        lecturer,
+        PHASE_ID,
+        FULL_COURSE_STUDENT.courseParticipationId,
+        3.0,
+        'Completed so the release gate opens.',
+      )
+      await putConfig(lecturer, PHASE_ID, {
+        gradeSuggestionVisible: false,
+        actionItemsVisible: false,
+        gradingSheetVisible: false,
+      })
+    } finally {
+      await lecturer.dispose()
+    }
+
+    // The lecturer is warned in the release dialog and can still release.
+    const lecturerContext = await browser.newContext({ storageState: authFile('lecturer') })
+    try {
+      const lecturerPage = await lecturerContext.newPage()
+      const lecturerPhase = new AssessmentPage(lecturerPage)
+      await lecturerPhase.goto(SEEDED_COURSES.fullCourse.id, PHASE_ID, '/settings')
+      await lecturerPhase.expectSettingsLoaded()
+      await expect(lecturerPhase.releaseButton()).toBeEnabled()
+      const dialog = await lecturerPhase.openReleaseDialog('Assessment')
+      await expect(dialog.getByText('Students will not see any results')).toBeVisible()
+      await dialog.getByRole('button', { name: 'Release Results' }).click()
+      await expect(lecturerPhase.unreleaseButton()).toBeVisible()
+    } finally {
+      await lecturerContext.close()
+    }
+
+    // Selma gets the explanation instead of a page with only its header, and
+    // nothing of her assessment or a PDF download.
+    const phase = new AssessmentPage(page)
+    await phase.gotoResults(SEEDED_COURSES.fullCourse.id, PHASE_ID)
+    await phase.expectNoResultsShared()
+    await expect(page.getByPlaceholder('What did this person do particularly well?')).toHaveCount(
+      0,
+    )
+    await expect(page.getByText('Good - 1.7')).toHaveCount(0)
+    await expect(page.getByRole('button', { name: /Download PDF/ })).toHaveCount(0)
+  })
+
+  test("the tutor's hint on the general remarks follows the grade suggestion setting", async ({
+    browser,
+  }) => {
+    const remarksHint = 'These remarks will be visible to the student once results are released.'
+    const actionItemsHint =
+      'These action items will be visible to the student once results are released.'
+
+    const lecturerContext = await browser.newContext({ storageState: authFile('lecturer') })
+    try {
+      const lecturerPage = await lecturerContext.newPage()
+      const lecturerPhase = new AssessmentPage(lecturerPage)
+      const openSelmasAssessment = async () => {
+        await lecturerPhase.goto(SEEDED_COURSES.fullCourse.id, PHASE_ID, '/participants')
+        await lecturerPhase.expectParticipantsLoaded()
+        await lecturerPhase.openParticipant('Selma Second')
+      }
+
+      const setVisibility = async (
+        gradeSuggestionVisible: boolean,
+        actionItemsVisible: boolean,
+      ) => {
+        const lecturer = await apiAsRole('lecturer')
+        try {
+          await putConfig(lecturer, PHASE_ID, {
+            gradeSuggestionVisible,
+            actionItemsVisible,
+            gradingSheetVisible: false,
+          })
+        } finally {
+          await lecturer.dispose()
+        }
+      }
+
+      // The server only returns the remarks to students together with the
+      // grade suggestion, so action items alone must not promise them.
+      await setVisibility(false, true)
+      await openSelmasAssessment()
+      await expect(lecturerPage.getByText(actionItemsHint)).toBeVisible()
+      await expect(lecturerPage.getByText(remarksHint)).toHaveCount(0)
+
+      await setVisibility(true, false)
+      await openSelmasAssessment()
+      await expect(lecturerPage.getByText(remarksHint)).toBeVisible()
+      await expect(lecturerPage.getByText(actionItemsHint)).toHaveCount(0)
+    } finally {
+      await lecturerContext.close()
     }
   })
 })

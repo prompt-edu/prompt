@@ -8,7 +8,7 @@ require (
 	github.com/gin-gonic/gin v1.12.0
 	github.com/go-jose/go-jose/v4 v4.1.9
 	github.com/google/uuid v1.6.0
-	github.com/jackc/pgx/v5 v5.12.0
+	github.com/jackc/pgx/v5 v5.13.0
 	github.com/prompt-edu/prompt-sdk v1.4.3-0.20261116165219-21ab0e6b71a3
 	github.com/sirupsen/logrus v1.10.2
 	github.com/stretchr/testify v1.12.1

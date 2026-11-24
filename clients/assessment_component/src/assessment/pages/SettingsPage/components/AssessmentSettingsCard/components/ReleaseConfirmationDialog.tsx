@@ -1,5 +1,7 @@
 import { useGetMailingIsConfigured } from '@tumaet/prompt-shared-state'
 import {
+  Alert,
+  AlertDescription,
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -8,10 +10,16 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertTitle,
 } from '@tumaet/prompt-ui-components'
+import { EyeOff } from 'lucide-react'
 
 import { useGetCoursePhaseConfig } from '../../../../hooks/useGetCoursePhaseConfig'
 import { useGetCoursePhaseMetaData } from '../../../../hooks/useGetCoursePhaseMetaData'
+import {
+  describeVisibleResultSections,
+  hasVisibleResultSection,
+} from '../../../../utils/studentResultsVisibility'
 import { isTemplateComplete, parseResultsReleasedMail } from '../../ResultsReleasedMailCard/utils'
 
 interface ReleaseConfirmationDialogProps {
@@ -41,37 +49,7 @@ export function ReleaseConfirmationDialog({
     courseMailingIsConfigured && resultsMail.sendOnRelease && isTemplateComplete(resultsMail)
 
   const assessmentEnabled = coursePhaseConfig?.assessmentEnabled ?? true
-  const gradeSuggestionVisible = coursePhaseConfig?.gradeSuggestionVisible ?? true
-  const actionItemsVisible = coursePhaseConfig?.actionItemsVisible ?? true
-  const gradingSheetVisible = coursePhaseConfig?.gradingSheetVisible ?? false
-
-  const getVisibilityDescription = () => {
-    const visibleItems: string[] = []
-
-    if (gradeSuggestionVisible) {
-      visibleItems.push('grade suggestions')
-    }
-    if (actionItemsVisible) {
-      visibleItems.push('action items')
-    }
-    if (gradingSheetVisible) {
-      visibleItems.push('grading sheet')
-    }
-
-    if (visibleItems.length === 0) {
-      return 'assessment information'
-    }
-
-    if (visibleItems.length === 1) {
-      return visibleItems[0]
-    }
-
-    if (visibleItems.length === 2) {
-      return `${visibleItems[0]} and ${visibleItems[1]}`
-    }
-
-    return `${visibleItems[0]}, ${visibleItems[1]}, and ${visibleItems[2]}`
-  }
+  const showsNothingToStudents = assessmentEnabled && !hasVisibleResultSection(coursePhaseConfig)
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -81,11 +59,16 @@ export function ReleaseConfirmationDialog({
             Release {assessmentEnabled ? 'Assessment' : 'Evaluation'} Results?
           </AlertDialogTitle>
           <AlertDialogDescription>
-            {assessmentEnabled ? (
+            {showsNothingToStudents ? (
+              <>
+                Are you sure you want to release the assessment results of all final assessments (
+                {completedAssessments}/{totalAssessments}) to students?
+              </>
+            ) : assessmentEnabled ? (
               <>
                 Are you sure you want to release the assessment results to students? This will make{' '}
-                {getVisibilityDescription()} for all final assessments ({completedAssessments}/
-                {totalAssessments}) visible to students.
+                {describeVisibleResultSections(coursePhaseConfig)} for all final assessments (
+                {completedAssessments}/{totalAssessments}) visible to students.
               </>
             ) : (
               <>
@@ -97,6 +80,18 @@ export function ReleaseConfirmationDialog({
             {notifiesStudents &&
               ' Students who have not been notified yet will also receive the results mail.'}
           </AlertDialogDescription>
+          {showsNothingToStudents && (
+            <Alert>
+              <EyeOff className='h-4 w-4' />
+              <AlertTitle>Students will not see any results</AlertTitle>
+              <AlertDescription>
+                The assessment sheet, grade suggestions, general remarks, and action items are all
+                hidden. Students only see a note that no results are shared for this phase. Switch
+                on at least one of them under &quot;Student visibility after release&quot; to share
+                results.
+              </AlertDescription>
+            </Alert>
+          )}
           {releaseError && (
             <p className='text-sm font-medium text-destructive' role='alert'>
               {releaseError}

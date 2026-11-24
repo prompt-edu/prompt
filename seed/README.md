@@ -30,7 +30,7 @@ Full documentation: [`docs/contributor/guide/seeding.md`](../docs/contributor/gu
 
 | File | Database | Owns |
 | --- | --- | --- |
-| `core.sql` | core | courses, students, phases, the graph, participations, application form and answers, data dependency edges, mail campaign |
+| `core.sql` | core | courses, students, phases, the graph, participations, application form and answers, data dependency edges, mail campaign, the demo org |
 | `interview.sql` | interview | slots, assignments, reviews |
 | `team_allocation.sql` | team_allocation | skills, teams, survey, responses, allocation, tutors |
 | `self_team_allocation.sql` | self_team_allocation | teams, timeframe, assignments |
@@ -52,6 +52,7 @@ across databases. `scripts/seed-check.sh` knows the core-owned prefixes.
 | Prefix | What |
 | --- | --- |
 | `c0000001…` / `c0000002…` / `c0000003…` | courses `iPraktikumFull` / `iPraktikumDemo` / `iPraktikumWelcome` |
+| `7a000001…` | the demo org `demo-chair`, whose Keycloak groups and users are in the realm imports |
 | `d7307be2…`, `e12ffe63…`, `be780b32…` | the e2e fixture courses |
 | `f00000NN…` | demo course phases (1 Application … 9 Example) |
 | `cd0000NN…` | demo course participations |
@@ -80,15 +81,15 @@ a successor to it, and Example is a developer placeholder. Both still carry data
 
 Eight applicants, six of whom pass into the rest of the course. `cd000001` and
 `cd000002` are the Keycloak `student` and `student2` users, so a local login lands on
-a populated course.
+a populated course. `cd000009` to `cd000011` are the three tutors: course participants
+without phase participations, assigned to the teams in Team Allocation and evaluated by
+their teams' students in Assessment.
 
-Two things are intentionally absent:
+One thing is intentionally absent:
 
 - **File-upload answers.** `application_answer_file_upload` needs a `files` row backed
   by a real object in SeaweedFS, which SQL alone cannot create. The upload *question*
   is seeded.
-- **Peer and tutor evaluations.** The config leaves those schema columns to their
-  migration-set defaults; only the self-evaluation round is seeded.
 
 ## The demo timeline
 

@@ -3,19 +3,24 @@ package allocation
 import (
 	"errors"
 	"net/http"
+	"slices"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt-sdk/tutorscope"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
+	"github.com/prompt-edu/prompt/servers/self_team_allocation/allocation/allocationDTO"
+	teams "github.com/prompt-edu/prompt/servers/self_team_allocation/team"
 )
 
 func RegisterRoutes(routerGroup *gin.RouterGroup, service *AllocationService, authMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
 	allocationRouter := routerGroup.Group("/allocation")
+	scopingMW := teams.TutorScopeMiddleware(service.conn)
 
-	allocationRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.CourseStudent), service.getAllAllocations)
-	allocationRouter.GET("/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.CourseStudent), service.getAllocationByCourseParticipationID)
+	allocationRouter.GET("", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.CourseStudent), scopingMW, service.getAllAllocations)
+	allocationRouter.GET("/:courseParticipationID", authMiddleware(promptSDK.PromptAdmin, promptSDK.CourseLecturer, promptSDK.CourseEditor, promptSDK.CourseStudent), scopingMW, service.getAllocationByCourseParticipationID)
 }
 
 // getAllAllocations godoc
@@ -26,6 +31,7 @@ func RegisterRoutes(routerGroup *gin.RouterGroup, service *AllocationService, au
 // @Param coursePhaseID path string true "Course Phase UUID"
 // @Success 200 {array} allocationDTO.AllocationWithParticipation
 // @Failure 400 {object} map[string]string
+// @Failure 403 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Security ApiKeyAuth
 // @Router /course_phase/{coursePhaseID}/allocation [get]
@@ -42,7 +48,21 @@ func (s *AllocationService) getAllAllocations(c *gin.Context) {
 		return
 	}
 
+	if tutorTeamIDs, scoped := tutorscope.TeamIDs(c); scoped {
+		allocations = filterAllocationsByTeams(allocations, tutorTeamIDs)
+	}
+
 	c.JSON(http.StatusOK, allocations)
+}
+
+func filterAllocationsByTeams(allocations []allocationDTO.AllocationWithParticipation, teamIDs []uuid.UUID) []allocationDTO.AllocationWithParticipation {
+	result := make([]allocationDTO.AllocationWithParticipation, 0)
+	for _, a := range allocations {
+		if slices.Contains(teamIDs, a.TeamAllocation) {
+			result = append(result, a)
+		}
+	}
+	return result
 }
 
 // getAllocationByCourseParticipationID godoc
@@ -54,6 +74,7 @@ func (s *AllocationService) getAllAllocations(c *gin.Context) {
 // @Param courseParticipationID path string true "Course Participation UUID"
 // @Success 200 {object} allocationDTO.AllocationWithParticipation
 // @Failure 400 {object} map[string]string
+// @Failure 403 {object} map[string]string
 // @Failure 404 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Security ApiKeyAuth
@@ -78,6 +99,11 @@ func (s *AllocationService) getAllocationByCourseParticipationID(c *gin.Context)
 		} else {
 			sdkUtils.HandleError(c, http.StatusInternalServerError, err)
 		}
+		return
+	}
+
+	if tutorTeamIDs, scoped := tutorscope.TeamIDs(c); scoped && !slices.Contains(tutorTeamIDs, allocation) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access restricted to assigned teams"})
 		return
 	}
 

@@ -4,9 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"strings"
+	"unicode"
 
 	"github.com/Nerzal/gocloak/v14"
+	"github.com/go-resty/resty/v2"
 	"github.com/google/uuid"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/core/keycloakRealmManager/keycloakRealmDTO"
@@ -18,6 +21,7 @@ import (
 
 type KeycloakRealmService struct {
 	client       *gocloak.GoCloak
+	baseURL      string
 	Realm        string
 	ClientID     string
 	ClientSecret string
@@ -26,14 +30,32 @@ type KeycloakRealmService struct {
 }
 
 func NewKeycloakRealmService(baseURL, realm, clientID, clientSecret, idOfClient string, queries db.Queries) *KeycloakRealmService {
+	client := gocloak.NewClient(baseURL)
+	client.RestyClient().OnAfterResponse(explainAdminAPIUnauthorized)
 	return &KeycloakRealmService{
-		client:       gocloak.NewClient(baseURL),
+		client:       client,
+		baseURL:      strings.TrimRight(baseURL, "/"),
 		Realm:        realm,
 		ClientID:     clientID,
 		ClientSecret: clientSecret,
 		idOfClient:   idOfClient,
 		queries:      queries,
 	}
+}
+
+// adminAPIScopeDocsURL points at the admin guide section on the kc-admin-api client scope.
+const adminAPIScopeDocsURL = "https://prompt-edu.github.io/prompt/admin/keycloak-prod#required-client-scope-keycloak-2682"
+
+// explainAdminAPIUnauthorized turns a bare 401 from the Keycloak Admin REST API
+// into an error that says what to fix. Since Keycloak 26.8.2 the Admin API
+// rejects every token that lacks the kc-admin-api client scope, and all an admin
+// would otherwise see is "401 Unauthorized". A 401 from the token endpoint means
+// a wrong client secret and is left alone.
+func explainAdminAPIUnauthorized(_ *resty.Client, resp *resty.Response) error {
+	if resp.StatusCode() != http.StatusUnauthorized || !strings.Contains(resp.Request.URL, "/admin/realms/") {
+		return nil
+	}
+	return fmt.Errorf("401 Unauthorized from the Keycloak Admin REST API: the service-account client is probably missing the kc-admin-api client scope, which Keycloak requires since 26.8.2. See %s", adminAPIScopeDocsURL)
 }
 
 var TOP_LEVEL_GROUP_NAME = "Prompt"
@@ -63,6 +85,10 @@ func isAllowedCourseGroup(name string) bool {
 	return name == permissionValidation.CourseLecturer || name == permissionValidation.CourseEditor
 }
 
+func customGroupRoleName(courseGroupName, customGroupName string) string {
+	return courseGroupName + "-cg-" + customGroupName
+}
+
 func (s *KeycloakRealmService) AddCustomGroup(ctx context.Context, courseID uuid.UUID, groupName string) (string, error) {
 	courseGroupName, err := s.GetCourseGroupName(ctx, courseID)
 	if err != nil {
@@ -75,6 +101,17 @@ func (s *KeycloakRealmService) AddCustomGroup(ctx context.Context, courseID uuid
 		return "", err
 	}
 
+	roleName := customGroupRoleName(courseGroupName, groupName)
+	otherCourseGroup, _, err := s.otherCourseGroupOfRole(ctx, token.AccessToken, TOP_LEVEL_GROUP_NAME+"/"+courseGroupName, roleName)
+	if err != nil {
+		log.Error("failed to check the custom group role: ", err)
+		return "", fmt.Errorf("failed to check the custom group role: %w", err)
+	}
+	if otherCourseGroup != "" {
+		log.Warnf("custom group role %s is mapped to the group %s of another course", roleName, otherCourseGroup)
+		return "", fmt.Errorf("%w: its role %s already belongs to another course", ErrInvalidGroupName, roleName)
+	}
+
 	// 2. Get Custom subgroup or create
 	customGroupID, err := s.GetOrCreateCustomGroup(ctx, token.AccessToken, groupName, courseID)
 	if err != nil {
@@ -83,7 +120,6 @@ func (s *KeycloakRealmService) AddCustomGroup(ctx context.Context, courseID uuid
 	}
 
 	// 3. Create desired role
-	roleName := courseGroupName + "-cg-" + groupName
 	role, err := s.GetOrCreateRealmRole(ctx, token.AccessToken, roleName)
 	if err != nil {
 		log.Error("failed to create role: ", err)
@@ -420,9 +456,9 @@ func (s *KeycloakRealmService) GetKeycloakStatus(ctx context.Context) keycloakRe
 	}
 }
 
-// SearchKeycloakUsers performs a realm-wide search by username/email/name.
-// Authorization for the route is "is a lecturer of any course" - see the
-// comment in router.go.
+// SearchKeycloakUsers performs a realm-wide search by username/email/name, and for the user whose
+// university login is the query. Authorization for the route is "is a lecturer of any course" - see
+// the comment in router.go.
 func (s *KeycloakRealmService) SearchKeycloakUsers(ctx context.Context, query string, limit int) (keycloakRealmDTO.UserSearchResults, error) {
 	q := strings.TrimSpace(query)
 	if len(q) < 2 {
@@ -453,6 +489,14 @@ func (s *KeycloakRealmService) SearchKeycloakUsers(ctx context.Context, query st
 		log.Error("failed to search keycloak users: ", err)
 		return keycloakRealmDTO.UserSearchResults{}, fmt.Errorf("failed to search keycloak users: %w", err)
 	}
+	// Keycloak's search does not match user attributes, so a student's university login, which
+	// lecturers usually know them by, is looked up separately. Its match is listed first.
+	byLogin, err := s.getUsersByUniversityLogin(ctx, token.AccessToken, q, fetchMax)
+	if err != nil {
+		log.Error("failed to search keycloak users by university login: ", err)
+		return keycloakRealmDTO.UserSearchResults{}, fmt.Errorf("failed to search keycloak users by university login: %w", err)
+	}
+	users = appendNewUsers(byLogin, users)
 
 	truncated := len(users) > limit
 	if truncated {
@@ -468,6 +512,40 @@ func (s *KeycloakRealmService) SearchKeycloakUsers(ctx context.Context, query st
 		Results:   results,
 		Truncated: truncated,
 	}, nil
+}
+
+// getUsersByUniversityLogin returns the users whose university login is login, ignoring case, in
+// their full representation. A login holds neither whitespace nor a colon, both of which would split
+// Keycloak's attribute query, so a query with either finds nobody.
+func (s *KeycloakRealmService) getUsersByUniversityLogin(ctx context.Context, accessToken, login string, max int) ([]*gocloak.User, error) {
+	if strings.ContainsFunc(login, func(r rune) bool { return unicode.IsSpace(r) || r == ':' }) {
+		return nil, nil
+	}
+	attributeQuery := keycloakRealmDTO.UniversityLoginAttribute + ":" + login
+	// Without exact, Keycloak matches the attribute value as a substring
+	exact := true
+	brief := false
+	return s.client.GetUsers(ctx, accessToken, s.Realm, gocloak.GetUsersParams{
+		Q:                   &attributeQuery,
+		Exact:               &exact,
+		Max:                 &max,
+		BriefRepresentation: &brief,
+	})
+}
+
+// appendNewUsers appends the users of more that are not in users yet, keeping their order.
+func appendNewUsers(users, more []*gocloak.User) []*gocloak.User {
+	seen := make(map[string]bool, len(users)+len(more))
+	for _, user := range users {
+		seen[gocloak.PString(user.ID)] = true
+	}
+	for _, user := range more {
+		if !seen[gocloak.PString(user.ID)] {
+			seen[gocloak.PString(user.ID)] = true
+			users = append(users, user)
+		}
+	}
+	return users
 }
 
 func (s *KeycloakRealmService) AddStudentsToEditorGroup(ctx context.Context, courseID uuid.UUID, studentIDs []uuid.UUID) (keycloakRealmDTO.AddStudentsToGroupResponse, error) {

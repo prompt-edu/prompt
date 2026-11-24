@@ -1,7 +1,7 @@
 import { useCourseStore } from '@tumaet/prompt-shared-state'
-import { QueryGate } from '@tumaet/prompt-ui-components'
-import { Loader2 } from 'lucide-react'
-import { useEffect } from 'react'
+import { Card, CardContent, QueryGate } from '@tumaet/prompt-ui-components'
+import { EyeOff, Loader2 } from 'lucide-react'
+import { useEffect, useMemo } from 'react'
 import { useParams } from 'react-router-dom'
 
 import { useStudentAssessmentStore } from '../../../zustand/useStudentAssessmentStore'
@@ -12,6 +12,8 @@ import { useGetAllCategoriesWithCompetencies } from '../../hooks/useGetAllCatego
 import { useGetAllTeams } from '../../hooks/useGetAllTeams'
 import { useGetCoursePhaseConfig } from '../../hooks/useGetCoursePhaseConfig'
 import { useGetMyParticipation } from '../../hooks/useGetMyParticipation'
+import { buildExampleAssessmentResults } from '../../utils/exampleResults'
+import { hasVisibleResultSection } from '../../utils/studentResultsVisibility'
 import { useGetMyAssessmentResults } from '../hooks/useGetMyAssessmentResults'
 
 const AssessmentResultsLoader = () => (
@@ -20,12 +22,28 @@ const AssessmentResultsLoader = () => (
   </div>
 )
 
+const NoSharedResultsCard = () => (
+  <Card>
+    <CardContent className='flex items-start gap-3 p-6'>
+      <EyeOff className='mt-0.5 h-5 w-5 shrink-0 text-muted-foreground' />
+      <div className='space-y-1'>
+        <h2 className='text-base font-semibold'>No results shared for this phase</h2>
+        <p className='text-sm leading-6 text-muted-foreground'>
+          Your instructors have not shared the assessment sheet, grade suggestions, general remarks,
+          or action items of this phase with students. Contact them if you have questions about your
+          assessment.
+        </p>
+      </div>
+    </CardContent>
+  </Card>
+)
+
 interface AssessmentResultsSectionProps {
   onReadyChange?: (ready: boolean) => void
 }
 
 export const AssessmentResultsSection = ({ onReadyChange }: AssessmentResultsSectionProps) => {
-  const { courseId } = useParams<{ courseId: string }>()
+  const { courseId, phaseId } = useParams<{ courseId: string; phaseId: string }>()
   const { isStudentOfCourse } = useCourseStore()
   const isStudent = isStudentOfCourse(courseId ?? '')
   const { data: coursePhaseConfig } = useGetCoursePhaseConfig()
@@ -33,25 +51,34 @@ export const AssessmentResultsSection = ({ onReadyChange }: AssessmentResultsSec
   const gradingSheetVisible = coursePhaseConfig?.gradingSheetVisible ?? false
   const actionItemsVisible = coursePhaseConfig?.actionItemsVisible ?? false
   const gradeSuggestionVisible = coursePhaseConfig?.gradeSuggestionVisible ?? false
-  const hasVisibleSection = gradingSheetVisible || actionItemsVisible || gradeSuggestionVisible
+  const hasVisibleSection = hasVisibleResultSection(coursePhaseConfig)
 
   const { data: myParticipation } = useGetMyParticipation({ enabled: isStudent })
   const { data: teams } = useGetAllTeams()
-  const { setStudentAssessment, setAssessmentParticipation } = useStudentAssessmentStore()
+  const { setStudentAssessment, setAssessmentParticipation, reset } = useStudentAssessmentStore()
 
-  const shouldFetch = isStudent && resultsReleased
-  const shouldFetchCategories = shouldFetch && gradingSheetVisible
+  const shouldFetch = isStudent && resultsReleased && hasVisibleSection
+  const shouldFetchCategories = (shouldFetch || !isStudent) && gradingSheetVisible
   const resultsQuery = useGetMyAssessmentResults({ enabled: shouldFetch })
   const assessmentCategoriesQuery = useGetAllCategoriesWithCompetencies({
     enabled: shouldFetchCategories,
   })
 
-  const { data: results, isPending, isError } = resultsQuery
+  const { data: fetchedResults, isPending, isError } = resultsQuery
   const {
     data: assessmentCategories = [],
     isPending: isAssessmentCategoriesPending,
     isError: isAssessmentCategoriesError,
   } = assessmentCategoriesQuery
+
+  const exampleResults = useMemo(
+    () =>
+      !isStudent && coursePhaseConfig
+        ? buildExampleAssessmentResults(phaseId ?? '', assessmentCategories, coursePhaseConfig)
+        : undefined,
+    [isStudent, coursePhaseConfig, phaseId, assessmentCategories],
+  )
+  const results = isStudent ? fetchedResults : exampleResults
 
   useEffect(() => {
     if (!results) return
@@ -66,6 +93,14 @@ export const AssessmentResultsSection = ({ onReadyChange }: AssessmentResultsSec
       myIndependentAssessments: [],
     })
   }, [results, setStudentAssessment])
+
+  // The example writes made-up results into the shared store, so clear them before another page
+  // (a participant's assessment, for example) reads it, and drop the last opened participant's name.
+  useEffect(() => {
+    if (isStudent) return
+    useStudentAssessmentStore.setState({ assessmentParticipation: undefined })
+    return reset
+  }, [isStudent, reset])
 
   const isReportReady =
     resultsReleased &&
@@ -92,7 +127,8 @@ export const AssessmentResultsSection = ({ onReadyChange }: AssessmentResultsSec
     })
   }, [myParticipation, setAssessmentParticipation, teams])
 
-  if (!resultsReleased || !isStudent) return null
+  if (isStudent && !resultsReleased) return null
+  if (!hasVisibleSection) return <NoSharedResultsCard />
 
   return (
     <QueryGate
@@ -128,10 +164,12 @@ export const AssessmentResultsSection = ({ onReadyChange }: AssessmentResultsSec
               ) : null}
             </div>
 
-            <AssessmentPrintReport
-              categories={assessmentCategories}
-              actionItems={results.actionItems}
-            />
+            {isStudent && (
+              <AssessmentPrintReport
+                categories={assessmentCategories}
+                actionItems={results.actionItems}
+              />
+            )}
           </>
         )
       }}

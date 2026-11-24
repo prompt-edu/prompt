@@ -14,6 +14,8 @@ GitHub deploy workflows (`deploy-docker.yml`), which stay unchanged.
 - The `publish-cd` job in `dev.yml` runs on every pull request and every push to `main` that builds images.
   It looks up the digest of each image the build pushed and publishes them with `Mtze/simple-cd/cd-publish` as
   `deploy.json`.
+  A pull request only rebuilds the images it affects; like `deploy-dev`, the job takes every other image from the
+  `main` tag.
   The job fails when an image's `org.opencontainers.image.revision` label is not the run's commit, for example when
   a later run moved the tag before this job was re-run.
   simple-cd only picks it up when the whole run succeeds.

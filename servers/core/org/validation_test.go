@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/prompt-edu/prompt/servers/core/org/orgDTO"
+	"github.com/prompt-edu/prompt/servers/core/permissionValidation"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -18,14 +19,14 @@ func TestValidateSlug(t *testing.T) {
 		{name: "hyphenated", slug: "ase-lab"},
 		{name: "digits", slug: "i17"},
 		{name: "surrounding spaces", slug: "  ase  "},
-		{name: "minimum length", slug: strings.Repeat("a", minSlugLength)},
-		{name: "maximum length", slug: strings.Repeat("a", maxSlugLength)},
+		{name: "minimum length", slug: strings.Repeat("a", permissionValidation.MinOrgSlugLength)},
+		{name: "maximum length", slug: strings.Repeat("a", permissionValidation.MaxOrgSlugLength)},
 		{name: "segment containing cg", slug: "cgi-lab"},
 		{name: "segment ending in cg", slug: "lab-xcg"},
 		{name: "empty", slug: "", wantError: true},
 		{name: "blank", slug: "   ", wantError: true},
 		{name: "too short", slug: "a", wantError: true},
-		{name: "too long", slug: strings.Repeat("a", maxSlugLength+1), wantError: true},
+		{name: "too long", slug: strings.Repeat("a", permissionValidation.MaxOrgSlugLength+1), wantError: true},
 		{name: "uppercase", slug: "ASE", wantError: true},
 		{name: "leading hyphen", slug: "-ase", wantError: true},
 		{name: "trailing hyphen", slug: "ase-", wantError: true},

@@ -1,6 +1,6 @@
 {
   "name": "assessment_component",
-  "version": "2.21.0",
+  "version": "2.21.2",
   "main": "src/index.ts",
   "license": "MIT",
   "scripts": {
@@ -12,10 +12,10 @@
     "check-performance": "rspack --mode=production --env NODE_ENV=production --env BUNDLE_SIZE=true"
   },
   "dependencies": {
-    "html2canvas-pro": "2.6.3",
+    "html2canvas-pro": "2.6.4",
     "jspdf": "^4.2.1",
     "jszip": "^3.10.2",
-    "papaparse": "^5.7.0"
+    "papaparse": "^5.7.1"
   },
   "devDependencies": {
     "@rspack/cli": "^2.3.2",

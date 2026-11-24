@@ -35,7 +35,9 @@ func checkAccessControlByIDWrapper(check permissionValidation.PermissionCheck) f
 
 func setupCourseRouter(router *gin.RouterGroup, s *CourseService, authMiddleware func() gin.HandlerFunc, permissionRoleMiddleware, permissionIDMiddleware func(allowedRoles ...string) gin.HandlerFunc) {
 	course := router.Group("/courses", authMiddleware())
-	course.GET("/", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer, permissionValidation.CourseEditor, permissionValidation.CourseStudent), s.getAllCourses)
+	// Org roles only open the list, which the management console loads for every user; it holds no
+	// org courses yet, so a user without course roles gets an empty list.
+	course.GET("/", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer, permissionValidation.CourseEditor, permissionValidation.CourseStudent, permissionValidation.OrgAdmin, permissionValidation.OrgMember), s.getAllCourses)
 	course.GET("/:uuid", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer, permissionValidation.CourseEditor), s.getCourseByID)
 	course.POST("/", permissionRoleMiddleware(permissionValidation.PromptAdmin, permissionValidation.PromptLecturer), s.createCourse)
 	course.PUT("/:uuid/phase_graph", permissionIDMiddleware(permissionValidation.PromptAdmin, permissionValidation.CourseLecturer), s.updateCoursePhaseOrder)
@@ -151,6 +153,7 @@ func (s *CourseService) getCourseByID(c *gin.Context) {
 // @Param newCourse body courseDTO.CreateCourse true "Course to create"
 // @Success 201 {object} courseDTO.Course
 // @Failure 400 {object} utils.ErrorResponse
+// @Failure 409 {object} utils.ErrorResponse
 // @Failure 500 {object} utils.ErrorResponse
 // @Router /courses/ [post]
 func (s *CourseService) createCourse(c *gin.Context) {

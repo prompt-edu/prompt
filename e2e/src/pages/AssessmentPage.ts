@@ -183,11 +183,16 @@ export class AssessmentPage {
   // Confirms the release dialog. Its title names what is being released, which
   // differs between assessment-enabled and evaluation-only phases.
   async confirmRelease(dialogTitle: 'Assessment' | 'Evaluation') {
+    const dialog = await this.openReleaseDialog(dialogTitle)
+    await dialog.getByRole('button', { name: 'Release Results' }).click()
+    await expect(this.unreleaseButton()).toBeVisible()
+  }
+
+  async openReleaseDialog(dialogTitle: 'Assessment' | 'Evaluation'): Promise<Locator> {
     await this.releaseButton().click()
     const dialog = this.page.getByRole('alertdialog')
     await expect(dialog.getByText(`Release ${dialogTitle} Results?`)).toBeVisible()
-    await dialog.getByRole('button', { name: 'Release Results' }).click()
-    await expect(this.unreleaseButton()).toBeVisible()
+    return dialog
   }
 
   // ── Schema configuration (rubric) ────────────────────────────────────────
@@ -273,6 +278,35 @@ export class AssessmentPage {
     })
   }
 
+  // ── Participant navigation (previous / next on a participant's page) ─────
+
+  // The undocked bar at the top of the page; the docked one only renders after scrolling.
+  participantNavigation(): Locator {
+    return this.page.getByRole('navigation', { name: 'Participant navigation' })
+  }
+
+  // Each button is labeled with the participant it leads to, or only its direction when disabled.
+  previousParticipantButton(): Locator {
+    return this.participantNavigation().getByRole('button', { name: /^Previous participant/ })
+  }
+
+  nextParticipantButton(): Locator {
+    return this.participantNavigation().getByRole('button', { name: /^Next participant/ })
+  }
+
+  // Scrolls back to the top, where the header is expanded. The core shell scrolls the window.
+  async scrollToTop() {
+    await this.page.evaluate(() => window.scrollTo({ top: 0 }))
+  }
+
+  // The participant card's name heading plus the "position / total" between the buttons.
+  async expectOpenedParticipant(fullName: string, position: number, total: number) {
+    await expect(this.page.getByRole('heading', { name: fullName, exact: true })).toBeVisible({
+      timeout: 15_000,
+    })
+    await expect(this.participantNavigation()).toContainText(`${position} / ${total}`)
+  }
+
   // ── Grading (per-participant assessment page) ────────────────────────────
 
   // Each competency renders as a bordered block containing its name and the
@@ -322,6 +356,12 @@ export class AssessmentPage {
     await expect(
       this.page.getByText('Assessment results have not been released yet.'),
     ).toBeVisible()
+  }
+
+  async expectNoResultsShared() {
+    await expect(
+      this.page.getByRole('heading', { name: 'No results shared for this phase' }),
+    ).toBeVisible({ timeout: 15_000 })
   }
 
   // ── Student self evaluation ──────────────────────────────────────────────

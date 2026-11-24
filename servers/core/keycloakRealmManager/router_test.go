@@ -1,6 +1,7 @@
 package keycloakRealmManager
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -10,6 +11,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
+	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 	db "github.com/prompt-edu/prompt/servers/core/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/core/keycloakTokenVerifier"
@@ -108,4 +111,37 @@ func TestRemoveCourseStaffMemberRefusesAnUppercaseSpellingOfTheCallersOwnID(t *t
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &body))
 	assert.Equal(t, ErrSelfRemoval.Error(), body.Error)
 	assert.Empty(t, keycloak.received(), "the request must not reach Keycloak")
+}
+
+func TestCreateCustomGroupRefusesARoleAGroupOfAnotherCourseMaps(t *testing.T) {
+	testDB, cleanup, err := sdkTestUtils.SetupTestDBWithMigrations(context.Background(), "../db/migration", func(conn *pgxpool.Pool) *db.Queries { return db.New(conn) }, "../database_dumps/course_test.sql")
+	require.NoError(t, err)
+	t.Cleanup(cleanup)
+	const courseID = "3f42d322-e5bf-4faa-b576-51f2cab14c2e"
+	realm := newFakeRealm()
+	realm.addGroup("Prompt/ios24245-iPraktikum/Lecturer", "lecturer")
+	realm.addGroup("Prompt/ios24245-iPraktikum-cg-team/Lecturer", "other-lecturer")
+	realm.addRole("ios24245-iPraktikum-cg-team-Lecturer", "Prompt/ios24245-iPraktikum-cg-team/Lecturer")
+	router := staffRouter(realm.startWithQueries(t, *testDB.Queries))
+	createGroup := func(groupName string) *httptest.ResponseRecorder {
+		w := httptest.NewRecorder()
+		body := strings.NewReader(`{"groupName":"` + groupName + `"}`)
+		router.ServeHTTP(w, httptest.NewRequest(http.MethodPut, "/api/keycloak/"+courseID+"/group", body))
+		return w
+	}
+	groupsBefore, rolesBefore := realm.state()
+
+	refused := createGroup("team-Lecturer")
+
+	assert.Equal(t, http.StatusBadRequest, refused.Code)
+	groupsAfter, rolesAfter := realm.state()
+	assert.Equal(t, groupsBefore, groupsAfter, "no custom group is created and no role is mapped")
+	assert.Equal(t, rolesBefore, rolesAfter)
+
+	for range 2 {
+		created := createGroup("team-a")
+		require.Equal(t, http.StatusOK, created.Code, created.Body.String())
+	}
+	groups, _ := realm.state()
+	assert.Equal(t, []string{"ios24245-iPraktikum-cg-team-a"}, groups["Prompt/ios24245-iPraktikum/CustomGroups/team-a"].Roles)
 }

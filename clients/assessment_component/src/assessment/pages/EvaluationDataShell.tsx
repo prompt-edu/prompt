@@ -20,9 +20,14 @@ import { getTutorLabel } from './hooks/useTutorLabel'
 
 interface EvaluationDataShellProps {
   children: React.ReactNode
+  /** Hides the notice for non-students, for pages that explain the non-student view themselves. */
+  hideNonStudentAlert?: boolean
 }
 
-export const EvaluationDataShell = ({ children }: EvaluationDataShellProps) => {
+export const EvaluationDataShell = ({
+  children,
+  hideNonStudentAlert = false,
+}: EvaluationDataShellProps) => {
   const { isStudentOfCourse } = useCourseStore()
   const { courseId } = useParams<{ courseId: string; phaseId: string }>()
   const isStudent = isStudentOfCourse(courseId ?? '')
@@ -67,7 +72,7 @@ export const EvaluationDataShell = ({ children }: EvaluationDataShellProps) => {
         />
       )}
     >
-      {!isStudent && (
+      {!isStudent && !hideNonStudentAlert && (
         <Alert>
           <TriangleAlert className='h-4 w-4' />
           <AlertTitle>Your are not a student of this course.</AlertTitle>

@@ -1,5 +1,5 @@
 import type { Student } from '@tumaet/prompt-shared-state'
-import type { CourseStaffMember } from '../../../interfaces/courseStaff'
+import type { CourseStaff, CourseStaffMember } from '../../../interfaces/courseStaff'
 import type { Tutor, TutorAssignment, TutorCandidate } from '../../../interfaces/tutor'
 
 // The teams each person already leads: by normalized login, and by the id the rows carry for a
@@ -20,13 +20,21 @@ export const studentToTutorCandidate = (student: Student): TutorCandidate => ({
   universityLogin: student.universityLogin,
 })
 
-// A course editor has no student record, so they are imported under their Keycloak user id.
+// Course staff have no student record, so they are imported under their Keycloak user id.
 export const staffMemberToTutorCandidate = (member: CourseStaffMember): TutorCandidate => ({
   id: member.keycloakUserID,
   firstName: member.firstName,
   lastName: member.lastName,
   universityLogin: member.universityLogin,
 })
+
+// A person in both the lecturer and the editor group is offered once.
+export const staffToTutorCandidates = (staff: CourseStaff): TutorCandidate[] =>
+  [
+    ...new Map(
+      [...staff.lecturers, ...staff.editors].map((member) => [member.keycloakUserID, member]),
+    ).values(),
+  ].map(staffMemberToTutorCandidate)
 
 // Only someone with a university login can be scoped to their teams, so only they are selectable.
 export const isSelectableTutor = (candidate: TutorCandidate): boolean =>

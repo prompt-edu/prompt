@@ -147,12 +147,20 @@ Open `Clients > prompt-server > Service account roles`, click **Assign role**, f
 
 | Role | Used For |
 | :--- | :--- |
-| `view-users` | Searching for a user by name, email, or username when adding them to a course role. |
+| `view-users` | Searching for a user by name, email, username, or university login when adding them to a course role. |
 | `view-groups` | Listing the Lecturer / Editor members of a course. |
 | `manage-users` | Adding or removing a user from a course's Lecturer / Editor group. |
 
 > [!NOTE]
 > `manage-users` is required because Keycloak treats group membership changes as user modifications. The service account does **not** need `manage-realm` or any global admin role - the User Management page only operates on the `/Prompt/{semesterTag}-{courseName}/(Lecturer|Editor)` subgroups, never on the realm itself.
+
+### Required Client Scope (Keycloak 26.8.2)
+
+Keycloak 26.8.2 answers every Admin REST API call with `401 Unauthorized` unless the token carries the Admin API audience. That audience comes from the built-in `kc-admin-api` client scope, and the role mappings above are not enough without it.
+
+Open `Clients > prompt-server > Client scopes`, click **Add client scope**, select `kc-admin-api`, and add it as **Default**. Do this for existing realms after upgrading Keycloak as well: check the client even if the scope already exists in the realm. The bundled `keycloakConfig.json` already assigns it.
+
+If the scope is missing, the core server logs and returns `401 Unauthorized from the Keycloak Admin REST API: the service-account client is probably missing the kc-admin-api client scope` together with a link to this section. The User Management page, course creation, and group sync fail until the scope is assigned. A core restart is not needed afterwards.
 
 ### Verifying the Configuration
 

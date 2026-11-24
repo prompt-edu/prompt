@@ -13,24 +13,46 @@ permissions:
   packages: write
 
 jobs:
+  # A release builds every module; scripts/ci-changes.mjs lists them.
+  modules:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      servers: ${{ steps.all.outputs.servers }}
+      clients: ${{ steps.all.outputs.clients }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: List every module
+        id: all
+        run: node scripts/ci-changes.mjs --all | tee -a "$GITHUB_OUTPUT"
   quality-servers:
+    needs: modules
     uses: ./.github/workflows/quality-servers.yml
+    with:
+      servers: ${{ needs.modules.outputs.servers }}
   test-servers:
-    needs: quality-servers
+    needs: [modules, quality-servers]
     uses: ./.github/workflows/test-servers.yml
+    with:
+      servers: ${{ needs.modules.outputs.servers }}
   build-servers:
-    needs: test-servers
+    needs: [modules, test-servers]
     uses: ./.github/workflows/build-and-push-servers.yml
     secrets: inherit
     with:
+      servers: ${{ needs.modules.outputs.servers }}
       release_tag: "${{ github.event.release.tag_name }},latest"
   quality-clients:
+    needs: modules
     uses: ./.github/workflows/quality-clients.yml
+    with:
+      clients: ${{ needs.modules.outputs.clients }}
   build-clients:
-    needs: quality-clients
+    needs: [modules, quality-clients]
     uses: ./.github/workflows/build-and-push-clients.yml
     secrets: inherit
     with:
+      clients: ${{ needs.modules.outputs.clients }}
       release_tag: "${{ github.event.release.tag_name }},latest"
   deploy-prod:
     needs: [build-clients, build-servers]

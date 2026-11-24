@@ -30,8 +30,8 @@ disposable - do not keep work there.
 | Application | yes (initial) | text, multi-select and file-upload questions, answers and scores for 8 applicants |
 | Interview | yes | two questions, four slots, six assignments, six scored reviews |
 | Matching | yes | the pass/fail funnel |
-| Team Allocation | yes | 3 skills, 2 teams, survey responses, a published allocation |
-| Assessment | yes | a rubric with 4 competencies, 6 graded participants, a self-evaluation round |
+| Team Allocation | yes | 3 skills, 2 teams with 3 tutors, survey responses, a published allocation |
+| Assessment | yes | a rubric with 4 competencies, 6 graded participants, self-, peer- and tutor-evaluation rounds |
 | Presentation | yes | a team presentation schedule and feedback categories |
 | Certificate | yes | a released Typst template |
 | Self Team Allocation | no | 2 student-formed teams |
@@ -57,9 +57,12 @@ The Keycloak users are seeded by `keycloakConfig.json` (username == password):
 | `lecturer`, `course-lecturer` | Course Lecturer |
 | `course-editor` | Course Editor |
 | `student` (Stan), `student2` (Selma) | enrolled students |
+| `org-admin`, `org-member` | not at all: they are the Admin and the Member of the demo org `demo-chair` |
 
 Staff access comes from the `ios2526-iPraktikumDemo-Lecturer` / `-Editor` client
-roles. Student access does **not**: it is derived in the database by matching the
+roles. Org membership comes from the groups `/Orgs/demo-chair/{Admin,Member}`, which
+map the `org-demo-chair-{Admin,Member}` client roles; `core.sql` holds the matching
+`org` row. Student access does **not**: it is derived in the database by matching the
 token's `university_login` and `matriculation_number` against the `student` row.
 
 :::warning Existing Keycloak installs

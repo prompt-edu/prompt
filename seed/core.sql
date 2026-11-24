@@ -47,7 +47,10 @@ DECLARE
         'e1000003-0000-0000-0000-000000000003',
         'e1000004-0000-0000-0000-000000000004',
         'e1000005-0000-0000-0000-000000000005',
-        'e1000006-0000-0000-0000-000000000006'
+        'e1000006-0000-0000-0000-000000000006',
+        'e1000007-0000-0000-0000-000000000007',
+        'e1000008-0000-0000-0000-000000000008',
+        'e1000009-0000-0000-0000-000000000009'
     ];
     seeded_courses uuid[] := ARRAY[
         'd7307be2-d3dc-496e-86f0-643bff6cc1c8',
@@ -116,7 +119,10 @@ DELETE FROM student WHERE id IN (
     'e1000003-0000-0000-0000-000000000003',
     'e1000004-0000-0000-0000-000000000004',
     'e1000005-0000-0000-0000-000000000005',
-    'e1000006-0000-0000-0000-000000000006'
+    'e1000006-0000-0000-0000-000000000006',
+    'e1000007-0000-0000-0000-000000000007',
+    'e1000008-0000-0000-0000-000000000008',
+    'e1000009-0000-0000-0000-000000000009'
 );
 
 -- The one phase type nothing owns: core creates the other eight at startup and
@@ -192,6 +198,16 @@ INSERT INTO student (id, first_name, last_name, email, matriculation_number, uni
 -- created during the run never can. No Keycloak account: admins delete this one.
 INSERT INTO student (id, first_name, last_name, email, matriculation_number, university_login, has_university_account, gender, nationality, study_program, study_degree, current_semester, last_modified)
     VALUES ('e0000010-0000-0000-0000-000000000010', 'Ida', 'Inactive', 'inactive_subject@example.com', '00000010', 'ii10tum', true, 'female', 'DE', 'Computer Science', 'bachelor', 3, '2015-01-01 12:00:00.000000');
+
+-- The demo org. Its Keycloak groups /Orgs/demo-chair/{Admin,Member}, its client roles
+-- org-demo-chair-{Admin,Member} and the users org-admin and org-member are part of both
+-- realm imports (keycloakConfig.json, e2e/keycloak/realm.json), since membership lives
+-- in Keycloak only. created_at lies in the past: a token issued before an org's creation
+-- grants nothing on it. An upsert rather than a delete, because course.org_id restricts
+-- deleting an org that a course was assigned to after seeding.
+INSERT INTO org (id, parent_org_id, name, slug, school, university, website, contact_email, created_at)
+    VALUES ('7a000001-0000-0000-0000-000000000001', NULL, 'Demo Chair', 'demo-chair', 'School of Computation, Information and Technology', 'Technical University of Munich', 'https://aet.cit.tum.de', 'demo-chair@example.com', '2026-01-01 00:00:00+00')
+    ON CONFLICT (id) DO UPDATE SET parent_org_id = EXCLUDED.parent_org_id, name = EXCLUDED.name, slug = EXCLUDED.slug, school = EXCLUDED.school, university = EXCLUDED.university, website = EXCLUDED.website, contact_email = EXCLUDED.contact_email, created_at = EXCLUDED.created_at;
 
 INSERT INTO course (id, name, start_date, end_date, semester_tag, course_type, ects, restricted_data, student_readable_data, template, short_description, long_description, archived, archived_on)
     VALUES ('d7307be2-d3dc-496e-86f0-643bff6cc1c8', 'iPraktikum', '2024-10-13', '2025-02-14', 'ios2425', 'practical course', 10, '{"icon": "graduation-cap", "bg-color": "bg-blue-100"}', '{"icon": "graduation-cap", "bg-color": "bg-blue-100"}', false, 'iOS practical course', 'The iPraktikum is a hands-on iOS development course.', false, NULL);
@@ -279,6 +295,8 @@ INSERT INTO course_phase (id, course_id, name, restricted_data, is_initial_phase
 -- its teams come from b3000005, whose only tutor is not course-editor).
 -- d000001a = tutor results spec (Stan + Selma participate; its teams come from
 -- b3000004, so course-editor is their tutor and sees the tutor evaluation results).
+-- d000001b = tutor navigation spec (no participants; its teams come from b3000004,
+-- whose three tutor rows hold two tutors for previous / next).
 INSERT INTO course_phase (id, course_id, name, restricted_data, is_initial_phase, course_phase_type_id, student_readable_data)
     VALUES ('d0000006-0000-0000-0000-000000000006', 'c0000001-0000-0000-0000-000000000001', 'Assessment Visibility', '{}', false, (SELECT id FROM course_phase_type WHERE name = 'Assessment'), '{}');
 INSERT INTO course_phase (id, course_id, name, restricted_data, is_initial_phase, course_phase_type_id, student_readable_data)
@@ -293,6 +311,10 @@ INSERT INTO course_phase (id, course_id, name, restricted_data, is_initial_phase
     VALUES ('d0000013-0000-0000-0000-000000000013', 'c0000001-0000-0000-0000-000000000001', 'Assessment Evaluation Only', '{}', false, (SELECT id FROM course_phase_type WHERE name = 'Assessment'), '{}');
 INSERT INTO course_phase (id, course_id, name, restricted_data, is_initial_phase, course_phase_type_id, student_readable_data)
     VALUES ('b3000004-0000-0000-0000-000000000004', 'c0000001-0000-0000-0000-000000000001', 'Team Allocation Tutor Scope', '{}', false, (SELECT id FROM course_phase_type WHERE name = 'Team Allocation'), '{}');
+-- Standalone Self Team Allocation phase on fullCourse behind the e2e self team allocation
+-- tutor spec: course-editor leads two of its three teams (seed/self_team_allocation.sql).
+INSERT INTO course_phase (id, course_id, name, restricted_data, is_initial_phase, course_phase_type_id, student_readable_data)
+    VALUES ('aaaa7777-0000-0000-0000-0000000000a7', 'c0000001-0000-0000-0000-000000000001', 'Self Team Allocation Tutor Scope', '{}', false, (SELECT id FROM course_phase_type WHERE name = 'Self Team Allocation'), '{}');
 INSERT INTO course_phase (id, course_id, name, restricted_data, is_initial_phase, course_phase_type_id, student_readable_data)
     VALUES ('d0000018-0000-0000-0000-000000000018', 'c0000001-0000-0000-0000-000000000001', 'Assessment Tutor Scope', '{}', false, (SELECT id FROM course_phase_type WHERE name = 'Assessment'), '{}');
 INSERT INTO course_phase (id, course_id, name, restricted_data, is_initial_phase, course_phase_type_id, student_readable_data)
@@ -301,6 +323,8 @@ INSERT INTO course_phase (id, course_id, name, restricted_data, is_initial_phase
     VALUES ('d0000019-0000-0000-0000-000000000019', 'c0000001-0000-0000-0000-000000000001', 'Assessment Other Tutor', '{}', false, (SELECT id FROM course_phase_type WHERE name = 'Assessment'), '{}');
 INSERT INTO course_phase (id, course_id, name, restricted_data, is_initial_phase, course_phase_type_id, student_readable_data)
     VALUES ('d000001a-0000-0000-0000-00000000001a', 'c0000001-0000-0000-0000-000000000001', 'Assessment Tutor Results', '{}', false, (SELECT id FROM course_phase_type WHERE name = 'Assessment'), '{}');
+INSERT INTO course_phase (id, course_id, name, restricted_data, is_initial_phase, course_phase_type_id, student_readable_data)
+    VALUES ('d000001b-0000-0000-0000-00000000001b', 'c0000001-0000-0000-0000-000000000001', 'Assessment Tutor Navigation', '{}', false, (SELECT id FROM course_phase_type WHERE name = 'Assessment'), '{}');
 -- Standalone Example phases (no graph edges, route by URL). The example phase is
 -- a minimal placeholder module, so it needs no participants or config:
 -- d000000f = MF smoke + lecturer-info API auth on iPraktikumFull,
@@ -577,7 +601,10 @@ INSERT INTO student (id, first_name, last_name, email, matriculation_number, uni
            ('e1000003-0000-0000-0000-000000000003', 'Carla', 'Chen', 'carla.chen@example.com', '01000003', 'ca03tum', true, 'female', 'CN', 'Information Systems', 'master', 1),
            ('e1000004-0000-0000-0000-000000000004', 'David', 'Doerr', 'david.doerr@example.com', '01000004', 'da04tum', true, 'male', 'AT', 'Informatics', 'bachelor', 5),
            ('e1000005-0000-0000-0000-000000000005', 'Elif', 'Erdem', 'elif.erdem@example.com', '01000005', 'el05tum', true, 'female', 'TR', 'Games Engineering', 'master', 2),
-           ('e1000006-0000-0000-0000-000000000006', 'Felix', 'Faber', 'felix.faber@example.com', '01000006', 'fe06tum', true, 'male', 'DE', 'Informatics', 'bachelor', 6);
+           ('e1000006-0000-0000-0000-000000000006', 'Felix', 'Faber', 'felix.faber@example.com', '01000006', 'fe06tum', true, 'male', 'DE', 'Informatics', 'bachelor', 6),
+           ('e1000007-0000-0000-0000-000000000007', 'Greta', 'Graf', 'greta.graf@example.com', '01000007', 'gr07tum', true, 'female', 'DE', 'Informatics', 'master', 4),
+           ('e1000008-0000-0000-0000-000000000008', 'Hannes', 'Huber', 'hannes.huber@example.com', '01000008', 'ha08tum', true, 'male', 'AT', 'Informatics', 'master', 3),
+           ('e1000009-0000-0000-0000-000000000009', 'Ida', 'Imhof', 'ida.imhof@example.com', '01000009', 'id09tum', true, 'female', 'CH', 'Information Systems', 'master', 4);
 
 INSERT INTO course (id, name, start_date, end_date, semester_tag, course_type, ects, restricted_data, student_readable_data, template, short_description, long_description, archived, archived_on)
     VALUES ('c0000002-0000-0000-0000-000000000002', 'iPraktikumDemo', '2026-04-01', '2026-09-30', 'ios2526', 'practical course', 10,
@@ -622,7 +649,9 @@ INSERT INTO course_phase_graph (from_course_phase_id, to_course_phase_id)
 
 -- Stan and Selma are the Keycloak `student` / `student2` users, so a local login
 -- lands on a fully populated course. cd000007 and cd000008 are the two applicants
--- who do not make it past the application phase.
+-- who do not make it past the application phase. cd000009 to cd000011 are the
+-- tutors: course participants without phase participations, whom team allocation
+-- assigns to the teams and the students evaluate in the assessment phase.
 INSERT INTO course_participation (id, course_id, student_id)
     VALUES ('cd000001-0000-0000-0000-000000000001', 'c0000002-0000-0000-0000-000000000002', 'e0000005-0000-0000-0000-000000000005'),
            ('cd000002-0000-0000-0000-000000000002', 'c0000002-0000-0000-0000-000000000002', 'a5000007-0000-4000-8000-000000000007'),
@@ -631,7 +660,10 @@ INSERT INTO course_participation (id, course_id, student_id)
            ('cd000005-0000-0000-0000-000000000005', 'c0000002-0000-0000-0000-000000000002', 'e1000003-0000-0000-0000-000000000003'),
            ('cd000006-0000-0000-0000-000000000006', 'c0000002-0000-0000-0000-000000000002', 'e1000004-0000-0000-0000-000000000004'),
            ('cd000007-0000-0000-0000-000000000007', 'c0000002-0000-0000-0000-000000000002', 'e1000005-0000-0000-0000-000000000005'),
-           ('cd000008-0000-0000-0000-000000000008', 'c0000002-0000-0000-0000-000000000002', 'e1000006-0000-0000-0000-000000000006');
+           ('cd000008-0000-0000-0000-000000000008', 'c0000002-0000-0000-0000-000000000002', 'e1000006-0000-0000-0000-000000000006'),
+           ('cd000009-0000-0000-0000-000000000009', 'c0000002-0000-0000-0000-000000000002', 'e1000007-0000-0000-0000-000000000007'),
+           ('cd000010-0000-0000-0000-000000000010', 'c0000002-0000-0000-0000-000000000002', 'e1000008-0000-0000-0000-000000000008'),
+           ('cd000011-0000-0000-0000-000000000011', 'c0000002-0000-0000-0000-000000000002', 'e1000009-0000-0000-0000-000000000009');
 
 -- The funnel: eight applicants, six of whom pass into the rest of the course.
 INSERT INTO course_phase_participation (course_participation_id, course_phase_id, restricted_data, student_readable_data, pass_status)
@@ -655,7 +687,7 @@ INSERT INTO course_phase_participation (course_participation_id, course_phase_id
            ('cd000005-0000-0000-0000-000000000005', 'f0000002-0000-0000-0000-000000000002', '{}', '{}', 'passed'),
            ('cd000006-0000-0000-0000-000000000006', 'f0000002-0000-0000-0000-000000000002', '{}', '{}', 'passed');
 
--- Every later phase carries the same six participants.
+-- Every later phase carries the same six participants; the tutors take part in none.
 INSERT INTO course_phase_participation (course_participation_id, course_phase_id, restricted_data, student_readable_data, pass_status)
 SELECT cp.id, phase.id, '{}', '{}', 'passed'::pass_status
 FROM course_participation cp
@@ -667,7 +699,9 @@ CROSS JOIN (VALUES ('f0000003-0000-0000-0000-000000000003'::uuid),
                    ('f0000008-0000-0000-0000-000000000008'::uuid),
                    ('f0000009-0000-0000-0000-000000000009'::uuid)) AS phase(id)
 WHERE cp.course_id = 'c0000002-0000-0000-0000-000000000002'
-  AND cp.id NOT IN ('cd000007-0000-0000-0000-000000000007', 'cd000008-0000-0000-0000-000000000008');
+  AND cp.id NOT IN ('cd000007-0000-0000-0000-000000000007', 'cd000008-0000-0000-0000-000000000008',
+                    'cd000009-0000-0000-0000-000000000009', 'cd000010-0000-0000-0000-000000000010',
+                    'cd000011-0000-0000-0000-000000000011');
 
 -- ─── Application form and answers ───────────────────────────────────────────
 
@@ -738,7 +772,8 @@ BEGIN
             ('f0000004-0000-0000-0000-000000000004'::uuid, 'Team Allocation', 'teamAllocation', 'f0000007-0000-0000-0000-000000000007'::uuid, 'Certificate',  'teamAllocation'),
             ('b3000004-0000-0000-0000-000000000004'::uuid, 'Team Allocation', 'teamAllocation', 'd0000018-0000-0000-0000-000000000018'::uuid, 'Assessment',   'teamAllocation'),
             ('b3000005-0000-0000-0000-000000000005'::uuid, 'Team Allocation', 'teamAllocation', 'd0000019-0000-0000-0000-000000000019'::uuid, 'Assessment',   'teamAllocation'),
-            ('b3000004-0000-0000-0000-000000000004'::uuid, 'Team Allocation', 'teamAllocation', 'd000001a-0000-0000-0000-00000000001a'::uuid, 'Assessment',   'teamAllocation')
+            ('b3000004-0000-0000-0000-000000000004'::uuid, 'Team Allocation', 'teamAllocation', 'd000001a-0000-0000-0000-00000000001a'::uuid, 'Assessment',   'teamAllocation'),
+            ('b3000004-0000-0000-0000-000000000004'::uuid, 'Team Allocation', 'teamAllocation', 'd000001b-0000-0000-0000-00000000001b'::uuid, 'Assessment',   'teamAllocation')
          ) AS edge(from_phase, from_type, from_dto, to_phase, to_type, to_dto)
     JOIN course_phase_type from_type ON from_type.name = edge.from_type
     JOIN course_phase_type to_type   ON to_type.name = edge.to_type
@@ -747,8 +782,8 @@ BEGIN
     JOIN course_phase_type_participation_required_input_dto required
          ON required.course_phase_type_id = to_type.id AND required.dto_name = edge.to_dto;
     GET DIAGNOSTICS inserted = ROW_COUNT;
-    IF inserted <> 11 THEN
-        RAISE EXCEPTION 'seed: expected 11 participation data dependency edges, inserted % - a phase type or DTO descriptor did not resolve. See seed/README.md.', inserted;
+    IF inserted <> 12 THEN
+        RAISE EXCEPTION 'seed: expected 12 participation data dependency edges, inserted % - a phase type or DTO descriptor did not resolve. See seed/README.md.', inserted;
     END IF;
 END $$;
 
@@ -764,7 +799,8 @@ BEGIN
             ('f0000004-0000-0000-0000-000000000004'::uuid, 'Team Allocation', 'teams', 'f0000007-0000-0000-0000-000000000007'::uuid, 'Certificate',  'teams'),
             ('b3000004-0000-0000-0000-000000000004'::uuid, 'Team Allocation', 'teams', 'd0000018-0000-0000-0000-000000000018'::uuid, 'Assessment',   'teams'),
             ('b3000005-0000-0000-0000-000000000005'::uuid, 'Team Allocation', 'teams', 'd0000019-0000-0000-0000-000000000019'::uuid, 'Assessment',   'teams'),
-            ('b3000004-0000-0000-0000-000000000004'::uuid, 'Team Allocation', 'teams', 'd000001a-0000-0000-0000-00000000001a'::uuid, 'Assessment',   'teams')
+            ('b3000004-0000-0000-0000-000000000004'::uuid, 'Team Allocation', 'teams', 'd000001a-0000-0000-0000-00000000001a'::uuid, 'Assessment',   'teams'),
+            ('b3000004-0000-0000-0000-000000000004'::uuid, 'Team Allocation', 'teams', 'd000001b-0000-0000-0000-00000000001b'::uuid, 'Assessment',   'teams')
          ) AS edge(from_phase, from_type, from_dto, to_phase, to_type, to_dto)
     JOIN course_phase_type from_type ON from_type.name = edge.from_type
     JOIN course_phase_type to_type   ON to_type.name = edge.to_type
@@ -773,8 +809,8 @@ BEGIN
     JOIN course_phase_type_phase_required_input_dto required
          ON required.course_phase_type_id = to_type.id AND required.dto_name = edge.to_dto;
     GET DIAGNOSTICS inserted = ROW_COUNT;
-    IF inserted <> 6 THEN
-        RAISE EXCEPTION 'seed: expected 6 phase data dependency edges, inserted % - a phase type or DTO descriptor did not resolve. See seed/README.md.', inserted;
+    IF inserted <> 7 THEN
+        RAISE EXCEPTION 'seed: expected 7 phase data dependency edges, inserted % - a phase type or DTO descriptor did not resolve. See seed/README.md.', inserted;
     END IF;
 END $$;
 

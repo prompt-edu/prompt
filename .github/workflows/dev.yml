@@ -257,10 +257,14 @@ jobs:
               want=$SHA
               if [[ "$image" == *: ]]; then image+=main; want=; fi
               ref="ghcr.io/prompt-edu/prompt/$image"
-              read -r digest revision < <(docker buildx imagetools inspect "$ref" --format '{{json .}}' |
-                jq -r '[.manifest.digest, ([.image[].config.Labels["org.opencontainers.image.revision"]] | unique | join(","))] | @tsv')
+              digest=$(docker buildx imagetools inspect "$ref" --format '{{json .Manifest}}' | jq -r .digest)
               [[ "$digest" == sha256:* ]] || { echo "::error::no digest for $ref" >&2; exit 1; }
-              [ -z "$want" ] || [ "$revision" = "$want" ] || { echo "::error::$ref is built from $revision, not $want" >&2; exit 1; }
+              if [ -n "$want" ]; then
+                # Read the label from the digest, not the tag, which may have moved since.
+                revision=$(docker buildx imagetools inspect "${ref%:*}@$digest" --format '{{json .Image}}' |
+                  jq -r '(if has("config") then [.] else [.[]] end) | [.[].config.Labels["org.opencontainers.image.revision"]] | unique | join(",")')
+                [ "$revision" = "$want" ] || { echo "::error::$ref is built from $revision, not $want" >&2; exit 1; }
+              fi
               echo "$name=$ref@$digest"
             done <<< "$IMAGES"
             echo EOF

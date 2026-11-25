@@ -9286,7 +9286,7 @@ const docTemplate = `{
                     ]
                 },
                 "universityLogin": {
-                    "description": "UniversityLogin is the user's university_login attribute, the login phases match tutors\nagainst. It is empty when the user has none or the lookup returned a brief representation.",
+                    "description": "UniversityLogin is the login phases match tutors against: the university_login attribute, or\na username in the TUM ID format when the attribute is missing. Otherwise it is empty.",
                     "type": "string"
                 },
                 "username": {
@@ -9310,7 +9310,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "universityLogin": {
-                    "description": "UniversityLogin is the user's university_login attribute, the login phases match tutors\nagainst. It is empty when the user has none or the lookup returned a brief representation.",
+                    "description": "UniversityLogin is the login phases match tutors against: the university_login attribute, or\na username in the TUM ID format when the attribute is missing. Otherwise it is empty.",
                     "type": "string"
                 },
                 "username": {

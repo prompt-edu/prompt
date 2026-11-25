@@ -10,18 +10,13 @@ export const createManualTutor = async (
   teamID: string,
   tutor: CreateManualTutorRequest,
 ): Promise<void> => {
-  try {
-    await selfTeamAllocationAxiosInstance.post(
-      `self-team-allocation/api/course_phase/${coursePhaseID}/team/${teamID}/tutor`,
-      tutor,
-      {
-        headers: {
-          'Content-Type': 'application/json',
-        },
+  await selfTeamAllocationAxiosInstance.post(
+    `self-team-allocation/api/course_phase/${coursePhaseID}/team/${teamID}/tutor`,
+    tutor,
+    {
+      headers: {
+        'Content-Type': 'application/json',
       },
-    )
-  } catch (err) {
-    console.error(err)
-    throw err
-  }
+    },
+  )
 }

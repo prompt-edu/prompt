@@ -1,29 +1,11 @@
 import { createAuthenticatedAxiosInstance, env } from '@tumaet/prompt-shared-state'
-import { type AxiosResponse, isAxiosError } from 'axios'
+import type { AxiosResponse } from 'axios'
 
 export const WRITE_TIMEOUT_MS = 10_000
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' } as const
 
 export const assessmentAxiosInstance = createAuthenticatedAxiosInstance(env.ASSESSMENT_HOST)
-
-const describeError = (error: unknown): { status?: number; message: string } => {
-  if (isAxiosError(error)) {
-    return { status: error.response?.status, message: error.message }
-  }
-  if (error instanceof Error) {
-    return { message: error.message }
-  }
-  return { message: 'Unknown error' }
-}
-
-assessmentAxiosInstance.interceptors.response.use(
-  (response) => response,
-  (error: unknown) => {
-    console.error('Assessment request failed', describeError(error))
-    return Promise.reject(error)
-  },
-)
 
 export const coursePhasePath = (coursePhaseID: string): string =>
   `assessment/api/course_phase/${coursePhaseID}`

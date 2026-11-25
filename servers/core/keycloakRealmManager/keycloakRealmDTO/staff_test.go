@@ -34,3 +34,18 @@ func TestGetStaffMemberFromKeycloakUserWithoutUniversityLogin(t *testing.T) {
 	})
 	assert.Empty(t, emptyLogin.UniversityLogin)
 }
+
+func TestGetStaffMemberFromKeycloakUserFallsBackToTUMIDUsername(t *testing.T) {
+	member := GetStaffMemberFromKeycloakUser(&gocloak.User{Username: gocloak.StringP("ge95may")})
+	assert.Equal(t, "ge95may", member.UniversityLogin)
+
+	attributeWins := GetStaffMemberFromKeycloakUser(&gocloak.User{
+		Username:   gocloak.StringP("ab12cde"),
+		Attributes: map[string][]string{"university_login": {"co69edt"}},
+	})
+	assert.Equal(t, "co69edt", attributeWins.UniversityLogin)
+
+	for _, username := range []string{"course-editor", "GE95MAY", "ge95mayx", "g195may"} {
+		assert.Empty(t, GetStaffMemberFromKeycloakUser(&gocloak.User{Username: gocloak.StringP(username)}).UniversityLogin, username)
+	}
+}

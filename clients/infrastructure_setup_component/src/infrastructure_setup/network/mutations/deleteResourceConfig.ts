@@ -8,13 +8,8 @@ export const deleteResourceConfig = async (
   resourceConfigID: string,
   confirmed = false,
 ): Promise<void> => {
-  try {
-    await infrastructureSetupAxiosInstance.delete(
-      `/infrastructure-setup/api/course_phase/${coursePhaseID}/resource-configs/${resourceConfigID}`,
-      { params: { confirm: confirmed } },
-    )
-  } catch (err) {
-    console.error(err)
-    throw err
-  }
+  await infrastructureSetupAxiosInstance.delete(
+    `/infrastructure-setup/api/course_phase/${coursePhaseID}/resource-configs/${resourceConfigID}`,
+    { params: { confirm: confirmed } },
+  )
 }

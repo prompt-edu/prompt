@@ -26,6 +26,7 @@ var (
 	ErrNoTeams             = errors.New("tutor needs at least one team")
 	ErrInvalidTeamForPhase = errors.New("team does not belong to this course phase")
 	ErrTutorNotFound       = errors.New("tutor not found")
+	ErrTutorIDOnTeam       = errors.New("courseParticipationID already leads this team under another login")
 )
 
 type TeamsService struct {
@@ -218,6 +219,107 @@ func (s *TeamsService) ImportTutors(ctx context.Context, coursePhaseID uuid.UUID
 		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
+	return nil
+}
+
+// AddTutorToTeam adds one team to a tutor, who is identified by their university login: a tutor who
+// already exists in the phase keeps the id they carry, as in an import. It returns the tutor as
+// stored and whether a row was added, which is false when the tutor already leads the team.
+func (s *TeamsService) AddTutorToTeam(ctx context.Context, coursePhaseID, teamID uuid.UUID, tutor teamDTO.TeamTutor) (promptTypes.Person, bool, error) {
+	login := tutorscope.NormalizeLogin(tutor.UniversityLogin)
+	if login == "" {
+		return promptTypes.Person{}, false, ErrMissingLogin
+	}
+	if tutor.CourseParticipationID == uuid.Nil {
+		return promptTypes.Person{}, false, ErrMissingTutorID
+	}
+
+	tx, err := s.conn.Begin(ctx)
+	if err != nil {
+		return promptTypes.Person{}, false, err
+	}
+	defer promptSDK.DeferDBRollback(tx, ctx)
+	qtx := s.queries.WithTx(tx)
+
+	// The same lock as an import, so the id lookup and the insert see a stable set of tutors.
+	if err := qtx.LockTutorImport(ctx, coursePhaseID); err != nil {
+		return promptTypes.Person{}, false, err
+	}
+	if err := ensureTeamInPhase(ctx, qtx, coursePhaseID, teamID); err != nil {
+		return promptTypes.Person{}, false, err
+	}
+
+	loginParam := teamDTO.UniversityLoginParam(login)
+	tutorID, err := qtx.GetTutorIDByLogin(ctx, db.GetTutorIDByLoginParams{
+		CoursePhaseID:   coursePhaseID,
+		UniversityLogin: loginParam,
+	})
+	if errors.Is(err, pgx.ErrNoRows) {
+		tutorID = tutor.CourseParticipationID
+	} else if err != nil {
+		return promptTypes.Person{}, false, err
+	}
+
+	added, err := qtx.AddTutorToTeam(ctx, db.AddTutorToTeamParams{
+		CoursePhaseID:         coursePhaseID,
+		CourseParticipationID: tutorID,
+		FirstName:             tutor.FirstName,
+		LastName:              tutor.LastName,
+		TeamID:                teamID,
+		UniversityLogin:       loginParam,
+	})
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+		return promptTypes.Person{}, false, ErrTutorIDOnTeam
+	}
+	if err != nil {
+		return promptTypes.Person{}, false, err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		log.Error(err)
+		return promptTypes.Person{}, false, fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	return promptTypes.Person{
+		ID:        tutorID,
+		FirstName: tutor.FirstName,
+		LastName:  tutor.LastName,
+	}, added > 0, nil
+}
+
+// RemoveTutorFromTeam removes one team from a tutor. A tutor removed from their last team is no
+// longer a tutor of the phase, since a tutor is someone who leads at least one team.
+func (s *TeamsService) RemoveTutorFromTeam(ctx context.Context, coursePhaseID, teamID, tutorID uuid.UUID) error {
+	if err := ensureTeamInPhase(ctx, &s.queries, coursePhaseID, teamID); err != nil {
+		return err
+	}
+
+	removed, err := s.queries.RemoveTutorFromTeam(ctx, db.RemoveTutorFromTeamParams{
+		CoursePhaseID:         coursePhaseID,
+		TeamID:                teamID,
+		CourseParticipationID: tutorID,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to remove tutor %s from team %s: %w", tutorID, teamID, err)
+	}
+	if removed == 0 {
+		return ErrTutorNotFound
+	}
+	return nil
+}
+
+func ensureTeamInPhase(ctx context.Context, queries *db.Queries, coursePhaseID, teamID uuid.UUID) error {
+	_, err := queries.GetTeamByCoursePhaseAndTeamID(ctx, db.GetTeamByCoursePhaseAndTeamIDParams{
+		ID:            teamID,
+		CoursePhaseID: coursePhaseID,
+	})
+	if errors.Is(err, pgx.ErrNoRows) {
+		return ErrInvalidTeamForPhase
+	}
+	if err != nil {
+		return fmt.Errorf("failed to get team %s: %w", teamID, err)
+	}
 	return nil
 }
 

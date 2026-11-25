@@ -108,6 +108,27 @@ func (q *Queries) GetAllCoursePhaseForCourse(ctx context.Context, courseID uuid.
 	return items, nil
 }
 
+const getApplicationAnswersSourceForCoursePhase = `-- name: GetApplicationAnswersSourceForCoursePhase :one
+SELECT mdg.from_course_phase_id
+FROM participation_data_dependency_graph mdg
+JOIN course_phase_type_participation_provided_output_dto po
+  ON po.id = mdg.from_course_phase_DTO_id
+WHERE mdg.to_course_phase_id = $1
+  AND po.dto_name = 'applicationAnswers'
+  AND po.endpoint_path = 'core'
+ORDER BY mdg.from_course_phase_id
+LIMIT 1
+`
+
+// The Application phase whose exported answers reach this phase as prevData.applicationAnswers,
+// matched the same way as the applicationAnswers projection in course_phase_participation.sql.
+func (q *Queries) GetApplicationAnswersSourceForCoursePhase(ctx context.Context, toCoursePhaseID uuid.UUID) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, getApplicationAnswersSourceForCoursePhase, toCoursePhaseID)
+	var from_course_phase_id uuid.UUID
+	err := row.Scan(&from_course_phase_id)
+	return from_course_phase_id, err
+}
+
 const getCourseIDByCoursePhaseID = `-- name: GetCourseIDByCoursePhaseID :one
 SELECT course_id
 FROM course_phase

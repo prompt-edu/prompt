@@ -583,6 +583,13 @@ VALUES (gen_random_uuid(),
               {
                 "type": "object",
                 "properties": {
+                  "questionID": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "title": {
+                    "type": "string"
+                  },
                   "answer": {
                     "type": "string"
                   },
@@ -600,6 +607,8 @@ VALUES (gen_random_uuid(),
                   }
                 },
                 "required": [
+                  "questionID",
+                  "title",
                   "answer",
                   "key",
                   "order_num",
@@ -609,6 +618,13 @@ VALUES (gen_random_uuid(),
               {
                 "type": "object",
                 "properties": {
+                  "questionID": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "title": {
+                    "type": "string"
+                  },
                   "answer": {
                     "type": "array",
                     "items": {
@@ -629,6 +645,8 @@ VALUES (gen_random_uuid(),
                   }
                 },
                 "required": [
+                  "questionID",
+                  "title",
                   "answer",
                   "key",
                   "order_num",

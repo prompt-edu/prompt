@@ -46,6 +46,19 @@ WHERE mdg.to_course_phase_id = $1
 
 
 
+-- name: GetApplicationAnswersSourceForCoursePhase :one
+-- The Application phase whose exported answers reach this phase as prevData.applicationAnswers,
+-- matched the same way as the applicationAnswers projection in course_phase_participation.sql.
+SELECT mdg.from_course_phase_id
+FROM participation_data_dependency_graph mdg
+JOIN course_phase_type_participation_provided_output_dto po
+  ON po.id = mdg.from_course_phase_DTO_id
+WHERE mdg.to_course_phase_id = $1
+  AND po.dto_name = 'applicationAnswers'
+  AND po.endpoint_path = 'core'
+ORDER BY mdg.from_course_phase_id
+LIMIT 1;
+
 -- name: GetPrevCoursePhaseDataFromCore :one
 SELECT jsonb_object_agg(sub.dto_name, sub.dto_value) AS incoming_dto_objects
 FROM (

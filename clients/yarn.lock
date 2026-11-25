@@ -5086,20 +5086,20 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tumaet/prompt-shared-state@npm:1.5.0":
-  version: 1.5.0
-  resolution: "@tumaet/prompt-shared-state@npm:1.5.0"
+"@tumaet/prompt-shared-state@npm:1.5.1":
+  version: 1.5.1
+  resolution: "@tumaet/prompt-shared-state@npm:1.5.1"
   dependencies:
     axios: "npm:^1.21.1"
     i18n-iso-countries: "npm:^7.14.0"
-    js-sha256: "npm:^1.0.0"
+    js-sha256: "npm:^1.1.0"
     typescript: "npm:^7.0.2"
     zustand: "npm:^5.1.0"
   peerDependencies:
-    "@tanstack/react-query": ^5.107.1
+    "@tanstack/react-query": ^5.108.0
     react: ^19.3.1
     react-router-dom: ^7.18.5
-  checksum: 10c0/cbe740155b34b20482994994c144e01bcce4dda7e984fc3c972161f3e563091f731ecd07e2802302a279d2634ceeb87cbfd3a0487e9e9acb6067baae5dd014bb
+  checksum: 10c0/251035b402adb926798288190e49fbc70734205478174a1716ca1d084c82b4c330fbfe89d376c205d09ec39e6a69f15b08fbc6bc7aaa24f79ebc351b275d293d
   languageName: node
   linkType: hard
 
@@ -8078,10 +8078,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"js-sha256@npm:^1.0.0":
-  version: 1.0.0
-  resolution: "js-sha256@npm:1.0.0"
-  checksum: 10c0/24749f9ce929d3121324ba168f120802177939ca8b5411ef3ac69e6333b005a1be92279be50b41e24c1e30094d4eb6e231be7471e50fa5aa54a600f6fcd05612
+"js-sha256@npm:^1.1.0":
+  version: 1.1.0
+  resolution: "js-sha256@npm:1.1.0"
+  checksum: 10c0/1d565839a0ff8cce5ad98632f6cc9ab60d2dd350d39569c0e75f01288dbcb25a52cc9336b937a4556b8031d020b42c0ec731bfc7d75b9fa351cdc61ae4221635
   languageName: node
   linkType: hard
 
@@ -10156,7 +10156,7 @@ __metadata:
     "@tiptap/pm": "npm:^3.34.0"
     "@tiptap/react": "npm:^3.34.0"
     "@tiptap/starter-kit": "npm:^3.34.0"
-    "@tumaet/prompt-shared-state": "npm:1.5.0"
+    "@tumaet/prompt-shared-state": "npm:1.5.1"
     "@tumaet/prompt-ui-components": "npm:1.13.0"
     "@types/node": "npm:^26.6.6"
     "@types/react": "npm:^19.3.0"

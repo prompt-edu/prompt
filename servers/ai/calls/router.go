@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt-sdk/ai"
 	"github.com/prompt-edu/prompt-sdk/keycloakTokenVerifier"
 	"github.com/prompt-edu/prompt-sdk/serviceAuth"
 	sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
@@ -77,7 +78,7 @@ func (s *Service) addEvent(c *gin.Context) {
 	if !ok {
 		return
 	}
-	var request callDTO.EventRequest
+	var request ai.EventRequest
 	if err := c.ShouldBindJSON(&request); err != nil {
 		c.JSON(http.StatusBadRequest, sdkUtils.ErrorResponse{Error: "type must be shown, accepted, edited or rejected"})
 		return

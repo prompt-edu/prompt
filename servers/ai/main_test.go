@@ -17,13 +17,13 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	promptSDK "github.com/prompt-edu/prompt-sdk"
+	"github.com/prompt-edu/prompt-sdk/ai"
 	"github.com/prompt-edu/prompt-sdk/serviceAuth"
 	sdkTestUtils "github.com/prompt-edu/prompt-sdk/testutils"
 	"github.com/prompt-edu/prompt/servers/ai/calls"
 	"github.com/prompt-edu/prompt/servers/ai/calls/callDTO"
 	db "github.com/prompt-edu/prompt/servers/ai/db/sqlc"
 	"github.com/prompt-edu/prompt/servers/ai/encryption"
-	"github.com/prompt-edu/prompt/servers/ai/gateway"
 	"github.com/prompt-edu/prompt/servers/ai/testutils"
 	"github.com/stretchr/testify/suite"
 )
@@ -156,15 +156,15 @@ func (s *AIServerSuite) newPhase(phaseType string) string {
 }
 
 func serviceHeaders() map[string]string {
-	return map[string]string{gateway.ServiceHeader: testService, gateway.ServiceTokenHeader: testServiceKey}
+	return map[string]string{ai.ServiceHeader: testService, ai.ServiceTokenHeader: testServiceKey}
 }
 
 // phaseHeaders are the headers a phase server sends: its service key, its own Logos key and the
 // feature. An empty override leaves that header out.
 func phaseHeaders(overrides map[string]string) map[string]string {
 	headers := serviceHeaders()
-	headers[gateway.ProviderKeyHeader] = testLogosKey
-	headers[gateway.FeatureHeader] = testFeature
+	headers[ai.ProviderKeyHeader] = testLogosKey
+	headers[ai.FeatureHeader] = testFeature
 	for name, value := range overrides {
 		headers[name] = value
 	}
@@ -270,7 +270,7 @@ func (s *AIServerSuite) TestProviderKeyIsForwardedButNeverStored() {
 	s.Require().NoError(s.db.Conn.QueryRow(s.ctx, `
 		SELECT row_to_json(ai_call)::text || coalesce(row_to_json(content)::text, '')
 		FROM ai_call LEFT JOIN ai_call_content content ON content.call_id = ai_call.id
-		WHERE ai_call.id = $1`, response.Header.Get(gateway.CallIDHeader)).Scan(&stored))
+		WHERE ai_call.id = $1`, response.Header.Get(ai.CallIDHeader)).Scan(&stored))
 	s.NotContains(stored, testLogosKey, "the AI server keeps no key")
 }
 
@@ -279,16 +279,16 @@ func (s *AIServerSuite) TestInferenceNeedsAServiceKey() {
 	chat := completion(testutils.TestModel, summaryPrompt, false)
 
 	for name, overrides := range map[string]map[string]string{
-		"a staff token alone, as from the browser": {gateway.ServiceHeader: "", gateway.ServiceTokenHeader: ""},
-		"a wrong key":            {gateway.ServiceTokenHeader: "guessed-key"},
-		"another service's name": {gateway.ServiceHeader: "interview"},
+		"a staff token alone, as from the browser": {ai.ServiceHeader: "", ai.ServiceTokenHeader: ""},
+		"a wrong key":            {ai.ServiceTokenHeader: "guessed-key"},
+		"another service's name": {ai.ServiceHeader: "interview"},
 	} {
 		response, _ := s.chat(coursePhaseID, s.lecturer(coursePhaseID), chat, overrides)
 		s.Equal(http.StatusUnauthorized, response.StatusCode, name)
-		s.Empty(response.Header.Get(gateway.CallIDHeader), "%s: nothing is recorded", name)
+		s.Empty(response.Header.Get(ai.CallIDHeader), "%s: nothing is recorded", name)
 	}
 	response, _ := s.send(http.MethodGet, phasePath(coursePhaseID)+"/v1/models", s.lecturer(coursePhaseID), nil,
-		map[string]string{gateway.ProviderKeyHeader: testLogosKey})
+		map[string]string{ai.ProviderKeyHeader: testLogosKey})
 	s.Equal(http.StatusUnauthorized, response.StatusCode)
 
 	var recorded int
@@ -301,14 +301,14 @@ func (s *AIServerSuite) TestInvalidLabelsAreDeniedWithoutBeingStored() {
 	coursePhaseID := s.newPhase("Assessment")
 
 	for header, value := range map[string]string{
-		gateway.FeatureHeader:       "assessment.<script>",
-		"X-Prompt-Template":         strings.Repeat("a", 129),
-		"X-Prompt-Template-Version": "1 OR 1=1",
+		ai.FeatureHeader:         "assessment.<script>",
+		ai.TemplateHeader:        strings.Repeat("a", 129),
+		ai.TemplateVersionHeader: "1 OR 1=1",
 	} {
 		response, _ := s.chat(coursePhaseID, s.lecturer(coursePhaseID), completion(testutils.TestModel, summaryPrompt, false),
 			map[string]string{header: value})
 		s.Equal(http.StatusBadRequest, response.StatusCode, header)
-		row := s.call(response.Header.Get(gateway.CallIDHeader))
+		row := s.call(response.Header.Get(ai.CallIDHeader))
 		s.Equal("invalid_label", *row.ErrorCode, header)
 		s.NotEqual(value, row.Feature, header)
 		s.True(row.Template == nil || *row.Template != value, header)
@@ -322,10 +322,10 @@ func (s *AIServerSuite) TestCallWithoutProviderKeyIsDenied() {
 
 	for _, key := range []string{"", "short", "with a space in it"} {
 		response, body := s.chat(coursePhaseID, s.lecturer(coursePhaseID), completion(testutils.TestModel, summaryPrompt, false),
-			map[string]string{gateway.ProviderKeyHeader: key})
+			map[string]string{ai.ProviderKeyHeader: key})
 		s.Equal(http.StatusBadRequest, response.StatusCode, "key %q", key)
-		s.Contains(string(body), gateway.ProviderKeyHeader)
-		s.Equal("provider_key_missing", *s.call(response.Header.Get(gateway.CallIDHeader)).ErrorCode)
+		s.Contains(string(body), ai.ProviderKeyHeader)
+		s.Equal("provider_key_missing", *s.call(response.Header.Get(ai.CallIDHeader)).ErrorCode)
 	}
 	response, _ := s.send(http.MethodGet, phasePath(coursePhaseID)+"/v1/models", s.lecturer(coursePhaseID), nil, serviceHeaders())
 	s.Equal(http.StatusBadRequest, response.StatusCode)
@@ -338,14 +338,14 @@ func (s *AIServerSuite) TestNonStreamedCompletionIsRecorded() {
 
 	response, body := s.chat(coursePhaseID, s.lecturer(coursePhaseID),
 		completion(testutils.TestModel, summaryPrompt, false), map[string]string{
-			"X-Prompt-Template":         "action-items",
-			"X-Prompt-Template-Version": "3",
-			"X-Prompt-Subjects":         subject,
+			ai.TemplateHeader:        "action-items",
+			ai.TemplateVersionHeader: "3",
+			ai.SubjectsHeader:        subject,
 		})
 	s.Require().Equal(http.StatusOK, response.StatusCode, string(body))
 	s.Contains(string(body), summaryAnswer)
 
-	row := s.call(response.Header.Get(gateway.CallIDHeader))
+	row := s.call(response.Header.Get(ai.CallIDHeader))
 	s.Equal(calls.OutcomeSuccess, row.Outcome)
 	s.Equal(testFeature, row.Feature)
 	s.Equal(s.lecturerID, row.ActorID)
@@ -377,7 +377,7 @@ func (s *AIServerSuite) TestStreamedCompletionIsRecorded() {
 	s.Contains(response.Header.Get("Content-Type"), "text/event-stream")
 	s.Contains(string(body), "data: [DONE]")
 
-	row := s.call(response.Header.Get(gateway.CallIDHeader))
+	row := s.call(response.Header.Get(ai.CallIDHeader))
 	s.Equal(calls.OutcomeSuccess, row.Outcome)
 	s.True(row.Streamed)
 	s.Equal("stop", *row.FinishReason)
@@ -406,7 +406,7 @@ func (s *AIServerSuite) TestCallerDisconnectStillCompletesTheCall() {
 	}
 	response, err := http.DefaultClient.Do(request)
 	s.Require().NoError(err)
-	callID := response.Header.Get(gateway.CallIDHeader)
+	callID := response.Header.Get(ai.CallIDHeader)
 
 	stream := bufio.NewReader(response.Body)
 	for {
@@ -450,7 +450,7 @@ func (s *AIServerSuite) TestProviderBreakingOffAbortsTheCallersStream() {
 	_, err = io.ReadAll(response.Body)
 	s.Error(err, "a broken stream must not look complete to the caller")
 
-	row := s.call(response.Header.Get(gateway.CallIDHeader))
+	row := s.call(response.Header.Get(ai.CallIDHeader))
 	s.Equal(calls.OutcomeError, row.Outcome)
 	s.Equal("stream_interrupted", *row.ErrorCode)
 }
@@ -460,7 +460,7 @@ func (s *AIServerSuite) TestFailedCallShowsTheProvidersAnswer() {
 
 	response, _ := s.chat(coursePhaseID, s.lecturer(coursePhaseID), completion(testutils.TestModel, "No fixture matches this", false), nil)
 	s.Equal(http.StatusNotFound, response.StatusCode)
-	callID := response.Header.Get(gateway.CallIDHeader)
+	callID := response.Header.Get(ai.CallIDHeader)
 	s.Equal(calls.OutcomeError, s.call(callID).Outcome)
 
 	_, body := s.send(http.MethodGet, phasePath(coursePhaseID)+"/calls/"+callID, s.admin(), nil, nil)
@@ -481,7 +481,7 @@ func (s *AIServerSuite) TestDisallowedModelIsDeniedBeforeTheProvider() {
 	response, _ := s.chat(coursePhaseID, s.lecturer(coursePhaseID), completion("cloud-only-model", "Only offered by the cloud", false), nil)
 	s.Equal(http.StatusBadRequest, response.StatusCode)
 
-	row := s.call(response.Header.Get(gateway.CallIDHeader))
+	row := s.call(response.Header.Get(ai.CallIDHeader))
 	s.Equal(calls.OutcomeDenied, row.Outcome)
 	s.Equal("model_not_allowed", *row.ErrorCode)
 	s.False(row.HasContent, "a denied call keeps no content")
@@ -494,12 +494,12 @@ func (s *AIServerSuite) TestFeatureMustBelongToThePhaseType() {
 
 	response, _ := s.chat(coursePhaseID, s.lecturer(coursePhaseID), chat, nil)
 	s.Equal(http.StatusBadRequest, response.StatusCode, "a feature of another phase type would get its retention")
-	s.Equal("feature_not_allowed", *s.call(response.Header.Get(gateway.CallIDHeader)).ErrorCode)
+	s.Equal("feature_not_allowed", *s.call(response.Header.Get(ai.CallIDHeader)).ErrorCode)
 
 	for _, name := range []string{"interview.summary", "adhoc", ""} {
-		response, _ = s.chat(coursePhaseID, s.lecturer(coursePhaseID), chat, map[string]string{gateway.FeatureHeader: name})
+		response, _ = s.chat(coursePhaseID, s.lecturer(coursePhaseID), chat, map[string]string{ai.FeatureHeader: name})
 		s.Equal(http.StatusBadRequest, response.StatusCode, "feature %q has no retention", name)
-		s.Equal("feature_not_allowed", *s.call(response.Header.Get(gateway.CallIDHeader)).ErrorCode)
+		s.Equal("feature_not_allowed", *s.call(response.Header.Get(ai.CallIDHeader)).ErrorCode)
 	}
 	s.Empty(s.providerRequests())
 }
@@ -543,7 +543,7 @@ func (s *AIServerSuite) TestAuditReadsAndEvents() {
 	for range 3 {
 		response, _ := s.chat(coursePhaseID, s.lecturer(coursePhaseID), completion(testutils.TestModel, summaryPrompt, false), nil)
 		s.Require().Equal(http.StatusOK, response.StatusCode)
-		callIDs = append(callIDs, response.Header.Get(gateway.CallIDHeader))
+		callIDs = append(callIDs, response.Header.Get(ai.CallIDHeader))
 	}
 
 	_, body := s.send(http.MethodGet, phasePath(coursePhaseID)+"/calls?limit=2", s.admin(), nil, nil)
@@ -566,10 +566,10 @@ func (s *AIServerSuite) TestAuditReadsAndEvents() {
 	response, _ = s.send(http.MethodPost, callPath+"/events", s.editor(coursePhaseID), map[string]any{"type": "shown"}, serviceHeaders())
 	s.Equal(http.StatusNotFound, response.StatusCode, "only the caller reports events on their call")
 	response, _ = s.send(http.MethodPost, callPath+"/events", s.lecturer(coursePhaseID), map[string]any{"type": "accepted"},
-		map[string]string{gateway.ServiceHeader: otherService, gateway.ServiceTokenHeader: otherServiceKey})
+		map[string]string{ai.ServiceHeader: otherService, ai.ServiceTokenHeader: otherServiceKey})
 	s.Equal(http.StatusNotFound, response.StatusCode, "only the service that made the call reports events on it")
 	response, _ = s.send(http.MethodPost, callPath+"/events", s.admin(), map[string]any{"type": "accepted"},
-		map[string]string{gateway.ServiceHeader: otherService, gateway.ServiceTokenHeader: otherServiceKey})
+		map[string]string{ai.ServiceHeader: otherService, ai.ServiceTokenHeader: otherServiceKey})
 	s.Equal(http.StatusNotFound, response.StatusCode, "not even with an admin's token")
 	response, _ = s.send(http.MethodPost, callPath+"/events", s.lecturer(coursePhaseID), map[string]any{"type": "shown"}, serviceHeaders())
 	s.Equal(http.StatusCreated, response.StatusCode)
@@ -589,7 +589,7 @@ func (s *AIServerSuite) TestAuditReadsAndEvents() {
 	s.Equal(http.StatusNotFound, response.StatusCode)
 
 	denied, _ := s.chat(coursePhaseID, s.lecturer(coursePhaseID), completion("cloud-only-model", "Only offered by the cloud", false), nil)
-	response, _ = s.send(http.MethodPost, phasePath(coursePhaseID)+"/calls/"+denied.Header.Get(gateway.CallIDHeader)+"/events",
+	response, _ = s.send(http.MethodPost, phasePath(coursePhaseID)+"/calls/"+denied.Header.Get(ai.CallIDHeader)+"/events",
 		s.lecturer(coursePhaseID), map[string]any{"type": "shown"}, serviceHeaders())
 	s.Equal(http.StatusNotFound, response.StatusCode, "a denied call produced no output to oversee")
 
@@ -610,7 +610,7 @@ func (s *AIServerSuite) TestAuditTablesAreAppendOnly() {
 	coursePhaseID := s.newPhase("Assessment")
 	response, _ := s.chat(coursePhaseID, s.lecturer(coursePhaseID), completion(testutils.TestModel, summaryPrompt, false),
 		map[string]string{"X-Prompt-Subjects": uuid.NewString()})
-	callID := response.Header.Get(gateway.CallIDHeader)
+	callID := response.Header.Get(ai.CallIDHeader)
 	eventResponse, _ := s.send(http.MethodPost, phasePath(coursePhaseID)+"/calls/"+callID+"/events", s.lecturer(coursePhaseID),
 		map[string]any{"type": "shown"}, serviceHeaders())
 	s.Require().Equal(http.StatusCreated, eventResponse.StatusCode)
@@ -633,12 +633,12 @@ func (s *AIServerSuite) TestBodyLimits() {
 	tooLarge := completion(testutils.TestModel, strings.Repeat("a", 5<<20), false)
 	response, _ := s.chat(coursePhaseID, s.lecturer(coursePhaseID), tooLarge, nil)
 	s.Equal(http.StatusRequestEntityTooLarge, response.StatusCode)
-	s.Equal("request_too_large", *s.call(response.Header.Get(gateway.CallIDHeader)).ErrorCode)
+	s.Equal("request_too_large", *s.call(response.Header.Get(ai.CallIDHeader)).ErrorCode)
 
 	aboveDefault := map[string]any{"model": strings.Repeat("a", 3<<20)}
 	response, _ = s.chat(coursePhaseID, s.lecturer(coursePhaseID), aboveDefault, nil)
 	s.Equal(http.StatusBadRequest, response.StatusCode, "completions may exceed the default cap")
-	s.Equal("model_not_allowed", *s.call(response.Header.Get(gateway.CallIDHeader)).ErrorCode)
+	s.Equal("model_not_allowed", *s.call(response.Header.Get(ai.CallIDHeader)).ErrorCode)
 
 	response, _ = s.send(http.MethodPost, phasePath(coursePhaseID)+"/calls/"+uuid.NewString()+"/events", s.lecturer(coursePhaseID),
 		map[string]any{"type": "shown", "targetId": strings.Repeat("a", 3<<20)}, serviceHeaders())

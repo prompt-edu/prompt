@@ -48,6 +48,24 @@ import sdkUtils "github.com/prompt-edu/prompt-sdk/utils"
 - `FetchAndMergeCoursePhaseWithResolution(coreURL, authHeader, coursePhaseID)`
 - `ResolveParticipation`, `ResolveCoursePhaseData`, `ResolveAllParticipations`
 
+## AI server (`ai` subpackage)
+
+The contract between a phase service and the AI server (`servers/ai`). Never set the `X-Prompt-*`
+headers or post AI events by hand.
+
+- `ai.NewClientFromEnv(serviceName) *ai.Client`: from `AI_ENABLED`, `SERVER_AI_HOST` and
+  `AI_SERVICE_KEY`; nil while AI is off or misconfigured, so hide every AI surface on nil and while
+  `client.Healthy(ctx)` is false
+- `ai.Call{ProviderKey, Feature, Template, TemplateVersion, Subjects}`: the phase's Logos key, the
+  feature as `<service>.<feature>`, and the course participations the call is about
+- `client.ChatCompletion(ctx, coursePhaseID, authHeader, call, body)`: the answer comes back unread
+  for a stream pass-through; `ai.CallID(response.Header)` names the recorded call
+- `client.PostEvent(ctx, coursePhaseID, callID, authHeader, ai.EventRequest{...})`: `shown`,
+  `accepted`, `edited` (needs `EditDistance`), `rejected`, with `TargetID`
+- `client.Transport` and `client.BaseURL` for a stock OpenAI client, `client.SetHeaders` for an
+  `httputil.ReverseProxy`. The AI server reads the same header constants, `ai.ValidLabel`,
+  `ai.ValidProviderKey` and `ai.MaxSubjects`
+
 ## Utilities
 
 - `GetEnv(key, defaultValue string) string`

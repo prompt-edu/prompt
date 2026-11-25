@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+	"github.com/prompt-edu/prompt-sdk/ai"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -64,6 +65,6 @@ func TestParseSubjects(t *testing.T) {
 	_, err = parseSubjects(first.String() + ",not-a-uuid")
 	assert.Error(t, err)
 
-	_, err = parseSubjects(strings.Repeat(first.String()+",", maxSubjects) + second.String())
+	_, err = parseSubjects(strings.Repeat(first.String()+",", ai.MaxSubjects) + second.String())
 	assert.ErrorIs(t, err, errTooManySubjects)
 }

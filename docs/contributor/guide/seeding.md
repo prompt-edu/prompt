@@ -107,7 +107,7 @@ instead of half-seeding. The readiness checks all run before the first delete, b
 there is no transaction *across* databases: if the run fails midway, some databases
 hold the new seed and others the previous one, and the next run repairs it.
 
-`make seed` runs the script inside a `postgres:15.19-alpine` container on the compose
+`make seed` runs the script inside a `postgres:15.20-alpine` container on the compose
 network, so you need no local `psql` and local development takes the same code path
 as CI. The script itself is plain POSIX `sh` and runs on the host too if you have
 `psql`:

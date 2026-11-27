@@ -228,7 +228,7 @@ services:
       start_period: 10s
 
   db-self-team-allocation:
-    image: "postgres:15.19-alpine"
+    image: "postgres:15.20-alpine"
     container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-e2e-db-self-team-allocation
     environment:
       - POSTGRES_USER=${DB_SELF_TEAM_ALLOCATION_USER}
@@ -304,7 +304,7 @@ services:
       start_period: 10s
 
   db-example:
-    image: "postgres:15.19-alpine"
+    image: "postgres:15.20-alpine"
     container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-e2e-db-example
     environment:
       - POSTGRES_USER=${DB_EXAMPLE_USER}
@@ -377,7 +377,7 @@ services:
       start_period: 10s
 
   db-assessment:
-    image: "postgres:15.19-alpine"
+    image: "postgres:15.20-alpine"
     container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-e2e-db-assessment
     environment:
       - POSTGRES_USER=${DB_ASSESSMENT_USER}
@@ -474,7 +474,7 @@ services:
       start_period: 10s
 
   db-interview:
-    image: "postgres:15.19-alpine"
+    image: "postgres:15.20-alpine"
     container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-e2e-db-interview
     environment:
       - POSTGRES_USER=${DB_INTERVIEW_USER}
@@ -552,7 +552,7 @@ services:
       start_period: 10s
 
   db-certificate:
-    image: "postgres:15.19-alpine"
+    image: "postgres:15.20-alpine"
     container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-e2e-db-certificate
     environment:
       - POSTGRES_USER=${DB_CERTIFICATE_USER}
@@ -631,7 +631,7 @@ services:
       start_period: 10s
 
   db-presentation:
-    image: "postgres:15.19-alpine"
+    image: "postgres:15.20-alpine"
     container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-e2e-db-presentation
     environment:
       - POSTGRES_USER=${DB_PRESENTATION_USER}
@@ -701,7 +701,7 @@ services:
       start_period: 10s
 
   db-infrastructure-setup:
-    image: "postgres:15.19-alpine"
+    image: "postgres:15.20-alpine"
     container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-e2e-db-infrastructure-setup
     environment:
       - POSTGRES_USER=${DB_INFRASTRUCTURE_SETUP_USER}
@@ -776,7 +776,7 @@ services:
       start_period: 10s
 
   db-team-allocation:
-    image: "postgres:15.19-alpine"
+    image: "postgres:15.20-alpine"
     container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-e2e-db-team-allocation
     environment:
       - POSTGRES_USER=${DB_TEAM_ALLOCATION_USER}
@@ -833,7 +833,7 @@ services:
       - AI_SERVICE_KEYS=assessment:e2e-assessment-ai-key
 
   db-ai:
-    image: "postgres:15.19-alpine"
+    image: "postgres:15.20-alpine"
     container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-e2e-db-ai
     profiles: [ai]
     environment:
@@ -891,7 +891,7 @@ services:
     init: true
 
   db:
-    image: "postgres:15.19-alpine"
+    image: "postgres:15.20-alpine"
     container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-e2e-db
     environment:
       - POSTGRES_USER=${DB_CORE_USER}
@@ -909,7 +909,7 @@ services:
     # No host port: only server-core talks to the DB, over the compose network.
 
   keycloak-db:
-    image: "postgres:15.19-alpine"
+    image: "postgres:15.20-alpine"
     container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-e2e-keycloak-db
     environment:
       - POSTGRES_USER=${KEYCLOAK_DB_USER}
@@ -1073,7 +1073,7 @@ services:
   # schema_migrations reaches the version the migration directory declares, so
   # `service_started` is enough of a dependency here.
   seed:
-    image: "postgres:15.19-alpine"
+    image: "postgres:15.20-alpine"
     container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-e2e-seed
     entrypoint: ["/seed.sh"]
     depends_on:

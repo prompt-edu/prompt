@@ -6516,7 +6516,7 @@ __metadata:
     "@docusaurus/types": "npm:3.10.2"
     "@mdx-js/react": "npm:^3.1.1"
     clsx: "npm:^2.1.1"
-    lucide-react: "npm:^1.74.0"
+    lucide-react: "npm:^1.77.0"
     prism-react-renderer: "npm:^2.4.1"
     react: "npm:^19.3.1"
     react-dom: "npm:^19.3.1"
@@ -8796,16 +8796,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"lucide-react@npm:^1.74.0":
-  version: 1.78.0
-  resolution: "lucide-react@npm:1.78.0"
+"lucide-react@npm:^1.77.0":
+  version: 1.81.0
+  resolution: "lucide-react@npm:1.81.0"
   peerDependencies:
     "@types/react": "*"
     react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
   peerDependenciesMeta:
     "@types/react":
       optional: true
-  checksum: 10c0/1bdff1fdfc09a2da9ba67eed9b6a0a8ef8112ab01a44a5d4e4347c40190910190f0f1ca12bdc4c4795527047b4c09e92941141e08063180a20e324bab55afc62
+  checksum: 10c0/67443e6a69852dfe11d690ad8feabc13e1232876189c5cfa618bdfbd0a89dc1f3f601383fd174da674d301a7c681c16a6193e05ef2050a40deaea5237e6fd25b
   languageName: node
   linkType: hard
 

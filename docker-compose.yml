@@ -532,7 +532,7 @@ services:
     image: ghcr.io/prompt-edu/prompt/prompt-clients-base:local
 
   db:
-    image: "postgres:15.19-alpine"
+    image: "postgres:15.20-alpine"
     container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-db
     environment:
       - POSTGRES_USER=${DB_CORE_USER}
@@ -550,7 +550,7 @@ services:
       - "${PROMPT_PORT_5432:-5432}:5432"
 
   db-team-allocation:
-    image: "postgres:15.19-alpine"
+    image: "postgres:15.20-alpine"
     container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-db-team-allocation
     environment:
       - POSTGRES_USER=${DB_TEAM_ALLOCATION_USER}
@@ -572,7 +572,7 @@ services:
       - "${PROMPT_PORT_5434:-5434}:5432"
 
   db-assessment:
-    image: "postgres:15.19-alpine"
+    image: "postgres:15.20-alpine"
     container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-db-assessment
     environment:
       - POSTGRES_USER=${DB_ASSESSMENT_USER}
@@ -595,7 +595,7 @@ services:
 
   # Database for the example server
   db-example-server:
-    image: "postgres:15.19-alpine"
+    image: "postgres:15.20-alpine"
     container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-db-example-server
     environment:
       - POSTGRES_USER=${DB_EXAMPLE_USER:-prompt-postgres}
@@ -616,7 +616,7 @@ services:
       - "${PROMPT_PORT_5437:-5437}:5432"
 
   db-interview:
-    image: "postgres:15.19-alpine"
+    image: "postgres:15.20-alpine"
     container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-db-interview
     environment:
       - POSTGRES_USER=${DB_INTERVIEW_USER:-prompt-postgres}
@@ -637,7 +637,7 @@ services:
       - "${PROMPT_PORT_5438:-5438}:5432"
 
   db-self-team-allocation:
-    image: "postgres:15.19-alpine"
+    image: "postgres:15.20-alpine"
     container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-db-self-team-allocation
     environment:
       - POSTGRES_USER=${DB_SELF_TEAM_ALLOCATION_USER}
@@ -659,7 +659,7 @@ services:
       - "${PROMPT_PORT_5436:-5436}:5432"
 
   db-certificate:
-    image: "postgres:15.19-alpine"
+    image: "postgres:15.20-alpine"
     container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-db-certificate
     environment:
       - POSTGRES_USER=${DB_CERTIFICATE_USER}
@@ -681,7 +681,7 @@ services:
       - "${PROMPT_PORT_5439:-5439}:5432"
 
   db-presentation:
-    image: "postgres:15.19-alpine"
+    image: "postgres:15.20-alpine"
     container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-db-presentation
     environment:
       - POSTGRES_USER=${DB_PRESENTATION_USER}
@@ -703,7 +703,7 @@ services:
       - "${PROMPT_PORT_5440:-5440}:5432"
 
   db-infrastructure-setup:
-    image: "postgres:15.19-alpine"
+    image: "postgres:15.20-alpine"
     container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-db-infrastructure-setup
     environment:
       - POSTGRES_USER=${DB_INFRASTRUCTURE_SETUP_USER}
@@ -725,7 +725,7 @@ services:
       - "${PROMPT_PORT_5441:-5441}:5432"
 
   db-ai:
-    image: "postgres:15.19-alpine"
+    image: "postgres:15.20-alpine"
     container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-db-ai
     profiles: [ai]
     environment:
@@ -744,7 +744,7 @@ services:
       - "${PROMPT_PORT_5442:-5442}:5432"
 
   keycloak-db:
-    image: "postgres:15.19-alpine"
+    image: "postgres:15.20-alpine"
     container_name: ${PROMPT_CONTAINER_PREFIX:-prompt}-keycloak-db
     environment:
       - POSTGRES_USER=${KEYCLOAK_DB_USER}
@@ -912,7 +912,7 @@ services:
   # database to reach the migration version its source tree declares before
   # inserting anything.
   seed:
-    image: "postgres:15.19-alpine"
+    image: "postgres:15.20-alpine"
     profiles: ["seed"]
     entrypoint: ["/seed.sh"]
     volumes:
